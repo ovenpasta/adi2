@@ -27,154 +27,16 @@ package Text_Input_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Align_Items => Set (Stretch),
-      Justify_Content => Set (Flex_Start),
-      Gap => Set (Gap (Px (12.0))),
-      Background_Color => Set_Bg (RGB (20, 24, 31)),
-      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
-      others => <>);
-
-   --  Base style for class 'container'
-   function Container_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Align_Items => Set (Stretch),
-      Justify_Content => Set (Flex_Start),
-      Flex_Grow => Set (1.0),
-      Gap => Set (Gap (Px (12.0))),
-      Background_Color => Set_Bg (RGB (31, 41, 55)),
-      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
-      Border_Radius => Set (Radius (Px (10.0))),
-      others => <>);
-
-   --  Base style for class 'title'
-   function Title_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'title'::label
-   function Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (22.0)),
-      Font_Weight => Set (Weight_Semi_Bold),
-      others => <>);
-
-   --  Base style for class 'hint'
-   function Hint_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'hint'::label
-   function Hint_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (191, 219, 254)),
-      Font_Size => Set_Font (Px (13.0)),
-      Text_Wrap_Mode => Set (TWM_Wrap),
-      others => <>);
-
-   --  Base style for class 'echo-label'::label
-   function Echo_Label_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (165, 243, 252)),
-      Font_Size => Set_Font (Px (14.0)),
-      others => <>);
-
-   --  Base style for class 'length-label'::label
-   function Length_Label_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (147, 197, 253)),
-      Font_Size => Set_Font (Px (12.0)),
-      others => <>);
-
-   --  Base style for class 'input'
-   function Input_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (42.0))),
-      Flex_Shrink => Set (0.0),
-      Cursor => Set (Cursor_Text),
-      Background_Color => Set_Bg (C (White)),
-      Box_Shadow => Set (No_Shadow),
-      Padding => Set (CSS_Box (Px (10.0), Px (12.0), Px (10.0), Px (12.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (191, 219, 254))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Style for class 'input' when widget State_Focused
-   function Input_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (2.0), RGBA (59, 130, 246, 0.35))),
-      Border_Color => Set (Border_Color (RGB (59, 130, 246))),
-      others => <>);
-
-   --  Base style for class 'input'::cursor
-   function Input_Class_Cursor_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (37, 99, 235)),
-      others => <>);
-
-   --  Base style for class 'input'::selected
-   function Input_Class_Selected_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (191, 219, 254, 0.85)),
-      others => <>);
-
-   --  Base style for class 'input'::text
-   function Input_Class_Text_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (15, 23, 42)),
-      Font_Size => Set_Font (Px (14.0)),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'context-menu'
-   function Context_Menu_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (180.0))),
-      Background_Color => Set_Bg (RGB (15, 23, 42)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (8.0), Px (24.0), Px (0.0), RGBA (2, 6, 23, 0.45))),
-      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (59, 130, 246))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'context-menu-item'
-   function Context_Menu_Item_Class_Base_Style return Style_Rules is
-     (
-      Min_Height => Set (Size (Px (28.0))),
-      Background_Color => Set_Bg (RGBA (15, 23, 42, 0.0)),
-      Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Style for class 'context-menu-item' when widget State_Hovered
-   function Context_Menu_Item_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (37, 99, 235, 0.35)),
-      others => <>);
-
-   --  Base style for class 'context-menu-item'::label
-   function Context_Menu_Item_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (219, 234, 254)),
-      Font_Size => Set_Font (Px (13.0)),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Align_Items (Stretch)
+        .Justify_Content (Flex_Start)
+        .Gap (Gap (Px (12.0)))
+        .Background (RGB (20, 24, 31))
+        .Padding (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0)))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -184,9 +46,18 @@ package Text_Input_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'container'
+   --  Style for class 'container'
    Container_Class_Widget : constant Widget_Style :=
-     From (Container_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Align_Items (Stretch)
+        .Justify_Content (Flex_Start)
+        .Flex_Grow (1.0)
+        .Gap (Gap (Px (12.0)))
+        .Background (RGB (31, 41, 55))
+        .Padding (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0)))
+        .Radius (Radius (Px (10.0)))
      .Build;
 
    --  Part styles bundle for class 'container'
@@ -196,14 +67,18 @@ package Text_Input_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'title'
+   --  Style for class 'title'
    Title_Class_Widget : constant Widget_Style :=
-     From (Title_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'title'::label
+   --  Style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
-     From (Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (22.0))
+        .Font_Weight (Weight_Semi_Bold)
      .Build;
 
    --  Part styles bundle for class 'title'
@@ -214,14 +89,18 @@ package Text_Input_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'hint'
+   --  Style for class 'hint'
    Hint_Class_Widget : constant Widget_Style :=
-     From (Hint_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'hint'::label
+   --  Style for class 'hint'::label
    Hint_Class_Label_Widget : constant Widget_Style :=
-     From (Hint_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (191, 219, 254))
+        .Font_Size (Px (13.0))
+        .Text_Wrap_Mode (TWM_Wrap)
      .Build;
 
    --  Part styles bundle for class 'hint'
@@ -232,9 +111,11 @@ package Text_Input_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'echo-label'::label
+   --  Style for class 'echo-label'::label
    Echo_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Echo_Label_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (165, 243, 252))
+        .Font_Size (Px (14.0))
      .Build;
 
    --  Part styles bundle for class 'echo-label'
@@ -244,9 +125,11 @@ package Text_Input_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'length-label'::label
+   --  Style for class 'length-label'::label
    Length_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Length_Label_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (147, 197, 253))
+        .Font_Size (Px (12.0))
      .Build;
 
    --  Part styles bundle for class 'length-label'
@@ -256,25 +139,43 @@ package Text_Input_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'input'
+   --  Style for class 'input'
    Input_Class_Widget : constant Widget_Style :=
-     From (Input_Class_Base_Style)
-     .On (When_State (State_Focused), Input_Class_Widget_Focused_Style)
+     Style_Of
+        .Height (Size (Px (42.0)))
+        .Flex_Shrink (0.0)
+        .Cursor_Style (Cursor_Text)
+        .Background (C (White))
+        .Box_Shadow (No_Shadow)
+        .Padding (CSS_Box (Px (10.0), Px (12.0), Px (10.0), Px (12.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (191, 219, 254)))
+        .Radius (Radius (Px (8.0)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (2.0), RGBA (59, 130, 246, 0.35)))
+        .Border_Color (Border_Color (RGB (59, 130, 246)))
      .Build;
 
-   --  Complete widget style for class 'input'::cursor
+   --  Style for class 'input'::cursor
    Input_Class_Cursor_Widget : constant Widget_Style :=
-     From (Input_Class_Cursor_Base_Style)
+     Style_Of
+        .Background (RGB (37, 99, 235))
      .Build;
 
-   --  Complete widget style for class 'input'::selected
+   --  Style for class 'input'::selected
    Input_Class_Selected_Widget : constant Widget_Style :=
-     From (Input_Class_Selected_Base_Style)
+     Style_Of
+        .Background (RGBA (191, 219, 254, 0.85))
      .Build;
 
-   --  Complete widget style for class 'input'::text
+   --  Style for class 'input'::text
    Input_Class_Text_Widget : constant Widget_Style :=
-     From (Input_Class_Text_Base_Style)
+     Style_Of
+        .Text_Color (RGB (15, 23, 42))
+        .Font_Size (Px (14.0))
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'input'
@@ -287,9 +188,17 @@ package Text_Input_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'context-menu'
+   --  Style for class 'context-menu'
    Context_Menu_Class_Widget : constant Widget_Style :=
-     From (Context_Menu_Class_Base_Style)
+     Style_Of
+        .Width (Size (Px (180.0)))
+        .Background (RGB (15, 23, 42))
+        .Box_Shadow (Shadow (Px (0.0), Px (8.0), Px (24.0), Px (0.0), RGBA (2, 6, 23, 0.45)))
+        .Padding (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (59, 130, 246)))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'context-menu'
@@ -299,15 +208,23 @@ package Text_Input_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'context-menu-item'
+   --  Style for class 'context-menu-item'
    Context_Menu_Item_Class_Widget : constant Widget_Style :=
-     From (Context_Menu_Item_Class_Base_Style)
-     .On (When_State (State_Hovered), Context_Menu_Item_Class_Widget_Hovered_Style)
+     Style_Of
+        .Min_Height (Size (Px (28.0)))
+        .Background (RGBA (15, 23, 42, 0.0))
+        .Padding (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0)))
+        .Radius (Radius (Px (6.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGBA (37, 99, 235, 0.35))
      .Build;
 
-   --  Complete widget style for class 'context-menu-item'::label
+   --  Style for class 'context-menu-item'::label
    Context_Menu_Item_Class_Label_Widget : constant Widget_Style :=
-     From (Context_Menu_Item_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (219, 234, 254))
+        .Font_Size (Px (13.0))
      .Build;
 
    --  Part styles bundle for class 'context-menu-item'

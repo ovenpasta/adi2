@@ -434,6 +434,10 @@ package Adi.Widget_Styles is
    --  owns no field of its own and is one step all the same, since the
    --  slot names the shorthand and Apply_Property is what moves the two
    --  axes.
+   --
+   --  A property whose values cascade one at a time carries a second
+   --  setter naming one of them -- an edge, a corner, or the grid track
+   --  list -- so a side longhand composes as a sheet writes it.
 
    function Text_Color (C : Composer; V : Color_Value) return Composer;
    function Background (C : Composer; V : Color_Value) return Composer;
@@ -463,6 +467,23 @@ package Adi.Widget_Styles is
 
    function Padding (C : Composer; V : CSS_Box_Value) return Composer;
    function Margin (C : Composer; V : CSS_Box_Value) return Composer;
+
+   --  One edge or one corner of a property whose values cascade
+   --  separately -- the side longhands, `margin-left: auto` among them.
+   --  A step naming an edge leaves the other three to the cascade,
+   --  where the whole-value setters above name all four.
+   function Padding (C : Composer; E : Edge; V : Length_Value)
+     return Composer;
+   function Margin (C : Composer; E : Edge; V : Margin_Value)
+     return Composer;
+   function Border_Width (C : Composer; E : Edge; V : Length_Value)
+     return Composer;
+   function Border_Color (C : Composer; E : Edge; V : Color_Value)
+     return Composer;
+   function Border_Style (C : Composer; E : Edge; V : Border_Style_Kind)
+     return Composer;
+   function Radius (C : Composer; K : Corner; V : Length_Value)
+     return Composer;
 
    function Width (C : Composer; V : Size_Value) return Composer;
    function Height (C : Composer; V : Size_Value) return Composer;
@@ -547,8 +568,13 @@ package Adi.Widget_Styles is
    function Align_Content
      (C : Composer; V : Align_Content_Value) return Composer;
    function Gap (C : Composer; V : Gap_Value) return Composer;
+   --  The column count, and the track sizes travelling with it. The
+   --  track list has no CSS_Property literal of its own, so it is
+   --  grid-template-columns' second part and cascades beside the count:
+   --  a chain naming both takes two steps.
    function Grid_Columns
      (C : Composer; V : Grid_Columns_Value) return Composer;
+   function Grid_Columns (C : Composer; V : Grid_Track_List) return Composer;
    function Grid_Rows (C : Composer; V : Grid_Rows_Value) return Composer;
 
    function Align_Self (C : Composer; V : Align_Self_Value) return Composer;
@@ -567,7 +593,9 @@ package Adi.Widget_Styles is
 
    --  Names the property as holding no value, which is what stops a
    --  rule earlier in the cascade showing through. Prop_Overflow clears
-   --  its two axes.
+   --  its two axes, and a property whose values cascade separately
+   --  clears all of them: CSS has no spelling for clearing one edge, so
+   --  neither does a chain.
    function Clear (C : Composer; P : CSS_Property) return Composer;
 
    -------------------------------------------------
@@ -646,10 +674,19 @@ private
    --  chain named, in the order it named them.
    type Rule_Slot is range 0 .. Max_Style_Rules;
 
+   --  Which of the property's values the step names: Whole_Part for the
+   --  property's own, and 0 .. 3 for the edge, corner, gap axis or
+   --  track list Adi.CSS_Styles.Slot_Part names. One field rather than
+   --  a flag beside an index, so the slot stays at eight bytes.
+   type Chain_Part is range 0 .. 4;
+
+   Whole_Part : constant Chain_Part := 4;
+
    type Slot is record
       Rule : Rule_Slot;
       Prop : CSS_Property;
       Op   : Slot_Op;
+      Part : Chain_Part;
       Val  : Value_Ref;
    end record;
 

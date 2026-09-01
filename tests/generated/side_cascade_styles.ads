@@ -27,47 +27,15 @@ package Side_Cascade_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for tag 'box'
-   function Box_Tag_Base_Style return Style_Rules is
-     (
-      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
-      Margin => Set_Margin (CSS_Box (Px (6.0), Px (8.0), Px (6.0), Px (8.0))),
-      Border_Width => Set (Border_Width (Px (2.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (17, 34, 51))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'tweak'
-   function Tweak_Class_Base_Style return Style_Rules is
-     (
-      Padding => [Top => Set (Px (4.0)), others => <>],
-      Margin => [Bottom => Set_Margin_Side (Px (1.0)), others => <>],
-      Border_Width => [Left => Set (Px (5.0)), others => <>],
-      Border_Style => [Right => Set_Edge_Style (Dashed), others => <>],
-      Border_Color => [Top => Set_Edge_Color (RGB (68, 85, 102)), others => <>],
-      Border_Radius => [Bottom_Left => Set (Px (2.0)), others => <>],
-      others => <>);
-
-   --  Style for class 'tweak' when widget State_Hovered
-   function Tweak_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Padding => [Bottom => Set (Px (15.0)), others => <>],
-      Margin => [Left => Set_Margin_Side (Px (9.0)), others => <>],
-      others => <>);
-
-   --  Base style for id 'pin'
-   function Pin_Id_Base_Style return Style_Rules is
-     (
-      Padding => [Right => Set (Px (3.0)), others => <>],
-      Border_Width => [Top => Set (Px (7.0)), others => <>],
-      Border_Style => [Top => Set_Edge_Style (Dotted), others => <>],
-      Border_Color => [Top => Set_Edge_Color (RGB (9, 9, 9)), others => <>],
-      others => <>);
-
-   --  Complete widget style for tag 'box'
+   --  Style for tag 'box'
    Box_Tag_Widget : constant Widget_Style :=
-     From (Box_Tag_Base_Style)
+     Style_Of
+        .Padding (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0)))
+        .Margin (CSS_Box (Px (6.0), Px (8.0), Px (6.0), Px (8.0)))
+        .Border_Width (Border_Width (Px (2.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (17, 34, 51)))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for tag 'box'
@@ -77,10 +45,19 @@ package Side_Cascade_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'tweak'
+   --  Style for class 'tweak'
    Tweak_Class_Widget : constant Widget_Style :=
-     From (Tweak_Class_Base_Style)
-     .On (When_State (State_Hovered), Tweak_Class_Widget_Hovered_Style)
+     Style_Of
+        .Padding (Top, Px (4.0))
+        .Margin (Bottom, Margin (Px (1.0)))
+        .Border_Width (Left, Px (5.0))
+        .Border_Style (Right, Dashed)
+        .Border_Color (Top, RGB (68, 85, 102))
+        .Radius (Bottom_Left, Px (2.0))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Padding (Bottom, Px (15.0))
+        .Margin (Left, Margin (Px (9.0)))
      .Build;
 
    --  Part styles bundle for class 'tweak'
@@ -90,9 +67,13 @@ package Side_Cascade_Styles is
       others => <>
    ];
 
-   --  Complete widget style for id 'pin'
+   --  Style for id 'pin'
    Pin_Id_Widget : constant Widget_Style :=
-     From (Pin_Id_Base_Style)
+     Style_Of
+        .Padding (Right, Px (3.0))
+        .Border_Width (Top, Px (7.0))
+        .Border_Style (Top, Dotted)
+        .Border_Color (Top, RGB (9, 9, 9))
      .Build;
 
    --  Part styles bundle for id 'pin'

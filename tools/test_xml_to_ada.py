@@ -859,7 +859,7 @@ class TestInlineCSSIsCompiledIn(unittest.TestCase):
             app, "My_UI")
         self.assertIn("function Inline_Root_Metadata return Adi.CSS_Parser.Stylesheet_Metadata is", body)
         self.assertIn("function Inline_Root_Font_Size return Length_Value is (Dip (20.0));", body)
-        self.assertIn('Color => Set (C (Red))', body)
+        self.assertIn('.Text_Color (C (Red))', body)
         #  Root_Styles is a Part_Style_Array of handles, so the metadata
         #  names the constant and the fold is Merge_Part_Styles alone.
         self.assertIn(

@@ -107,14 +107,11 @@ begin
         Adi.Widget.Text_Editor.Create_Handle (Sample_Text);
 
       Wrap_On_Label_Widget : constant Widget_Style :=
-        From (Editor_Class_Text_Base_Style).Build;
+        Editor_Class_Text_Widget;
       Wrap_Off_Label_Widget : constant Widget_Style :=
-        From
-          (Merge
-             (Editor_Class_Text_Base_Style,
-              (White_Space    => Set (WS_Nowrap),
-               Text_Wrap_Mode => Set (TWM_Nowrap),
-               others => <>)))
+        Style_Of (Editor_Class_Text_Widget)
+           .White_Space (WS_Nowrap)
+           .Text_Wrap_Mode (TWM_Nowrap)
         .Build;
 
       procedure Apply_Wrap (Active : Boolean) is

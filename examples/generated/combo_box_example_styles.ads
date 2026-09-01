@@ -27,232 +27,16 @@ package Combo_Box_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Align_Items => Set (Stretch),
-      Justify_Content => Set (Flex_Start),
-      Gap => Set (Gap (Px (12.0))),
-      Background_Color => Set_Bg (RGB (19, 26, 38)),
-      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
-      others => <>);
-
-   --  Base style for class 'container'
-   function Container_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Align_Items => Set (Stretch),
-      Justify_Content => Set (Flex_Start),
-      Gap => Set (Gap (Px (12.0))),
-      Background_Color => Set_Bg (RGB (30, 41, 59)),
-      Padding => Set (CSS_Box (Px (22.0), Px (22.0), Px (22.0), Px (22.0))),
-      Border_Radius => Set (Radius (Px (10.0))),
-      others => <>);
-
-   --  Base style for class 'title'
-   function Title_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'title'::label
-   function Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (22.0)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>);
-
-   --  Base style for class 'hint'
-   function Hint_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'hint'::label
-   function Hint_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (186, 204, 230)),
-      Font_Size => Set_Font (Px (13.0)),
-      Text_Wrap_Mode => Set (TWM_Wrap),
-      others => <>);
-
-   --  Base style for class 'status'::label
-   function Status_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (147, 197, 253)),
-      Font_Size => Set_Font (Px (14.0)),
-      others => <>);
-
-   --  Base style for class 'combo'
-   function Combo_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (40.0))),
-      Align_Items => Set (Center),
-      Background_Color => Set_Bg (RGB (248, 250, 252)),
-      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Border_Color) + Props (Prop_Box_Shadow) + Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (9.0), Px (10.0), Px (9.0), Px (10.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (148, 163, 184))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Style for class 'combo' when widget State_Hovered
-   function Combo_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (255, 255, 255)),
-      Border_Color => Set (Border_Color (RGB (96, 165, 250))),
-      others => <>);
-
-   --  Style for class 'combo' when widget State_Focused
-   function Combo_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (37, 99, 235, 0.3))),
-      Border_Color => Set (Border_Color (RGB (37, 99, 235))),
-      others => <>);
-
-   --  Base style for class 'combo'::indicator
-   function Combo_Class_Indicator_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (71, 85, 105)),
-      Font_Size => Set_Font (Px (13.0)),
-      Text_Align => Set (Text_Center),
-      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Color))),
-      others => <>);
-
-   --  Style for class 'combo'::indicator when widget State_Hovered
-   function Combo_Class_Indicator_Widget_Hovered_Style return Style_Rules is
-     (
-      Color => Set (RGB (30, 64, 175)),
-      others => <>);
-
-   --  Style for class 'combo'::indicator when widget State_Focused
-   function Combo_Class_Indicator_Widget_Focused_Style return Style_Rules is
-     (
-      Color => Set (RGB (30, 58, 138)),
-      others => <>);
-
-   --  Base style for class 'combo'::text
-   function Combo_Class_Text_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (15, 23, 42)),
-      Font_Size => Set_Font (Px (14.0)),
-      others => <>);
-
-   --  Base style for class 'dropdown'
-   function Dropdown_Class_Base_Style return Style_Rules is
-     (
-      Max_Height => Set (Size (Px (240.0))),
-      Background_Color => Set_Bg (RGB (246, 248, 252)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (24.0), Px (0.0), RGBA (2, 8, 23, 0.22))),
-      Padding => Set (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (191, 201, 216))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      Overflow_X => Set_Overflow_X (Overflow_Auto),
-      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
-      others => <>);
-
-   --  Base style for class 'dropdown'::knob
-   function Dropdown_Class_Knob_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (10.0))),
-      Min_Height => Set (Size (Px (24.0))),
-      Background_Color => Set_Bg (RGBA (71, 85, 105, 0.85)),
-      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Style for class 'dropdown'::knob when part State_Hovered
-   function Dropdown_Class_Knob_Part_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (51, 65, 85, 0.95)),
-      others => <>);
-
-   --  Style for class 'dropdown'::knob when part State_Pressed
-   function Dropdown_Class_Knob_Part_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (30, 41, 59, 1.0)),
-      others => <>);
-
-   --  Base style for class 'dropdown'::scroll
-   function Dropdown_Class_Scroll_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (10.0))),
-      Background_Color => Set_Bg (RGBA (148, 163, 184, 0.22)),
-      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
-      Margin => Set_Margin (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Style for class 'dropdown'::scroll when part State_Hovered
-   function Dropdown_Class_Scroll_Part_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (148, 163, 184, 0.42)),
-      others => <>);
-
-   --  Style for class 'dropdown'::scroll when part State_Pressed
-   function Dropdown_Class_Scroll_Part_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (148, 163, 184, 0.58)),
-      others => <>);
-
-   --  Base style for class 'option-row'
-   function Option_Row_Class_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (C (White)),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
-      Margin => Set_Margin (CSS_Box (Px (2.0), Px (0.0), Px (2.0), Px (0.0))),
-      Border_Width => Set (Border_Width (Px (0.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (222, 229, 238))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Style for class 'option-row' when widget State_Hovered
-   function Option_Row_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (239, 246, 255)),
-      Border_Color => Set (Border_Color (RGB (147, 197, 253))),
-      others => <>);
-
-   --  Style for class 'option-row' when widget State_Selected
-   function Option_Row_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (59, 130, 246)),
-      Border_Color => Set (Border_Color (RGB (29, 78, 216))),
-      others => <>);
-
-   --  Base style for class 'option-row'::label
-   function Option_Row_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (30, 41, 59)),
-      Font_Size => Set_Font (Px (14.0)),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Color))),
-      others => <>);
-
-   --  Style for class 'option-row'::label when part State_Hovered
-   function Option_Row_Class_Label_Part_Hovered_Style return Style_Rules is
-     (
-      Color => Set (RGB (15, 23, 42)),
-      others => <>);
-
-   --  Style for class 'option-row'::label when widget State_Selected
-   function Option_Row_Class_Label_Widget_Selected_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Align_Items (Stretch)
+        .Justify_Content (Flex_Start)
+        .Gap (Gap (Px (12.0)))
+        .Background (RGB (19, 26, 38))
+        .Padding (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0)))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -262,9 +46,17 @@ package Combo_Box_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'container'
+   --  Style for class 'container'
    Container_Class_Widget : constant Widget_Style :=
-     From (Container_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Align_Items (Stretch)
+        .Justify_Content (Flex_Start)
+        .Gap (Gap (Px (12.0)))
+        .Background (RGB (30, 41, 59))
+        .Padding (CSS_Box (Px (22.0), Px (22.0), Px (22.0), Px (22.0)))
+        .Radius (Radius (Px (10.0)))
      .Build;
 
    --  Part styles bundle for class 'container'
@@ -274,14 +66,18 @@ package Combo_Box_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'title'
+   --  Style for class 'title'
    Title_Class_Widget : constant Widget_Style :=
-     From (Title_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'title'::label
+   --  Style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
-     From (Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (22.0))
+        .Font_Weight (Weight_Bold)
      .Build;
 
    --  Part styles bundle for class 'title'
@@ -292,14 +88,18 @@ package Combo_Box_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'hint'
+   --  Style for class 'hint'
    Hint_Class_Widget : constant Widget_Style :=
-     From (Hint_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'hint'::label
+   --  Style for class 'hint'::label
    Hint_Class_Label_Widget : constant Widget_Style :=
-     From (Hint_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (186, 204, 230))
+        .Font_Size (Px (13.0))
+        .Text_Wrap_Mode (TWM_Wrap)
      .Build;
 
    --  Part styles bundle for class 'hint'
@@ -310,9 +110,11 @@ package Combo_Box_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'status'::label
+   --  Style for class 'status'::label
    Status_Class_Label_Widget : constant Widget_Style :=
-     From (Status_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (147, 197, 253))
+        .Font_Size (Px (14.0))
      .Build;
 
    --  Part styles bundle for class 'status'
@@ -322,23 +124,48 @@ package Combo_Box_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'combo'
+   --  Style for class 'combo'
    Combo_Class_Widget : constant Widget_Style :=
-     From (Combo_Class_Base_Style)
-     .On (When_State (State_Hovered), Combo_Class_Widget_Hovered_Style)
-     .On (When_State (State_Focused), Combo_Class_Widget_Focused_Style)
+     Style_Of
+        .Height (Size (Px (40.0)))
+        .Align_Items (Center)
+        .Background (RGB (248, 250, 252))
+        .Transition ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Border_Color) + Props (Prop_Box_Shadow) + Props (Prop_Background_Color)))
+        .Padding (CSS_Box (Px (9.0), Px (10.0), Px (9.0), Px (10.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (148, 163, 184)))
+        .Radius (Radius (Px (8.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (255, 255, 255))
+        .Border_Color (Border_Color (RGB (96, 165, 250)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (37, 99, 235, 0.3)))
+        .Border_Color (Border_Color (RGB (37, 99, 235)))
      .Build;
 
-   --  Complete widget style for class 'combo'::indicator
+   --  Style for class 'combo'::indicator
    Combo_Class_Indicator_Widget : constant Widget_Style :=
-     From (Combo_Class_Indicator_Base_Style)
-     .On (When_State (State_Hovered), Combo_Class_Indicator_Widget_Hovered_Style)
-     .On (When_State (State_Focused), Combo_Class_Indicator_Widget_Focused_Style)
+     Style_Of
+        .Text_Color (RGB (71, 85, 105))
+        .Font_Size (Px (13.0))
+        .Text_Align (Text_Center)
+        .Transition ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Color)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Text_Color (RGB (30, 64, 175))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Text_Color (RGB (30, 58, 138))
      .Build;
 
-   --  Complete widget style for class 'combo'::text
+   --  Style for class 'combo'::text
    Combo_Class_Text_Widget : constant Widget_Style :=
-     From (Combo_Class_Text_Base_Style)
+     Style_Of
+        .Text_Color (RGB (15, 23, 42))
+        .Font_Size (Px (14.0))
      .Build;
 
    --  Part styles bundle for class 'combo'
@@ -350,23 +177,52 @@ package Combo_Box_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'dropdown'
+   --  Style for class 'dropdown'
    Dropdown_Class_Widget : constant Widget_Style :=
-     From (Dropdown_Class_Base_Style)
+     Style_Of
+        .Max_Height (Size (Px (240.0)))
+        .Background (RGB (246, 248, 252))
+        .Box_Shadow (Shadow (Px (0.0), Px (10.0), Px (24.0), Px (0.0), RGBA (2, 8, 23, 0.22)))
+        .Padding (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (191, 201, 216)))
+        .Radius (Radius (Px (8.0)))
+        .Overflow_X (Overflow_Auto)
+        .Overflow_Y (Overflow_Auto)
      .Build;
 
-   --  Complete widget style for class 'dropdown'::knob
+   --  Style for class 'dropdown'::knob
    Dropdown_Class_Knob_Widget : constant Widget_Style :=
-     From (Dropdown_Class_Knob_Base_Style)
-     .On (When_Part_State (State_Hovered), Dropdown_Class_Knob_Part_Hovered_Style)
-     .On (When_Part_State (State_Pressed), Dropdown_Class_Knob_Part_Pressed_Style)
+     Style_Of
+        .Width (Size (Px (10.0)))
+        .Min_Height (Size (Px (24.0)))
+        .Background (RGBA (71, 85, 105, 0.85))
+        .Transition ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color)))
+        .Radius (Radius (Px (6.0)))
+     --  part State_Hovered
+     .On (When_Part_State (State_Hovered))
+        .Background (RGBA (51, 65, 85, 0.95))
+     --  part State_Pressed
+     .On (When_Part_State (State_Pressed))
+        .Background (RGBA (30, 41, 59, 1.0))
      .Build;
 
-   --  Complete widget style for class 'dropdown'::scroll
+   --  Style for class 'dropdown'::scroll
    Dropdown_Class_Scroll_Widget : constant Widget_Style :=
-     From (Dropdown_Class_Scroll_Base_Style)
-     .On (When_Part_State (State_Hovered), Dropdown_Class_Scroll_Part_Hovered_Style)
-     .On (When_Part_State (State_Pressed), Dropdown_Class_Scroll_Part_Pressed_Style)
+     Style_Of
+        .Width (Size (Px (10.0)))
+        .Background (RGBA (148, 163, 184, 0.22))
+        .Transition ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color)))
+        .Padding (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0)))
+        .Margin (CSS_Box (Px (0.0), Px (0.0), Px (0.0), Px (6.0)))
+        .Radius (Radius (Px (6.0)))
+     --  part State_Hovered
+     .On (When_Part_State (State_Hovered))
+        .Background (RGBA (148, 163, 184, 0.42))
+     --  part State_Pressed
+     .On (When_Part_State (State_Pressed))
+        .Background (RGBA (148, 163, 184, 0.58))
      .Build;
 
    --  Part styles bundle for class 'dropdown'
@@ -378,18 +234,39 @@ package Combo_Box_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'option-row'
+   --  Style for class 'option-row'
    Option_Row_Class_Widget : constant Widget_Style :=
-     From (Option_Row_Class_Base_Style)
-     .On (When_State (State_Hovered), Option_Row_Class_Widget_Hovered_Style)
-     .On (When_State (State_Selected), Option_Row_Class_Widget_Selected_Style)
+     Style_Of
+        .Background (C (White))
+        .Transition ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color)))
+        .Padding (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0)))
+        .Margin (CSS_Box (Px (2.0), Px (0.0), Px (2.0), Px (0.0)))
+        .Border_Width (Border_Width (Px (0.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (222, 229, 238)))
+        .Radius (Radius (Px (6.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (239, 246, 255))
+        .Border_Color (Border_Color (RGB (147, 197, 253)))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (59, 130, 246))
+        .Border_Color (Border_Color (RGB (29, 78, 216)))
      .Build;
 
-   --  Complete widget style for class 'option-row'::label
+   --  Style for class 'option-row'::label
    Option_Row_Class_Label_Widget : constant Widget_Style :=
-     From (Option_Row_Class_Label_Base_Style)
-     .On (When_Part_State (State_Hovered), Option_Row_Class_Label_Part_Hovered_Style)
-     .On (When_State (State_Selected), Option_Row_Class_Label_Widget_Selected_Style)
+     Style_Of
+        .Text_Color (RGB (30, 41, 59))
+        .Font_Size (Px (14.0))
+        .Transition ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Color)))
+     --  part State_Hovered
+     .On (When_Part_State (State_Hovered))
+        .Text_Color (RGB (15, 23, 42))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Text_Color (C (White))
      .Build;
 
    --  Part styles bundle for class 'option-row'

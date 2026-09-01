@@ -28,101 +28,52 @@ package Widget_Property_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'alarm'
-   function Alarm_Class_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (20, 20, 20)),
-      Padding => Set (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      others => <>);
-
-   --  Style for class 'alarm' when [severity="ok"]
-   function Alarm_Class_Prop_Severity_Ok_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (0, 128, 0)),
-      others => <>);
-
-   --  Style for class 'alarm' when [severity="warning"]
-   function Alarm_Class_Prop_Severity_Warning_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (200, 160, 0)),
-      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
-      others => <>);
-
-   --  Style for class 'alarm' when [severity="critical"]
-   function Alarm_Class_Prop_Severity_Critical_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (200, 0, 0)),
-      Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
-      others => <>);
-
-   --  Style for class 'alarm' when widget State_Hovered, [severity="critical"]
-   function Alarm_Class_Widget_Hovered_Prop_Severity_Critical_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (255, 0, 0)),
-      others => <>);
-
-   --  Style for class 'alarm' when [link]
-   function Alarm_Class_Prop_Link_Style return Style_Rules is
-     (
-      Border_Width => Set (Border_Width (Px (3.0))),
-      others => <>);
-
-   --  Style for class 'alarm' when [link="degraded"], [severity="critical"]
-   function Alarm_Class_Prop_Link_Degraded_Prop_Severity_Critical_Style return Style_Rules is
-     (
-      Border_Width => Set (Border_Width (Px (5.0))),
-      others => <>);
-
-   --  Style for class 'alarm' when :not([severity="critical"])
-   function Alarm_Class_Not_Prop_Severity_Critical_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
-      others => <>);
-
-   --  Style for class 'alarm' when :not([link])
-   function Alarm_Class_Not_Prop_Link_Style return Style_Rules is
-     (
-      Margin => Set_Margin (CSS_Box (Px (7.0), Px (7.0), Px (7.0), Px (7.0))),
-      others => <>);
-
-   --  Style for class 'alarm' when [power="on"]
-   function Alarm_Class_Prop_Power_On_Style return Style_Rules is
-     (
-      Opacity => Set (0.5),
-      others => <>);
-
-   --  Style for class 'alarm' when [radio="on"]
-   function Alarm_Class_Prop_Radio_On_Style return Style_Rules is
-     (
-      Flex_Grow => Set (3.0),
-      others => <>);
-
-   --  Style for class 'alarm'::label when [severity="critical"]
-   function Alarm_Class_Label_Prop_Severity_Critical_Style return Style_Rules is
-     (
-      Color => Set (RGB (255, 255, 255)),
-      others => <>);
-
-   --  Complete widget style for class 'alarm'
+   --  Style for class 'alarm'
    Alarm_Class_Widget : constant Widget_Style :=
-     From (Alarm_Class_Base_Style)
-     .On (When_Property (Test_Properties.Severity.Value (Test_Properties.Ok)), Alarm_Class_Prop_Severity_Ok_Style)
-     .On (When_Property (Test_Properties.Severity.Value (Test_Properties.Warning)), Alarm_Class_Prop_Severity_Warning_Style)
-     .On (When_Property (Test_Properties.Severity.Value (Test_Properties.Critical)), Alarm_Class_Prop_Severity_Critical_Style)
-     .On (When_State (State_Hovered) and When_Property (Test_Properties.Severity.Value (Test_Properties.Critical)), Alarm_Class_Widget_Hovered_Prop_Severity_Critical_Style)
-     .On (When_Property_Set (Test_Properties.Link.Id), Alarm_Class_Prop_Link_Style)
-     .On (When_Property (Test_Properties.Link.Value (Test_Properties.Degraded)) and When_Property (Test_Properties.Severity.Value (Test_Properties.Critical)), Alarm_Class_Prop_Link_Degraded_Prop_Severity_Critical_Style)
-     .On (When_Not_Property (Test_Properties.Severity.Value (Test_Properties.Critical)), Alarm_Class_Not_Prop_Severity_Critical_Style)
-     .On (When_Not_Property_Set (Test_Properties.Link.Id), Alarm_Class_Not_Prop_Link_Style)
-     .On (When_Property (Test_Properties.Power.Value (Test_Properties.On)), Alarm_Class_Prop_Power_On_Style)
-     .On (When_Property (Test_Properties.Radio.Value (Test_Properties.On)), Alarm_Class_Prop_Radio_On_Style)
+     Style_Of
+        .Background (RGB (20, 20, 20))
+        .Padding (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+     --  [severity="ok"]
+     .On (When_Property (Test_Properties.Severity.Value (Test_Properties.Ok)))
+        .Background (RGB (0, 128, 0))
+     --  [severity="warning"]
+     .On (When_Property (Test_Properties.Severity.Value (Test_Properties.Warning)))
+        .Background (RGB (200, 160, 0))
+        .Padding (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0)))
+     --  [severity="critical"]
+     .On (When_Property (Test_Properties.Severity.Value (Test_Properties.Critical)))
+        .Background (RGB (200, 0, 0))
+        .Padding (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0)))
+     --  widget State_Hovered, [severity="critical"]
+     .On (When_State (State_Hovered) and When_Property (Test_Properties.Severity.Value (Test_Properties.Critical)))
+        .Background (RGB (255, 0, 0))
+     --  [link]
+     .On (When_Property_Set (Test_Properties.Link.Id))
+        .Border_Width (Border_Width (Px (3.0)))
+     --  [link="degraded"], [severity="critical"]
+     .On (When_Property (Test_Properties.Link.Value (Test_Properties.Degraded)) and When_Property (Test_Properties.Severity.Value (Test_Properties.Critical)))
+        .Border_Width (Border_Width (Px (5.0)))
+     --  :not([severity="critical"])
+     .On (When_Not_Property (Test_Properties.Severity.Value (Test_Properties.Critical)))
+        .Outline_Width (Px (2.0))
+     --  :not([link])
+     .On (When_Not_Property_Set (Test_Properties.Link.Id))
+        .Margin (CSS_Box (Px (7.0), Px (7.0), Px (7.0), Px (7.0)))
+     --  [power="on"]
+     .On (When_Property (Test_Properties.Power.Value (Test_Properties.On)))
+        .Opacity (0.5)
+     --  [radio="on"]
+     .On (When_Property (Test_Properties.Radio.Value (Test_Properties.On)))
+        .Flex_Grow (3.0)
      .Build;
 
-   --  Complete widget style for class 'alarm'::label
+   --  Style for class 'alarm'::label
    Alarm_Class_Label_Widget : constant Widget_Style :=
-     Create
-     .On (When_Property (Test_Properties.Severity.Value (Test_Properties.Critical)), Alarm_Class_Label_Prop_Severity_Critical_Style)
+     Style_Of
+     --  [severity="critical"]
+     .On (When_Property (Test_Properties.Severity.Value (Test_Properties.Critical)))
+        .Text_Color (RGB (255, 255, 255))
      .Build;
 
    --  Part styles bundle for class 'alarm'

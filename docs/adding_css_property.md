@@ -219,6 +219,11 @@ Three more places carry the property, so a chain can name it:
 | `Apply_Property` and `Clear_Property` (`src/adi-css_styles.adb`) | the branch that writes the field, and the one that clears it |
 | a setter on `Composer` (`src/adi-widget_styles`) | `function <Property> (C : Composer; V : <Type>) return Composer` |
 
+A property whose values cascade one at a time -- a side, a corner, an
+axis -- also carries a four-argument `Apply_Property` branch and a setter
+taking the `Edge` or `Corner`, so a longhand composes as a sheet writes
+it and leaves the rest to the cascade.
+
 `Composable_Properties` is `[others => True]`, so a new literal is
 composable by declaration; the two `case` statements have no `others`,
 which is what makes the branches compulsory. A property owning no field
@@ -377,25 +382,26 @@ OUTLINE_STYLE_MAP = {
 }
 ```
 
-### 4c. Property generation in `generate_style_rules_ada()`
+### 4c. Property generation in `generate_style_chain_ada()`
 
-Add `elif` branches in the property loop. The function builds Ada `Style_Rules` field assignments:
+Add `elif` branches in the property loop. The function builds composer
+steps: one setter call per property named, without its leading dot.
 
 ```python
 # Longhands
 elif prop == "outline-width":
     length = parse_length(value)
     if length:
-        ada_field = f"Outline_Width => Set_Outline_Width ({generate_length_ada(length)})"
+        ada_field = f"Outline_Width ({generate_length_ada(length)})"
 
 elif prop == "outline-color":
     color = parse_color(value)
     if color:
-        ada_field = f"Outline_Color => Set_Outline_Color ({generate_color_ada(color)})"
+        ada_field = f"Outline_Color ({generate_color_ada(color)})"
 
 elif prop == "outline-style":
     if value.lower() in OUTLINE_STYLE_MAP:
-        ada_field = f"Outline_Style => Set ({OUTLINE_STYLE_MAP[value.lower()]})"
+        ada_field = f"Outline_Style ({OUTLINE_STYLE_MAP[value.lower()]})"
 
 elif prop == "outline-offset":
     length = parse_length(value)
@@ -484,14 +490,14 @@ Build and run: `alr exec -- gprbuild -P tests/tests.gpr -XTEST_KIND=css_parser_t
 
 ### 6b. Code generator test (`tools/test_css_to_ada.py`)
 
-Add Python unit tests that call `generate_style_rules_ada()` with the new properties and assert the output contains the expected Ada fragments:
+Add Python unit tests that call `generate_style_chain_ada()` with the new properties and assert the output contains the expected Ada fragments:
 
 ```python
 def test_outline_shorthand(self):
     ada = self._gen({"outline": "2px solid rgb(208, 188, 255)"})
-    self.assertIn("Outline_Width => Set_Outline_Width (Px (2.0))", ada)
-    self.assertIn("Outline_Style => Set (Outline_Solid)", ada)
-    self.assertIn("Outline_Color => Set_Outline_Color (RGB (208, 188, 255))", ada)
+    self.assertIn("Outline_Width (Px (2.0))", ada)
+    self.assertIn("Outline_Style (Outline_Solid)", ada)
+    self.assertIn("Outline_Color (RGB (208, 188, 255))", ada)
 ```
 
 Run: `python3 tools/test_css_to_ada.py`

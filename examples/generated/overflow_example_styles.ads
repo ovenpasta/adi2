@@ -27,209 +27,16 @@ package Overflow_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Align_Items => Set (Stretch),
-      Justify_Content => Set (Flex_Start),
-      Gap => Set (Gap (Px (12.0))),
-      Background_Color => Set_Bg (RGB (20, 24, 31)),
-      Padding => Set (CSS_Box (Px (18.0), Px (18.0), Px (18.0), Px (18.0))),
-      others => <>);
-
-   --  Base style for class 'title'
-   function Title_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'title'::label
-   function Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (22.0)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>);
-
-   --  Base style for class 'hint'
-   function Hint_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'hint'::label
-   function Hint_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (189, 205, 230)),
-      Font_Size => Set_Font (Px (13.0)),
-      Text_Wrap_Mode => Set (TWM_Wrap),
-      others => <>);
-
-   --  Base style for class 'panels'
-   function Panels_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Gap => Set (Gap (Px (18.0))),
-      Align_Items => Set (Stretch),
-      Flex_Grow => Set (1.0),
-      others => <>);
-
-   --  Base style for class 'panel'
-   function Panel_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Gap => Set (Gap (Px (10.0))),
-      Flex_Grow => Set (1.0),
-      Background_Color => Set_Bg (RGB (31, 41, 55)),
-      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
-      Border_Radius => Set (Radius (Px (10.0))),
-      others => <>);
-
-   --  Base style for class 'panel-title'
-   function Panel_Title_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'panel-title'::label
-   function Panel_Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (224, 231, 255)),
-      Font_Size => Set_Font (Px (14.0)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>);
-
-   --  Base style for class 'clip-visible'
-   function Clip_Visible_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Height => Set (Size (Px (120.0))),
-      Gap => Set (Gap (Px (8.0))),
-      Background_Color => Set_Bg (RGBA (96, 165, 250, 0.16)),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (96, 165, 250))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      Overflow_X => Set_Overflow_X (Overflow_Visible),
-      Overflow_Y => Set_Overflow_Y (Overflow_Visible),
-      others => <>);
-
-   --  Base style for class 'clip-hidden'
-   function Clip_Hidden_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Height => Set (Size (Px (120.0))),
-      Gap => Set (Gap (Px (8.0))),
-      Background_Color => Set_Bg (RGBA (74, 222, 128, 0.16)),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (74, 222, 128))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      Overflow_X => Set_Overflow_X (Overflow_Hidden),
-      Overflow_Y => Set_Overflow_Y (Overflow_Hidden),
-      others => <>);
-
-   --  Base style for class 'content-stack'
-   function Content_Stack_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Gap => Set (Gap (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'long-line'
-   function Long_Line_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (430.0))),
-      Background_Color => Set_Bg (RGBA (15, 23, 42, 0.45)),
-      Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (148, 163, 184))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Base style for class 'long-line'::label
-   function Long_Line_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (241, 245, 249)),
-      Font_Size => Set_Font (Px (12.0)),
-      White_Space => Set (WS_Nowrap),
-      others => <>);
-
-   --  Base style for class 'wrap-line'
-   function Wrap_Line_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Pct (100.0))),
-      Background_Color => Set_Bg (RGBA (15, 23, 42, 0.3)),
-      Padding => Set (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (100, 116, 139))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Base style for class 'wrap-line'::label
-   function Wrap_Line_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (241, 245, 249)),
-      Font_Size => Set_Font (Px (12.0)),
-      Text_Wrap_Mode => Set (TWM_Wrap),
-      White_Space => Set (WS_Normal),
-      others => <>);
-
-   --  Base style for class 'item-a'
-   function Item_A_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (56.0))),
-      Flex_Shrink => Set (0.0),
-      Background_Color => Set_Bg (RGB (239, 68, 68)),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Base style for class 'item-b'
-   function Item_B_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (56.0))),
-      Flex_Shrink => Set (0.0),
-      Background_Color => Set_Bg (RGB (245, 158, 11)),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Base style for class 'item-c'
-   function Item_C_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (56.0))),
-      Flex_Shrink => Set (0.0),
-      Background_Color => Set_Bg (RGB (59, 130, 246)),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Base style for class 'item-d'
-   function Item_D_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (56.0))),
-      Flex_Shrink => Set (0.0),
-      Background_Color => Set_Bg (RGB (16, 185, 129)),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Align_Items (Stretch)
+        .Justify_Content (Flex_Start)
+        .Gap (Gap (Px (12.0)))
+        .Background (RGB (20, 24, 31))
+        .Padding (CSS_Box (Px (18.0), Px (18.0), Px (18.0), Px (18.0)))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -239,14 +46,18 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'title'
+   --  Style for class 'title'
    Title_Class_Widget : constant Widget_Style :=
-     From (Title_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'title'::label
+   --  Style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
-     From (Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (22.0))
+        .Font_Weight (Weight_Bold)
      .Build;
 
    --  Part styles bundle for class 'title'
@@ -257,14 +68,18 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'hint'
+   --  Style for class 'hint'
    Hint_Class_Widget : constant Widget_Style :=
-     From (Hint_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'hint'::label
+   --  Style for class 'hint'::label
    Hint_Class_Label_Widget : constant Widget_Style :=
-     From (Hint_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (189, 205, 230))
+        .Font_Size (Px (13.0))
+        .Text_Wrap_Mode (TWM_Wrap)
      .Build;
 
    --  Part styles bundle for class 'hint'
@@ -275,9 +90,14 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'panels'
+   --  Style for class 'panels'
    Panels_Class_Widget : constant Widget_Style :=
-     From (Panels_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Gap (Gap (Px (18.0)))
+        .Align_Items (Stretch)
+        .Flex_Grow (1.0)
      .Build;
 
    --  Part styles bundle for class 'panels'
@@ -287,9 +107,19 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'panel'
+   --  Style for class 'panel'
    Panel_Class_Widget : constant Widget_Style :=
-     From (Panel_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Gap (Gap (Px (10.0)))
+        .Flex_Grow (1.0)
+        .Background (RGB (31, 41, 55))
+        .Padding (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (75, 85, 99)))
+        .Radius (Radius (Px (10.0)))
      .Build;
 
    --  Part styles bundle for class 'panel'
@@ -299,14 +129,18 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'panel-title'
+   --  Style for class 'panel-title'
    Panel_Title_Class_Widget : constant Widget_Style :=
-     From (Panel_Title_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'panel-title'::label
+   --  Style for class 'panel-title'::label
    Panel_Title_Class_Label_Widget : constant Widget_Style :=
-     From (Panel_Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (224, 231, 255))
+        .Font_Size (Px (14.0))
+        .Font_Weight (Weight_Bold)
      .Build;
 
    --  Part styles bundle for class 'panel-title'
@@ -317,9 +151,22 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'clip-visible'
+   --  Style for class 'clip-visible'
    Clip_Visible_Class_Widget : constant Widget_Style :=
-     From (Clip_Visible_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Height (Size (Px (120.0)))
+        .Gap (Gap (Px (8.0)))
+        .Background (RGBA (96, 165, 250, 0.16))
+        .Text_Wrap_Mode (TWM_Nowrap)
+        .Padding (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (96, 165, 250)))
+        .Radius (Radius (Px (8.0)))
+        .Overflow_X (Overflow_Visible)
+        .Overflow_Y (Overflow_Visible)
      .Build;
 
    --  Part styles bundle for class 'clip-visible'
@@ -329,9 +176,22 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'clip-hidden'
+   --  Style for class 'clip-hidden'
    Clip_Hidden_Class_Widget : constant Widget_Style :=
-     From (Clip_Hidden_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Height (Size (Px (120.0)))
+        .Gap (Gap (Px (8.0)))
+        .Background (RGBA (74, 222, 128, 0.16))
+        .Text_Wrap_Mode (TWM_Nowrap)
+        .Padding (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (74, 222, 128)))
+        .Radius (Radius (Px (8.0)))
+        .Overflow_X (Overflow_Hidden)
+        .Overflow_Y (Overflow_Hidden)
      .Build;
 
    --  Part styles bundle for class 'clip-hidden'
@@ -341,9 +201,12 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'content-stack'
+   --  Style for class 'content-stack'
    Content_Stack_Class_Widget : constant Widget_Style :=
-     From (Content_Stack_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Gap (Gap (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'content-stack'
@@ -353,14 +216,24 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'long-line'
+   --  Style for class 'long-line'
    Long_Line_Class_Widget : constant Widget_Style :=
-     From (Long_Line_Class_Base_Style)
+     Style_Of
+        .Width (Size (Px (430.0)))
+        .Background (RGBA (15, 23, 42, 0.45))
+        .Padding (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (148, 163, 184)))
+        .Radius (Radius (Px (6.0)))
      .Build;
 
-   --  Complete widget style for class 'long-line'::label
+   --  Style for class 'long-line'::label
    Long_Line_Class_Label_Widget : constant Widget_Style :=
-     From (Long_Line_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (241, 245, 249))
+        .Font_Size (Px (12.0))
+        .White_Space (WS_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'long-line'
@@ -371,14 +244,25 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'wrap-line'
+   --  Style for class 'wrap-line'
    Wrap_Line_Class_Widget : constant Widget_Style :=
-     From (Wrap_Line_Class_Base_Style)
+     Style_Of
+        .Width (Size (Pct (100.0)))
+        .Background (RGBA (15, 23, 42, 0.3))
+        .Padding (CSS_Box (Px (8.0), Px (8.0), Px (8.0), Px (8.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (100, 116, 139)))
+        .Radius (Radius (Px (6.0)))
      .Build;
 
-   --  Complete widget style for class 'wrap-line'::label
+   --  Style for class 'wrap-line'::label
    Wrap_Line_Class_Label_Widget : constant Widget_Style :=
-     From (Wrap_Line_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (241, 245, 249))
+        .Font_Size (Px (12.0))
+        .Text_Wrap_Mode (TWM_Wrap)
+        .White_Space (WS_Normal)
      .Build;
 
    --  Part styles bundle for class 'wrap-line'
@@ -389,9 +273,13 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'item-a'
+   --  Style for class 'item-a'
    Item_A_Class_Widget : constant Widget_Style :=
-     From (Item_A_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (56.0)))
+        .Flex_Shrink (0.0)
+        .Background (RGB (239, 68, 68))
+        .Radius (Radius (Px (6.0)))
      .Build;
 
    --  Part styles bundle for class 'item-a'
@@ -401,9 +289,13 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'item-b'
+   --  Style for class 'item-b'
    Item_B_Class_Widget : constant Widget_Style :=
-     From (Item_B_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (56.0)))
+        .Flex_Shrink (0.0)
+        .Background (RGB (245, 158, 11))
+        .Radius (Radius (Px (6.0)))
      .Build;
 
    --  Part styles bundle for class 'item-b'
@@ -413,9 +305,13 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'item-c'
+   --  Style for class 'item-c'
    Item_C_Class_Widget : constant Widget_Style :=
-     From (Item_C_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (56.0)))
+        .Flex_Shrink (0.0)
+        .Background (RGB (59, 130, 246))
+        .Radius (Radius (Px (6.0)))
      .Build;
 
    --  Part styles bundle for class 'item-c'
@@ -425,9 +321,13 @@ package Overflow_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'item-d'
+   --  Style for class 'item-d'
    Item_D_Class_Widget : constant Widget_Style :=
-     From (Item_D_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (56.0)))
+        .Flex_Shrink (0.0)
+        .Background (RGB (16, 185, 129))
+        .Radius (Radius (Px (6.0)))
      .Build;
 
    --  Part styles bundle for class 'item-d'

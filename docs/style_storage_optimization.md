@@ -11,7 +11,7 @@ These spellings are what an application writes, and each carries a
 handle or an array of them:
 - `Part_Style`, `Part_Style_Array`
 - `Set_Part_Style`, `Set_Part_Styles`
-- `From (…) .On (…) .Build`, which answers a `Widget_Style`
+- `Style_Of . … .On (…) . … .Build`, which answers a `Widget_Style`
 - the CSS parser and source interfaces, and generated CSS Ada
 
 `Widget_Style` is private, so a caller that reads a style's own rules

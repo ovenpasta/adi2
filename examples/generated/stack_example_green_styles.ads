@@ -27,49 +27,15 @@ package Stack_Example_Green_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'page-green'
-   function Page_Green_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Background_Color => Set_Bg (RGB (20, 83, 45)),
-      Gap => Set (Gap (Px (8.0))),
-      Padding => Set (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0))),
-      Border_Radius => Set (Radius (Px (12.0))),
-      others => <>);
-
-   --  Base style for class 'page-title'
-   function Page_Title_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'page-title'::label
-   function Page_Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (24.0)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>);
-
-   --  Base style for class 'page-desc'
-   function Page_Desc_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      others => <>);
-
-   --  Base style for class 'page-desc'::label
-   function Page_Desc_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGBA (255, 255, 255, 0.7)),
-      Font_Size => Set_Font (Px (18.0)),
-      Font_Weight => Set (Weight_Normal),
-      others => <>);
-
-   --  Complete widget style for class 'page-green'
+   --  Style for class 'page-green'
    Page_Green_Class_Widget : constant Widget_Style :=
-     From (Page_Green_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Background (RGB (20, 83, 45))
+        .Gap (Gap (Px (8.0)))
+        .Padding (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0)))
+        .Radius (Radius (Px (12.0)))
      .Build;
 
    --  Part styles bundle for class 'page-green'
@@ -79,14 +45,19 @@ package Stack_Example_Green_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'page-title'
+   --  Style for class 'page-title'
    Page_Title_Class_Widget : constant Widget_Style :=
-     From (Page_Title_Class_Base_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'page-title'::label
+   --  Style for class 'page-title'::label
    Page_Title_Class_Label_Widget : constant Widget_Style :=
-     From (Page_Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (24.0))
+        .Font_Weight (Weight_Bold)
      .Build;
 
    --  Part styles bundle for class 'page-title'
@@ -97,14 +68,18 @@ package Stack_Example_Green_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'page-desc'
+   --  Style for class 'page-desc'
    Page_Desc_Class_Widget : constant Widget_Style :=
-     From (Page_Desc_Class_Base_Style)
+     Style_Of
+        .Display (Inline_Flex)
      .Build;
 
-   --  Complete widget style for class 'page-desc'::label
+   --  Style for class 'page-desc'::label
    Page_Desc_Class_Label_Widget : constant Widget_Style :=
-     From (Page_Desc_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGBA (255, 255, 255, 0.7))
+        .Font_Size (Px (18.0))
+        .Font_Weight (Weight_Normal)
      .Build;
 
    --  Part styles bundle for class 'page-desc'

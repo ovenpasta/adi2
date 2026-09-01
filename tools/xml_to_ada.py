@@ -1319,18 +1319,18 @@ def generate_body(app: XmlApp, package_name: str,
             lines.append("   function Inline_Has_Root_Font_Size return Boolean is (False);")
             lines.append("   function Inline_Root_Font_Size return Length_Value is (Default_Font_Size);")
 
-        fields = css_to_ada.generate_style_rules_ada(root_props, indent="      ")
-        lines.append("")
-        lines.append("   function Inline_Root_Base_Style return Style_Rules is")
-        lines.append("     (")
-        if fields:
-            lines.append(",\n".join(fields) + ",")
-        lines.append("      others => <>);")
         lines.append("")
         lines.append("   function Inline_Has_Root_Styles return Boolean is (True);")
+        lines.append("   Inline_Root_Style : constant Widget_Style :=")
+        lines.extend(
+            css_to_ada.generate_style_chain(
+                [(None, None,
+                  css_to_ada.generate_style_chain_ada(root_props))],
+                "   ", ":root"))
+        lines.append("")
         lines.append("   Inline_Root_Part_Styles : constant Part_Style_Array :=")
         lines.append("     [")
-        lines.append("      Main_Part => (Style => From (Inline_Root_Base_Style).Build, Enabled => True),")
+        lines.append("      Main_Part => (Style => Inline_Root_Style, Enabled => True),")
         lines.append("      others => <>")
         lines.append("   ];")
         lines.append("")

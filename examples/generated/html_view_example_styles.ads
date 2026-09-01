@@ -27,368 +27,14 @@ package Html_View_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Gap => Set (Gap (Px (8.0))),
-      Background_Color => Set_Bg (RGB (244, 239, 231)),
-      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
-      others => <>);
-
-   --  Base style for class 'title'
-   function Title_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'title'::label
-   function Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (54, 46, 37)),
-      Font_Size => Set_Font (Px (24.0)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>);
-
-   --  Base style for class 'subtitle'
-   function Subtitle_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'subtitle'::label
-   function Subtitle_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (97, 88, 77)),
-      Font_Size => Set_Font (Px (14.0)),
-      others => <>);
-
-   --  Base style for class 'tab-bar'
-   function Tab_Bar_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'tab-left'
-   function Tab_Left_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Align_Items => Set (Center),
-      Justify_Content => Set (Center),
-      Background_Color => Set_Bg (RGB (224, 212, 194)),
-      Cursor => Set (Cursor_Pointer),
-      Padding => Set (CSS_Box (Px (8.0), Px (14.0), Px (8.0), Px (14.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (178, 159, 136))),
-      Border_Radius => Set (Radius (Px (8.0), Px (0.0), Px (0.0), Px (8.0))),
-      others => <>);
-
-   --  Style for class 'tab-left' when widget State_Hovered
-   function Tab_Left_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (233, 221, 205)),
-      others => <>);
-
-   --  Style for class 'tab-left' when widget State_Selected
-   function Tab_Left_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (120, 96, 71)),
-      Border_Color => Set (Border_Color (RGB (100, 80, 58))),
-      others => <>);
-
-   --  Base style for class 'tab-left'::label
-   function Tab_Left_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (70, 61, 50)),
-      Font_Size => Set_Font (Px (13.0)),
-      Font_Weight => Set (Weight_Semi_Bold),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Style for class 'tab-left'::label when widget State_Selected
-   function Tab_Left_Class_Label_Widget_Selected_Style return Style_Rules is
-     (
-      Color => Set (RGB (255, 250, 242)),
-      others => <>);
-
-   --  Base style for class 'tab-right'
-   function Tab_Right_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Align_Items => Set (Center),
-      Justify_Content => Set (Center),
-      Background_Color => Set_Bg (RGB (224, 212, 194)),
-      Cursor => Set (Cursor_Pointer),
-      Padding => Set (CSS_Box (Px (8.0), Px (14.0), Px (8.0), Px (14.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (178, 159, 136))),
-      Border_Radius => Set (Radius (Px (0.0), Px (8.0), Px (8.0), Px (0.0))),
-      others => <>);
-
-   --  Style for class 'tab-right' when widget State_Hovered
-   function Tab_Right_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (233, 221, 205)),
-      others => <>);
-
-   --  Style for class 'tab-right' when widget State_Selected
-   function Tab_Right_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (120, 96, 71)),
-      Border_Color => Set (Border_Color (RGB (100, 80, 58))),
-      others => <>);
-
-   --  Base style for class 'tab-right'::label
-   function Tab_Right_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (70, 61, 50)),
-      Font_Size => Set_Font (Px (13.0)),
-      Font_Weight => Set (Weight_Semi_Bold),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Style for class 'tab-right'::label when widget State_Selected
-   function Tab_Right_Class_Label_Widget_Selected_Style return Style_Rules is
-     (
-      Color => Set (RGB (255, 250, 242)),
-      others => <>);
-
-   --  Base style for class 'stack'
-   function Stack_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Min_Height => Set (Size (Px (0.0))),
-      others => <>);
-
-   --  Base style for class 'page-preview'
-   function Page_Preview_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Flex_Grow => Set (1.0),
-      Min_Height => Set (Size (Px (0.0))),
-      others => <>);
-
-   --  Base style for class 'page-source'
-   function Page_Source_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Flex_Grow => Set (1.0),
-      Min_Height => Set (Size (Px (0.0))),
-      others => <>);
-
-   --  Base style for class 'html-view'
-   function Html_View_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Min_Height => Set (Size (Px (0.0))),
-      Background_Color => Set_Bg (RGB (255, 252, 247)),
-      Padding => Set (CSS_Box (Px (14.0), Px (14.0), Px (14.0), Px (14.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (212, 199, 183))),
-      Border_Radius => Set (Radius (Px (10.0))),
-      Overflow_X => Set_Overflow_X (Overflow_Auto),
-      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
-      others => <>);
-
-   --  Base style for class 'html-view'::knob
-   function Html_View_Class_Knob_Base_Style return Style_Rules is
-     (
-      Min_Height => Set (Size (Px (26.0))),
-      Background_Color => Set_Bg (RGBA (112, 92, 69, 0.7)),
-      Border_Radius => Set (Radius (Px (4.0))),
-      others => <>);
-
-   --  Base style for class 'html-view'::scroll
-   function Html_View_Class_Scroll_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (9.0))),
-      Background_Color => Set_Bg (RGBA (127, 103, 75, 0.55)),
-      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
-      Border_Radius => Set (Radius (Px (5.0))),
-      others => <>);
-
-   --  Base style for class 'source-editor'
-   function Source_Editor_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Min_Height => Set (Size (Px (0.0))),
-      Background_Color => Set_Bg (RGB (252, 248, 242)),
-      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (212, 199, 183))),
-      Border_Radius => Set (Radius (Px (10.0))),
-      Overflow_X => Set_Overflow_X (Overflow_Auto),
-      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
-      others => <>);
-
-   --  Base style for class 'source-editor'::cursor
-   function Source_Editor_Class_Cursor_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (86, 69, 49)),
-      others => <>);
-
-   --  Base style for class 'source-editor'::knob
-   function Source_Editor_Class_Knob_Base_Style return Style_Rules is
-     (
-      Min_Height => Set (Size (Px (26.0))),
-      Background_Color => Set_Bg (RGBA (112, 92, 69, 0.66)),
-      Border_Radius => Set (Radius (Px (4.0))),
-      others => <>);
-
-   --  Base style for class 'source-editor'::scroll
-   function Source_Editor_Class_Scroll_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (8.0))),
-      Background_Color => Set_Bg (RGBA (160, 142, 121, 0.28)),
-      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
-      Border_Radius => Set (Radius (Px (4.0))),
-      others => <>);
-
-   --  Base style for class 'source-editor'::selected
-   function Source_Editor_Class_Selected_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (134, 111, 86, 0.28)),
-      others => <>);
-
-   --  Base style for class 'source-editor'::text
-   function Source_Editor_Class_Text_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (58, 52, 45)),
-      Font_Size => Set_Font (Px (14.0)),
-      others => <>);
-
-   --  Base style for class 'bottom-bar'
-   function Bottom_Bar_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Flex_Shrink => Set (0.0),
-      Align_Items => Set (Center),
-      Gap => Set (Gap (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'zoom-slider'
-   function Zoom_Slider_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      Width => Set (Size (Px (200.0))),
-      Height => Set (Size (Px (16.0))),
-      Background_Color => Set_Bg (RGB (212, 199, 183)),
-      Margin => [Top => Set_Margin_Side (Px (18.0)), others => <>],
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'zoom-slider'::indicator
-   function Zoom_Slider_Class_Indicator_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (150, 128, 103)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'zoom-slider'::knob
-   function Zoom_Slider_Class_Knob_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (18.0))),
-      Height => Set (Size (Px (18.0))),
-      Background_Color => Set_Bg (RGB (120, 96, 71)),
-      Border_Radius => Set (Radius (Px (9.0))),
-      others => <>);
-
-   --  Style for class 'zoom-slider'::knob when widget State_Hovered
-   function Zoom_Slider_Class_Knob_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (100, 80, 58)),
-      others => <>);
-
-   --  Base style for class 'zoom-slider'::label
-   function Zoom_Slider_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (97, 88, 77)),
-      Font_Size => Set_Font (Px (11.0)),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      Top => Set_Top (Inset (Px (-18.0))),
-      others => <>);
-
-   --  Base style for class 'status'
-   function Status_Class_Base_Style return Style_Rules is
-     (
-      Min_Height => Set (Size (Px (34.0))),
-      Flex_Grow => Set (1.0),
-      Flex_Shrink => Set (0.0),
-      Background_Color => Set_Bg (RGB (236, 229, 218)),
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (212, 199, 183))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'status'::label
-   function Status_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (72, 65, 55)),
-      Font_Size => Set_Font (Px (13.0)),
-      others => <>);
-
-   --  Base style for class 'context-menu'
-   function Context_Menu_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (200.0))),
-      Background_Color => Set_Bg (RGB (252, 248, 242)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (26.0), Px (0.0), RGBA (72, 58, 43, 0.28))),
-      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (178, 159, 136))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'context-menu-item'
-   function Context_Menu_Item_Class_Base_Style return Style_Rules is
-     (
-      Min_Height => Set (Size (Px (28.0))),
-      Background_Color => Set_Bg (RGBA (252, 248, 242, 0.0)),
-      Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Style for class 'context-menu-item' when widget State_Hovered
-   function Context_Menu_Item_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (134, 111, 86, 0.28)),
-      others => <>);
-
-   --  Style for class 'context-menu-item' when widget State_Disabled
-   function Context_Menu_Item_Class_Widget_Disabled_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (252, 248, 242, 0.0)),
-      others => <>);
-
-   --  Base style for class 'context-menu-item'::label
-   function Context_Menu_Item_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (54, 46, 37)),
-      Font_Size => Set_Font (Px (13.0)),
-      others => <>);
-
-   --  Style for class 'context-menu-item'::label when widget State_Disabled
-   function Context_Menu_Item_Class_Label_Widget_Disabled_Style return Style_Rules is
-     (
-      Color => Set (RGB (160, 142, 121)),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Gap (Gap (Px (8.0)))
+        .Background (RGB (244, 239, 231))
+        .Padding (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0)))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -398,14 +44,18 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'title'
+   --  Style for class 'title'
    Title_Class_Widget : constant Widget_Style :=
-     From (Title_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'title'::label
+   --  Style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
-     From (Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (54, 46, 37))
+        .Font_Size (Px (24.0))
+        .Font_Weight (Weight_Bold)
      .Build;
 
    --  Part styles bundle for class 'title'
@@ -416,14 +66,17 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'subtitle'
+   --  Style for class 'subtitle'
    Subtitle_Class_Widget : constant Widget_Style :=
-     From (Subtitle_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'subtitle'::label
+   --  Style for class 'subtitle'::label
    Subtitle_Class_Label_Widget : constant Widget_Style :=
-     From (Subtitle_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (97, 88, 77))
+        .Font_Size (Px (14.0))
      .Build;
 
    --  Part styles bundle for class 'subtitle'
@@ -434,9 +87,12 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'tab-bar'
+   --  Style for class 'tab-bar'
    Tab_Bar_Class_Widget : constant Widget_Style :=
-     From (Tab_Bar_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Flex_Shrink (0.0)
      .Build;
 
    --  Part styles bundle for class 'tab-bar'
@@ -446,17 +102,38 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'tab-left'
+   --  Style for class 'tab-left'
    Tab_Left_Class_Widget : constant Widget_Style :=
-     From (Tab_Left_Class_Base_Style)
-     .On (When_State (State_Hovered), Tab_Left_Class_Widget_Hovered_Style)
-     .On (When_State (State_Selected), Tab_Left_Class_Widget_Selected_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Align_Items (Center)
+        .Justify_Content (Center)
+        .Background (RGB (224, 212, 194))
+        .Cursor_Style (Cursor_Pointer)
+        .Padding (CSS_Box (Px (8.0), Px (14.0), Px (8.0), Px (14.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (178, 159, 136)))
+        .Radius (Radius (Px (8.0), Px (0.0), Px (0.0), Px (8.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (233, 221, 205))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (120, 96, 71))
+        .Border_Color (Border_Color (RGB (100, 80, 58)))
      .Build;
 
-   --  Complete widget style for class 'tab-left'::label
+   --  Style for class 'tab-left'::label
    Tab_Left_Class_Label_Widget : constant Widget_Style :=
-     From (Tab_Left_Class_Label_Base_Style)
-     .On (When_State (State_Selected), Tab_Left_Class_Label_Widget_Selected_Style)
+     Style_Of
+        .Text_Color (RGB (70, 61, 50))
+        .Font_Size (Px (13.0))
+        .Font_Weight (Weight_Semi_Bold)
+        .Text_Wrap_Mode (TWM_Nowrap)
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Text_Color (RGB (255, 250, 242))
      .Build;
 
    --  Part styles bundle for class 'tab-left'
@@ -467,17 +144,38 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'tab-right'
+   --  Style for class 'tab-right'
    Tab_Right_Class_Widget : constant Widget_Style :=
-     From (Tab_Right_Class_Base_Style)
-     .On (When_State (State_Hovered), Tab_Right_Class_Widget_Hovered_Style)
-     .On (When_State (State_Selected), Tab_Right_Class_Widget_Selected_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Align_Items (Center)
+        .Justify_Content (Center)
+        .Background (RGB (224, 212, 194))
+        .Cursor_Style (Cursor_Pointer)
+        .Padding (CSS_Box (Px (8.0), Px (14.0), Px (8.0), Px (14.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (178, 159, 136)))
+        .Radius (Radius (Px (0.0), Px (8.0), Px (8.0), Px (0.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (233, 221, 205))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (120, 96, 71))
+        .Border_Color (Border_Color (RGB (100, 80, 58)))
      .Build;
 
-   --  Complete widget style for class 'tab-right'::label
+   --  Style for class 'tab-right'::label
    Tab_Right_Class_Label_Widget : constant Widget_Style :=
-     From (Tab_Right_Class_Label_Base_Style)
-     .On (When_State (State_Selected), Tab_Right_Class_Label_Widget_Selected_Style)
+     Style_Of
+        .Text_Color (RGB (70, 61, 50))
+        .Font_Size (Px (13.0))
+        .Font_Weight (Weight_Semi_Bold)
+        .Text_Wrap_Mode (TWM_Nowrap)
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Text_Color (RGB (255, 250, 242))
      .Build;
 
    --  Part styles bundle for class 'tab-right'
@@ -488,9 +186,11 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'stack'
+   --  Style for class 'stack'
    Stack_Class_Widget : constant Widget_Style :=
-     From (Stack_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Min_Height (Size (Px (0.0)))
      .Build;
 
    --  Part styles bundle for class 'stack'
@@ -500,9 +200,13 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'page-preview'
+   --  Style for class 'page-preview'
    Page_Preview_Class_Widget : constant Widget_Style :=
-     From (Page_Preview_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Flex_Grow (1.0)
+        .Min_Height (Size (Px (0.0)))
      .Build;
 
    --  Part styles bundle for class 'page-preview'
@@ -512,9 +216,13 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'page-source'
+   --  Style for class 'page-source'
    Page_Source_Class_Widget : constant Widget_Style :=
-     From (Page_Source_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Flex_Grow (1.0)
+        .Min_Height (Size (Px (0.0)))
      .Build;
 
    --  Part styles bundle for class 'page-source'
@@ -524,19 +232,36 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'html-view'
+   --  Style for class 'html-view'
    Html_View_Class_Widget : constant Widget_Style :=
-     From (Html_View_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Min_Height (Size (Px (0.0)))
+        .Background (RGB (255, 252, 247))
+        .Padding (CSS_Box (Px (14.0), Px (14.0), Px (14.0), Px (14.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (212, 199, 183)))
+        .Radius (Radius (Px (10.0)))
+        .Overflow_X (Overflow_Auto)
+        .Overflow_Y (Overflow_Auto)
      .Build;
 
-   --  Complete widget style for class 'html-view'::knob
+   --  Style for class 'html-view'::knob
    Html_View_Class_Knob_Widget : constant Widget_Style :=
-     From (Html_View_Class_Knob_Base_Style)
+     Style_Of
+        .Min_Height (Size (Px (26.0)))
+        .Background (RGBA (112, 92, 69, 0.7))
+        .Radius (Radius (Px (4.0)))
      .Build;
 
-   --  Complete widget style for class 'html-view'::scroll
+   --  Style for class 'html-view'::scroll
    Html_View_Class_Scroll_Widget : constant Widget_Style :=
-     From (Html_View_Class_Scroll_Base_Style)
+     Style_Of
+        .Width (Size (Px (9.0)))
+        .Background (RGBA (127, 103, 75, 0.55))
+        .Padding (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0)))
+        .Radius (Radius (Px (5.0)))
      .Build;
 
    --  Part styles bundle for class 'html-view'
@@ -548,34 +273,55 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'source-editor'
+   --  Style for class 'source-editor'
    Source_Editor_Class_Widget : constant Widget_Style :=
-     From (Source_Editor_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Min_Height (Size (Px (0.0)))
+        .Background (RGB (252, 248, 242))
+        .Padding (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (212, 199, 183)))
+        .Radius (Radius (Px (10.0)))
+        .Overflow_X (Overflow_Auto)
+        .Overflow_Y (Overflow_Auto)
      .Build;
 
-   --  Complete widget style for class 'source-editor'::cursor
+   --  Style for class 'source-editor'::cursor
    Source_Editor_Class_Cursor_Widget : constant Widget_Style :=
-     From (Source_Editor_Class_Cursor_Base_Style)
+     Style_Of
+        .Background (RGB (86, 69, 49))
      .Build;
 
-   --  Complete widget style for class 'source-editor'::knob
+   --  Style for class 'source-editor'::knob
    Source_Editor_Class_Knob_Widget : constant Widget_Style :=
-     From (Source_Editor_Class_Knob_Base_Style)
+     Style_Of
+        .Min_Height (Size (Px (26.0)))
+        .Background (RGBA (112, 92, 69, 0.66))
+        .Radius (Radius (Px (4.0)))
      .Build;
 
-   --  Complete widget style for class 'source-editor'::scroll
+   --  Style for class 'source-editor'::scroll
    Source_Editor_Class_Scroll_Widget : constant Widget_Style :=
-     From (Source_Editor_Class_Scroll_Base_Style)
+     Style_Of
+        .Width (Size (Px (8.0)))
+        .Background (RGBA (160, 142, 121, 0.28))
+        .Padding (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0)))
+        .Radius (Radius (Px (4.0)))
      .Build;
 
-   --  Complete widget style for class 'source-editor'::selected
+   --  Style for class 'source-editor'::selected
    Source_Editor_Class_Selected_Widget : constant Widget_Style :=
-     From (Source_Editor_Class_Selected_Base_Style)
+     Style_Of
+        .Background (RGBA (134, 111, 86, 0.28))
      .Build;
 
-   --  Complete widget style for class 'source-editor'::text
+   --  Style for class 'source-editor'::text
    Source_Editor_Class_Text_Widget : constant Widget_Style :=
-     From (Source_Editor_Class_Text_Base_Style)
+     Style_Of
+        .Text_Color (RGB (58, 52, 45))
+        .Font_Size (Px (14.0))
      .Build;
 
    --  Part styles bundle for class 'source-editor'
@@ -590,9 +336,14 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'bottom-bar'
+   --  Style for class 'bottom-bar'
    Bottom_Bar_Class_Widget : constant Widget_Style :=
-     From (Bottom_Bar_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Flex_Shrink (0.0)
+        .Align_Items (Center)
+        .Gap (Gap (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'bottom-bar'
@@ -602,25 +353,43 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'zoom-slider'
+   --  Style for class 'zoom-slider'
    Zoom_Slider_Class_Widget : constant Widget_Style :=
-     From (Zoom_Slider_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
+        .Width (Size (Px (200.0)))
+        .Height (Size (Px (16.0)))
+        .Background (RGB (212, 199, 183))
+        .Margin (Top, Margin (Px (18.0)))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
-   --  Complete widget style for class 'zoom-slider'::indicator
+   --  Style for class 'zoom-slider'::indicator
    Zoom_Slider_Class_Indicator_Widget : constant Widget_Style :=
-     From (Zoom_Slider_Class_Indicator_Base_Style)
+     Style_Of
+        .Background (RGB (150, 128, 103))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
-   --  Complete widget style for class 'zoom-slider'::knob
+   --  Style for class 'zoom-slider'::knob
    Zoom_Slider_Class_Knob_Widget : constant Widget_Style :=
-     From (Zoom_Slider_Class_Knob_Base_Style)
-     .On (When_State (State_Hovered), Zoom_Slider_Class_Knob_Widget_Hovered_Style)
+     Style_Of
+        .Width (Size (Px (18.0)))
+        .Height (Size (Px (18.0)))
+        .Background (RGB (120, 96, 71))
+        .Radius (Radius (Px (9.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (100, 80, 58))
      .Build;
 
-   --  Complete widget style for class 'zoom-slider'::label
+   --  Style for class 'zoom-slider'::label
    Zoom_Slider_Class_Label_Widget : constant Widget_Style :=
-     From (Zoom_Slider_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (97, 88, 77))
+        .Font_Size (Px (11.0))
+        .Text_Wrap_Mode (TWM_Nowrap)
+        .Top (Inset (Px (-18.0)))
      .Build;
 
    --  Part styles bundle for class 'zoom-slider'
@@ -633,14 +402,25 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'status'
+   --  Style for class 'status'
    Status_Class_Widget : constant Widget_Style :=
-     From (Status_Class_Base_Style)
+     Style_Of
+        .Min_Height (Size (Px (34.0)))
+        .Flex_Grow (1.0)
+        .Flex_Shrink (0.0)
+        .Background (RGB (236, 229, 218))
+        .Padding (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (212, 199, 183)))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
-   --  Complete widget style for class 'status'::label
+   --  Style for class 'status'::label
    Status_Class_Label_Widget : constant Widget_Style :=
-     From (Status_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (72, 65, 55))
+        .Font_Size (Px (13.0))
      .Build;
 
    --  Part styles bundle for class 'status'
@@ -651,9 +431,17 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'context-menu'
+   --  Style for class 'context-menu'
    Context_Menu_Class_Widget : constant Widget_Style :=
-     From (Context_Menu_Class_Base_Style)
+     Style_Of
+        .Width (Size (Px (200.0)))
+        .Background (RGB (252, 248, 242))
+        .Box_Shadow (Shadow (Px (0.0), Px (10.0), Px (26.0), Px (0.0), RGBA (72, 58, 43, 0.28)))
+        .Padding (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (178, 159, 136)))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'context-menu'
@@ -663,17 +451,29 @@ package Html_View_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'context-menu-item'
+   --  Style for class 'context-menu-item'
    Context_Menu_Item_Class_Widget : constant Widget_Style :=
-     From (Context_Menu_Item_Class_Base_Style)
-     .On (When_State (State_Hovered), Context_Menu_Item_Class_Widget_Hovered_Style)
-     .On (When_State (State_Disabled), Context_Menu_Item_Class_Widget_Disabled_Style)
+     Style_Of
+        .Min_Height (Size (Px (28.0)))
+        .Background (RGBA (252, 248, 242, 0.0))
+        .Padding (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0)))
+        .Radius (Radius (Px (6.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGBA (134, 111, 86, 0.28))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Background (RGBA (252, 248, 242, 0.0))
      .Build;
 
-   --  Complete widget style for class 'context-menu-item'::label
+   --  Style for class 'context-menu-item'::label
    Context_Menu_Item_Class_Label_Widget : constant Widget_Style :=
-     From (Context_Menu_Item_Class_Label_Base_Style)
-     .On (When_State (State_Disabled), Context_Menu_Item_Class_Label_Widget_Disabled_Style)
+     Style_Of
+        .Text_Color (RGB (54, 46, 37))
+        .Font_Size (Px (13.0))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Text_Color (RGB (160, 142, 121))
      .Build;
 
    --  Part styles bundle for class 'context-menu-item'

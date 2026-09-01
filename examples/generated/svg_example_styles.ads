@@ -27,137 +27,14 @@ package Svg_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Gap => Set (Gap (Px (14.0))),
-      Background_Color => Set_Bg (RGB (14, 21, 37)),
-      Padding => Set (CSS_Box (Px (20.0), Px (22.0), Px (20.0), Px (22.0))),
-      others => <>);
-
-   --  Base style for class 'header'
-   function Header_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Gap => Set (Gap (Px (4.0))),
-      Background_Color => Set_Bg (RGBA (30, 41, 59, 0.62)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (24.0), Px (0.0), RGBA (2, 6, 23, 0.55))),
-      Padding => Set (CSS_Box (Px (12.0), Px (14.0), Px (12.0), Px (14.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGBA (148, 163, 184, 0.35))),
-      Border_Radius => Set (Radius (Px (12.0))),
-      others => <>);
-
-   --  Base style for class 'title'::label
-   function Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (241, 245, 249)),
-      Font_Size => Set_Font (Px (30.0)),
-      Font_Weight => Set (Weight_Extra_Bold),
-      others => <>);
-
-   --  Base style for class 'subtitle'::label
-   function Subtitle_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (148, 163, 184)),
-      Font_Size => Set_Font (Px (14.0)),
-      others => <>);
-
-   --  Base style for class 'panel'
-   function Panel_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Flex_Grow => Set (1.0),
-      Gap => Set (Gap (Px (10.0))),
-      Background_Color => Set_Bg (RGBA (15, 23, 42, 0.85)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (14.0), Px (28.0), Px (0.0), RGBA (2, 6, 23, 0.55))),
-      Min_Height => Set (Size (Px (0.0))),
-      Padding => Set (CSS_Box (Px (14.0), Px (14.0), Px (14.0), Px (14.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGBA (56, 189, 248, 0.38))),
-      Border_Radius => Set (Radius (Px (16.0))),
-      others => <>);
-
-   --  Base style for class 'panel-title'::label
-   function Panel_Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (186, 230, 253)),
-      Font_Size => Set_Font (Px (14.0)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>);
-
-   --  Base style for class 'stage'
-   function Stage_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Flex_Grow => Set (1.0),
-      Min_Height => Set (Size (Px (0.0))),
-      Align_Items => Set (Stretch),
-      Justify_Content => Set (Center),
-      Gap => Set (Gap (Px (10.0))),
-      Background_Color => Set_Bg (RGBA (2, 6, 23, 0.72)),
-      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGBA (148, 163, 184, 0.26))),
-      Border_Radius => Set (Radius (Px (12.0))),
-      others => <>);
-
-   --  Base style for class 'artwork'
-   function Artwork_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Min_Height => Set (Size (Px (0.0))),
-      others => <>);
-
-   --  Base style for class 'artwork'::icon
-   function Artwork_Class_Icon_Base_Style return Style_Rules is
-     (
-      Object_Fit => Set (Fit_Contain),
-      Object_Position => Set (Object_Position (Pos_Center, Pos_Center)),
-      others => <>);
-
-   --  Base style for class 'caption'
-   function Caption_Class_Base_Style return Style_Rules is
-     (
-      others => <>);
-
-   --  Base style for class 'caption'::label
-   function Caption_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (148, 163, 184)),
-      Font_Size => Set_Font (Px (12.0)),
-      others => <>);
-
-   --  Base style for class 'status'
-   function Status_Class_Base_Style return Style_Rules is
-     (
-      Min_Height => Set (Size (Px (34.0))),
-      Background_Color => Set_Bg (RGBA (15, 23, 42, 0.82)),
-      Padding => Set (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGBA (125, 211, 252, 0.32))),
-      Border_Radius => Set (Radius (Px (10.0))),
-      others => <>);
-
-   --  Base style for class 'status'::label
-   function Status_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (125, 211, 252)),
-      Font_Size => Set_Font (Px (13.0)),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Gap (Gap (Px (14.0)))
+        .Background (RGB (14, 21, 37))
+        .Padding (CSS_Box (Px (20.0), Px (22.0), Px (20.0), Px (22.0)))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -167,9 +44,19 @@ package Svg_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'header'
+   --  Style for class 'header'
    Header_Class_Widget : constant Widget_Style :=
-     From (Header_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Gap (Gap (Px (4.0)))
+        .Background (RGBA (30, 41, 59, 0.62))
+        .Box_Shadow (Shadow (Px (0.0), Px (10.0), Px (24.0), Px (0.0), RGBA (2, 6, 23, 0.55)))
+        .Padding (CSS_Box (Px (12.0), Px (14.0), Px (12.0), Px (14.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGBA (148, 163, 184, 0.35)))
+        .Radius (Radius (Px (12.0)))
      .Build;
 
    --  Part styles bundle for class 'header'
@@ -179,9 +66,12 @@ package Svg_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'title'::label
+   --  Style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
-     From (Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (241, 245, 249))
+        .Font_Size (Px (30.0))
+        .Font_Weight (Weight_Extra_Bold)
      .Build;
 
    --  Part styles bundle for class 'title'
@@ -191,9 +81,11 @@ package Svg_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'subtitle'::label
+   --  Style for class 'subtitle'::label
    Subtitle_Class_Label_Widget : constant Widget_Style :=
-     From (Subtitle_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (148, 163, 184))
+        .Font_Size (Px (14.0))
      .Build;
 
    --  Part styles bundle for class 'subtitle'
@@ -203,9 +95,21 @@ package Svg_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'panel'
+   --  Style for class 'panel'
    Panel_Class_Widget : constant Widget_Style :=
-     From (Panel_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Flex_Grow (1.0)
+        .Gap (Gap (Px (10.0)))
+        .Background (RGBA (15, 23, 42, 0.85))
+        .Box_Shadow (Shadow (Px (0.0), Px (14.0), Px (28.0), Px (0.0), RGBA (2, 6, 23, 0.55)))
+        .Min_Height (Size (Px (0.0)))
+        .Padding (CSS_Box (Px (14.0), Px (14.0), Px (14.0), Px (14.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGBA (56, 189, 248, 0.38)))
+        .Radius (Radius (Px (16.0)))
      .Build;
 
    --  Part styles bundle for class 'panel'
@@ -215,9 +119,12 @@ package Svg_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'panel-title'::label
+   --  Style for class 'panel-title'::label
    Panel_Title_Class_Label_Widget : constant Widget_Style :=
-     From (Panel_Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (186, 230, 253))
+        .Font_Size (Px (14.0))
+        .Font_Weight (Weight_Bold)
      .Build;
 
    --  Part styles bundle for class 'panel-title'
@@ -227,9 +134,22 @@ package Svg_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'stage'
+   --  Style for class 'stage'
    Stage_Class_Widget : constant Widget_Style :=
-     From (Stage_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Flex_Grow (1.0)
+        .Min_Height (Size (Px (0.0)))
+        .Align_Items (Stretch)
+        .Justify_Content (Center)
+        .Gap (Gap (Px (10.0)))
+        .Background (RGBA (2, 6, 23, 0.72))
+        .Padding (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGBA (148, 163, 184, 0.26)))
+        .Radius (Radius (Px (12.0)))
      .Build;
 
    --  Part styles bundle for class 'stage'
@@ -239,14 +159,18 @@ package Svg_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'artwork'
+   --  Style for class 'artwork'
    Artwork_Class_Widget : constant Widget_Style :=
-     From (Artwork_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Min_Height (Size (Px (0.0)))
      .Build;
 
-   --  Complete widget style for class 'artwork'::icon
+   --  Style for class 'artwork'::icon
    Artwork_Class_Icon_Widget : constant Widget_Style :=
-     From (Artwork_Class_Icon_Base_Style)
+     Style_Of
+        .Object_Fit (Fit_Contain)
+        .Object_Position (Object_Position (Pos_Center, Pos_Center))
      .Build;
 
    --  Part styles bundle for class 'artwork'
@@ -257,14 +181,16 @@ package Svg_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'caption'
+   --  Style for class 'caption'
    Caption_Class_Widget : constant Widget_Style :=
-     From (Caption_Class_Base_Style)
+     Style_Of
      .Build;
 
-   --  Complete widget style for class 'caption'::label
+   --  Style for class 'caption'::label
    Caption_Class_Label_Widget : constant Widget_Style :=
-     From (Caption_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (148, 163, 184))
+        .Font_Size (Px (12.0))
      .Build;
 
    --  Part styles bundle for class 'caption'
@@ -275,14 +201,23 @@ package Svg_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'status'
+   --  Style for class 'status'
    Status_Class_Widget : constant Widget_Style :=
-     From (Status_Class_Base_Style)
+     Style_Of
+        .Min_Height (Size (Px (34.0)))
+        .Background (RGBA (15, 23, 42, 0.82))
+        .Padding (CSS_Box (Px (8.0), Px (10.0), Px (8.0), Px (10.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGBA (125, 211, 252, 0.32)))
+        .Radius (Radius (Px (10.0)))
      .Build;
 
-   --  Complete widget style for class 'status'::label
+   --  Style for class 'status'::label
    Status_Class_Label_Widget : constant Widget_Style :=
-     From (Status_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (125, 211, 252))
+        .Font_Size (Px (13.0))
      .Build;
 
    --  Part styles bundle for class 'status'

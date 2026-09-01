@@ -835,6 +835,152 @@ procedure Style_Composer_Test is
    end Test_Gap_Axes;
 
    ---------------------------------------------------------------------
+   --  One value of a property that cascades several
+   ---------------------------------------------------------------------
+
+   --  A side longhand names one edge and leaves the other three to the
+   --  cascade, which is what separates `padding-right: 14px` from
+   --  `padding: 14px`. The chain says so with the edge as an argument,
+   --  and the aggregate with a partial array, so the two are held
+   --  against each other edge by edge.
+   procedure Test_Side_Longhands is
+      Grey : constant Color_Value := RGB (9, 9, 9);
+
+      procedure Same (Chain : Widget_Style;
+                      Agg   : Style_Rules;
+                      What  : String) is
+      begin
+         Assert (Chain = From (Agg).Build, What);
+      end Same;
+   begin
+      Section ("one edge, one corner");
+
+      Same (Style_Of.Padding (Right, Px (14.0)).Build,
+            (Padding => [Right => Set (Px (14.0)), others => <>],
+             others  => <>),
+            "padding names one edge");
+      Same (Style_Of.Border_Width (Top, Px (7.0)).Build,
+            (Border_Width => [Top => Set (Px (7.0)), others => <>],
+             others       => <>),
+            "border-width names one edge");
+      Same (Style_Of.Border_Color (Top, Grey).Build,
+            (Border_Color => [Top => Set_Edge_Color (Grey), others => <>],
+             others       => <>),
+            "border-color names one edge");
+      Same (Style_Of.Border_Style (Right, Dashed).Build,
+            (Border_Style => [Right => Set_Edge_Style (Dashed), others => <>],
+             others       => <>),
+            "border-style names one edge");
+      Same (Style_Of.Radius (Bottom_Left, Px (2.0)).Build,
+            (Border_Radius =>
+               [Bottom_Left => Set (Px (2.0)), others => <>],
+             others => <>),
+            "border-radius names one corner");
+      Same (Style_Of.Margin (Top, Margin (Px (5.0))).Build,
+            (Margin => [Top => Set_Margin_Side (Px (5.0)), others => <>],
+             others => <>),
+            "margin names one edge");
+      Same (Style_Of.Margin (Left, Auto_Margin).Margin
+              (Right, Auto_Margin).Build,
+            (Margin => [Left  => Set_Margin (Auto_Margin),
+                        Right => Set_Margin (Auto_Margin),
+                        others => <>],
+             others => <>),
+            "margin: 0 auto names two edges as auto");
+
+      --  Four edges named one at a time are the shorthand, and the
+      --  shorthand after a longhand takes every edge back.
+      Assert (Style_Of.Padding (Top, Px (1.0)).Padding (Right, Px (2.0))
+                .Padding (Bottom, Px (3.0)).Padding (Left, Px (4.0)).Build
+              = Style_Of.Padding
+                  (CSS_Box (Px (1.0), Px (2.0), Px (3.0), Px (4.0))).Build,
+              "four edges named apart are the box naming all four");
+      Assert (Style_Of.Padding (Right, Px (14.0))
+                .Padding (CSS_Box (Px (2.0))).Build
+              = Style_Of.Padding (CSS_Box (Px (2.0))).Build,
+              "the shorthand after a longhand names every edge");
+   end Test_Side_Longhands;
+
+   --  The same claim against the parser, which is the pipeline a
+   --  generated sheet has to match.
+   procedure Test_Side_Longhands_Agree_With_Parser is
+      Source : constant String :=
+        ".s {" & ASCII.LF
+        & "  padding-right: 14px;" & ASCII.LF
+        & "  border-top-width: 7px;" & ASCII.LF
+        & "  border-top-color: #090909;" & ASCII.LF
+        & "  border-right-style: dashed;" & ASCII.LF
+        & "  border-bottom-left-radius: 2px;" & ASCII.LF
+        & "  margin-top: 5px;" & ASCII.LF
+        & "  margin-left: auto;" & ASCII.LF
+        & "}" & ASCII.LF;
+
+      Sheet  : Adi.CSS_Parser.Rule_Sheet;
+      Loaded : Boolean;
+
+      By_Chain : constant Widget_Style :=
+        Style_Of
+          .Padding (Right, Px (14.0))
+          .Border_Width (Top, Px (7.0))
+          .Border_Color (Top, RGB (9, 9, 9))
+          .Border_Style (Right, Dashed)
+          .Radius (Bottom_Left, Px (2.0))
+          .Margin (Top, Margin (Px (5.0)))
+          .Margin (Left, Auto_Margin)
+        .Build;
+   begin
+      Section ("a side longhand against the sheet it spells");
+
+      Adi.CSS_Parser.Load_Rules (Sheet, Source, Loaded);
+      Assert (Loaded, "the sheet parses");
+
+      Assert (Intern_Rules
+                (Adi.CSS_Parser.Base_Rules
+                   (Sheet, Adi.CSS_Parser.Class_Selector, "s"))
+              = Definition (By_Chain).Base,
+              "the parser and the chain fold the same longhands to one "
+              & "interned rule set");
+   end Test_Side_Longhands_Agree_With_Parser;
+
+   --  grid-template-columns carries a count and a track list, and the
+   --  list has no CSS_Property literal, so it is the property's second
+   --  part and a chain naming both takes two steps.
+   procedure Test_Grid_Tracks is
+      Tracks : constant Grid_Track_List :=
+        (Count  => 2,
+         Tracks => [1 => (Track_Px, 120.0), 2 => (Track_Fr, 1.0),
+                    others => <>]);
+
+      Source : constant String :=
+        ".g { grid-template-columns: 120px 1fr; }" & ASCII.LF;
+
+      Sheet  : Adi.CSS_Parser.Rule_Sheet;
+      Loaded : Boolean;
+
+      By_Chain : constant Widget_Style :=
+        Style_Of
+          .Grid_Columns (Grid_Columns_Value (2))
+          .Grid_Columns (Tracks)
+        .Build;
+   begin
+      Section ("a track list beside its count");
+
+      Assert (By_Chain
+              = From ((Grid_Columns       => Set (Grid_Columns_Value (2)),
+                       Grid_Column_Tracks => Tracks,
+                       others             => <>)).Build,
+              "the chain and the aggregate name the same track list");
+
+      Adi.CSS_Parser.Load_Rules (Sheet, Source, Loaded);
+      Assert (Loaded, "the sheet parses");
+      Assert (Intern_Rules
+                (Adi.CSS_Parser.Base_Rules
+                   (Sheet, Adi.CSS_Parser.Class_Selector, "g"))
+              = Definition (By_Chain).Base,
+              "and so does the parser");
+   end Test_Grid_Tracks;
+
+   ---------------------------------------------------------------------
    --  Text at the limit a style carries
    ---------------------------------------------------------------------
 
@@ -1500,7 +1646,7 @@ procedure Style_Composer_Test is
    --  descriptor table's business.
    procedure Test_Residue is
       Composable : Natural := 0;
-      Applied, Wiped : Style_Rules;
+      Applied, Wiped, Parted : Style_Rules;
    begin
       Section ("what being in the composed set means");
 
@@ -1529,6 +1675,19 @@ procedure Style_Composer_Test is
 
          Assert (Applied /= Wiped,
                  "and set is not cleared for " & CSS_Property'Image (P));
+
+         --  A property outside the parted set answers the four-argument
+         --  form at First_Part exactly as it answers the three-argument
+         --  one, which is what that form's `when others` arm says.
+         --  Prop_Overflow stands aside: a rule set holds it as its two
+         --  axes and never as itself, so no slot ever names it.
+         if not Parted_Properties (P) and then P /= Prop_Overflow then
+            Parted := Empty_Style;
+            Apply_Property (Parted, P, First_Part, Sample_Ref (P));
+            Assert (Parted = Applied,
+                    "the parted form at First_Part writes what the whole "
+                    & "form writes for " & CSS_Property'Image (P));
+         end if;
       end loop;
 
       Assert (Composable = 66,
@@ -1537,8 +1696,8 @@ procedure Style_Composer_Test is
 
       Assert (Rules_Of (Definition (Style_Of.Grid_Columns (3).Build).Base)
                 .Grid_Column_Tracks.Count = 0,
-              "and the track list stays outside, having no property to be "
-              & "named by");
+              "and a chain naming the column count alone leaves the track "
+              & "list empty, that being the property's other value");
    end Test_Residue;
 
    procedure Test_Chain_Leaves_No_Buffer is
@@ -1560,6 +1719,9 @@ begin
    Test_Every_Setter;
    Test_Every_Clear;
    Test_Gap_Axes;
+   Test_Side_Longhands;
+   Test_Side_Longhands_Agree_With_Parser;
+   Test_Grid_Tracks;
    Test_Overflow_Shorthand;
    Test_Text_Limit;
    Test_Agrees_With_Parser;

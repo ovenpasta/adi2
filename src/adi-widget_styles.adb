@@ -956,6 +956,7 @@ package body Adi.Widget_Styles is
 
    function Append_Step (C       : Composer;
                          P       : CSS_Property;
+                         Part    : Chain_Part;
                          Op      : Slot_Op;
                          Val     : Value_Ref;
                          Outcome : out Step_Outcome) return Composer
@@ -963,6 +964,7 @@ package body Adi.Widget_Styles is
 
    function Append_Step (C       : Composer;
                          P       : CSS_Property;
+                         Part    : Chain_Part;
                          Op      : Slot_Op;
                          Val     : Value_Ref;
                          Outcome : out Step_Outcome) return Composer
@@ -983,18 +985,19 @@ package body Adi.Widget_Styles is
 
       B.Count := B.Count + 1;
       B.Slots (B.Count) :=
-        (Rule => C.Active, Prop => P, Op => Op, Val => Val);
+        (Rule => C.Active, Prop => P, Op => Op, Part => Part, Val => Val);
       Outcome := Stored;
       return C;
    end Append_Step;
 
-   function Append (C   : Composer;
-                    P   : CSS_Property;
-                    Op  : Slot_Op;
-                    Val : Value_Ref) return Composer
+   function Append (C    : Composer;
+                    P    : CSS_Property;
+                    Part : Chain_Part;
+                    Op   : Slot_Op;
+                    Val  : Value_Ref) return Composer
    is
       Outcome : Step_Outcome;
-      Result  : constant Composer := Append_Step (C, P, Op, Val, Outcome);
+      Result  : constant Composer := Append_Step (C, P, Part, Op, Val, Outcome);
    begin
       case Outcome is
          when Stored | No_Buffer | Dropped_Quietly => null;
@@ -1005,10 +1008,18 @@ package body Adi.Widget_Styles is
 
 
    function Set_Slot (C : Composer; P : CSS_Property; Val : Value_Ref)
-     return Composer is (Append (C, P, Set_Value, Val));
+     return Composer is (Append (C, P, Whole_Part, Set_Value, Val));
+
+   --  One of the property's values: the edge, corner, axis or track
+   --  list Part names, with the rest left to the cascade.
+   function Set_Part_Slot (C    : Composer;
+                           P    : CSS_Property;
+                           Part : Slot_Part;
+                           Val  : Value_Ref) return Composer is
+     (Append (C, P, Chain_Part (Part), Set_Value, Val));
 
    function Clear (C : Composer; P : CSS_Property) return Composer is
-     (Append (C, P, Clear_Value, No_Value_Ref));
+     (Append (C, P, Whole_Part, Clear_Value, No_Value_Ref));
 
    -------------------------------------------------
    -- Moving the active rule
@@ -1086,6 +1097,36 @@ package body Adi.Widget_Styles is
 
    function Margin (C : Composer; V : CSS_Box_Value) return Composer is
      (Set_Slot (C, Prop_Margin, Intern (V)));
+
+   function Edge_Part (E : Edge) return Slot_Part is
+     (Slot_Part (Edge'Pos (E)));
+
+   function Corner_Part (K : Corner) return Slot_Part is
+     (Slot_Part (Corner'Pos (K)));
+
+   function Padding (C : Composer; E : Edge; V : Length_Value)
+     return Composer is
+     (Set_Part_Slot (C, Prop_Padding, Edge_Part (E), Intern (V)));
+
+   function Margin (C : Composer; E : Edge; V : Margin_Value)
+     return Composer is
+     (Set_Part_Slot (C, Prop_Margin, Edge_Part (E), Intern (V)));
+
+   function Border_Width (C : Composer; E : Edge; V : Length_Value)
+     return Composer is
+     (Set_Part_Slot (C, Prop_Border_Width, Edge_Part (E), Intern (V)));
+
+   function Border_Color (C : Composer; E : Edge; V : Color_Value)
+     return Composer is
+     (Set_Part_Slot (C, Prop_Border_Color, Edge_Part (E), Intern (V)));
+
+   function Border_Style (C : Composer; E : Edge; V : Border_Style_Kind)
+     return Composer is
+     (Set_Part_Slot (C, Prop_Border_Style, Edge_Part (E), Intern (V)));
+
+   function Radius (C : Composer; K : Corner; V : Length_Value)
+     return Composer is
+     (Set_Part_Slot (C, Prop_Border_Radius, Corner_Part (K), Intern (V)));
 
    function Width (C : Composer; V : Size_Value) return Composer is
      (Set_Slot (C, Prop_Width, Intern (V)));
@@ -1280,6 +1321,9 @@ package body Adi.Widget_Styles is
    function Grid_Columns (C : Composer; V : Grid_Columns_Value)
      return Composer is (Set_Slot (C, Prop_Grid_Columns, Intern (V)));
 
+   function Grid_Columns (C : Composer; V : Grid_Track_List) return Composer is
+     (Set_Part_Slot (C, Prop_Grid_Columns, Tracks_Part, Intern (V)));
+
    function Grid_Rows (C : Composer; V : Grid_Rows_Value) return Composer is
      (Set_Slot (C, Prop_Grid_Rows, Intern (V)));
 
@@ -1352,12 +1396,21 @@ package body Adi.Widget_Styles is
       begin
          for I in 1 .. B.Count loop
             if B.Slots (I).Rule = K then
-               case B.Slots (I).Op is
-                  when Set_Value =>
-                     Apply_Property (R, B.Slots (I).Prop, B.Slots (I).Val);
-                  when Clear_Value =>
-                     Clear_Property (R, B.Slots (I).Prop);
-               end case;
+               declare
+                  S : Slot renames B.Slots (I);
+               begin
+                  case S.Op is
+                     when Set_Value =>
+                        if S.Part = Whole_Part then
+                           Apply_Property (R, S.Prop, S.Val);
+                        else
+                           Apply_Property
+                             (R, S.Prop, Slot_Part (S.Part), S.Val);
+                        end if;
+                     when Clear_Value =>
+                        Clear_Property (R, S.Prop);
+                  end case;
+               end;
             end if;
          end loop;
 

@@ -579,6 +579,20 @@ class StyleRuleLimitError(Exception):
     """A selector carries more state rules than a Widget_Style holds."""
 
 
+#  Adi.Widget_Styles.Max_Chain_Slots in src/adi-widget_styles.ads. One
+#  chain buffer holds that many steps over all the rules the chain
+#  names; a step past it is dropped and reported at run time, so the
+#  generator refuses the sheet here instead. A chain also holds one
+#  buffer of the Max_Open_Chains the pool lends, which a generated
+#  constant cannot outrun: it opens one chain and closes it at .Build
+#  before the next declaration starts.
+MAX_CHAIN_SLOTS = 64
+
+
+class ChainTooLong(Exception):
+    """A selector-and-part names more properties than one chain holds."""
+
+
 class PropertyPackageMissing(Exception):
     """A stylesheet selects on widget properties and named no package for them."""
 
@@ -612,6 +626,11 @@ def parse_length(value: str) -> Optional[ParsedLength]:
     unit = unit_map.get(unit_str, "Px")
     return ParsedLength(amount, unit)
 
+
+#  Adi.CSS_Styles.Max_Grid_Tracks in src/adi-css_styles.ads, the length
+#  of the Grid_Track_Array a Grid_Track_List holds. A longer list is
+#  refused here and the sizes dropped, leaving the bare column count, so
+#  a value below the Ada one would drop tracks the runtime parser keeps.
 MAX_GRID_TRACKS = 16
 
 
@@ -2548,10 +2567,10 @@ def _margin_tokens_to_four(tokens: list[MarginToken]) -> list[Optional[MarginTok
 
 
 def _generate_margin_token_ada(tok: MarginToken) -> str:
-    """Ada expression for one margin side: Set_Margin_Side(...) or Set_Margin(Auto_Margin)."""
+    """The Margin_Value one margin side carries: a length, or auto."""
     if tok == "auto":
-        return "Set_Margin (Auto_Margin)"
-    return f"Set_Margin_Side ({generate_length_ada(tok)})"
+        return "Auto_Margin"
+    return f"Margin ({generate_length_ada(tok)})"
 
 
 def box_lengths_to_four(lengths: list[ParsedLength]) -> list[ParsedLength]:
@@ -2592,16 +2611,6 @@ def four_sides_to_box_lengths(sides: list[ParsedLength]) -> list[ParsedLength]:
 
 EDGE_NAMES = ["Top", "Right", "Bottom", "Left"]
 CORNER_NAMES = ["Top_Left", "Top_Right", "Bottom_Right", "Bottom_Left"]
-
-
-def generate_partial_sides_ada(names, values, element) -> str:
-    """Ada aggregate naming only the sides this rule declared."""
-    named = ", ".join(
-        f"{name} => {element(value)}"
-        for name, value in zip(names, values)
-        if value is not None
-    )
-    return f"[{named}, others => <>]"
 
 
 def generate_border_style_from_four_ada(styles: list[str]) -> str:
@@ -2785,8 +2794,14 @@ def assert_property_spec_consistency() -> None:
         raise RuntimeError("CSS spec mismatch: " + "; ".join(errors))
 
 
-def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ") -> list[str]:
-    """Generate Ada Style_Rules record fields from CSS properties"""
+def generate_style_chain_ada(properties: dict[str, str]) -> list[str]:
+    """The composer steps one CSS rule block spells.
+
+    Each entry is a setter call without its leading dot -- "Background
+    (RGB (37, 99, 235))" -- so a caller renders a chain by prefixing one
+    and indenting to taste.  A property whose values cascade separately
+    yields a step per value it names.
+    """
     fields = []
     padding_sides = None
     margin_sides = None
@@ -2855,30 +2870,30 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         if prop == "color":
             color = parse_color(value)
             if color:
-                ada_field = f"Color => Set ({generate_color_ada(color)})"
+                ada_field = f"Text_Color ({generate_color_ada(color)})"
         
         # Background color
         elif prop in ("background-color", "background"):
             color = parse_color(value)
             if color:
-                ada_field = f"Background_Color => Set_Bg ({generate_color_ada(color)})"
+                ada_field = f"Background ({generate_color_ada(color)})"
 
         # Background image
         elif prop == "background-image":
             low = value.lower()
             if low == "none":
-                ada_field = "Background_Image => Set_Bg_Image (No_Background_Image)"
+                ada_field = "Background_Image (No_Background_Image)"
             else:
                 grad = parse_linear_gradient(value)
                 if grad is not None:
                     ada_field = (
-                        "Background_Image => Set_Bg_Image ("
+                        "Background_Image ("
                         + generate_gradient_ada(grad) + ")"
                     )
                 else:
                     uri = parse_css_url_function(value)
                     if uri is not None:
-                        ada_field = f"Background_Image => Set_Bg_Image (Background_Image_URL ({ada_string_literal(uri)}))"
+                        ada_field = f"Background_Image (Background_Image_URL ({ada_string_literal(uri)}))"
 
         # Padding
         elif prop == "padding":
@@ -3002,90 +3017,92 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         # Width
         elif prop == "width":
             if value.lower() == "auto":
-                ada_field = "Width => Set (Auto_Size)"
+                ada_field = "Width (Auto_Size)"
             elif value.lower() == "min-content":
-                ada_field = "Width => Set (Min_Content_Size)"
+                ada_field = "Width (Min_Content_Size)"
             elif value.lower() == "max-content":
-                ada_field = "Width => Set (Max_Content_Size)"
+                ada_field = "Width (Max_Content_Size)"
             elif value.lower() == "fit-content":
-                ada_field = "Width => Set (Fit_Content_Size)"
+                ada_field = "Width (Fit_Content_Size)"
             else:
                 length = parse_length(value)
                 if length:
-                    ada_field = f"Width => Set (Size ({generate_length_ada(length)}))"
+                    ada_field = f"Width (Size ({generate_length_ada(length)}))"
         
         # Height
         elif prop == "height":
             if value.lower() == "auto":
-                ada_field = "Height => Set (Auto_Size)"
+                ada_field = "Height (Auto_Size)"
             else:
                 length = parse_length(value)
                 if length:
-                    ada_field = f"Height => Set (Size ({generate_length_ada(length)}))"
+                    ada_field = f"Height (Size ({generate_length_ada(length)}))"
         
         # Min/Max width/height
         elif prop == "min-width":
             length = parse_length(value)
             if length:
-                ada_field = f"Min_Width => Set (Size ({generate_length_ada(length)}))"
+                ada_field = f"Min_Width (Size ({generate_length_ada(length)}))"
         
         elif prop == "max-width":
             length = parse_length(value)
             if length:
-                ada_field = f"Max_Width => Set (Size ({generate_length_ada(length)}))"
+                ada_field = f"Max_Width (Size ({generate_length_ada(length)}))"
         
         elif prop == "min-height":
             length = parse_length(value)
             if length:
-                ada_field = f"Min_Height => Set (Size ({generate_length_ada(length)}))"
+                ada_field = f"Min_Height (Size ({generate_length_ada(length)}))"
         
         elif prop == "max-height":
             length = parse_length(value)
             if length:
-                ada_field = f"Max_Height => Set (Size ({generate_length_ada(length)}))"
+                ada_field = f"Max_Height (Size ({generate_length_ada(length)}))"
         
         # Font family
         elif prop == "font-family":
             name = value.strip()
             if css_text_fits(name):
-                ada_field = f"Font_Family => Set_Font_Family ({ada_string_literal(name)})"
+                ada_field = f"Font_Family ({ada_string_literal(name)})"
 
         # Font size
         elif prop == "font-size":
             length = parse_length(value)
             if length:
-                ada_field = f"Font_Size => Set_Font ({generate_length_ada(length)})"
+                ada_field = f"Font_Size ({generate_length_ada(length)})"
 
         # Font weight
         elif prop == "font-weight":
             if value.lower() in FONT_WEIGHT_MAP:
-                ada_field = f"Font_Weight => Set ({FONT_WEIGHT_MAP[value.lower()]})"
+                ada_field = f"Font_Weight ({FONT_WEIGHT_MAP[value.lower()]})"
 
         # Font style
         elif prop == "font-style":
             if value.lower() in FONT_STYLE_MAP:
-                ada_field = f"Font_Style => Set ({FONT_STYLE_MAP[value.lower()]})"
+                ada_field = f"Font_Style ({FONT_STYLE_MAP[value.lower()]})"
 
         # Text align
         elif prop == "text-align":
             if value.lower() in TEXT_ALIGN_MAP:
-                ada_field = f"Text_Align => Set ({TEXT_ALIGN_MAP[value.lower()]})"
+                ada_field = f"Text_Align ({TEXT_ALIGN_MAP[value.lower()]})"
 
         # Vertical align
         elif prop == "vertical-align":
             if value.lower() in VERTICAL_ALIGN_MAP:
-                ada_field = f"Vertical_Align => Set ({VERTICAL_ALIGN_MAP[value.lower()]})"
+                ada_field = f"Vertical_Align ({VERTICAL_ALIGN_MAP[value.lower()]})"
 
         # Text decoration
         elif prop == "text-decoration":
             if value.lower() in TEXT_DECORATION_MAP:
-                ada_field = f"Text_Decoration => Set ({TEXT_DECORATION_MAP[value.lower()]})"
+                ada_field = f"Text_Decoration ({TEXT_DECORATION_MAP[value.lower()]})"
 
         # List style longhands/shorthand
         elif prop == "list-style-type":
             low = value.lower()
             if low in LIST_STYLE_TYPE_MAP:
-                list_style_type = f"(Kind => {LIST_STYLE_TYPE_MAP[low]})"
+                list_style_type = (
+                    "List_Style_Type_Value'(Kind => "
+                    f"{LIST_STYLE_TYPE_MAP[low]})")
             else:
                 marker = parse_list_marker_string(value)
                 if marker is not None:
@@ -3111,7 +3128,9 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             if type_part is not None:
                 low = type_part.lower()
                 if low in LIST_STYLE_TYPE_MAP:
-                    list_style_type = f"(Kind => {LIST_STYLE_TYPE_MAP[low]})"
+                    list_style_type = (
+                    "List_Style_Type_Value'(Kind => "
+                    f"{LIST_STYLE_TYPE_MAP[low]})")
                 else:
                     marker = parse_list_marker_string(type_part)
                     if marker is not None:
@@ -3133,40 +3152,40 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         # White space
         elif prop == "white-space":
             if value.lower() in WHITE_SPACE_MAP:
-                ada_field = f"White_Space => Set ({WHITE_SPACE_MAP[value.lower()]})"
+                ada_field = f"White_Space ({WHITE_SPACE_MAP[value.lower()]})"
 
         # Text overflow
         elif prop == "text-overflow":
             if value.lower() in TEXT_OVERFLOW_MAP:
-                ada_field = f"Text_Overflow => Set ({TEXT_OVERFLOW_MAP[value.lower()]})"
+                ada_field = f"Text_Overflow ({TEXT_OVERFLOW_MAP[value.lower()]})"
 
         # Text wrap mode
         elif prop == "text-wrap-mode":
             if value.lower() in TEXT_WRAP_MODE_MAP:
-                ada_field = f"Text_Wrap_Mode => Set ({TEXT_WRAP_MODE_MAP[value.lower()]})"
+                ada_field = f"Text_Wrap_Mode ({TEXT_WRAP_MODE_MAP[value.lower()]})"
 
         # Line height
         elif prop == "line-height":
             if value.lower() == "normal":
-                ada_field = "Line_Height => Set (Normal_Line_Height)"
+                ada_field = "Line_Height (Normal_Line_Height)"
             else:
                 # Try as a unitless number (multiplier)
                 try:
                     mult = float(value)
                     if value.replace('.', '', 1).replace('-', '', 1).isdigit():
-                        ada_field = f"Line_Height => Set (Line_Height ({format_float(mult)}))"
+                        ada_field = f"Line_Height (Line_Height ({format_float(mult)}))"
                     else:
                         raise ValueError
                 except ValueError:
                     # Try as a length
                     length = parse_length(value)
                     if length:
-                        ada_field = f"Line_Height => Set (Line_Height ({generate_length_ada(length)}))"
+                        ada_field = f"Line_Height (Line_Height ({generate_length_ada(length)}))"
 
         # Object fit
         elif prop == "object-fit":
             if value.lower() in OBJECT_FIT_MAP:
-                ada_field = f"Object_Fit => Set ({OBJECT_FIT_MAP[value.lower()]})"
+                ada_field = f"Object_Fit ({OBJECT_FIT_MAP[value.lower()]})"
 
         # Object position
         elif prop == "object-position":
@@ -3174,12 +3193,12 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             if pos:
                 if pos.kind == "keyword":
                     ada_field = (
-                        "Object_Position => Set "
+                        "Object_Position "
                         f"(Object_Position ({pos.h_keyword}, {pos.v_keyword}))"
                     )
                 else:
                     ada_field = (
-                        "Object_Position => Set "
+                        "Object_Position "
                         f"(Object_Position ({generate_length_ada(pos.x_offset)}, "
                         f"{generate_length_ada(pos.y_offset)}))"
                     )
@@ -3190,7 +3209,7 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             # also all Opacity_Value can hold.
             try:
                 val = min(1.0, max(0.0, float(value)))
-                ada_field = f"Opacity => Set ({format_float(val)})"
+                ada_field = f"Opacity ({format_float(val)})"
             except ValueError:
                 pass
 
@@ -3218,82 +3237,82 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         # Cursor
         elif prop == "cursor":
             if value.lower() in CURSOR_MAP:
-                ada_field = f"Cursor => Set ({CURSOR_MAP[value.lower()]})"
+                ada_field = f"Cursor_Style ({CURSOR_MAP[value.lower()]})"
 
         # Visibility
         elif prop == "visibility":
             if value.lower() in VISIBILITY_MAP:
-                ada_field = f"Visibility => Set ({VISIBILITY_MAP[value.lower()]})"
+                ada_field = f"Visibility ({VISIBILITY_MAP[value.lower()]})"
 
         # Display
         elif prop == "display":
             if value.lower() in DISPLAY_MAP:
-                ada_field = f"Display => Set ({DISPLAY_MAP[value.lower()]})"
+                ada_field = f"Display ({DISPLAY_MAP[value.lower()]})"
         
         # Position
         elif prop == "position":
             if value.lower() in POSITION_MAP:
-                ada_field = f"Position => Set ({POSITION_MAP[value.lower()]})"
+                ada_field = f"Position_Mode ({POSITION_MAP[value.lower()]})"
 
         # Inset offsets (top/right/bottom/left)
         elif prop == "top":
             if value.lower() == "auto":
-                ada_field = "Top => Set_Top (Auto_Inset)"
+                ada_field = "Top (Auto_Inset)"
             else:
                 length = parse_length(value)
                 if length:
-                    ada_field = f"Top => Set_Top (Inset ({generate_length_ada(length)}))"
+                    ada_field = f"Top (Inset ({generate_length_ada(length)}))"
         elif prop == "right":
             if value.lower() == "auto":
-                ada_field = "Right => Set_Right (Auto_Inset)"
+                ada_field = "Right (Auto_Inset)"
             else:
                 length = parse_length(value)
                 if length:
-                    ada_field = f"Right => Set_Right (Inset ({generate_length_ada(length)}))"
+                    ada_field = f"Right (Inset ({generate_length_ada(length)}))"
         elif prop == "bottom":
             if value.lower() == "auto":
-                ada_field = "Bottom => Set_Bottom (Auto_Inset)"
+                ada_field = "Bottom (Auto_Inset)"
             else:
                 length = parse_length(value)
                 if length:
-                    ada_field = f"Bottom => Set_Bottom (Inset ({generate_length_ada(length)}))"
+                    ada_field = f"Bottom (Inset ({generate_length_ada(length)}))"
         elif prop == "left":
             if value.lower() == "auto":
-                ada_field = "Left => Set_Left (Auto_Inset)"
+                ada_field = "Left (Auto_Inset)"
             else:
                 length = parse_length(value)
                 if length:
-                    ada_field = f"Left => Set_Left (Inset ({generate_length_ada(length)}))"
+                    ada_field = f"Left (Inset ({generate_length_ada(length)}))"
 
         # Flex direction
         elif prop == "flex-direction":
             if value.lower() in FLEX_DIRECTION_MAP:
-                ada_field = f"Flex_Direction => Set ({FLEX_DIRECTION_MAP[value.lower()]})"
+                ada_field = f"Flex_Direction ({FLEX_DIRECTION_MAP[value.lower()]})"
         
         # Flex wrap
         elif prop == "flex-wrap":
             if value.lower() in FLEX_WRAP_MAP:
-                ada_field = f"Flex_Wrap => Set ({FLEX_WRAP_MAP[value.lower()]})"
+                ada_field = f"Flex_Wrap ({FLEX_WRAP_MAP[value.lower()]})"
         
         # Justify content
         elif prop == "justify-content":
             if value.lower() in JUSTIFY_CONTENT_MAP:
-                ada_field = f"Justify_Content => Set ({JUSTIFY_CONTENT_MAP[value.lower()]})"
+                ada_field = f"Justify_Content ({JUSTIFY_CONTENT_MAP[value.lower()]})"
         
         # Align items
         elif prop == "align-items":
             if value.lower() in ALIGN_ITEMS_MAP:
-                ada_field = f"Align_Items => Set ({ALIGN_ITEMS_MAP[value.lower()]})"
+                ada_field = f"Align_Items ({ALIGN_ITEMS_MAP[value.lower()]})"
         
         # Align self
         elif prop == "align-self":
             if value.lower() in ALIGN_SELF_MAP:
-                ada_field = f"Align_Self => Set ({ALIGN_SELF_MAP[value.lower()]})"
+                ada_field = f"Align_Self ({ALIGN_SELF_MAP[value.lower()]})"
         
         # Align content
         elif prop == "align-content":
             if value.lower() in ALIGN_CONTENT_MAP:
-                ada_field = f"Align_Content => Set ({ALIGN_CONTENT_MAP[value.lower()]})"
+                ada_field = f"Align_Content ({ALIGN_CONTENT_MAP[value.lower()]})"
         
         # Gap (shorthand and individual)
         elif prop in ("gap", "row-gap", "column-gap"):
@@ -3325,7 +3344,7 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             try:
                 val = float(value)
                 if val >= 0.0:
-                    ada_field = f"Flex_Grow => Set ({format_float(val)})"
+                    ada_field = f"Flex_Grow ({format_float(val)})"
             except ValueError:
                 pass
         
@@ -3334,26 +3353,26 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             try:
                 val = float(value)
                 if val >= 0.0:
-                    ada_field = f"Flex_Shrink => Set ({format_float(val)})"
+                    ada_field = f"Flex_Shrink ({format_float(val)})"
             except ValueError:
                 pass
         
         # Flex basis
         elif prop == "flex-basis":
             if value.lower() == "auto":
-                ada_field = "Flex_Basis => Set (Auto_Basis)"
+                ada_field = "Flex_Basis (Auto_Basis)"
             elif value.lower() == "content":
-                ada_field = "Flex_Basis => Set (Content_Basis)"
+                ada_field = "Flex_Basis (Content_Basis)"
             else:
                 length = parse_length(value)
                 if length:
-                    ada_field = f"Flex_Basis => Set (Basis ({generate_length_ada(length)}))"
+                    ada_field = f"Flex_Basis (Basis ({generate_length_ada(length)}))"
         
         # Order
         elif prop == "order":
             try:
                 val = int(value)
-                ada_field = f"Order => Set ({val})"
+                ada_field = f"Order ({val})"
             except ValueError:
                 pass
 
@@ -3376,48 +3395,47 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
                         track_entries.append(
                             f"{idx} => (Track_Px, {format_float(val)})")
                 tracks_str = ", ".join(track_entries) + ", others => <>"
+                fields.append(f"Grid_Columns (Grid_Columns_Value ({n}))")
                 fields.append(
-                    f"{indent}Grid_Columns => Set (Grid_Columns_Value ({n}))")
-                fields.append(
-                    f"{indent}Grid_Column_Tracks => "
-                    f"(Count => {n}, Tracks => [{tracks_str}])")
+                    f"Grid_Columns ((Count => {n}, "
+                    f"Tracks => [{tracks_str}]))")
                 continue
             else:
                 count = parse_grid_track_count(value)
                 if count is not None:
                     ada_field = (
-                        f"Grid_Columns => Set (Grid_Columns_Value ({count}))")
+                        f"Grid_Columns (Grid_Columns_Value ({count}))")
 
         elif prop == "grid-template-rows":
             tracks = parse_grid_track_count(value)
             if tracks is not None:
-                ada_field = f"Grid_Rows => Set (Grid_Rows_Value ({tracks}))"
+                ada_field = f"Grid_Rows (Grid_Rows_Value ({tracks}))"
 
         # Grid item placement
         elif prop == "grid-column":
             start, span = parse_grid_placement(value)
             if start is not None:
-                fields.append(f"{indent}Grid_Column => Set (Grid_Column_Value ({start}))")
+                fields.append(f"Grid_Column (Grid_Column_Value ({start}))")
             if span is not None:
-                fields.append(f"{indent}Grid_Column_Span => Set (Grid_Column_Span_Value ({span}))")
+                fields.append(f"Grid_Column_Span (Grid_Column_Span_Value ({span}))")
             continue
 
         elif prop == "grid-row":
             start, span = parse_grid_placement(value)
             if start is not None:
-                fields.append(f"{indent}Grid_Row => Set (Grid_Row_Value ({start}))")
+                fields.append(f"Grid_Row (Grid_Row_Value ({start}))")
             if span is not None:
-                fields.append(f"{indent}Grid_Row_Span => Set (Grid_Row_Span_Value ({span}))")
+                fields.append(f"Grid_Row_Span (Grid_Row_Span_Value ({span}))")
             continue
 
         # Box shadow
         elif prop == "box-shadow":
             if value.lower() == "none":
-                ada_field = "Box_Shadow => Set (No_Shadow)"
+                ada_field = "Box_Shadow (No_Shadow)"
             else:
                 shadow = parse_box_shadow(value)
                 if shadow:
-                    ada_field = (f"Box_Shadow => Set (Shadow ("
+                    ada_field = (f"Box_Shadow (Shadow ("
                                 f"{generate_length_ada(shadow.offset_x)}, "
                                 f"{generate_length_ada(shadow.offset_y)}, "
                                 f"{generate_length_ada(shadow.blur_radius)}, "
@@ -3428,35 +3446,35 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
         elif prop == "outline-width":
             length = parse_length(value)
             if length:
-                ada_field = f"Outline_Width => Set_Outline_Width ({generate_length_ada(length)})"
+                ada_field = f"Outline_Width ({generate_length_ada(length)})"
 
         elif prop == "outline-color":
             color = parse_color(value)
             if color:
-                ada_field = f"Outline_Color => Set_Outline_Color ({generate_color_ada(color)})"
+                ada_field = f"Outline_Color ({generate_color_ada(color)})"
 
         elif prop == "outline-style":
             if value.lower() in OUTLINE_STYLE_MAP:
-                ada_field = f"Outline_Style => Set ({OUTLINE_STYLE_MAP[value.lower()]})"
+                ada_field = f"Outline_Style ({OUTLINE_STYLE_MAP[value.lower()]})"
 
         elif prop == "outline-offset":
             length = parse_length(value)
             if length:
-                ada_field = f"Outline_Offset => Set_Outline_Offset ({generate_length_ada(length)})"
+                ada_field = f"Outline_Offset ({generate_length_ada(length)})"
 
         elif prop == "outline":
             parts = split_css_whitespace_tokens(value)
             for part in parts:
                 if part.lower() in OUTLINE_STYLE_MAP:
-                    fields.append(f"{indent}Outline_Style => Set ({OUTLINE_STYLE_MAP[part.lower()]})")
+                    fields.append(f"Outline_Style ({OUTLINE_STYLE_MAP[part.lower()]})")
                     continue
                 color = parse_color(part)
                 if color:
-                    fields.append(f"{indent}Outline_Color => Set_Outline_Color ({generate_color_ada(color)})")
+                    fields.append(f"Outline_Color ({generate_color_ada(color)})")
                     continue
                 length = parse_length(part)
                 if length:
-                    fields.append(f"{indent}Outline_Width => Set_Outline_Width ({generate_length_ada(length)})")
+                    fields.append(f"Outline_Width ({generate_length_ada(length)})")
             continue  # Skip adding ada_field since we handled it
 
         # Transition
@@ -3464,55 +3482,46 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
             transition = parse_transition(value)
             if transition:
                 ada_field = (
-                    f"Transition => Set ((Duration => {format_float(transition.duration_seconds)}, "
+                    f"Transition ((Duration => {format_float(transition.duration_seconds)}, "
                     f"Easing => {transition.easing}, "
                     f"Properties => {transition.property_set}))"
                 )
 
         if ada_field:
-            fields.append(f"{indent}{ada_field}")
+            fields.append(ada_field)
 
-    def emit_group(field, names, values, whole, element):
+    #  A group naming all four sides is one step; a rule naming some of
+    #  them takes a step per side, which is what leaves the rest to the
+    #  cascade.
+    def emit_group(setter, names, values, whole, element):
         if values is None or all(v is None for v in values):
             return
         if all(v is not None for v in values):
-            fields.append(f"{indent}{field} => Set ({whole(values)})")
+            fields.append(f"{setter} ({whole(values)})")
         else:
-            fields.append(
-                f"{indent}{field} => "
-                + generate_partial_sides_ada(names, values, element)
-            )
+            for name, value in zip(names, values):
+                if value is not None:
+                    fields.append(f"{setter} ({name}, {element(value)})")
 
     def length_element(v: ParsedLength) -> str:
-        return f"Set ({generate_length_ada(v)})"
+        return generate_length_ada(v)
 
     emit_group(
         "Padding", EDGE_NAMES, padding_sides,
         generate_box_from_four_ada, length_element)
 
-    # Margin uses different set functions because auto is allowed.
+    #  Margin takes auto per side, which no CSS_Box_Value carries, so a
+    #  rule naming one goes side by side whether or not it names all four.
     if margin_sides is not None and not all(v is None for v in margin_sides):
-        if all(v is not None for v in margin_sides):
-            # All four sides declared — emit as full shorthand.
-            # If all are lengths (no auto), use Set_Margin (CSS_Box (...)).
-            # If any is auto, emit as per-side aggregate.
-            if all(isinstance(v, ParsedLength) for v in margin_sides):
-                box_expr = generate_box_from_four_ada(list(margin_sides))
-                fields.append(f"{indent}Margin => Set_Margin ({box_expr})")
-            else:
-                named = ", ".join(
-                    f"{name} => {_generate_margin_token_ada(v)}"
-                    for name, v in zip(EDGE_NAMES, margin_sides)
-                )
-                fields.append(f"{indent}Margin => [{named}]")
+        if (all(v is not None for v in margin_sides)
+                and all(isinstance(v, ParsedLength) for v in margin_sides)):
+            box_expr = generate_box_from_four_ada(list(margin_sides))
+            fields.append(f"Margin ({box_expr})")
         else:
-            # Partial sides — emit aggregate naming only the declared sides.
-            named = ", ".join(
-                f"{name} => {_generate_margin_token_ada(v)}"
-                for name, v in zip(EDGE_NAMES, margin_sides)
-                if v is not None
-            )
-            fields.append(f"{indent}Margin => [{named}, others => <>]")
+            for name, v in zip(EDGE_NAMES, margin_sides):
+                if v is not None:
+                    fields.append(
+                        f"Margin ({name}, {_generate_margin_token_ada(v)})")
     emit_group(
         "Border_Width", EDGE_NAMES, border_width_sides,
         lambda v: generate_border_width_ada(four_sides_to_box_lengths(v)),
@@ -3520,40 +3529,40 @@ def generate_style_rules_ada(properties: dict[str, str], indent: str = "      ")
     emit_group(
         "Border_Style", EDGE_NAMES, border_style_sides,
         generate_border_style_from_four_ada,
-        lambda v: f"Set_Edge_Style ({v})")
+        lambda v: v)
     emit_group(
         "Border_Color", EDGE_NAMES, border_color_sides,
         generate_border_color_from_four_ada,
-        lambda v: f"Set_Edge_Color ({generate_color_ada(v)})")
+        generate_color_ada)
     emit_group(
-        "Border_Radius", CORNER_NAMES, border_radius_corners,
+        "Radius", CORNER_NAMES, border_radius_corners,
         lambda v: generate_border_radius_ada(four_sides_to_box_lengths(v)),
         length_element)
     if list_style_type is not None:
-        fields.append(f"{indent}List_Style_Type => Set ({list_style_type})")
+        fields.append(f"List_Style_Type ({list_style_type})")
     if list_style_image is not None:
-        fields.append(f"{indent}List_Style_Image => Set ({list_style_image})")
+        fields.append(f"List_Style_Image ({list_style_image})")
     if list_style_position is not None:
-        fields.append(f"{indent}List_Style_Position => Set ({list_style_position})")
+        fields.append(f"List_Style_Position ({list_style_position})")
     if gap_slot is not None:
         #  A rule that names one axis must say so, or the cascade cannot
         #  tell it from one that set the other axis to zero.
         if gap_row is not None and gap_column is not None:
             if gap_row == gap_column:
-                fields[gap_slot] = f"{indent}Gap => Set (Gap ({generate_length_ada(gap_row)}))"
+                fields[gap_slot] = f"Gap (Gap ({generate_length_ada(gap_row)}))"
             else:
                 fields[gap_slot] = (
-                    f"{indent}Gap => Set (Gap ({generate_length_ada(gap_row)}, "
+                    f"Gap (Gap ({generate_length_ada(gap_row)}, "
                     f"{generate_length_ada(gap_column)}))"
                 )
         elif gap_row is not None:
-            fields[gap_slot] = f"{indent}Gap => Set (Gap_Row ({generate_length_ada(gap_row)}))"
+            fields[gap_slot] = f"Gap (Gap_Row ({generate_length_ada(gap_row)}))"
         else:
-            fields[gap_slot] = f"{indent}Gap => Set (Gap_Column ({generate_length_ada(gap_column)}))"
+            fields[gap_slot] = f"Gap (Gap_Column ({generate_length_ada(gap_column)}))"
     if overflow_x is not None:
-        fields.append(f"{indent}Overflow_X => Set_Overflow_X ({overflow_x})")
+        fields.append(f"Overflow_X ({overflow_x})")
     if overflow_y is not None:
-        fields.append(f"{indent}Overflow_Y => Set_Overflow_Y ({overflow_y})")
+        fields.append(f"Overflow_Y ({overflow_y})")
 
     return fields
 
@@ -3668,40 +3677,6 @@ def widget_style_const_name(ada_name: str, selector_type: str, part_kind: str) -
     return f"{prefix}_Widget"
 
 
-def generate_variable_name(name_prefix: str, selector: ParsedSelector) -> str:
-    """Generate unique variable name for a state rule"""
-    if (not selector.widget_states and
-        not selector.widget_negated_states and
-        not selector.part_states and
-        not selector.part_negated_states and
-        not selector.property_conditions):
-        return f"{name_prefix}_Base_Style"
-    
-    parts = []
-    
-    for state in selector.widget_states:
-        state_name = state.value.replace("State_", "")
-        parts.append(f"Widget_{state_name}")
-    
-    for state in selector.widget_negated_states:
-        state_name = state.value.replace("State_", "")
-        parts.append(f"Widget_Not_{state_name}")
-
-    for state in selector.part_states:
-        state_name = state.value.replace("State_", "")
-        parts.append(f"Part_{state_name}")
-
-    for state in selector.part_negated_states:
-        state_name = state.value.replace("State_", "")
-        parts.append(f"Part_Not_{state_name}")
-
-    for condition in selector.property_conditions:
-        parts.append(condition.variable_part())
-    
-    suffix = "_".join(parts)
-    return f"{name_prefix}_{suffix}_Style"
-
-
 def custom_property_ada_name(name: str) -> str:
     base = name[2:] if name.startswith("--") else name
     return f"Var_{to_ada_identifier(base)}"
@@ -3746,68 +3721,71 @@ def infer_typed_custom_property(name: str, value: str) -> Optional[TypedCustomPr
     return None
 
 
+def generate_style_chain(
+    steps_by_rule: list[tuple[Optional[str], str, list[str]]],
+    indent: str,
+    where: str,
+) -> list[str]:
+    """Render one composer chain.
+
+    Each entry is (comment, selector, steps): the base rule carries no
+    selector, a state rule carries the State_Selector expression that
+    moves the active rule, and steps are what generate_style_chain_ada
+    answered.
+    """
+    total = sum(len(steps) for _, _, steps in steps_by_rule)
+    if total > MAX_CHAIN_SLOTS:
+        raise ChainTooLong(
+            f"{where} names {total} properties, past the "
+            f"{MAX_CHAIN_SLOTS} one chain holds"
+        )
+
+    lines = [f"{indent}  Style_Of"]
+    for comment, selector, steps in steps_by_rule:
+        if selector is not None:
+            if comment:
+                lines.append(f"{indent}  --  {comment}")
+            lines.append(f"{indent}  .On ({selector})")
+        for step in steps:
+            lines.append(f"{indent}     .{step}")
+    lines.append(f"{indent}  .Build;")
+    return lines
+
+
+def widget_style_chain(
+    group: "WidgetStyleGroup",
+    part_group,
+    indent: str,
+    where: str,
+    properties_package: Optional[str] = None,
+) -> list[str]:
+    """The chain for one selector-and-part, base rule then state rules."""
+    steps_by_rule: list[tuple[Optional[str], str, list[str]]] = []
+    if part_group.base_rule:
+        steps_by_rule.append(
+            (None, None, generate_style_chain_ada(part_group.base_rule.properties))
+        )
+    for rule in part_group.state_rules:
+        steps_by_rule.append(
+            (generate_state_description(rule.selector),
+             generate_selector_ada(rule.selector, properties_package),
+             generate_style_chain_ada(rule.properties))
+        )
+    return generate_style_chain(steps_by_rule, indent, where)
+
+
 def generate_style_declarations(groups: dict[str, WidgetStyleGroup],
                                 indent: str = "   ",
                                 properties_package: Optional[str] = None
                                 ) -> list[str]:
     """Generate Ada style constant declarations without package wrapper.
 
-    Returns a list of Ada source lines declaring Style_Rules constants,
-    Widget_Style constants, and Part_Style_Array bundles for each selector
-    group.  Suitable for embedding inside another package body.
+    Returns a list of Ada source lines declaring a Widget_Style constant
+    per selector-and-part and a Part_Style_Array bundle per selector.
+    Suitable for embedding inside another package body.
     """
     lines: list[str] = []
-    generated_names: set[str] = set()
 
-    for _group_key, group in groups.items():
-        widget_name = group.name
-        ada_name = to_ada_identifier(widget_name)
-        part_items = sorted(
-            group.parts.items(),
-            key=lambda kv: (0 if kv[0] == "Main_Part" else 1, kv[0])
-        )
-
-        for part_kind, part_group in part_items:
-            part_suffix = "" if part_kind == "Main_Part" else f"::{part_label(part_kind).lower()}"
-            name_prefix = style_name_prefix(ada_name, group.selector_type, part_kind)
-
-            if part_group.base_rule:
-                var_name = f"{name_prefix}_Base_Style"
-                generated_names.add(var_name)
-                fields = generate_style_rules_ada(part_group.base_rule.properties,
-                                                  indent=indent + "   ")
-
-                lines.append(f"{indent}--  Base style for {group.selector_type} '{widget_name}'{part_suffix}")
-                lines.append(f"{indent}{var_name} : constant Style_Rules := (")
-                if fields:
-                    lines.append(",\n".join(fields) + ",")
-                lines.append(f"{indent}   others => <>")
-                lines.append(f"{indent});")
-                lines.append("")
-
-            for rule in part_group.state_rules:
-                var_name = generate_variable_name(name_prefix, rule.selector)
-                original_var_name = var_name
-                counter = 2
-                while var_name in generated_names:
-                    var_name = f"{original_var_name}_{counter}"
-                    counter += 1
-                generated_names.add(var_name)
-                rule._var_name = var_name  # type: ignore
-
-                fields = generate_style_rules_ada(rule.properties,
-                                                  indent=indent + "   ")
-                state_desc = generate_state_description(rule.selector)
-
-                lines.append(f"{indent}--  Style for {group.selector_type} '{widget_name}'{part_suffix} when {state_desc}")
-                lines.append(f"{indent}{var_name} : constant Style_Rules := (")
-                if fields:
-                    lines.append(",\n".join(fields) + ",")
-                lines.append(f"{indent}   others => <>")
-                lines.append(f"{indent});")
-                lines.append("")
-
-    # Widget_Style constants
     for _group_key, group in groups.items():
         widget_name = group.name
         sel_label = selector_label(group.selector_type)
@@ -3819,24 +3797,14 @@ def generate_style_declarations(groups: dict[str, WidgetStyleGroup],
 
         for part_kind, part_group in part_items:
             part_suffix = "" if part_kind == "Main_Part" else f"::{part_label(part_kind).lower()}"
-            name_prefix = style_name_prefix(ada_name, group.selector_type, part_kind)
             ws_name = widget_style_const_name(ada_name, group.selector_type, part_kind)
+            where = f"{group.selector_type} '{widget_name}'{part_suffix}"
 
-            lines.append(f"{indent}--  Complete widget style for {group.selector_type} '{widget_name}'{part_suffix}")
+            lines.append(f"{indent}--  Style for {where}")
             lines.append(f"{indent}{ws_name} : constant Widget_Style :=")
-
-            if part_group.base_rule:
-                lines.append(f"{indent}  From ({name_prefix}_Base_Style)")
-            else:
-                lines.append(f"{indent}  Create")
-
-            for rule in part_group.state_rules:
-                var_name = rule._var_name  # type: ignore
-                selector_ada = generate_selector_ada(
-                    rule.selector, properties_package)
-                lines.append(f"{indent}  .On ({selector_ada}, {var_name})")
-
-            lines.append(f"{indent}  .Build;")
+            lines.extend(
+                widget_style_chain(
+                    group, part_group, indent, where, properties_package))
             lines.append("")
 
         # Part_Style_Array bundle
@@ -3978,18 +3946,17 @@ def generate_ada_package(
         lines.append("   function Root_Font_Size return Length_Value is (Default_Font_Size);")
 
     if root_properties:
-        fields = generate_style_rules_ada(root_properties)
-        lines.append("")
-        lines.append("   function Root_Base_Style return Style_Rules is")
-        lines.append("     (")
-        if fields:
-            lines.append(",\n".join(fields) + ",")
-        lines.append("      others => <>);")
         lines.append("")
         lines.append("   function Has_Root_Styles return Boolean is (True);")
+        lines.append("   Root_Style : constant Widget_Style :=")
+        lines.extend(
+            generate_style_chain(
+                [(None, None, generate_style_chain_ada(root_properties))],
+                "   ", ":root"))
+        lines.append("")
         lines.append("   Root_Part_Styles : constant Part_Style_Array :=")
         lines.append("     [")
-        lines.append("      Main_Part => (Style => From (Root_Base_Style).Build, Enabled => True),")
+        lines.append("      Main_Part => (Style => Root_Style, Enabled => True),")
         lines.append("      others => <>")
         lines.append("   ];")
     else:
@@ -4013,56 +3980,6 @@ def generate_ada_package(
             )
         lines.append("")
     
-    # Track generated variable names to avoid duplicates
-    generated_names: set[str] = set()
-    
-    for _group_key, group in groups.items():
-        widget_name = group.name
-        ada_name = to_ada_identifier(widget_name)
-        part_items = sorted(
-            group.parts.items(),
-            key=lambda kv: (0 if kv[0] == "Main_Part" else 1, kv[0])
-        )
-
-        for part_kind, part_group in part_items:
-            part_suffix = "" if part_kind == "Main_Part" else f"::{part_label(part_kind).lower()}"
-            name_prefix = style_name_prefix(ada_name, group.selector_type, part_kind)
-
-            if part_group.base_rule:
-                var_name = f"{name_prefix}_Base_Style"
-                generated_names.add(var_name)
-                fields = generate_style_rules_ada(part_group.base_rule.properties)
-
-                lines.append(f"   --  Base style for {group.selector_type} '{widget_name}'{part_suffix}")
-                lines.append(f"   function {var_name} return Style_Rules is")
-                lines.append(f"     (")
-                if fields:
-                    lines.append(",\n".join(fields) + ",")
-                lines.append(f"      others => <>);")
-                lines.append(f"")
-
-            for rule in part_group.state_rules:
-                var_name = generate_variable_name(name_prefix, rule.selector)
-                original_var_name = var_name
-                counter = 2
-                while var_name in generated_names:
-                    var_name = f"{original_var_name}_{counter}"
-                    counter += 1
-                generated_names.add(var_name)
-                rule._var_name = var_name  # type: ignore
-
-                fields = generate_style_rules_ada(rule.properties)
-                state_desc = generate_state_description(rule.selector)
-
-                lines.append(f"   --  Style for {group.selector_type} '{widget_name}'{part_suffix} when {state_desc}")
-                lines.append(f"   function {var_name} return Style_Rules is")
-                lines.append(f"     (")
-                if fields:
-                    lines.append(",\n".join(fields) + ",")
-                lines.append(f"      others => <>);")
-                lines.append(f"")
-    
-    # Generate combined Widget_Style using fluent builder
     for _group_key, group in groups.items():
         widget_name = group.name
         sel_label = selector_label(group.selector_type)
@@ -4074,25 +3991,16 @@ def generate_ada_package(
 
         for part_kind, part_group in part_items:
             part_suffix = "" if part_kind == "Main_Part" else f"::{part_label(part_kind).lower()}"
-            name_prefix = style_name_prefix(ada_name, group.selector_type, part_kind)
-            widget_style_name = widget_style_const_name(ada_name, group.selector_type, part_kind)
+            widget_style_name = widget_style_const_name(
+                ada_name, group.selector_type, part_kind)
+            where = f"{group.selector_type} '{widget_name}'{part_suffix}"
 
-            lines.append(f"   --  Complete widget style for {group.selector_type} '{widget_name}'{part_suffix}")
+            lines.append(f"   --  Style for {where}")
             lines.append(f"   {widget_style_name} : constant Widget_Style :=")
-
-            if part_group.base_rule:
-                lines.append(f"     From ({name_prefix}_Base_Style)")
-            else:
-                lines.append(f"     Create")
-
-            for rule in part_group.state_rules:
-                var_name = rule._var_name  # type: ignore
-                selector_ada = generate_selector_ada(
-                    rule.selector, properties_package)
-                lines.append(f"     .On ({selector_ada}, {var_name})")
-
-            lines.append(f"     .Build;")
-            lines.append(f"")
+            lines.extend(
+                widget_style_chain(
+                    group, part_group, "   ", where, properties_package))
+            lines.append("")
 
         # Bundle all known parts for one-call Set_Part_Styles.
         lines.append(f"   --  Part styles bundle for {group.selector_type} '{widget_name}'")
@@ -4147,16 +4055,7 @@ def generate_parent_package(
             key=lambda kv: (0 if kv[0] == "Main_Part" else 1, kv[0])
         )
 
-        for part_kind, part_group in part_items:
-            name_prefix = style_name_prefix(ada_name, group.selector_type, part_kind)
-
-            if part_group.base_rule:
-                base_name = f"{name_prefix}_Base_Style"
-                lines.append(f"   function {base_name} return Style_Rules renames {child_pkg}.{base_name};")
-            for rule in part_group.state_rules:
-                var_name = rule._var_name  # type: ignore
-                lines.append(f"   function {var_name} return Style_Rules renames {child_pkg}.{var_name};")
-
+        for part_kind, _part_group in part_items:
             ws_name = widget_style_const_name(ada_name, group.selector_type, part_kind)
             lines.append(f"   {ws_name} : Widget_Style renames {child_pkg}.{ws_name};")
 

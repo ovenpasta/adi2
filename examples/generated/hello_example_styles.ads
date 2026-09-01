@@ -27,58 +27,14 @@ package Hello_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Background_Color => Set_Bg (RGB (24, 26, 32)),
-      Gap => Set (Gap (Px (16.0))),
-      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
-      others => <>);
-
-   --  Base style for tag 'button'
-   function Button_Tag_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Px (10.0), Px (16.0), Px (10.0), Px (16.0))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'primary'
-   function Primary_Class_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (37, 99, 235)),
-      others => <>);
-
-   --  Style for class 'primary' when widget State_Hovered
-   function Primary_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (29, 78, 216)),
-      others => <>);
-
-   --  Base style for class 'primary'::label
-   function Primary_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (14.0)),
-      Font_Weight => Set (Weight_Medium),
-      others => <>);
-
-   --  Base style for id 'Greeting'::label
-   function Greeting_Id_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (220, 225, 240)),
-      Font_Size => Set_Font (Px (18.0)),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Background (RGB (24, 26, 32))
+        .Gap (Gap (Px (16.0)))
+        .Padding (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0)))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -88,9 +44,16 @@ package Hello_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for tag 'button'
+   --  Style for tag 'button'
    Button_Tag_Widget : constant Widget_Style :=
-     From (Button_Tag_Base_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Cursor_Style (Cursor_Pointer)
+        .Transition ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color)))
+        .Padding (CSS_Box (Px (10.0), Px (16.0), Px (10.0), Px (16.0)))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for tag 'button'
@@ -100,15 +63,21 @@ package Hello_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'primary'
+   --  Style for class 'primary'
    Primary_Class_Widget : constant Widget_Style :=
-     From (Primary_Class_Base_Style)
-     .On (When_State (State_Hovered), Primary_Class_Widget_Hovered_Style)
+     Style_Of
+        .Background (RGB (37, 99, 235))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (29, 78, 216))
      .Build;
 
-   --  Complete widget style for class 'primary'::label
+   --  Style for class 'primary'::label
    Primary_Class_Label_Widget : constant Widget_Style :=
-     From (Primary_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (14.0))
+        .Font_Weight (Weight_Medium)
      .Build;
 
    --  Part styles bundle for class 'primary'
@@ -119,9 +88,11 @@ package Hello_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for id 'Greeting'::label
+   --  Style for id 'Greeting'::label
    Greeting_Id_Label_Widget : constant Widget_Style :=
-     From (Greeting_Id_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (220, 225, 240))
+        .Font_Size (Px (18.0))
      .Build;
 
    --  Part styles bundle for id 'Greeting'

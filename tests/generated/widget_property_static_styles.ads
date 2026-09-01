@@ -28,22 +28,13 @@ package Widget_Property_Static_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'hush'
-   function Hush_Class_Base_Style return Style_Rules is
-     (
-      Opacity => Set (1.0),
-      others => <>);
-
-   --  Style for class 'hush' when [quiet="yes"]
-   function Hush_Class_Prop_Quiet_Yes_Style return Style_Rules is
-     (
-      Opacity => Set (0.25),
-      others => <>);
-
-   --  Complete widget style for class 'hush'
+   --  Style for class 'hush'
    Hush_Class_Widget : constant Widget_Style :=
-     From (Hush_Class_Base_Style)
-     .On (When_Property (Test_Properties.Quiet.Value (Test_Properties.Yes)), Hush_Class_Prop_Quiet_Yes_Style)
+     Style_Of
+        .Opacity (1.0)
+     --  [quiet="yes"]
+     .On (When_Property (Test_Properties.Quiet.Value (Test_Properties.Yes)))
+        .Opacity (0.25)
      .Build;
 
    --  Part styles bundle for class 'hush'

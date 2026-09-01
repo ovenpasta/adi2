@@ -27,281 +27,18 @@ package Text_Editor_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Align_Items => Set (Stretch),
-      Justify_Content => Set (Flex_Start),
-      Gap => Set (Gap (Px (12.0))),
-      Background_Color => Set_Bg (RGB (20, 24, 31)),
-      Padding => Set (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0))),
-      Overflow_X => Set_Overflow_X (Overflow_Hidden),
-      Overflow_Y => Set_Overflow_Y (Overflow_Hidden),
-      others => <>);
-
-   --  Base style for class 'title'
-   function Title_Class_Base_Style return Style_Rules is
-     (
-      others => <>);
-
-   --  Base style for class 'title'::label
-   function Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (20.0)),
-      Font_Weight => Set (Weight_Semi_Bold),
-      others => <>);
-
-   --  Base style for class 'controls'
-   function Controls_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Align_Items => Set (Center),
-      Gap => Set (Gap (Px (10.0))),
-      others => <>);
-
-   --  Base style for class 'open-btn'
-   function Open_Btn_Class_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (49, 50, 68)),
-      Padding => Set (CSS_Box (Px (6.0), Px (14.0), Px (6.0), Px (14.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (69, 71, 90))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Style for class 'open-btn' when widget State_Hovered
-   function Open_Btn_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (69, 71, 90)),
-      Border_Color => Set (Border_Color (RGB (137, 180, 250))),
-      others => <>);
-
-   --  Style for class 'open-btn' when widget State_Pressed
-   function Open_Btn_Class_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (88, 91, 112)),
-      others => <>);
-
-   --  Base style for class 'open-btn'::label
-   function Open_Btn_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (205, 214, 244)),
-      Font_Size => Set_Font (Px (13.0)),
-      White_Space => Set (WS_Nowrap),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'wrap-status'::label
-   function Wrap_Status_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (166, 173, 200)),
-      Font_Size => Set_Font (Px (13.0)),
-      White_Space => Set (WS_Nowrap),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'ro-status'::label
-   function Ro_Status_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (166, 173, 200)),
-      Font_Size => Set_Font (Px (13.0)),
-      White_Space => Set (WS_Nowrap),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'wrap-switch'
-   function Wrap_Switch_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (56.0))),
-      Height => Set (Size (Px (28.0))),
-      Background_Color => Set_Bg (RGB (88, 91, 112)),
-      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (108, 112, 134))),
-      Border_Radius => Set (Radius (Px (14.0))),
-      others => <>);
-
-   --  Style for class 'wrap-switch' when widget State_Selected
-   function Wrap_Switch_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (116, 199, 236)),
-      Border_Color => Set (Border_Color (RGB (137, 220, 255))),
-      others => <>);
-
-   --  Base style for class 'wrap-switch'::knob
-   function Wrap_Switch_Class_Knob_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (24.0))),
-      Height => Set (Size (Px (24.0))),
-      Background_Color => Set_Bg (RGB (239, 241, 245)),
-      Border_Radius => Set (Radius (Px (12.0))),
-      others => <>);
-
-   --  Base style for class 'ro-switch'
-   function Ro_Switch_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (56.0))),
-      Height => Set (Size (Px (28.0))),
-      Background_Color => Set_Bg (RGB (88, 91, 112)),
-      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (108, 112, 134))),
-      Border_Radius => Set (Radius (Px (14.0))),
-      others => <>);
-
-   --  Style for class 'ro-switch' when widget State_Selected
-   function Ro_Switch_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (116, 199, 236)),
-      Border_Color => Set (Border_Color (RGB (137, 220, 255))),
-      others => <>);
-
-   --  Base style for class 'ro-switch'::knob
-   function Ro_Switch_Class_Knob_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (24.0))),
-      Height => Set (Size (Px (24.0))),
-      Background_Color => Set_Bg (RGB (239, 241, 245)),
-      Border_Radius => Set (Radius (Px (12.0))),
-      others => <>);
-
-   --  Base style for class 'editor'
-   function Editor_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Cursor => Set (Cursor_Text),
-      Background_Color => Set_Bg (RGB (30, 30, 46)),
-      Box_Shadow => Set (No_Shadow),
-      Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (69, 71, 90))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      Overflow_X => Set_Overflow_X (Overflow_Auto),
-      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
-      others => <>);
-
-   --  Style for class 'editor' when widget State_Focused
-   function Editor_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (137, 180, 250, 0.25))),
-      Border_Color => Set (Border_Color (RGB (137, 180, 250))),
-      others => <>);
-
-   --  Base style for class 'editor'::cursor
-   function Editor_Class_Cursor_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (245, 224, 220)),
-      others => <>);
-
-   --  Base style for class 'editor'::knob
-   function Editor_Class_Knob_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (6.0))),
-      Min_Height => Set (Size (Px (24.0))),
-      Background_Color => Set_Bg (RGBA (137, 180, 250, 0.4)),
-      Border_Radius => Set (Radius (Px (3.0))),
-      others => <>);
-
-   --  Style for class 'editor'::knob when part State_Hovered
-   function Editor_Class_Knob_Part_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (137, 180, 250, 0.6)),
-      others => <>);
-
-   --  Style for class 'editor'::knob when part State_Pressed
-   function Editor_Class_Knob_Part_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (137, 180, 250, 0.8)),
-      others => <>);
-
-   --  Base style for class 'editor'::scroll
-   function Editor_Class_Scroll_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (8.0))),
-      Background_Color => Set_Bg (RGBA (69, 71, 90, 0.3)),
-      Padding => Set (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0))),
-      Border_Radius => Set (Radius (Px (4.0))),
-      others => <>);
-
-   --  Style for class 'editor'::scroll when part State_Hovered
-   function Editor_Class_Scroll_Part_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (69, 71, 90, 0.6)),
-      others => <>);
-
-   --  Base style for class 'editor'::selected
-   function Editor_Class_Selected_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (137, 180, 250, 0.3)),
-      others => <>);
-
-   --  Base style for class 'editor'::text
-   function Editor_Class_Text_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (205, 214, 244)),
-      Font_Size => Set_Font (Px (14.0)),
-      Text_Wrap_Mode => Set (TWM_Wrap),
-      White_Space => Set (WS_Normal),
-      others => <>);
-
-   --  Base style for class 'context-menu'
-   function Context_Menu_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (200.0))),
-      Background_Color => Set_Bg (RGB (24, 24, 37)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (10.0), Px (26.0), Px (0.0), RGBA (0, 0, 0, 0.45))),
-      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (137, 180, 250))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'context-menu-item'
-   function Context_Menu_Item_Class_Base_Style return Style_Rules is
-     (
-      Min_Height => Set (Size (Px (28.0))),
-      Background_Color => Set_Bg (RGBA (24, 24, 37, 0.0)),
-      Padding => Set (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Style for class 'context-menu-item' when widget State_Hovered
-   function Context_Menu_Item_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (137, 180, 250, 0.28)),
-      others => <>);
-
-   --  Style for class 'context-menu-item' when widget State_Disabled
-   function Context_Menu_Item_Class_Widget_Disabled_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (24, 24, 37, 0.0)),
-      others => <>);
-
-   --  Base style for class 'context-menu-item'::label
-   function Context_Menu_Item_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (205, 214, 244)),
-      Font_Size => Set_Font (Px (13.0)),
-      others => <>);
-
-   --  Style for class 'context-menu-item'::label when widget State_Disabled
-   function Context_Menu_Item_Class_Label_Widget_Disabled_Style return Style_Rules is
-     (
-      Color => Set (RGB (108, 112, 134)),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Align_Items (Stretch)
+        .Justify_Content (Flex_Start)
+        .Gap (Gap (Px (12.0)))
+        .Background (RGB (20, 24, 31))
+        .Padding (CSS_Box (Px (24.0), Px (24.0), Px (24.0), Px (24.0)))
+        .Overflow_X (Overflow_Hidden)
+        .Overflow_Y (Overflow_Hidden)
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -311,14 +48,17 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'title'
+   --  Style for class 'title'
    Title_Class_Widget : constant Widget_Style :=
-     From (Title_Class_Base_Style)
+     Style_Of
      .Build;
 
-   --  Complete widget style for class 'title'::label
+   --  Style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
-     From (Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (20.0))
+        .Font_Weight (Weight_Semi_Bold)
      .Build;
 
    --  Part styles bundle for class 'title'
@@ -329,9 +69,13 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'controls'
+   --  Style for class 'controls'
    Controls_Class_Widget : constant Widget_Style :=
-     From (Controls_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Align_Items (Center)
+        .Gap (Gap (Px (10.0)))
      .Build;
 
    --  Part styles bundle for class 'controls'
@@ -341,16 +85,31 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'open-btn'
+   --  Style for class 'open-btn'
    Open_Btn_Class_Widget : constant Widget_Style :=
-     From (Open_Btn_Class_Base_Style)
-     .On (When_State (State_Hovered), Open_Btn_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Open_Btn_Class_Widget_Pressed_Style)
+     Style_Of
+        .Background (RGB (49, 50, 68))
+        .Padding (CSS_Box (Px (6.0), Px (14.0), Px (6.0), Px (14.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (69, 71, 90)))
+        .Radius (Radius (Px (6.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (69, 71, 90))
+        .Border_Color (Border_Color (RGB (137, 180, 250)))
+     --  widget State_Pressed
+     .On (When_State (State_Pressed))
+        .Background (RGB (88, 91, 112))
      .Build;
 
-   --  Complete widget style for class 'open-btn'::label
+   --  Style for class 'open-btn'::label
    Open_Btn_Class_Label_Widget : constant Widget_Style :=
-     From (Open_Btn_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (205, 214, 244))
+        .Font_Size (Px (13.0))
+        .White_Space (WS_Nowrap)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'open-btn'
@@ -361,9 +120,13 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'wrap-status'::label
+   --  Style for class 'wrap-status'::label
    Wrap_Status_Class_Label_Widget : constant Widget_Style :=
-     From (Wrap_Status_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (166, 173, 200))
+        .Font_Size (Px (13.0))
+        .White_Space (WS_Nowrap)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'wrap-status'
@@ -373,9 +136,13 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'ro-status'::label
+   --  Style for class 'ro-status'::label
    Ro_Status_Class_Label_Widget : constant Widget_Style :=
-     From (Ro_Status_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (166, 173, 200))
+        .Font_Size (Px (13.0))
+        .White_Space (WS_Nowrap)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'ro-status'
@@ -385,15 +152,30 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'wrap-switch'
+   --  Style for class 'wrap-switch'
    Wrap_Switch_Class_Widget : constant Widget_Style :=
-     From (Wrap_Switch_Class_Base_Style)
-     .On (When_State (State_Selected), Wrap_Switch_Class_Widget_Selected_Style)
+     Style_Of
+        .Width (Size (Px (56.0)))
+        .Height (Size (Px (28.0)))
+        .Background (RGB (88, 91, 112))
+        .Padding (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (108, 112, 134)))
+        .Radius (Radius (Px (14.0)))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (116, 199, 236))
+        .Border_Color (Border_Color (RGB (137, 220, 255)))
      .Build;
 
-   --  Complete widget style for class 'wrap-switch'::knob
+   --  Style for class 'wrap-switch'::knob
    Wrap_Switch_Class_Knob_Widget : constant Widget_Style :=
-     From (Wrap_Switch_Class_Knob_Base_Style)
+     Style_Of
+        .Width (Size (Px (24.0)))
+        .Height (Size (Px (24.0)))
+        .Background (RGB (239, 241, 245))
+        .Radius (Radius (Px (12.0)))
      .Build;
 
    --  Part styles bundle for class 'wrap-switch'
@@ -404,15 +186,30 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'ro-switch'
+   --  Style for class 'ro-switch'
    Ro_Switch_Class_Widget : constant Widget_Style :=
-     From (Ro_Switch_Class_Base_Style)
-     .On (When_State (State_Selected), Ro_Switch_Class_Widget_Selected_Style)
+     Style_Of
+        .Width (Size (Px (56.0)))
+        .Height (Size (Px (28.0)))
+        .Background (RGB (88, 91, 112))
+        .Padding (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (108, 112, 134)))
+        .Radius (Radius (Px (14.0)))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (116, 199, 236))
+        .Border_Color (Border_Color (RGB (137, 220, 255)))
      .Build;
 
-   --  Complete widget style for class 'ro-switch'::knob
+   --  Style for class 'ro-switch'::knob
    Ro_Switch_Class_Knob_Widget : constant Widget_Style :=
-     From (Ro_Switch_Class_Knob_Base_Style)
+     Style_Of
+        .Width (Size (Px (24.0)))
+        .Height (Size (Px (24.0)))
+        .Background (RGB (239, 241, 245))
+        .Radius (Radius (Px (12.0)))
      .Build;
 
    --  Part styles bundle for class 'ro-switch'
@@ -423,38 +220,72 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'editor'
+   --  Style for class 'editor'
    Editor_Class_Widget : constant Widget_Style :=
-     From (Editor_Class_Base_Style)
-     .On (When_State (State_Focused), Editor_Class_Widget_Focused_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Cursor_Style (Cursor_Text)
+        .Background (RGB (30, 30, 46))
+        .Box_Shadow (No_Shadow)
+        .Padding (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (69, 71, 90)))
+        .Radius (Radius (Px (8.0)))
+        .Overflow_X (Overflow_Auto)
+        .Overflow_Y (Overflow_Auto)
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (137, 180, 250, 0.25)))
+        .Border_Color (Border_Color (RGB (137, 180, 250)))
      .Build;
 
-   --  Complete widget style for class 'editor'::cursor
+   --  Style for class 'editor'::cursor
    Editor_Class_Cursor_Widget : constant Widget_Style :=
-     From (Editor_Class_Cursor_Base_Style)
+     Style_Of
+        .Background (RGB (245, 224, 220))
      .Build;
 
-   --  Complete widget style for class 'editor'::knob
+   --  Style for class 'editor'::knob
    Editor_Class_Knob_Widget : constant Widget_Style :=
-     From (Editor_Class_Knob_Base_Style)
-     .On (When_Part_State (State_Hovered), Editor_Class_Knob_Part_Hovered_Style)
-     .On (When_Part_State (State_Pressed), Editor_Class_Knob_Part_Pressed_Style)
+     Style_Of
+        .Width (Size (Px (6.0)))
+        .Min_Height (Size (Px (24.0)))
+        .Background (RGBA (137, 180, 250, 0.4))
+        .Radius (Radius (Px (3.0)))
+     --  part State_Hovered
+     .On (When_Part_State (State_Hovered))
+        .Background (RGBA (137, 180, 250, 0.6))
+     --  part State_Pressed
+     .On (When_Part_State (State_Pressed))
+        .Background (RGBA (137, 180, 250, 0.8))
      .Build;
 
-   --  Complete widget style for class 'editor'::scroll
+   --  Style for class 'editor'::scroll
    Editor_Class_Scroll_Widget : constant Widget_Style :=
-     From (Editor_Class_Scroll_Base_Style)
-     .On (When_Part_State (State_Hovered), Editor_Class_Scroll_Part_Hovered_Style)
+     Style_Of
+        .Width (Size (Px (8.0)))
+        .Background (RGBA (69, 71, 90, 0.3))
+        .Padding (CSS_Box (Px (2.0), Px (2.0), Px (2.0), Px (2.0)))
+        .Radius (Radius (Px (4.0)))
+     --  part State_Hovered
+     .On (When_Part_State (State_Hovered))
+        .Background (RGBA (69, 71, 90, 0.6))
      .Build;
 
-   --  Complete widget style for class 'editor'::selected
+   --  Style for class 'editor'::selected
    Editor_Class_Selected_Widget : constant Widget_Style :=
-     From (Editor_Class_Selected_Base_Style)
+     Style_Of
+        .Background (RGBA (137, 180, 250, 0.3))
      .Build;
 
-   --  Complete widget style for class 'editor'::text
+   --  Style for class 'editor'::text
    Editor_Class_Text_Widget : constant Widget_Style :=
-     From (Editor_Class_Text_Base_Style)
+     Style_Of
+        .Text_Color (RGB (205, 214, 244))
+        .Font_Size (Px (14.0))
+        .Text_Wrap_Mode (TWM_Wrap)
+        .White_Space (WS_Normal)
      .Build;
 
    --  Part styles bundle for class 'editor'
@@ -469,9 +300,17 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'context-menu'
+   --  Style for class 'context-menu'
    Context_Menu_Class_Widget : constant Widget_Style :=
-     From (Context_Menu_Class_Base_Style)
+     Style_Of
+        .Width (Size (Px (200.0)))
+        .Background (RGB (24, 24, 37))
+        .Box_Shadow (Shadow (Px (0.0), Px (10.0), Px (26.0), Px (0.0), RGBA (0, 0, 0, 0.45)))
+        .Padding (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (137, 180, 250)))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'context-menu'
@@ -481,17 +320,29 @@ package Text_Editor_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'context-menu-item'
+   --  Style for class 'context-menu-item'
    Context_Menu_Item_Class_Widget : constant Widget_Style :=
-     From (Context_Menu_Item_Class_Base_Style)
-     .On (When_State (State_Hovered), Context_Menu_Item_Class_Widget_Hovered_Style)
-     .On (When_State (State_Disabled), Context_Menu_Item_Class_Widget_Disabled_Style)
+     Style_Of
+        .Min_Height (Size (Px (28.0)))
+        .Background (RGBA (24, 24, 37, 0.0))
+        .Padding (CSS_Box (Px (6.0), Px (10.0), Px (6.0), Px (10.0)))
+        .Radius (Radius (Px (6.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGBA (137, 180, 250, 0.28))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Background (RGBA (24, 24, 37, 0.0))
      .Build;
 
-   --  Complete widget style for class 'context-menu-item'::label
+   --  Style for class 'context-menu-item'::label
    Context_Menu_Item_Class_Label_Widget : constant Widget_Style :=
-     From (Context_Menu_Item_Class_Label_Base_Style)
-     .On (When_State (State_Disabled), Context_Menu_Item_Class_Label_Widget_Disabled_Style)
+     Style_Of
+        .Text_Color (RGB (205, 214, 244))
+        .Font_Size (Px (13.0))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Text_Color (RGB (108, 112, 134))
      .Build;
 
    --  Part styles bundle for class 'context-menu-item'

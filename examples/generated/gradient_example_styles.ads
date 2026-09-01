@@ -27,288 +27,42 @@ package Gradient_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Background_Color => Set_Bg (RGB (15, 17, 26)),
-      Gap => Set (Gap (Px (12.0))),
-      Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
-      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
-      others => <>);
-
-   --  Base style for class 'root'::knob
-   function Root_Class_Knob_Base_Style return Style_Rules is
-     (
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (129, 161, 193, 0.3)), Gradient_Stop_Auto (RGBA (94, 129, 172, 0.3)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Transition => Set ((Duration => 0.16, Easing => Ease_Out, Properties => All_Properties)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGBA (236, 239, 244, 0.1))),
-      Border_Radius => Set (Radius (Px (5.0))),
-      others => <>);
-
-   --  Style for class 'root'::knob when part State_Hovered
-   function Root_Class_Knob_Part_Hovered_Style return Style_Rules is
-     (
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (143, 176, 209, 0.85)), Gradient_Stop_Auto (RGBA (108, 143, 186, 0.85)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Color => Set (Border_Color (RGBA (236, 239, 244, 0.28))),
-      others => <>);
-
-   --  Base style for class 'root'::scroll
-   function Root_Class_Scroll_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (10.0))),
-      Background_Color => Set_Bg (RGBA (94, 129, 172, 0.06)),
-      Transition => Set ((Duration => 0.16, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Border_Radius => Set (Radius (Px (5.0))),
-      others => <>);
-
-   --  Style for class 'root'::scroll when part State_Hovered
-   function Root_Class_Scroll_Part_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (94, 129, 172, 0.16)),
-      others => <>);
-
-   --  Base style for class 'row'
-   function Row_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Gap => Set (Gap (Px (12.0))),
-      others => <>);
-
-   --  Base style for class 'title'::label
-   function Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (200, 210, 255)),
-      Font_Size => Set_Font (Px (20.0)),
-      others => <>);
-
-   --  Base style for class 'grad-card'::label
-   function Grad_Card_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (255, 255, 255)),
-      Font_Size => Set_Font (Px (11.0)),
-      Left => Set_Left (Inset (Px (8.0))),
-      Top => Set_Top (Inset (Px (78.0))),
-      others => <>);
-
-   --  Base style for class 'grad-v'
-   function Grad_V_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (180.0, [Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (RGB (16, 185, 129)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-h'
-   function Grad_H_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGB (239, 68, 68)), Gradient_Stop_Auto (RGB (234, 179, 8)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-default'
-   function Grad_Default_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (180.0, [Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (RGB (168, 85, 247)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-up'
-   function Grad_Up_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (0.0, [Gradient_Stop_Auto (RGB (15, 23, 42)), Gradient_Stop_Auto (RGB (99, 102, 241)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-left'
-   function Grad_Left_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (270.0, [Gradient_Stop_Auto (RGB (16, 185, 129)), Gradient_Stop_Auto (RGB (245, 158, 11)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-diag'
-   function Grad_Diag_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (135.0, [Gradient_Stop_Auto (RGB (139, 92, 246)), Gradient_Stop_Auto (RGB (236, 72, 153)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-diag-tr'
-   function Grad_Diag_Tr_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (45.0, [Gradient_Stop_Auto (RGB (14, 165, 233)), Gradient_Stop_Auto (RGB (99, 102, 241)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-diag-bl'
-   function Grad_Diag_Bl_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (225.0, [Gradient_Stop_Auto (RGB (250, 204, 21)), Gradient_Stop_Auto (RGB (34, 197, 94)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-diag-rev'
-   function Grad_Diag_Rev_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (315.0, [Gradient_Stop_Auto (RGB (244, 114, 182)), Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-45'
-   function Grad_45_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (45.0, [Gradient_Stop_Auto (RGB (6, 182, 212)), Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-135'
-   function Grad_135_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (135.0, [Gradient_Stop_Auto (RGB (245, 158, 11)), Gradient_Stop_Auto (RGB (239, 68, 68)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-turn'
-   function Grad_Turn_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGB (6, 182, 212)), Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-rad'
-   function Grad_Rad_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0002104591497, [Gradient_Stop_Auto (RGB (236, 72, 153)), Gradient_Stop_Auto (RGB (99, 102, 241)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-grad'
-   function Grad_Grad_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (135.0, [Gradient_Stop_Auto (RGB (245, 158, 11)), Gradient_Stop_Auto (RGB (239, 68, 68)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-alpha'
-   function Grad_Alpha_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Color => Set_Bg (RGB (220, 38, 38)),
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (0, 0, 0, 0.0)), Gradient_Stop_Auto (RGBA (0, 0, 0, 0.85)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'grad-3stop'
-   function Grad_3stop_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGB (239, 68, 68)), Gradient_Stop_Auto (RGB (234, 179, 8)), Gradient_Stop_Auto (RGB (16, 185, 129)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 3)),
-      Border_Radius => Set (Radius (Px (0.0))),
-      others => <>);
-
-   --  Base style for class 'grad-pos'
-   function Grad_Pos_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_At (RGB (59, 130, 246), 0.0), Gradient_Stop_At (RGB (139, 92, 246), 0.3), Gradient_Stop_At (RGB (236, 72, 153), 1.0), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 3)),
-      Border_Radius => Set (Radius (Px (0.0))),
-      others => <>);
-
-   --  Base style for class 'grad-edge'
-   function Grad_Edge_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_At (RGB (239, 68, 68), 0.2), Gradient_Stop_At (RGB (59, 130, 246), 0.8), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (0.0))),
-      others => <>);
-
-   --  Base style for class 'grad-16stop'
-   function Grad_16stop_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_At (RGB (239, 68, 68), 0.0), Gradient_Stop_At (RGB (249, 115, 22), 0.06666699999999999), Gradient_Stop_At (RGB (245, 158, 11), 0.133333), Gradient_Stop_At (RGB (234, 179, 8), 0.2), Gradient_Stop_At (RGB (163, 230, 53), 0.266667), Gradient_Stop_At (RGB (34, 197, 94), 0.333333), Gradient_Stop_At (RGB (16, 185, 129), 0.4), Gradient_Stop_At (RGB (20, 184, 166), 0.466667), Gradient_Stop_At (RGB (6, 182, 212), 0.5333330000000001), Gradient_Stop_At (RGB (14, 165, 233), 0.6), Gradient_Stop_At (RGB (59, 130, 246), 0.666667), Gradient_Stop_At (RGB (99, 102, 241), 0.7333329999999999), Gradient_Stop_At (RGB (139, 92, 246), 0.8), Gradient_Stop_At (RGB (168, 85, 247), 0.8666670000000001), Gradient_Stop_At (RGB (217, 70, 239), 0.933333), Gradient_Stop_At (RGB (236, 72, 153), 1.0)], 16)),
-      Border_Radius => Set (Radius (Px (0.0))),
-      others => <>);
-
-   --  Base style for class 'grad-pill'
-   function Grad_Pill_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGB (245, 158, 11)), Gradient_Stop_Auto (RGB (239, 68, 68)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Radius => Set (Radius (Px (50.0))),
-      others => <>);
-
-   --  Base style for class 'grad-pill'::label
-   function Grad_Pill_Class_Label_Base_Style return Style_Rules is
-     (
-      Left => Set_Left (Inset (Px (32.0))),
-      others => <>);
-
-   --  Base style for class 'grad-border'
-   function Grad_Border_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Height => Set (Size (Px (100.0))),
-      Background_Image => Set_Bg_Image (Linear_Gradient (135.0, [Gradient_Stop_Auto (RGB (16, 185, 129)), Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Width => Set (Border_Width (Px (4.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (200, 210, 255))),
-      Border_Radius => Set (Radius (Px (12.0))),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Background (RGB (15, 17, 26))
+        .Gap (Gap (Px (12.0)))
+        .Padding (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0)))
+        .Overflow_Y (Overflow_Auto)
      .Build;
 
-   --  Complete widget style for class 'root'::knob
+   --  Style for class 'root'::knob
    Root_Class_Knob_Widget : constant Widget_Style :=
-     From (Root_Class_Knob_Base_Style)
-     .On (When_Part_State (State_Hovered), Root_Class_Knob_Part_Hovered_Style)
+     Style_Of
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (129, 161, 193, 0.3)), Gradient_Stop_Auto (RGBA (94, 129, 172, 0.3)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Transition ((Duration => 0.16, Easing => Ease_Out, Properties => All_Properties))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGBA (236, 239, 244, 0.1)))
+        .Radius (Radius (Px (5.0)))
+     --  part State_Hovered
+     .On (When_Part_State (State_Hovered))
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (143, 176, 209, 0.85)), Gradient_Stop_Auto (RGBA (108, 143, 186, 0.85)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Border_Color (Border_Color (RGBA (236, 239, 244, 0.28)))
      .Build;
 
-   --  Complete widget style for class 'root'::scroll
+   --  Style for class 'root'::scroll
    Root_Class_Scroll_Widget : constant Widget_Style :=
-     From (Root_Class_Scroll_Base_Style)
-     .On (When_Part_State (State_Hovered), Root_Class_Scroll_Part_Hovered_Style)
+     Style_Of
+        .Width (Size (Px (10.0)))
+        .Background (RGBA (94, 129, 172, 0.06))
+        .Transition ((Duration => 0.16, Easing => Ease_Out, Properties => Props (Prop_Background_Color)))
+        .Radius (Radius (Px (5.0)))
+     --  part State_Hovered
+     .On (When_Part_State (State_Hovered))
+        .Background (RGBA (94, 129, 172, 0.16))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -320,9 +74,12 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'row'
+   --  Style for class 'row'
    Row_Class_Widget : constant Widget_Style :=
-     From (Row_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Gap (Gap (Px (12.0)))
      .Build;
 
    --  Part styles bundle for class 'row'
@@ -332,9 +89,11 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'title'::label
+   --  Style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
-     From (Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (200, 210, 255))
+        .Font_Size (Px (20.0))
      .Build;
 
    --  Part styles bundle for class 'title'
@@ -344,9 +103,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-card'::label
+   --  Style for class 'grad-card'::label
    Grad_Card_Class_Label_Widget : constant Widget_Style :=
-     From (Grad_Card_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (255, 255, 255))
+        .Font_Size (Px (11.0))
+        .Left (Inset (Px (8.0)))
+        .Top (Inset (Px (78.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-card'
@@ -356,9 +119,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-v'
+   --  Style for class 'grad-v'
    Grad_V_Class_Widget : constant Widget_Style :=
-     From (Grad_V_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (180.0, [Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (RGB (16, 185, 129)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-v'
@@ -368,9 +135,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-h'
+   --  Style for class 'grad-h'
    Grad_H_Class_Widget : constant Widget_Style :=
-     From (Grad_H_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGB (239, 68, 68)), Gradient_Stop_Auto (RGB (234, 179, 8)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-h'
@@ -380,9 +151,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-default'
+   --  Style for class 'grad-default'
    Grad_Default_Class_Widget : constant Widget_Style :=
-     From (Grad_Default_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (180.0, [Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (RGB (168, 85, 247)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-default'
@@ -392,9 +167,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-up'
+   --  Style for class 'grad-up'
    Grad_Up_Class_Widget : constant Widget_Style :=
-     From (Grad_Up_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (0.0, [Gradient_Stop_Auto (RGB (15, 23, 42)), Gradient_Stop_Auto (RGB (99, 102, 241)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-up'
@@ -404,9 +183,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-left'
+   --  Style for class 'grad-left'
    Grad_Left_Class_Widget : constant Widget_Style :=
-     From (Grad_Left_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (270.0, [Gradient_Stop_Auto (RGB (16, 185, 129)), Gradient_Stop_Auto (RGB (245, 158, 11)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-left'
@@ -416,9 +199,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-diag'
+   --  Style for class 'grad-diag'
    Grad_Diag_Class_Widget : constant Widget_Style :=
-     From (Grad_Diag_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (135.0, [Gradient_Stop_Auto (RGB (139, 92, 246)), Gradient_Stop_Auto (RGB (236, 72, 153)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-diag'
@@ -428,9 +215,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-diag-tr'
+   --  Style for class 'grad-diag-tr'
    Grad_Diag_Tr_Class_Widget : constant Widget_Style :=
-     From (Grad_Diag_Tr_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (45.0, [Gradient_Stop_Auto (RGB (14, 165, 233)), Gradient_Stop_Auto (RGB (99, 102, 241)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-diag-tr'
@@ -440,9 +231,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-diag-bl'
+   --  Style for class 'grad-diag-bl'
    Grad_Diag_Bl_Class_Widget : constant Widget_Style :=
-     From (Grad_Diag_Bl_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (225.0, [Gradient_Stop_Auto (RGB (250, 204, 21)), Gradient_Stop_Auto (RGB (34, 197, 94)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-diag-bl'
@@ -452,9 +247,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-diag-rev'
+   --  Style for class 'grad-diag-rev'
    Grad_Diag_Rev_Class_Widget : constant Widget_Style :=
-     From (Grad_Diag_Rev_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (315.0, [Gradient_Stop_Auto (RGB (244, 114, 182)), Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-diag-rev'
@@ -464,9 +263,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-45'
+   --  Style for class 'grad-45'
    Grad_45_Class_Widget : constant Widget_Style :=
-     From (Grad_45_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (45.0, [Gradient_Stop_Auto (RGB (6, 182, 212)), Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-45'
@@ -476,9 +279,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-135'
+   --  Style for class 'grad-135'
    Grad_135_Class_Widget : constant Widget_Style :=
-     From (Grad_135_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (135.0, [Gradient_Stop_Auto (RGB (245, 158, 11)), Gradient_Stop_Auto (RGB (239, 68, 68)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-135'
@@ -488,9 +295,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-turn'
+   --  Style for class 'grad-turn'
    Grad_Turn_Class_Widget : constant Widget_Style :=
-     From (Grad_Turn_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGB (6, 182, 212)), Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-turn'
@@ -500,9 +311,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-rad'
+   --  Style for class 'grad-rad'
    Grad_Rad_Class_Widget : constant Widget_Style :=
-     From (Grad_Rad_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (90.0002104591497, [Gradient_Stop_Auto (RGB (236, 72, 153)), Gradient_Stop_Auto (RGB (99, 102, 241)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-rad'
@@ -512,9 +327,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-grad'
+   --  Style for class 'grad-grad'
    Grad_Grad_Class_Widget : constant Widget_Style :=
-     From (Grad_Grad_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (135.0, [Gradient_Stop_Auto (RGB (245, 158, 11)), Gradient_Stop_Auto (RGB (239, 68, 68)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-grad'
@@ -524,9 +343,14 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-alpha'
+   --  Style for class 'grad-alpha'
    Grad_Alpha_Class_Widget : constant Widget_Style :=
-     From (Grad_Alpha_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background (RGB (220, 38, 38))
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (0, 0, 0, 0.0)), Gradient_Stop_Auto (RGBA (0, 0, 0, 0.85)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-alpha'
@@ -536,9 +360,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-3stop'
+   --  Style for class 'grad-3stop'
    Grad_3stop_Class_Widget : constant Widget_Style :=
-     From (Grad_3stop_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGB (239, 68, 68)), Gradient_Stop_Auto (RGB (234, 179, 8)), Gradient_Stop_Auto (RGB (16, 185, 129)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 3))
+        .Radius (Radius (Px (0.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-3stop'
@@ -548,9 +376,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-pos'
+   --  Style for class 'grad-pos'
    Grad_Pos_Class_Widget : constant Widget_Style :=
-     From (Grad_Pos_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_At (RGB (59, 130, 246), 0.0), Gradient_Stop_At (RGB (139, 92, 246), 0.3), Gradient_Stop_At (RGB (236, 72, 153), 1.0), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 3))
+        .Radius (Radius (Px (0.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-pos'
@@ -560,9 +392,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-edge'
+   --  Style for class 'grad-edge'
    Grad_Edge_Class_Widget : constant Widget_Style :=
-     From (Grad_Edge_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_At (RGB (239, 68, 68), 0.2), Gradient_Stop_At (RGB (59, 130, 246), 0.8), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (0.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-edge'
@@ -572,9 +408,13 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-16stop'
+   --  Style for class 'grad-16stop'
    Grad_16stop_Class_Widget : constant Widget_Style :=
-     From (Grad_16stop_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_At (RGB (239, 68, 68), 0.0), Gradient_Stop_At (RGB (249, 115, 22), 0.06666699999999999), Gradient_Stop_At (RGB (245, 158, 11), 0.133333), Gradient_Stop_At (RGB (234, 179, 8), 0.2), Gradient_Stop_At (RGB (163, 230, 53), 0.266667), Gradient_Stop_At (RGB (34, 197, 94), 0.333333), Gradient_Stop_At (RGB (16, 185, 129), 0.4), Gradient_Stop_At (RGB (20, 184, 166), 0.466667), Gradient_Stop_At (RGB (6, 182, 212), 0.5333330000000001), Gradient_Stop_At (RGB (14, 165, 233), 0.6), Gradient_Stop_At (RGB (59, 130, 246), 0.666667), Gradient_Stop_At (RGB (99, 102, 241), 0.7333329999999999), Gradient_Stop_At (RGB (139, 92, 246), 0.8), Gradient_Stop_At (RGB (168, 85, 247), 0.8666670000000001), Gradient_Stop_At (RGB (217, 70, 239), 0.933333), Gradient_Stop_At (RGB (236, 72, 153), 1.0)], 16))
+        .Radius (Radius (Px (0.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-16stop'
@@ -584,14 +424,19 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-pill'
+   --  Style for class 'grad-pill'
    Grad_Pill_Class_Widget : constant Widget_Style :=
-     From (Grad_Pill_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGB (245, 158, 11)), Gradient_Stop_Auto (RGB (239, 68, 68)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Radius (Radius (Px (50.0)))
      .Build;
 
-   --  Complete widget style for class 'grad-pill'::label
+   --  Style for class 'grad-pill'::label
    Grad_Pill_Class_Label_Widget : constant Widget_Style :=
-     From (Grad_Pill_Class_Label_Base_Style)
+     Style_Of
+        .Left (Inset (Px (32.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-pill'
@@ -602,9 +447,16 @@ package Gradient_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grad-border'
+   --  Style for class 'grad-border'
    Grad_Border_Class_Widget : constant Widget_Style :=
-     From (Grad_Border_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Height (Size (Px (100.0)))
+        .Background_Image (Linear_Gradient (135.0, [Gradient_Stop_Auto (RGB (16, 185, 129)), Gradient_Stop_Auto (RGB (59, 130, 246)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Border_Width (Border_Width (Px (4.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (200, 210, 255)))
+        .Radius (Radius (Px (12.0)))
      .Build;
 
    --  Part styles bundle for class 'grad-border'

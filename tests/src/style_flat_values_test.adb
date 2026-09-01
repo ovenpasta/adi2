@@ -267,6 +267,26 @@ procedure Style_Flat_Values_Test is
       Sheet : Adi.CSS_Parser.Stylesheet;
       OK    : Boolean := False;
 
+      --  The generated sheet composes a chain per selector-and-part, so
+      --  its rule sets are read back through the style the chain built,
+      --  as the parsed sheet's are.
+      function Base_Of (S : Widget_Style) return Style_Rules is
+        (Rules_Of (Definition (S).Base));
+
+      function Hover_Of (S : Widget_Style) return Style_Rules is
+         WS : constant Style_Definition := Definition (S);
+      begin
+         for I in 1 .. WS.Rule_Count loop
+            if Matches (WS.Rules (I).Selector,
+                        Single_State (State_Hovered))
+            then
+               return Rules_Of (WS.Rules (I).Style);
+            end if;
+         end loop;
+         Assert (False, "the generated style carries a hover rule");
+         return Empty_Style;
+      end Hover_Of;
+
       function Parsed_Base (Class : String) return Style_Rules is
          Styles : constant Part_Style_Array :=
            Adi.CSS_Parser.Styles_For_Class (Sheet, Class);
@@ -340,16 +360,16 @@ procedure Style_Flat_Values_Test is
       end if;
 
       Compare ("flat-bg",
-               Flat_Values_Styles.Flat_Bg_Class_Base_Style,
+               Base_Of (Flat_Values_Styles.Flat_Bg_Class_Widget),
                Parsed_Base ("flat-bg"));
       Compare ("flat-grad",
-               Flat_Values_Styles.Flat_Grad_Class_Base_Style,
+               Base_Of (Flat_Values_Styles.Flat_Grad_Class_Widget),
                Parsed_Base ("flat-grad"));
       Compare ("flat-list",
-               Flat_Values_Styles.Flat_List_Class_Base_Style,
+               Base_Of (Flat_Values_Styles.Flat_List_Class_Widget),
                Parsed_Base ("flat-list"));
       Compare ("flat-list:hover",
-               Flat_Values_Styles.Flat_List_Class_Widget_Hovered_Style,
+               Hover_Of (Flat_Values_Styles.Flat_List_Class_Widget),
                Parsed_Hover ("flat-list"));
 
       Expect_Parsed;

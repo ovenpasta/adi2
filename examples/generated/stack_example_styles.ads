@@ -27,56 +27,12 @@ package Stack_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Background_Color => Set_Bg (RGB (30, 30, 36)),
-      others => <>);
-
-   --  Base style for class 'tab-bar'
-   function Tab_Bar_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Flex_Shrink => Set (0.0),
-      Align_Items => Set (Center),
-      Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (0.0), Px (16.0))),
-      others => <>);
-
-   --  Base style for class 'stack'
-   function Stack_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Padding => Set (CSS_Box (Px (16.0), Px (16.0), Px (16.0), Px (16.0))),
-      others => <>);
-
-   --  Base style for class 'page-red'
-   function Page_Red_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Background_Color => Set_Bg (RGB (127, 29, 29)),
-      Gap => Set (Gap (Px (8.0))),
-      Padding => Set (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0))),
-      Border_Radius => Set (Radius (Px (12.0))),
-      others => <>);
-
-   --  Base style for class 'page-blue'
-   function Page_Blue_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Background_Color => Set_Bg (RGB (30, 58, 138)),
-      Gap => Set (Gap (Px (8.0))),
-      Padding => Set (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0))),
-      Border_Radius => Set (Radius (Px (12.0))),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Background (RGB (30, 30, 36))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -86,9 +42,14 @@ package Stack_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'tab-bar'
+   --  Style for class 'tab-bar'
    Tab_Bar_Class_Widget : constant Widget_Style :=
-     From (Tab_Bar_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Flex_Shrink (0.0)
+        .Align_Items (Center)
+        .Padding (CSS_Box (Px (16.0), Px (16.0), Px (0.0), Px (16.0)))
      .Build;
 
    --  Part styles bundle for class 'tab-bar'
@@ -98,9 +59,11 @@ package Stack_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'stack'
+   --  Style for class 'stack'
    Stack_Class_Widget : constant Widget_Style :=
-     From (Stack_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Padding (CSS_Box (Px (16.0), Px (16.0), Px (16.0), Px (16.0)))
      .Build;
 
    --  Part styles bundle for class 'stack'
@@ -110,9 +73,15 @@ package Stack_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'page-red'
+   --  Style for class 'page-red'
    Page_Red_Class_Widget : constant Widget_Style :=
-     From (Page_Red_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Background (RGB (127, 29, 29))
+        .Gap (Gap (Px (8.0)))
+        .Padding (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0)))
+        .Radius (Radius (Px (12.0)))
      .Build;
 
    --  Part styles bundle for class 'page-red'
@@ -122,9 +91,15 @@ package Stack_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'page-blue'
+   --  Style for class 'page-blue'
    Page_Blue_Class_Widget : constant Widget_Style :=
-     From (Page_Blue_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Background (RGB (30, 58, 138))
+        .Gap (Gap (Px (8.0)))
+        .Padding (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0)))
+        .Radius (Radius (Px (12.0)))
      .Build;
 
    --  Part styles bundle for class 'page-blue'

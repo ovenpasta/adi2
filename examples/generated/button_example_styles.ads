@@ -27,474 +27,12 @@ package Button_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Background_Color => Set_Bg (RGB (30, 30, 36)),
-      others => <>);
-
-   --  Base style for class 'container'
-   function Container_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Flex_Grow => Set (1.0),
-      Gap => Set (Gap (Px (24.0))),
-      Padding => Set (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0))),
-      others => <>);
-
-   --  Base style for class 'section-row'
-   function Section_Row_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Gap => Set (Gap (Px (12.0))),
-      Align_Items => Set (Center),
-      others => <>);
-
-   --  Base style for class 'section-row-2'
-   function Section_Row_2_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Align_Items => Set (Center),
-      others => <>);
-
-   --  Base style for class 'primary'
-   function Primary_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Background_Color => Set_Bg (RGB (59, 130, 246)),
-      Cursor => Set (Cursor_Pointer),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (59, 130, 246, 0.5))),
-      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
-      Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
-      Border_Width => Set (Border_Width (Px (0.0))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Style for class 'primary' when widget State_Hovered
-   function Primary_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (37, 99, 235)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (96, 165, 250, 0.7))),
-      others => <>);
-
-   --  Style for class 'primary' when widget State_Pressed
-   function Primary_Class_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (29, 58, 145)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (4.0), Px (1.0), RGBA (37, 99, 235, 0.6))),
-      others => <>);
-
-   --  Style for class 'primary' when widget State_Focused
-   function Primary_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGBA (191, 219, 254, 0.9)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
-      others => <>);
-
-   --  Base style for class 'primary'::label
-   function Primary_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (14.0)),
-      Font_Weight => Set (Weight_Medium),
-      Text_Align => Set (Text_Center),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'danger'
-   function Danger_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Background_Color => Set_Bg (RGB (220, 38, 38)),
-      Cursor => Set (Cursor_Pointer),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (220, 38, 38, 0.5))),
-      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
-      Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
-      Border_Width => Set (Border_Width (Px (0.0))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Style for class 'danger' when widget State_Hovered
-   function Danger_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (185, 28, 28)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (248, 113, 113, 0.7))),
-      others => <>);
-
-   --  Style for class 'danger' when widget State_Pressed
-   function Danger_Class_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (153, 27, 27)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (4.0), Px (1.0), RGBA (185, 28, 28, 0.6))),
-      others => <>);
-
-   --  Style for class 'danger' when widget State_Focused
-   function Danger_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGBA (254, 202, 202, 0.9)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
-      others => <>);
-
-   --  Base style for class 'danger'::label
-   function Danger_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (14.0)),
-      Font_Weight => Set (Weight_Medium),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'outline'
-   function Outline_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Cursor => Set (Cursor_Pointer),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (148, 163, 184, 0.35))),
-      Transition => Set ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
-      Padding => Set (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (148, 163, 184))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Style for class 'outline' when widget State_Hovered
-   function Outline_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (148, 163, 184, 0.15)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (203, 213, 225, 0.55))),
-      others => <>);
-
-   --  Style for class 'outline' when widget State_Pressed
-   function Outline_Class_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (148, 163, 184, 0.25)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (4.0), Px (1.0), RGBA (148, 163, 184, 0.45))),
-      others => <>);
-
-   --  Style for class 'outline' when widget State_Focused
-   function Outline_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGBA (147, 197, 253, 0.6)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
-      Border_Color => Set (Border_Color (RGB (96, 165, 250))),
-      others => <>);
-
-   --  Base style for class 'outline'::label
-   function Outline_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (226, 232, 240)),
-      Font_Size => Set_Font (Px (14.0)),
-      Font_Weight => Set (Weight_Medium),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'toggle'
-   function Toggle_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Background_Color => Set_Bg (RGB (75, 85, 99)),
-      Cursor => Set (Cursor_Pointer),
-      Padding => Set (CSS_Box (Px (10.0), Px (20.0), Px (10.0), Px (20.0))),
-      Border_Width => Set (Border_Width (Px (2.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (107, 114, 128))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Style for class 'toggle' when widget State_Hovered
-   function Toggle_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (90, 100, 114)),
-      others => <>);
-
-   --  Style for class 'toggle' when widget State_Pressed
-   function Toggle_Class_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (55, 65, 81)),
-      others => <>);
-
-   --  Style for class 'toggle' when widget State_Selected
-   function Toggle_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (22, 163, 74)),
-      Border_Color => Set (Border_Color (RGB (21, 128, 61))),
-      others => <>);
-
-   --  Style for class 'toggle' when widget State_Selected, widget State_Pressed
-   function Toggle_Class_Widget_Selected_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (21, 128, 61)),
-      Border_Color => Set (Border_Color (RGB (20, 110, 55))),
-      others => <>);
-
-   --  Style for class 'toggle' when widget State_Focused
-   function Toggle_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGBA (96, 165, 250, 0.55)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
-      Border_Color => Set (Border_Color (RGB (147, 197, 253))),
-      others => <>);
-
-   --  Base style for class 'toggle'::label
-   function Toggle_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (14.0)),
-      Font_Weight => Set (Weight_Medium),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'switch'
-   function Switch_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (56.0))),
-      Height => Set (Size (Px (32.0))),
-      Background_Color => Set_Bg (RGB (71, 85, 105)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (148, 163, 184, 0.4))),
-      Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.28, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color) + Props (Prop_Box_Shadow))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGBA (148, 163, 184, 0.55))),
-      Border_Radius => Set (Radius (Px (16.0))),
-      others => <>);
-
-   --  Style for class 'switch' when widget State_Hovered
-   function Switch_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (100, 116, 139)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (203, 213, 225, 0.65))),
-      others => <>);
-
-   --  Style for class 'switch' when widget State_Pressed
-   function Switch_Class_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (51, 65, 85)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (6.0), Px (2.0), RGBA (148, 163, 184, 0.55))),
-      others => <>);
-
-   --  Style for class 'switch' when widget State_Selected
-   function Switch_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (16, 185, 129)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (12.0), Px (4.0), RGBA (52, 211, 153, 0.55))),
-      Border_Color => Set (Border_Color (RGB (5, 150, 105))),
-      others => <>);
-
-   --  Style for class 'switch' when widget State_Selected, widget State_Hovered
-   function Switch_Class_Widget_Selected_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (5, 150, 105)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (14.0), Px (5.0), RGBA (110, 231, 183, 0.7))),
-      Border_Color => Set (Border_Color (RGB (4, 120, 87))),
-      others => <>);
-
-   --  Style for class 'switch' when widget State_Selected, widget State_Pressed
-   function Switch_Class_Widget_Selected_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (4, 120, 87)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (52, 211, 153, 0.5))),
-      others => <>);
-
-   --  Style for class 'switch' when widget State_Focused
-   function Switch_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Px (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGBA (134, 239, 172, 0.6)),
-      Outline_Offset => Set_Outline_Offset (Px (2.0)),
-      others => <>);
-
-   --  Base style for class 'switch'::knob
-   function Switch_Class_Knob_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (26.0))),
-      Height => Set (Size (Px (26.0))),
-      Background_Color => Set_Bg (RGB (248, 250, 252)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (6.0), Px (1.0), RGBA (15, 23, 42, 0.22))),
-      Transition => Set ((Duration => 0.26, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
-      Margin => Set_Margin (CSS_Box (Px (0.0), Px (2.0), Px (0.0), Px (2.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGBA (15, 23, 42, 0.12))),
-      Border_Radius => Set (Radius (Px (13.0))),
-      others => <>);
-
-   --  Style for class 'switch'::knob when part State_Hovered
-   function Switch_Class_Knob_Part_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (255, 255, 255)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (15, 23, 42, 0.28))),
-      others => <>);
-
-   --  Style for class 'switch'::knob when part State_Pressed
-   function Switch_Class_Knob_Part_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (241, 245, 249)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (4.0), Px (1.0), RGBA (15, 23, 42, 0.18))),
-      others => <>);
-
-   --  Style for class 'switch'::knob when widget State_Selected
-   function Switch_Class_Knob_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (240, 253, 244)),
-      Box_Shadow => Set (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (5, 150, 105, 0.3))),
-      others => <>);
-
-   --  Base style for class 'option-left'
-   function Option_Left_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Background_Color => Set_Bg (RGB (55, 65, 81)),
-      Cursor => Set (Cursor_Pointer),
-      Padding => Set (CSS_Box (Px (8.0), Px (16.0), Px (8.0), Px (16.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
-      Border_Radius => Set (Radius (Px (6.0), Px (0.0), Px (0.0), Px (6.0))),
-      others => <>);
-
-   --  Style for class 'option-left' when widget State_Hovered
-   function Option_Left_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (75, 85, 99)),
-      others => <>);
-
-   --  Style for class 'option-left' when widget State_Selected
-   function Option_Left_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (59, 130, 246)),
-      Border_Color => Set (Border_Color (RGB (37, 99, 235))),
-      others => <>);
-
-   --  Style for class 'option-left' when widget State_Focused
-   function Option_Left_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Border_Color => Set (Border_Color (RGB (147, 197, 253))),
-      others => <>);
-
-   --  Base style for class 'option-left'::label
-   function Option_Left_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (13.0)),
-      Font_Weight => Set (Weight_Medium),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'option-center'
-   function Option_Center_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Background_Color => Set_Bg (RGB (55, 65, 81)),
-      Cursor => Set (Cursor_Pointer),
-      Padding => Set (CSS_Box (Px (8.0), Px (16.0), Px (8.0), Px (16.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
-      others => <>);
-
-   --  Style for class 'option-center' when widget State_Hovered
-   function Option_Center_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (75, 85, 99)),
-      others => <>);
-
-   --  Style for class 'option-center' when widget State_Selected
-   function Option_Center_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (59, 130, 246)),
-      Border_Color => Set (Border_Color (RGB (37, 99, 235))),
-      others => <>);
-
-   --  Style for class 'option-center' when widget State_Focused
-   function Option_Center_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Border_Color => Set (Border_Color (RGB (147, 197, 253))),
-      others => <>);
-
-   --  Base style for class 'option-center'::label
-   function Option_Center_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (13.0)),
-      Font_Weight => Set (Weight_Medium),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'option-right'
-   function Option_Right_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Background_Color => Set_Bg (RGB (55, 65, 81)),
-      Cursor => Set (Cursor_Pointer),
-      Padding => Set (CSS_Box (Px (8.0), Px (16.0), Px (8.0), Px (16.0))),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (75, 85, 99))),
-      Border_Radius => Set (Radius (Px (0.0), Px (6.0), Px (6.0), Px (0.0))),
-      others => <>);
-
-   --  Style for class 'option-right' when widget State_Hovered
-   function Option_Right_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (75, 85, 99)),
-      others => <>);
-
-   --  Style for class 'option-right' when widget State_Selected
-   function Option_Right_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (59, 130, 246)),
-      Border_Color => Set (Border_Color (RGB (37, 99, 235))),
-      others => <>);
-
-   --  Style for class 'option-right' when widget State_Focused
-   function Option_Right_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Border_Color => Set (Border_Color (RGB (147, 197, 253))),
-      others => <>);
-
-   --  Base style for class 'option-right'::label
-   function Option_Right_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (13.0)),
-      Font_Weight => Set (Weight_Medium),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Background (RGB (30, 30, 36))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -504,9 +42,14 @@ package Button_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'container'
+   --  Style for class 'container'
    Container_Class_Widget : constant Widget_Style :=
-     From (Container_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Flex_Grow (1.0)
+        .Gap (Gap (Px (24.0)))
+        .Padding (CSS_Box (Px (30.0), Px (30.0), Px (30.0), Px (30.0)))
      .Build;
 
    --  Part styles bundle for class 'container'
@@ -516,9 +59,13 @@ package Button_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'section-row'
+   --  Style for class 'section-row'
    Section_Row_Class_Widget : constant Widget_Style :=
-     From (Section_Row_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Gap (Gap (Px (12.0)))
+        .Align_Items (Center)
      .Build;
 
    --  Part styles bundle for class 'section-row'
@@ -528,9 +75,12 @@ package Button_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'section-row-2'
+   --  Style for class 'section-row-2'
    Section_Row_2_Class_Widget : constant Widget_Style :=
-     From (Section_Row_2_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Align_Items (Center)
      .Build;
 
    --  Part styles bundle for class 'section-row-2'
@@ -540,17 +90,43 @@ package Button_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'primary'
+   --  Style for class 'primary'
    Primary_Class_Widget : constant Widget_Style :=
-     From (Primary_Class_Base_Style)
-     .On (When_State (State_Hovered), Primary_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Primary_Class_Widget_Pressed_Style)
-     .On (When_State (State_Focused), Primary_Class_Widget_Focused_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Background (RGB (59, 130, 246))
+        .Cursor_Style (Cursor_Pointer)
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (59, 130, 246, 0.5)))
+        .Transition ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow)))
+        .Padding (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0)))
+        .Border_Width (Border_Width (Px (0.0)))
+        .Radius (Radius (Px (6.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (37, 99, 235))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (96, 165, 250, 0.7)))
+     --  widget State_Pressed
+     .On (When_State (State_Pressed))
+        .Background (RGB (29, 58, 145))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (4.0), Px (1.0), RGBA (37, 99, 235, 0.6)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Outline_Width (Px (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGBA (191, 219, 254, 0.9))
+        .Outline_Offset (Px (2.0))
      .Build;
 
-   --  Complete widget style for class 'primary'::label
+   --  Style for class 'primary'::label
    Primary_Class_Label_Widget : constant Widget_Style :=
-     From (Primary_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (14.0))
+        .Font_Weight (Weight_Medium)
+        .Text_Align (Text_Center)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'primary'
@@ -561,17 +137,42 @@ package Button_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'danger'
+   --  Style for class 'danger'
    Danger_Class_Widget : constant Widget_Style :=
-     From (Danger_Class_Base_Style)
-     .On (When_State (State_Hovered), Danger_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Danger_Class_Widget_Pressed_Style)
-     .On (When_State (State_Focused), Danger_Class_Widget_Focused_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Background (RGB (220, 38, 38))
+        .Cursor_Style (Cursor_Pointer)
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (220, 38, 38, 0.5)))
+        .Transition ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow)))
+        .Padding (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0)))
+        .Border_Width (Border_Width (Px (0.0)))
+        .Radius (Radius (Px (6.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (185, 28, 28))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (248, 113, 113, 0.7)))
+     --  widget State_Pressed
+     .On (When_State (State_Pressed))
+        .Background (RGB (153, 27, 27))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (4.0), Px (1.0), RGBA (185, 28, 28, 0.6)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Outline_Width (Px (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGBA (254, 202, 202, 0.9))
+        .Outline_Offset (Px (2.0))
      .Build;
 
-   --  Complete widget style for class 'danger'::label
+   --  Style for class 'danger'::label
    Danger_Class_Label_Widget : constant Widget_Style :=
-     From (Danger_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (14.0))
+        .Font_Weight (Weight_Medium)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'danger'
@@ -582,17 +183,45 @@ package Button_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'outline'
+   --  Style for class 'outline'
    Outline_Class_Widget : constant Widget_Style :=
-     From (Outline_Class_Base_Style)
-     .On (When_State (State_Hovered), Outline_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Outline_Class_Widget_Pressed_Style)
-     .On (When_State (State_Focused), Outline_Class_Widget_Focused_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Background (RGBA (0, 0, 0, 0.0))
+        .Cursor_Style (Cursor_Pointer)
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (148, 163, 184, 0.35)))
+        .Transition ((Duration => 0.18, Easing => Ease_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow)))
+        .Padding (CSS_Box (Px (12.0), Px (24.0), Px (12.0), Px (24.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (148, 163, 184)))
+        .Radius (Radius (Px (6.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGBA (148, 163, 184, 0.15))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (203, 213, 225, 0.55)))
+     --  widget State_Pressed
+     .On (When_State (State_Pressed))
+        .Background (RGBA (148, 163, 184, 0.25))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (4.0), Px (1.0), RGBA (148, 163, 184, 0.45)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Outline_Width (Px (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGBA (147, 197, 253, 0.6))
+        .Outline_Offset (Px (2.0))
+        .Border_Color (Border_Color (RGB (96, 165, 250)))
      .Build;
 
-   --  Complete widget style for class 'outline'::label
+   --  Style for class 'outline'::label
    Outline_Class_Label_Widget : constant Widget_Style :=
-     From (Outline_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (226, 232, 240))
+        .Font_Size (Px (14.0))
+        .Font_Weight (Weight_Medium)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'outline'
@@ -603,19 +232,49 @@ package Button_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'toggle'
+   --  Style for class 'toggle'
    Toggle_Class_Widget : constant Widget_Style :=
-     From (Toggle_Class_Base_Style)
-     .On (When_State (State_Hovered), Toggle_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Toggle_Class_Widget_Pressed_Style)
-     .On (When_State (State_Selected), Toggle_Class_Widget_Selected_Style)
-     .On (When_State (State_Selected) and When_State (State_Pressed), Toggle_Class_Widget_Selected_Widget_Pressed_Style)
-     .On (When_State (State_Focused), Toggle_Class_Widget_Focused_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Background (RGB (75, 85, 99))
+        .Cursor_Style (Cursor_Pointer)
+        .Padding (CSS_Box (Px (10.0), Px (20.0), Px (10.0), Px (20.0)))
+        .Border_Width (Border_Width (Px (2.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (107, 114, 128)))
+        .Radius (Radius (Px (6.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (90, 100, 114))
+     --  widget State_Pressed
+     .On (When_State (State_Pressed))
+        .Background (RGB (55, 65, 81))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (22, 163, 74))
+        .Border_Color (Border_Color (RGB (21, 128, 61)))
+     --  widget State_Selected, widget State_Pressed
+     .On (When_State (State_Selected) and When_State (State_Pressed))
+        .Background (RGB (21, 128, 61))
+        .Border_Color (Border_Color (RGB (20, 110, 55)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Outline_Width (Px (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGBA (96, 165, 250, 0.55))
+        .Outline_Offset (Px (2.0))
+        .Border_Color (Border_Color (RGB (147, 197, 253)))
      .Build;
 
-   --  Complete widget style for class 'toggle'::label
+   --  Style for class 'toggle'::label
    Toggle_Class_Label_Widget : constant Widget_Style :=
-     From (Toggle_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (14.0))
+        .Font_Weight (Weight_Medium)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'toggle'
@@ -626,23 +285,74 @@ package Button_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'switch'
+   --  Style for class 'switch'
    Switch_Class_Widget : constant Widget_Style :=
-     From (Switch_Class_Base_Style)
-     .On (When_State (State_Hovered), Switch_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Switch_Class_Widget_Pressed_Style)
-     .On (When_State (State_Selected), Switch_Class_Widget_Selected_Style)
-     .On (When_State (State_Selected) and When_State (State_Hovered), Switch_Class_Widget_Selected_Widget_Hovered_Style)
-     .On (When_State (State_Selected) and When_State (State_Pressed), Switch_Class_Widget_Selected_Widget_Pressed_Style)
-     .On (When_State (State_Focused), Switch_Class_Widget_Focused_Style)
+     Style_Of
+        .Width (Size (Px (56.0)))
+        .Height (Size (Px (32.0)))
+        .Background (RGB (71, 85, 105))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (148, 163, 184, 0.4)))
+        .Cursor_Style (Cursor_Pointer)
+        .Transition ((Duration => 0.28, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color) + Props (Prop_Box_Shadow)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGBA (148, 163, 184, 0.55)))
+        .Radius (Radius (Px (16.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (100, 116, 139))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (10.0), Px (3.0), RGBA (203, 213, 225, 0.65)))
+     --  widget State_Pressed
+     .On (When_State (State_Pressed))
+        .Background (RGB (51, 65, 85))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (6.0), Px (2.0), RGBA (148, 163, 184, 0.55)))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (16, 185, 129))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (12.0), Px (4.0), RGBA (52, 211, 153, 0.55)))
+        .Border_Color (Border_Color (RGB (5, 150, 105)))
+     --  widget State_Selected, widget State_Hovered
+     .On (When_State (State_Selected) and When_State (State_Hovered))
+        .Background (RGB (5, 150, 105))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (14.0), Px (5.0), RGBA (110, 231, 183, 0.7)))
+        .Border_Color (Border_Color (RGB (4, 120, 87)))
+     --  widget State_Selected, widget State_Pressed
+     .On (When_State (State_Selected) and When_State (State_Pressed))
+        .Background (RGB (4, 120, 87))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (52, 211, 153, 0.5)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Outline_Width (Px (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGBA (134, 239, 172, 0.6))
+        .Outline_Offset (Px (2.0))
      .Build;
 
-   --  Complete widget style for class 'switch'::knob
+   --  Style for class 'switch'::knob
    Switch_Class_Knob_Widget : constant Widget_Style :=
-     From (Switch_Class_Knob_Base_Style)
-     .On (When_Part_State (State_Hovered), Switch_Class_Knob_Part_Hovered_Style)
-     .On (When_Part_State (State_Pressed), Switch_Class_Knob_Part_Pressed_Style)
-     .On (When_State (State_Selected), Switch_Class_Knob_Widget_Selected_Style)
+     Style_Of
+        .Width (Size (Px (26.0)))
+        .Height (Size (Px (26.0)))
+        .Background (RGB (248, 250, 252))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (6.0), Px (1.0), RGBA (15, 23, 42, 0.22)))
+        .Transition ((Duration => 0.26, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow)))
+        .Margin (CSS_Box (Px (0.0), Px (2.0), Px (0.0), Px (2.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGBA (15, 23, 42, 0.12)))
+        .Radius (Radius (Px (13.0)))
+     --  part State_Hovered
+     .On (When_Part_State (State_Hovered))
+        .Background (RGB (255, 255, 255))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (15, 23, 42, 0.28)))
+     --  part State_Pressed
+     .On (When_Part_State (State_Pressed))
+        .Background (RGB (241, 245, 249))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (4.0), Px (1.0), RGBA (15, 23, 42, 0.18)))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (240, 253, 244))
+        .Box_Shadow (Shadow (Px (0.0), Px (0.0), Px (8.0), Px (2.0), RGBA (5, 150, 105, 0.3)))
      .Build;
 
    --  Part styles bundle for class 'switch'
@@ -653,17 +363,38 @@ package Button_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'option-left'
+   --  Style for class 'option-left'
    Option_Left_Class_Widget : constant Widget_Style :=
-     From (Option_Left_Class_Base_Style)
-     .On (When_State (State_Hovered), Option_Left_Class_Widget_Hovered_Style)
-     .On (When_State (State_Selected), Option_Left_Class_Widget_Selected_Style)
-     .On (When_State (State_Focused), Option_Left_Class_Widget_Focused_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Background (RGB (55, 65, 81))
+        .Cursor_Style (Cursor_Pointer)
+        .Padding (CSS_Box (Px (8.0), Px (16.0), Px (8.0), Px (16.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (75, 85, 99)))
+        .Radius (Radius (Px (6.0), Px (0.0), Px (0.0), Px (6.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (75, 85, 99))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (59, 130, 246))
+        .Border_Color (Border_Color (RGB (37, 99, 235)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Border_Color (Border_Color (RGB (147, 197, 253)))
      .Build;
 
-   --  Complete widget style for class 'option-left'::label
+   --  Style for class 'option-left'::label
    Option_Left_Class_Label_Widget : constant Widget_Style :=
-     From (Option_Left_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (13.0))
+        .Font_Weight (Weight_Medium)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'option-left'
@@ -674,17 +405,37 @@ package Button_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'option-center'
+   --  Style for class 'option-center'
    Option_Center_Class_Widget : constant Widget_Style :=
-     From (Option_Center_Class_Base_Style)
-     .On (When_State (State_Hovered), Option_Center_Class_Widget_Hovered_Style)
-     .On (When_State (State_Selected), Option_Center_Class_Widget_Selected_Style)
-     .On (When_State (State_Focused), Option_Center_Class_Widget_Focused_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Background (RGB (55, 65, 81))
+        .Cursor_Style (Cursor_Pointer)
+        .Padding (CSS_Box (Px (8.0), Px (16.0), Px (8.0), Px (16.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (75, 85, 99)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (75, 85, 99))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (59, 130, 246))
+        .Border_Color (Border_Color (RGB (37, 99, 235)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Border_Color (Border_Color (RGB (147, 197, 253)))
      .Build;
 
-   --  Complete widget style for class 'option-center'::label
+   --  Style for class 'option-center'::label
    Option_Center_Class_Label_Widget : constant Widget_Style :=
-     From (Option_Center_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (13.0))
+        .Font_Weight (Weight_Medium)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'option-center'
@@ -695,17 +446,38 @@ package Button_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'option-right'
+   --  Style for class 'option-right'
    Option_Right_Class_Widget : constant Widget_Style :=
-     From (Option_Right_Class_Base_Style)
-     .On (When_State (State_Hovered), Option_Right_Class_Widget_Hovered_Style)
-     .On (When_State (State_Selected), Option_Right_Class_Widget_Selected_Style)
-     .On (When_State (State_Focused), Option_Right_Class_Widget_Focused_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Background (RGB (55, 65, 81))
+        .Cursor_Style (Cursor_Pointer)
+        .Padding (CSS_Box (Px (8.0), Px (16.0), Px (8.0), Px (16.0)))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (75, 85, 99)))
+        .Radius (Radius (Px (0.0), Px (6.0), Px (6.0), Px (0.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (75, 85, 99))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (59, 130, 246))
+        .Border_Color (Border_Color (RGB (37, 99, 235)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Border_Color (Border_Color (RGB (147, 197, 253)))
      .Build;
 
-   --  Complete widget style for class 'option-right'::label
+   --  Style for class 'option-right'::label
    Option_Right_Class_Label_Widget : constant Widget_Style :=
-     From (Option_Right_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (13.0))
+        .Font_Weight (Weight_Medium)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'option-right'

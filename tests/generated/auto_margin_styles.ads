@@ -27,64 +27,10 @@ package Auto_Margin_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for tag 'box'
-   function Box_Tag_Base_Style return Style_Rules is
-     (
-      Margin => Set_Margin (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0))),
-      others => <>);
-
-   --  Base style for class 'centred'
-   function Centred_Class_Base_Style return Style_Rules is
-     (
-      Margin => [Top => Set_Margin_Side (Px (0.0)), Right => Set_Margin (Auto_Margin), Bottom => Set_Margin_Side (Px (0.0)), Left => Set_Margin (Auto_Margin)],
-      others => <>);
-
-   --  Base style for class 'push-right'
-   function Push_Right_Class_Base_Style return Style_Rules is
-     (
-      Margin => [Left => Set_Margin (Auto_Margin), others => <>],
-      others => <>);
-
-   --  Base style for class 'push-left'
-   function Push_Left_Class_Base_Style return Style_Rules is
-     (
-      Margin => [Right => Set_Margin (Auto_Margin), others => <>],
-      others => <>);
-
-   --  Base style for class 'three'
-   function Three_Class_Base_Style return Style_Rules is
-     (
-      Margin => [Top => Set_Margin_Side (Px (5.0)), Right => Set_Margin (Auto_Margin), Bottom => Set_Margin_Side (Px (12.0)), Left => Set_Margin (Auto_Margin)],
-      others => <>);
-
-   --  Base style for class 'vertical-auto'
-   function Vertical_Auto_Class_Base_Style return Style_Rules is
-     (
-      Margin => [Top => Set_Margin (Auto_Margin), Bottom => Set_Margin (Auto_Margin), others => <>],
-      others => <>);
-
-   --  Base style for class 'tweak'
-   function Tweak_Class_Base_Style return Style_Rules is
-     (
-      Margin => [Right => Set_Margin_Side (Px (7.0)), others => <>],
-      others => <>);
-
-   --  Style for class 'tweak' when widget State_Hovered
-   function Tweak_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Margin => [Left => Set_Margin (Auto_Margin), others => <>],
-      others => <>);
-
-   --  Base style for id 'bad'
-   function Bad_Id_Base_Style return Style_Rules is
-     (
-      Padding => [Top => Set (Px (3.0)), others => <>],
-      Border_Width => [Left => Set (Px (6.0)), others => <>],
-      others => <>);
-
-   --  Complete widget style for tag 'box'
+   --  Style for tag 'box'
    Box_Tag_Widget : constant Widget_Style :=
-     From (Box_Tag_Base_Style)
+     Style_Of
+        .Margin (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0)))
      .Build;
 
    --  Part styles bundle for tag 'box'
@@ -94,9 +40,13 @@ package Auto_Margin_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'centred'
+   --  Style for class 'centred'
    Centred_Class_Widget : constant Widget_Style :=
-     From (Centred_Class_Base_Style)
+     Style_Of
+        .Margin (Top, Margin (Px (0.0)))
+        .Margin (Right, Auto_Margin)
+        .Margin (Bottom, Margin (Px (0.0)))
+        .Margin (Left, Auto_Margin)
      .Build;
 
    --  Part styles bundle for class 'centred'
@@ -106,9 +56,10 @@ package Auto_Margin_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'push-right'
+   --  Style for class 'push-right'
    Push_Right_Class_Widget : constant Widget_Style :=
-     From (Push_Right_Class_Base_Style)
+     Style_Of
+        .Margin (Left, Auto_Margin)
      .Build;
 
    --  Part styles bundle for class 'push-right'
@@ -118,9 +69,10 @@ package Auto_Margin_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'push-left'
+   --  Style for class 'push-left'
    Push_Left_Class_Widget : constant Widget_Style :=
-     From (Push_Left_Class_Base_Style)
+     Style_Of
+        .Margin (Right, Auto_Margin)
      .Build;
 
    --  Part styles bundle for class 'push-left'
@@ -130,9 +82,13 @@ package Auto_Margin_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'three'
+   --  Style for class 'three'
    Three_Class_Widget : constant Widget_Style :=
-     From (Three_Class_Base_Style)
+     Style_Of
+        .Margin (Top, Margin (Px (5.0)))
+        .Margin (Right, Auto_Margin)
+        .Margin (Bottom, Margin (Px (12.0)))
+        .Margin (Left, Auto_Margin)
      .Build;
 
    --  Part styles bundle for class 'three'
@@ -142,9 +98,11 @@ package Auto_Margin_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'vertical-auto'
+   --  Style for class 'vertical-auto'
    Vertical_Auto_Class_Widget : constant Widget_Style :=
-     From (Vertical_Auto_Class_Base_Style)
+     Style_Of
+        .Margin (Top, Auto_Margin)
+        .Margin (Bottom, Auto_Margin)
      .Build;
 
    --  Part styles bundle for class 'vertical-auto'
@@ -154,10 +112,13 @@ package Auto_Margin_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'tweak'
+   --  Style for class 'tweak'
    Tweak_Class_Widget : constant Widget_Style :=
-     From (Tweak_Class_Base_Style)
-     .On (When_State (State_Hovered), Tweak_Class_Widget_Hovered_Style)
+     Style_Of
+        .Margin (Right, Margin (Px (7.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Margin (Left, Auto_Margin)
      .Build;
 
    --  Part styles bundle for class 'tweak'
@@ -167,9 +128,11 @@ package Auto_Margin_Styles is
       others => <>
    ];
 
-   --  Complete widget style for id 'bad'
+   --  Style for id 'bad'
    Bad_Id_Widget : constant Widget_Style :=
-     From (Bad_Id_Base_Style)
+     Style_Of
+        .Padding (Top, Px (3.0))
+        .Border_Width (Left, Px (6.0))
      .Build;
 
    --  Part styles bundle for id 'bad'

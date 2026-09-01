@@ -50,43 +50,19 @@ package body Red_Page_UI is
      "  flex-shrink: 0;" & ASCII.LF &
      "}" & ASCII.LF;
 
-   --  Base style for class 'page-title'
-   Page_Title_Class_Base_Style : constant Style_Rules := (
-      Display => Set (Inline_Flex),
-      Flex_Shrink => Set (0.0),
-      others => <>
-   );
-
-   --  Base style for class 'page-title'::label
-   Page_Title_Class_Label_Base_Style : constant Style_Rules := (
-      Color => Set (C (White)),
-      Font_Size => Set_Font (Px (24.0)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>
-   );
-
-   --  Base style for class 'page-desc'
-   Page_Desc_Class_Base_Style : constant Style_Rules := (
-      Display => Set (Inline_Flex),
-      others => <>
-   );
-
-   --  Base style for class 'page-desc'::label
-   Page_Desc_Class_Label_Base_Style : constant Style_Rules := (
-      Color => Set (RGBA (255, 255, 255, 0.7)),
-      Font_Size => Set_Font (Px (16.0)),
-      Font_Weight => Set (Weight_Normal),
-      others => <>
-   );
-
-   --  Complete widget style for class 'page-title'
+   --  Style for class 'page-title'
    Page_Title_Class_Widget : constant Widget_Style :=
-     From (Page_Title_Class_Base_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'page-title'::label
+   --  Style for class 'page-title'::label
    Page_Title_Class_Label_Widget : constant Widget_Style :=
-     From (Page_Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (C (White))
+        .Font_Size (Px (24.0))
+        .Font_Weight (Weight_Bold)
      .Build;
 
    --  Part styles bundle for class 'page-title'
@@ -96,14 +72,18 @@ package body Red_Page_UI is
       others => <>
    ];
 
-   --  Complete widget style for class 'page-desc'
+   --  Style for class 'page-desc'
    Page_Desc_Class_Widget : constant Widget_Style :=
-     From (Page_Desc_Class_Base_Style)
+     Style_Of
+        .Display (Inline_Flex)
      .Build;
 
-   --  Complete widget style for class 'page-desc'::label
+   --  Style for class 'page-desc'::label
    Page_Desc_Class_Label_Widget : constant Widget_Style :=
-     From (Page_Desc_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGBA (255, 255, 255, 0.7))
+        .Font_Size (Px (16.0))
+        .Font_Weight (Weight_Normal)
      .Build;
 
    --  Part styles bundle for class 'page-desc'

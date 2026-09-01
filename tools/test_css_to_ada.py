@@ -33,6 +33,7 @@ from css_to_ada import (
     parse_stylesheet_with_diagnostics,
     parse_grid_track_count,
     parse_grid_placement,
+    MAX_GRID_TRACKS,
     parse_list_style_shorthand,
     parse_css_quoted_string,
     parse_css_url_function,
@@ -46,7 +47,10 @@ from css_to_ada import (
     generate_gradient_ada,
     group_rules_by_widget,
     parse_grid_track_list,
-    generate_style_rules_ada,
+    generate_style_chain_ada,
+    generate_style_chain,
+    ChainTooLong,
+    MAX_CHAIN_SLOTS,
     generate_ada_package,
     generate_length_ada,
     generate_color_ada,
@@ -348,6 +352,12 @@ class TestParseTransition(unittest.TestCase):
 
 
 class TestParseGridTrackCount(unittest.TestCase):
+    """The track count, and the cap both pipelines share.
+
+    Past MAX_GRID_TRACKS the sizes are dropped and only the count
+    survives, so the boundary is walked at the cap and one past it.
+    """
+
     def test_repeat(self):
         self.assertEqual(parse_grid_track_count("repeat(3, 1fr)"), 3)
 
@@ -359,6 +369,49 @@ class TestParseGridTrackCount(unittest.TestCase):
 
     def test_number(self):
         self.assertEqual(parse_grid_track_count("4"), 4)
+
+    def test_the_cap_matches_the_ada_constant(self):
+        ads = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "src", "adi-css_styles.ads",
+        )
+        with open(ads, "r", encoding="utf-8") as f:
+            source = f.read()
+        match = re.search(
+            r"Max_Grid_Tracks\s*:\s*constant\s*:=\s*(\d+)\s*;", source
+        )
+        self.assertIsNotNone(match, "Max_Grid_Tracks not found in " + ads)
+        self.assertEqual(int(match.group(1)), MAX_GRID_TRACKS)
+
+    def _sizes(self, n: int) -> str:
+        #  Distinct widths, so keeping the list means keeping the sizes
+        #  rather than merely counting them.
+        return " ".join(f"{i}px" for i in range(1, n + 1))
+
+    def test_at_the_cap_keeps_the_sizes(self):
+        value = self._sizes(MAX_GRID_TRACKS)
+        self.assertEqual(
+            parse_grid_track_list(value),
+            [("px", float(i)) for i in range(1, MAX_GRID_TRACKS + 1)],
+        )
+        ada = "\n".join(
+            generate_style_chain_ada({"grid-template-columns": value}))
+        self.assertIn(f"Grid_Columns (Grid_Columns_Value ({MAX_GRID_TRACKS}))",
+                      ada)
+        self.assertIn(f"Grid_Columns ((Count => {MAX_GRID_TRACKS}, ", ada)
+        self.assertIn(f"{MAX_GRID_TRACKS} => (Track_Px, "
+                      f"{float(MAX_GRID_TRACKS)})", ada)
+
+    def test_past_the_cap_falls_back_to_the_bare_count(self):
+        over = MAX_GRID_TRACKS + 1
+        value = self._sizes(over)
+        self.assertIsNone(parse_grid_track_list(value))
+        #  The count still parses, and is what the generator emits alone.
+        self.assertEqual(parse_grid_track_count(value), over)
+        ada = "\n".join(
+            generate_style_chain_ada({"grid-template-columns": value}))
+        self.assertIn(f"Grid_Columns (Grid_Columns_Value ({over}))", ada)
+        self.assertNotIn("Count =>", ada)
 
 
 class TestParseGridPlacement(unittest.TestCase):
@@ -482,8 +535,21 @@ class TestCssTextLimit(unittest.TestCase):
             ("list-style-type", f'"{over}"'),
             ("font-family", over),
         ):
-            ada = "\n".join(generate_style_rules_ada({prop: value}))
+            ada = "\n".join(generate_style_chain_ada({prop: value}))
             self.assertNotIn(over, ada, prop)
+
+    def test_the_limit_matches_the_ada_constant(self):
+        ads = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "src", "adi-css_styles.ads",
+        )
+        with open(ads, "r", encoding="utf-8") as f:
+            source = f.read()
+        match = re.search(
+            r"Max_CSS_Text_Length\s*:\s*constant\s*:=\s*(\d+)\s*;", source
+        )
+        self.assertIsNotNone(match, "Max_CSS_Text_Length not found in " + ads)
+        self.assertEqual(int(match.group(1)), MAX_CSS_TEXT_LENGTH)
 
 
 class TestToAdaIdentifier(unittest.TestCase):
@@ -636,17 +702,17 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
     """Test Ada code generation for all supported CSS properties."""
 
     def _gen(self, props: dict[str, str]) -> str:
-        return "\n".join(generate_style_rules_ada(props))
+        return "\n".join(generate_style_chain_ada(props))
 
     # -- Color properties --
 
     def test_color(self):
         ada = self._gen({"color": "red"})
-        self.assertIn("Color => Set (C (Red))", ada)
+        self.assertIn("Text_Color (C (Red))", ada)
 
     def test_background_color_rgb(self):
         ada = self._gen({"background-color": "rgb(10, 20, 30)"})
-        self.assertIn("Background_Color => Set_Bg (RGB (10, 20, 30))", ada)
+        self.assertIn("Background (RGB (10, 20, 30))", ada)
 
     def test_background_color_rgba(self):
         ada = self._gen({"background-color": "rgba(10, 20, 30, 0.5)"})
@@ -660,15 +726,15 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
 
     def test_padding_uniform(self):
         ada = self._gen({"padding": "4px"})
-        self.assertIn("Padding => Set (", ada)
+        self.assertIn("Padding (", ada)
 
     def test_padding_two_value(self):
         ada = self._gen({"padding": "4px 8px"})
-        self.assertIn("Padding => Set (", ada)
+        self.assertIn("Padding (", ada)
 
     def test_padding_four_value(self):
         ada = self._gen({"padding": "1px 2px 3px 4px"})
-        self.assertIn("Padding => Set (", ada)
+        self.assertIn("Padding (", ada)
 
     def test_padding_longhand_override(self):
         ada = self._gen({"padding": "10px", "padding-left": "20px"})
@@ -676,7 +742,7 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
 
     def test_margin(self):
         ada = self._gen({"margin": "5px"})
-        self.assertIn("Margin => Set_Margin (", ada)
+        self.assertIn("Margin (", ada)
 
     def test_margin_longhand(self):
         ada = self._gen({"margin": "5px", "margin-top": "9px"})
@@ -686,25 +752,25 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
 
     def test_border_width(self):
         ada = self._gen({"border-width": "2px"})
-        self.assertIn("Border_Width => Set (Border_Width (Px (2.0)))", ada)
+        self.assertIn("Border_Width (Border_Width (Px (2.0)))", ada)
 
     def test_border_color(self):
         ada = self._gen({"border-color": "red"})
-        self.assertIn("Border_Color => Set (Border_Color (C (Red)))", ada)
+        self.assertIn("Border_Color (Border_Color (C (Red)))", ada)
 
     def test_border_style(self):
         ada = self._gen({"border-style": "solid"})
-        self.assertIn("Border_Style => Set (Border_Style (Solid))", ada)
+        self.assertIn("Border_Style (Border_Style (Solid))", ada)
 
     def test_border_radius(self):
         ada = self._gen({"border-radius": "8px"})
-        self.assertIn("Border_Radius => Set (Radius (Px (8.0)))", ada)
+        self.assertIn("Radius (Radius (Px (8.0)))", ada)
 
     def test_border_shorthand(self):
         ada = self._gen({"border": "2px solid red"})
-        self.assertIn("Border_Width =>", ada)
-        self.assertIn("Border_Style =>", ada)
-        self.assertIn("Border_Color =>", ada)
+        self.assertIn("Border_Width (", ada)
+        self.assertIn("Border_Style (", ada)
+        self.assertIn("Border_Color (", ada)
 
     def test_border_side_longhands(self):
         ada = self._gen(
@@ -714,144 +780,140 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
                 "border-bottom-style": "dotted",
             }
         )
-        self.assertIn("Border_Width => [Top => Set (Px (2.0)), others => <>]", ada)
-        self.assertIn(
-            "Border_Style => [Bottom => Set_Edge_Style (Dotted), others => <>]", ada
-        )
-        self.assertIn(
-            "Border_Color => [Left => Set_Edge_Color (C (Red)), others => <>]", ada
-        )
+        self.assertIn("Border_Width (Top, Px (2.0))", ada)
+        self.assertIn("Border_Style (Bottom, Dotted)", ada)
+        self.assertIn("Border_Color (Left, C (Red))", ada)
 
     def test_border_side_shorthand_updates_only_one_side(self):
         ada = self._gen({"border": "1px solid #333", "border-top": "2px dashed red"})
         self.assertIn(
-            "Border_Width => Set (Border_Width (Px (2.0), Px (1.0), Px (1.0), Px (1.0)))",
+            "Border_Width (Border_Width (Px (2.0), Px (1.0), Px (1.0), Px (1.0)))",
             ada,
         )
         self.assertIn(
-            "Border_Style => Set (Border_Style (Dashed, Solid, Solid, Solid))",
+            "Border_Style (Border_Style (Dashed, Solid, Solid, Solid))",
             ada,
         )
         self.assertIn(
-            "Border_Color => Set (Border_Color (C (Red), RGB (51, 51, 51), RGB (51, 51, 51), RGB (51, 51, 51)))",
+            "Border_Color (Border_Color (C (Red), RGB (51, 51, 51), RGB (51, 51, 51), RGB (51, 51, 51)))",
             ada,
         )
 
     def test_border_shorthand_then_side_longhand_override(self):
         ada = self._gen({"border": "1px solid #333", "border-left-width": "4px"})
         self.assertIn(
-            "Border_Width => Set (Border_Width (Px (1.0), Px (1.0), Px (1.0), Px (4.0)))",
+            "Border_Width (Border_Width (Px (1.0), Px (1.0), Px (1.0), Px (4.0)))",
             ada,
         )
 
     def test_border_side_longhand_then_shorthand_override(self):
         ada = self._gen({"border-left-width": "4px", "border": "1px solid #333"})
-        self.assertIn("Border_Width => Set (Border_Width (Px (1.0)))", ada)
+        self.assertIn("Border_Width (Border_Width (Px (1.0)))", ada)
         self.assertNotIn("Px (4.0)", ada)
 
     def test_border_radius_corner_longhand(self):
         ada = self._gen({"border-radius": "4px", "border-top-left-radius": "9px"})
         self.assertIn(
-            "Border_Radius => Set (Radius (Px (9.0), Px (4.0), Px (4.0), Px (4.0)))",
+            "Radius (Radius (Px (9.0), Px (4.0), Px (4.0), Px (4.0)))",
             ada,
         )
 
     def test_border_radius_shorthand_overrides_corner_longhand(self):
         ada = self._gen({"border-top-left-radius": "9px", "border-radius": "4px"})
-        self.assertIn("Border_Radius => Set (Radius (Px (4.0)))", ada)
+        self.assertIn("Radius (Radius (Px (4.0)))", ada)
         self.assertNotIn("Px (9.0)", ada)
 
     # -- Sizing --
 
     def test_width(self):
         ada = self._gen({"width": "120px"})
-        self.assertIn("Width => Set (Size (Px (120.0)))", ada)
+        self.assertIn("Width (Size (Px (120.0)))", ada)
 
     def test_width_auto(self):
         ada = self._gen({"width": "auto"})
-        self.assertIn("Width => Set (Auto_Size)", ada)
+        self.assertIn("Width (Auto_Size)", ada)
 
     def test_width_min_content(self):
         ada = self._gen({"width": "min-content"})
-        self.assertIn("Width => Set (Min_Content_Size)", ada)
+        self.assertIn("Width (Min_Content_Size)", ada)
 
     def test_width_max_content(self):
         ada = self._gen({"width": "max-content"})
-        self.assertIn("Width => Set (Max_Content_Size)", ada)
+        self.assertIn("Width (Max_Content_Size)", ada)
 
     def test_width_fit_content(self):
         ada = self._gen({"width": "fit-content"})
-        self.assertIn("Width => Set (Fit_Content_Size)", ada)
+        self.assertIn("Width (Fit_Content_Size)", ada)
 
     def test_height(self):
         ada = self._gen({"height": "50px"})
-        self.assertIn("Height => Set (Size (Px (50.0)))", ada)
+        self.assertIn("Height (Size (Px (50.0)))", ada)
 
     def test_min_width(self):
         ada = self._gen({"min-width": "100px"})
-        self.assertIn("Min_Width =>", ada)
+        self.assertIn("Min_Width (", ada)
 
     def test_max_width(self):
         ada = self._gen({"max-width": "500px"})
-        self.assertIn("Max_Width =>", ada)
+        self.assertIn("Max_Width (", ada)
 
     def test_min_height(self):
         ada = self._gen({"min-height": "40px"})
-        self.assertIn("Min_Height =>", ada)
+        self.assertIn("Min_Height (", ada)
 
     def test_max_height(self):
         ada = self._gen({"max-height": "300px"})
-        self.assertIn("Max_Height =>", ada)
+        self.assertIn("Max_Height (", ada)
 
     # -- Typography --
 
     def test_font_size(self):
         ada = self._gen({"font-size": "14px"})
-        self.assertIn("Font_Size => Set_Font (Px (14.0))", ada)
+        self.assertIn("Font_Size (Px (14.0))", ada)
 
     def test_font_weight_number(self):
         ada = self._gen({"font-weight": "700"})
-        self.assertIn("Font_Weight => Set (Weight_Bold)", ada)
+        self.assertIn("Font_Weight (Weight_Bold)", ada)
 
     def test_font_weight_keyword(self):
         ada = self._gen({"font-weight": "bold"})
-        self.assertIn("Font_Weight => Set (Weight_Bold)", ada)
+        self.assertIn("Font_Weight (Weight_Bold)", ada)
 
     def test_font_style(self):
         ada = self._gen({"font-style": "italic"})
-        self.assertIn("Font_Style => Set (Style_Italic)", ada)
+        self.assertIn("Font_Style (Style_Italic)", ada)
 
     def test_text_align(self):
         ada = self._gen({"text-align": "center"})
-        self.assertIn("Text_Align => Set (Text_Center)", ada)
+        self.assertIn("Text_Align (Text_Center)", ada)
 
     def test_text_wrap_mode(self):
         ada = self._gen({"text-wrap-mode": "nowrap"})
-        self.assertIn("Text_Wrap_Mode => Set (TWM_Nowrap)", ada)
+        self.assertIn("Text_Wrap_Mode (TWM_Nowrap)", ada)
 
     def test_vertical_align(self):
         ada = self._gen({"vertical-align": "middle"})
-        self.assertIn("Vertical_Align => Set (VA_Middle)", ada)
+        self.assertIn("Vertical_Align (VA_Middle)", ada)
 
     def test_text_decoration(self):
         ada = self._gen({"text-decoration": "underline"})
-        self.assertIn("Text_Decoration => Set (Decoration_Underline)", ada)
+        self.assertIn("Text_Decoration (Decoration_Underline)", ada)
 
     def test_white_space(self):
         ada = self._gen({"white-space": "nowrap"})
-        self.assertIn("White_Space => Set (WS_Nowrap)", ada)
+        self.assertIn("White_Space (WS_Nowrap)", ada)
 
     def test_text_overflow(self):
         ada = self._gen({"text-overflow": "ellipsis"})
-        self.assertIn("Text_Overflow => Set (Overflow_Ellipsis)", ada)
+        self.assertIn("Text_Overflow (Overflow_Ellipsis)", ada)
 
     def test_line_height_number(self):
         ada = self._gen({"line-height": "1.5"})
-        self.assertIn("Line_Height => Set (Line_Height (1.5))", ada)
+        self.assertIn("Line_Height (Line_Height (1.5))", ada)
 
     def test_line_height_normal(self):
         ada = self._gen({"line-height": "normal"})
-        self.assertIn("Line_Height => Set (Normal_Line_Height)", ada)
+        self.assertIn("Line_Height (Normal_Line_Height)", ada)
 
     # -- Layout --
 
@@ -860,98 +922,98 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
                              ("none", "Display_None"), ("block", "Block"),
                              ("inline-flex", "Inline_Flex")]:
             ada = self._gen({"display": css})
-            self.assertIn(f"Display => Set ({ada_val})", ada, f"display: {css}")
+            self.assertIn(f"Display ({ada_val})", ada, f"display: {css}")
 
     def test_position(self):
         ada = self._gen({"position": "absolute"})
-        self.assertIn("Position => Set (Absolute)", ada)
+        self.assertIn("Position_Mode (Absolute)", ada)
 
     def test_overflow(self):
         ada = self._gen({"overflow": "hidden"})
-        self.assertIn("Overflow_X => Set_Overflow_X (Overflow_Hidden)", ada)
-        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Hidden)", ada)
+        self.assertIn("Overflow_X (Overflow_Hidden)", ada)
+        self.assertIn("Overflow_Y (Overflow_Hidden)", ada)
 
     def test_overflow_x(self):
         ada = self._gen({"overflow-x": "auto"})
-        self.assertIn("Overflow_X => Set_Overflow_X (Overflow_Auto)", ada)
+        self.assertIn("Overflow_X (Overflow_Auto)", ada)
         self.assertNotIn("Overflow_Y =>", ada)
 
     def test_overflow_y(self):
         ada = self._gen({"overflow-y": "scroll"})
-        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Scroll)", ada)
+        self.assertIn("Overflow_Y (Overflow_Scroll)", ada)
         self.assertNotIn("Overflow_X =>", ada)
 
     def test_overflow_shorthand_then_longhand(self):
         ada = self._gen({"overflow": "hidden", "overflow-y": "auto"})
-        self.assertIn("Overflow_X => Set_Overflow_X (Overflow_Hidden)", ada)
-        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Auto)", ada)
+        self.assertIn("Overflow_X (Overflow_Hidden)", ada)
+        self.assertIn("Overflow_Y (Overflow_Auto)", ada)
 
     def test_overflow_longhand_then_shorthand(self):
         ada = self._gen({"overflow-y": "auto", "overflow": "hidden"})
-        self.assertIn("Overflow_X => Set_Overflow_X (Overflow_Hidden)", ada)
-        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Hidden)", ada)
+        self.assertIn("Overflow_X (Overflow_Hidden)", ada)
+        self.assertIn("Overflow_Y (Overflow_Hidden)", ada)
 
     def test_visibility(self):
         ada = self._gen({"visibility": "hidden"})
-        self.assertIn("Visibility => Set (Visibility_Hidden)", ada)
+        self.assertIn("Visibility (Visibility_Hidden)", ada)
 
     # -- Flexbox --
 
     def test_flex_direction(self):
         ada = self._gen({"flex-direction": "column"})
-        self.assertIn("Flex_Direction => Set (Column)", ada)
+        self.assertIn("Flex_Direction (Column)", ada)
 
     def test_flex_wrap(self):
         ada = self._gen({"flex-wrap": "wrap"})
-        self.assertIn("Flex_Wrap => Set (Wrap)", ada)
+        self.assertIn("Flex_Wrap (Wrap)", ada)
 
     def test_justify_content(self):
         ada = self._gen({"justify-content": "space-between"})
-        self.assertIn("Justify_Content => Set (Space_Between)", ada)
+        self.assertIn("Justify_Content (Space_Between)", ada)
 
     def test_align_items(self):
         ada = self._gen({"align-items": "center"})
-        self.assertIn("Align_Items => Set (Center)", ada)
+        self.assertIn("Align_Items (Center)", ada)
 
     def test_align_self(self):
         ada = self._gen({"align-self": "stretch"})
-        self.assertIn("Align_Self => Set (Stretch)", ada)
+        self.assertIn("Align_Self (Stretch)", ada)
 
     def test_align_content(self):
         ada = self._gen({"align-content": "space-around"})
-        self.assertIn("Align_Content => Set (Space_Around)", ada)
+        self.assertIn("Align_Content (Space_Around)", ada)
 
     def test_gap_uniform(self):
         ada = self._gen({"gap": "10px"})
-        self.assertIn("Gap => Set (Gap (Px (10.0)))", ada)
+        self.assertIn("Gap (Gap (Px (10.0)))", ada)
 
     def test_gap_two_value(self):
         ada = self._gen({"gap": "5px 10px"})
-        self.assertIn("Gap => Set (Gap (Px (5.0), Px (10.0)))", ada)
+        self.assertIn("Gap (Gap (Px (5.0), Px (10.0)))", ada)
 
     def test_row_gap_alone_names_only_the_row_axis(self):
         #  Gap_Row leaves the column axis unnamed so the cascade keeps it.
         ada = self._gen({"row-gap": "4px"})
-        self.assertIn("Gap => Set (Gap_Row (Px (4.0)))", ada)
+        self.assertIn("Gap (Gap_Row (Px (4.0)))", ada)
 
     def test_column_gap_alone_names_only_the_column_axis(self):
         ada = self._gen({"column-gap": "14px"})
-        self.assertIn("Gap => Set (Gap_Column (Px (14.0)))", ada)
+        self.assertIn("Gap (Gap_Column (Px (14.0)))", ada)
 
     def test_row_and_column_gap_combine_into_one_field(self):
         ada = self._gen({"row-gap": "4px", "column-gap": "14px"})
-        self.assertIn("Gap => Set (Gap (Px (4.0), Px (14.0)))", ada)
-        #  Two Gap fields in one aggregate do not compile.
-        self.assertEqual(1, ada.count("Gap =>"))
+        self.assertIn("Gap (Gap (Px (4.0), Px (14.0)))", ada)
+        #  One step carries both axes.
+        self.assertEqual(1, len(ada.splitlines()))
 
     def test_row_gap_overrides_the_shorthand_it_follows(self):
         ada = self._gen({"gap": "10px", "row-gap": "4px"})
-        self.assertIn("Gap => Set (Gap (Px (4.0), Px (10.0)))", ada)
-        self.assertEqual(1, ada.count("Gap =>"))
+        self.assertIn("Gap (Gap (Px (4.0), Px (10.0)))", ada)
+        self.assertEqual(1, len(ada.splitlines()))
 
     def test_flex_grow(self):
         ada = self._gen({"flex-grow": "2"})
-        self.assertIn("Flex_Grow => Set (2.0)", ada)
+        self.assertIn("Flex_Grow (2.0)", ada)
 
     def test_negative_flex_factors_are_dropped(self):
         # Invalid per CSS, and Flex_Grow_Value/Flex_Shrink_Value start at
@@ -963,40 +1025,40 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
     def test_out_of_range_opacity_is_clamped(self):
         # Opacity is defined over every number and clamped to 0 .. 1,
         # which is also the range Opacity_Value can hold.
-        self.assertIn("Opacity => Set (1.0)", self._gen({"opacity": "2"}))
-        self.assertIn("Opacity => Set (0.0)", self._gen({"opacity": "-0.5"}))
+        self.assertIn("Opacity (1.0)", self._gen({"opacity": "2"}))
+        self.assertIn("Opacity (0.0)", self._gen({"opacity": "-0.5"}))
 
     def test_flex_shrink(self):
         ada = self._gen({"flex-shrink": "0"})
-        self.assertIn("Flex_Shrink => Set (0.0)", ada)
+        self.assertIn("Flex_Shrink (0.0)", ada)
 
     def test_flex_basis(self):
         ada = self._gen({"flex-basis": "100px"})
-        self.assertIn("Flex_Basis => Set (Basis (Px (100.0)))", ada)
+        self.assertIn("Flex_Basis (Basis (Px (100.0)))", ada)
 
     def test_flex_basis_auto(self):
         ada = self._gen({"flex-basis": "auto"})
-        self.assertIn("Flex_Basis => Set (Auto_Basis)", ada)
+        self.assertIn("Flex_Basis (Auto_Basis)", ada)
 
     def test_order(self):
         ada = self._gen({"order": "3"})
-        self.assertIn("Order => Set (3)", ada)
+        self.assertIn("Order (3)", ada)
 
     # -- Grid --
 
     def test_grid_template_columns(self):
         ada = self._gen({"grid-template-columns": "repeat(3, 1fr)"})
-        self.assertIn("Grid_Columns => Set (Grid_Columns_Value (3))", ada)
+        self.assertIn("Grid_Columns (Grid_Columns_Value (3))", ada)
         # Grid_Column_Tracks should carry three fr(1.0) specs
-        self.assertIn("Grid_Column_Tracks =>", ada)
+        self.assertIn("Grid_Columns ((Count =>", ada)
         self.assertIn("Count => 3", ada)
         self.assertIn("1 => (Track_Fr, 1.0)", ada)
         self.assertIn("3 => (Track_Fr, 1.0)", ada)
 
     def test_grid_template_columns_mixed(self):
         ada = self._gen({"grid-template-columns": "auto auto 1fr"})
-        self.assertIn("Grid_Columns => Set (Grid_Columns_Value (3))", ada)
-        self.assertIn("Grid_Column_Tracks =>", ada)
+        self.assertIn("Grid_Columns (Grid_Columns_Value (3))", ada)
+        self.assertIn("Grid_Columns ((Count =>", ada)
         self.assertIn("Count => 3", ada)
         self.assertIn("1 => (Track_Auto, 0.0)", ada)
         self.assertIn("2 => (Track_Auto, 0.0)", ada)
@@ -1004,7 +1066,7 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
 
     def test_grid_template_columns_repeat_mixed(self):
         ada = self._gen({"grid-template-columns": "repeat(2, auto) 1fr"})
-        self.assertIn("Grid_Columns => Set (Grid_Columns_Value (3))", ada)
+        self.assertIn("Grid_Columns (Grid_Columns_Value (3))", ada)
         self.assertIn("Count => 3", ada)
         self.assertIn("1 => (Track_Auto, 0.0)", ada)
         self.assertIn("2 => (Track_Auto, 0.0)", ada)
@@ -1021,58 +1083,58 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
 
     def test_grid_template_rows(self):
         ada = self._gen({"grid-template-rows": "1fr 1fr"})
-        self.assertIn("Grid_Rows => Set (Grid_Rows_Value (2))", ada)
+        self.assertIn("Grid_Rows (Grid_Rows_Value (2))", ada)
 
     def test_grid_column(self):
         ada = self._gen({"grid-column": "1 / 3"})
-        self.assertIn("Grid_Column => Set (Grid_Column_Value (1))", ada)
-        self.assertIn("Grid_Column_Span => Set (Grid_Column_Span_Value (2))", ada)
+        self.assertIn("Grid_Column (Grid_Column_Value (1))", ada)
+        self.assertIn("Grid_Column_Span (Grid_Column_Span_Value (2))", ada)
 
     def test_grid_row(self):
         ada = self._gen({"grid-row": "span 2"})
-        self.assertIn("Grid_Row_Span => Set (Grid_Row_Span_Value (2))", ada)
+        self.assertIn("Grid_Row_Span (Grid_Row_Span_Value (2))", ada)
 
     # -- Visual --
 
     def test_opacity(self):
         ada = self._gen({"opacity": "0.75"})
-        self.assertIn("Opacity => Set (0.75)", ada)
+        self.assertIn("Opacity (0.75)", ada)
 
     def test_cursor(self):
         ada = self._gen({"cursor": "pointer"})
-        self.assertIn("Cursor => Set (Cursor_Pointer)", ada)
+        self.assertIn("Cursor_Style (Cursor_Pointer)", ada)
 
     def test_object_fit(self):
         ada = self._gen({"object-fit": "cover"})
-        self.assertIn("Object_Fit => Set (Fit_Cover)", ada)
+        self.assertIn("Object_Fit (Fit_Cover)", ada)
 
     def test_object_position_keywords(self):
         ada = self._gen({"object-position": "center center"})
         self.assertIn(
-            "Object_Position => Set (Object_Position (Pos_Center, Pos_Center))",
+            "Object_Position (Object_Position (Pos_Center, Pos_Center))",
             ada,
         )
 
     def test_object_position_lengths(self):
         ada = self._gen({"object-position": "10px 20px"})
         self.assertIn(
-            "Object_Position => Set (Object_Position (Px (10.0), Px (20.0)))",
+            "Object_Position (Object_Position (Px (10.0), Px (20.0)))",
             ada,
         )
 
     def test_box_shadow(self):
         ada = self._gen({"box-shadow": "2px 4px 6px rgba(0, 0, 0, 0.3)"})
-        self.assertIn("Box_Shadow => Set (Shadow (", ada)
+        self.assertIn("Box_Shadow (Shadow (", ada)
 
     def test_box_shadow_none(self):
         ada = self._gen({"box-shadow": "none"})
-        self.assertIn("Box_Shadow => Set (No_Shadow)", ada)
+        self.assertIn("Box_Shadow (No_Shadow)", ada)
 
     # -- Transition --
 
     def test_transition(self):
         ada = self._gen({"transition": "background-color 0.3s ease-in-out"})
-        self.assertIn("Transition => Set (", ada)
+        self.assertIn("Transition (", ada)
         self.assertIn("Prop_Background_Color", ada)
         self.assertIn("Ease_In_Out", ada)
 
@@ -1080,69 +1142,69 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
 
     def test_outline_width(self):
         ada = self._gen({"outline-width": "3px"})
-        self.assertIn("Outline_Width => Set_Outline_Width (Px (3.0))", ada)
+        self.assertIn("Outline_Width (Px (3.0))", ada)
 
     def test_outline_color(self):
         ada = self._gen({"outline-color": "rgb(100, 200, 50)"})
-        self.assertIn("Outline_Color => Set_Outline_Color (RGB (100, 200, 50))", ada)
+        self.assertIn("Outline_Color (RGB (100, 200, 50))", ada)
 
     def test_outline_style(self):
         for css_val, ada_val in OUTLINE_STYLE_MAP.items():
             ada = self._gen({"outline-style": css_val})
-            self.assertIn(f"Outline_Style => Set ({ada_val})", ada, f"outline-style: {css_val}")
+            self.assertIn(f"Outline_Style ({ada_val})", ada, f"outline-style: {css_val}")
 
     def test_outline_offset(self):
         ada = self._gen({"outline-offset": "2px"})
-        self.assertIn("Outline_Offset => Set_Outline_Offset (Px (2.0))", ada)
+        self.assertIn("Outline_Offset (Px (2.0))", ada)
 
     def test_outline_shorthand(self):
         ada = self._gen({"outline": "2px solid rgb(208, 188, 255)"})
-        self.assertIn("Outline_Width => Set_Outline_Width (Px (2.0))", ada)
-        self.assertIn("Outline_Style => Set (Outline_Solid)", ada)
-        self.assertIn("Outline_Color => Set_Outline_Color (RGB (208, 188, 255))", ada)
+        self.assertIn("Outline_Width (Px (2.0))", ada)
+        self.assertIn("Outline_Style (Outline_Solid)", ada)
+        self.assertIn("Outline_Color (RGB (208, 188, 255))", ada)
 
     def test_outline_shorthand_named_color(self):
         ada = self._gen({"outline": "1px dashed red"})
-        self.assertIn("Outline_Width => Set_Outline_Width (Px (1.0))", ada)
-        self.assertIn("Outline_Style => Set (Outline_Dashed)", ada)
-        self.assertIn("Outline_Color => Set_Outline_Color (C (Red))", ada)
+        self.assertIn("Outline_Width (Px (1.0))", ada)
+        self.assertIn("Outline_Style (Outline_Dashed)", ada)
+        self.assertIn("Outline_Color (C (Red))", ada)
 
     def test_outline_none(self):
         ada = self._gen({"outline": "none"})
-        self.assertIn("Outline_Style => Set (Outline_None)", ada)
+        self.assertIn("Outline_Style (Outline_None)", ada)
 
     # -- List style --
 
     def test_list_style_type(self):
         ada = self._gen({"list-style-type": "disc"})
-        self.assertIn("List_Style_Type => Set ((Kind => List_Style_Disc))", ada)
+        self.assertIn("List_Style_Type (List_Style_Type_Value'(Kind => List_Style_Disc))", ada)
 
     def test_list_style_image(self):
         ada = self._gen({"list-style-image": "url(marker.svg)"})
-        self.assertIn('List_Style_Image => Set (List_Image ("marker.svg"))', ada)
+        self.assertIn('List_Style_Image (List_Image ("marker.svg"))', ada)
 
     def test_list_style_position(self):
         ada = self._gen({"list-style-position": "inside"})
-        self.assertIn("List_Style_Position => Set (List_Inside)", ada)
+        self.assertIn("List_Style_Position (List_Inside)", ada)
 
     def test_list_style_shorthand(self):
         ada = self._gen({"list-style": "square outside"})
-        self.assertIn("List_Style_Type => Set ((Kind => List_Style_Square))", ada)
-        self.assertIn("List_Style_Position => Set (List_Outside)", ada)
+        self.assertIn("List_Style_Type (List_Style_Type_Value'(Kind => List_Style_Square))", ada)
+        self.assertIn("List_Style_Position (List_Outside)", ada)
 
     # -- Font family --
 
     def test_font_family_single(self):
         ada = self._gen({"font-family": '"MyFont"'})
-        self.assertIn('Font_Family => Set_Font_Family ("""MyFont""")', ada)
+        self.assertIn('Font_Family ("""MyFont""")', ada)
 
     def test_font_family_unquoted(self):
         ada = self._gen({"font-family": "sans-serif"})
-        self.assertIn('Font_Family => Set_Font_Family ("sans-serif")', ada)
+        self.assertIn('Font_Family ("sans-serif")', ada)
 
     def test_font_family_comma_list(self):
         ada = self._gen({"font-family": '"A", "B"'})
-        self.assertIn('Font_Family => Set_Font_Family ("""A"", ""B""")', ada)
+        self.assertIn('Font_Family ("""A"", ""B""")', ada)
 
 
 class TestSideLonghandCascade(unittest.TestCase):
@@ -1150,98 +1212,81 @@ class TestSideLonghandCascade(unittest.TestCase):
     the Ada cascade keeps whatever an earlier rule set for the rest."""
 
     def _gen(self, props: dict[str, str]) -> str:
-        return "\n".join(generate_style_rules_ada(props))
+        return "\n".join(generate_style_chain_ada(props))
 
     def test_padding_one_side(self):
         ada = self._gen({"padding-top": "4px"})
-        self.assertIn("Padding => [Top => Set (Px (4.0)), others => <>]", ada)
+        self.assertIn("Padding (Top, Px (4.0))", ada)
 
     def test_padding_two_sides(self):
         ada = self._gen({"padding-top": "4px", "padding-left": "2px"})
-        self.assertIn(
-            "Padding => [Top => Set (Px (4.0)), Left => Set (Px (2.0)), others => <>]",
-            ada,
-        )
+        self.assertIn("Padding (Top, Px (4.0))\nPadding (Left, Px (2.0))", ada)
 
     def test_padding_shorthand_names_every_side(self):
         ada = self._gen({"padding": "12px"})
         self.assertIn(
-            "Padding => Set (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0)))",
+            "Padding (CSS_Box (Px (12.0), Px (12.0), Px (12.0), Px (12.0)))",
             ada,
         )
 
     def test_shorthand_then_longhand(self):
         ada = self._gen({"padding": "12px", "padding-top": "4px"})
         self.assertIn(
-            "Padding => Set (CSS_Box (Px (4.0), Px (12.0), Px (12.0), Px (12.0)))",
+            "Padding (CSS_Box (Px (4.0), Px (12.0), Px (12.0), Px (12.0)))",
             ada,
         )
 
     def test_longhand_then_shorthand(self):
         ada = self._gen({"padding-left": "9px", "padding": "3px"})
         self.assertIn(
-            "Padding => Set (CSS_Box (Px (3.0), Px (3.0), Px (3.0), Px (3.0)))",
+            "Padding (CSS_Box (Px (3.0), Px (3.0), Px (3.0), Px (3.0)))",
             ada,
         )
 
     def test_margin_one_side(self):
         ada = self._gen({"margin-bottom": "1px"})
-        self.assertIn(
-            "Margin => [Bottom => Set_Margin_Side (Px (1.0)), others => <>]", ada
-        )
+        self.assertIn("Margin (Bottom, Margin (Px (1.0)))", ada)
 
     def test_border_width_one_side(self):
         ada = self._gen({"border-left-width": "5px"})
-        self.assertIn("Border_Width => [Left => Set (Px (5.0)), others => <>]", ada)
+        self.assertIn("Border_Width (Left, Px (5.0))", ada)
 
     def test_border_color_one_side(self):
         ada = self._gen({"border-top-color": "rgb(68, 85, 102)"})
-        self.assertIn(
-            "Border_Color => [Top => Set_Edge_Color (RGB (68, 85, 102)), others => <>]",
-            ada,
-        )
+        self.assertIn("Border_Color (Top, RGB (68, 85, 102))", ada)
 
     def test_border_style_one_side(self):
         ada = self._gen({"border-right-style": "dashed"})
-        self.assertIn(
-            "Border_Style => [Right => Set_Edge_Style (Dashed), others => <>]", ada
-        )
+        self.assertIn("Border_Style (Right, Dashed)", ada)
 
     def test_border_radius_one_corner(self):
         ada = self._gen({"border-bottom-left-radius": "2px"})
-        self.assertIn(
-            "Border_Radius => [Bottom_Left => Set (Px (2.0)), others => <>]", ada
-        )
+        self.assertIn("Radius (Bottom_Left, Px (2.0))", ada)
 
     def test_border_side_shorthand(self):
         ada = self._gen({"border-top": "4px dashed rgb(10, 11, 12)"})
-        self.assertIn("Border_Width => [Top => Set (Px (4.0)), others => <>]", ada)
-        self.assertIn(
-            "Border_Style => [Top => Set_Edge_Style (Dashed), others => <>]", ada
-        )
-        self.assertIn(
-            "Border_Color => [Top => Set_Edge_Color (RGB (10, 11, 12)), others => <>]",
-            ada,
-        )
+        self.assertIn("Border_Width (Top, Px (4.0))", ada)
+        self.assertIn("Border_Style (Top, Dashed)", ada)
+        self.assertIn("Border_Color (Top, RGB (10, 11, 12))", ada)
 
     def test_border_shorthand_names_every_side(self):
         ada = self._gen({"border": "1px solid rgb(1, 2, 3)"})
-        self.assertIn("Border_Width => Set (Border_Width (Px (1.0)))", ada)
-        self.assertIn("Border_Style => Set (Border_Style (Solid))", ada)
-        self.assertIn("Border_Color => Set (Border_Color (RGB (1, 2, 3)))", ada)
+        self.assertIn("Border_Width (Border_Width (Px (1.0)))", ada)
+        self.assertIn("Border_Style (Border_Style (Solid))", ada)
+        self.assertIn("Border_Color (Border_Color (RGB (1, 2, 3)))", ada)
 
     def test_border_shorthand_then_side_shorthand(self):
         ada = self._gen(
             {"border": "1px solid rgb(1, 2, 3)", "border-top": "4px dashed"}
         )
         self.assertIn(
-            "Border_Width => Set (Border_Width (Px (4.0), Px (1.0), Px (1.0), Px (1.0)))",
+            "Border_Width (Border_Width (Px (4.0), Px (1.0), Px (1.0), Px (1.0)))",
             ada,
         )
         self.assertIn(
-            "Border_Style => Set (Border_Style (Dashed, Solid, Solid, Solid))", ada
+            "Border_Style (Border_Style (Dashed, Solid, Solid, Solid))", ada
         )
-        self.assertIn("Border_Color => Set (Border_Color (RGB (1, 2, 3)))", ada)
+        self.assertIn("Border_Color (Border_Color (RGB (1, 2, 3)))", ada)
 
 
 class TestAutoMargins(unittest.TestCase):
@@ -1252,51 +1297,50 @@ class TestAutoMargins(unittest.TestCase):
     """
 
     def _gen(self, props: dict[str, str]) -> str:
-        return "\n".join(generate_style_rules_ada(props))
+        return "\n".join(generate_style_chain_ada(props))
 
     def test_centring_shorthand(self):
         ada = self._gen({"margin": "0 auto"})
         self.assertIn(
-            "Margin => [Top => Set_Margin_Side (Px (0.0)), "
-            "Right => Set_Margin (Auto_Margin), "
-            "Bottom => Set_Margin_Side (Px (0.0)), "
-            "Left => Set_Margin (Auto_Margin)]",
+            "Margin (Top, Margin (Px (0.0)))\n"
+            "Margin (Right, Auto_Margin)\n"
+            "Margin (Bottom, Margin (Px (0.0)))\n"
+            "Margin (Left, Auto_Margin)",
             ada,
         )
 
     def test_all_sides_auto(self):
         ada = self._gen({"margin": "auto"})
-        self.assertEqual(ada.count("Set_Margin (Auto_Margin)"), 4)
+        self.assertEqual(ada.count(", Auto_Margin)"), 4)
 
     def test_three_value_shorthand(self):
         # top / horizontal / bottom -- the middle token names both sides.
         ada = self._gen({"margin": "5px auto 12px"})
-        self.assertIn("Top => Set_Margin_Side (Px (5.0))", ada)
-        self.assertIn("Right => Set_Margin (Auto_Margin)", ada)
-        self.assertIn("Bottom => Set_Margin_Side (Px (12.0))", ada)
-        self.assertIn("Left => Set_Margin (Auto_Margin)", ada)
+        self.assertIn("Margin (Top, Margin (Px (5.0)))", ada)
+        self.assertIn("Margin (Right, Auto_Margin)", ada)
+        self.assertIn("Margin (Bottom, Margin (Px (12.0)))", ada)
+        self.assertIn("Margin (Left, Auto_Margin)", ada)
 
     def test_auto_longhand_names_only_its_side(self):
         ada = self._gen({"margin-left": "auto"})
-        self.assertIn(
-            "Margin => [Left => Set_Margin (Auto_Margin), others => <>]", ada
-        )
+        self.assertIn("Margin (Left, Auto_Margin)", ada)
+        self.assertEqual(1, ada.count("Margin ("))
 
     def test_auto_longhand_over_shorthand(self):
         ada = self._gen({"margin": "6px", "margin-right": "auto"})
-        self.assertIn("Right => Set_Margin (Auto_Margin)", ada)
-        self.assertIn("Top => Set_Margin_Side (Px (6.0))", ada)
+        self.assertIn("Margin (Right, Auto_Margin)", ada)
+        self.assertIn("Margin (Top, Margin (Px (6.0)))", ada)
 
     def test_length_longhand_over_auto_shorthand(self):
         ada = self._gen({"margin": "auto", "margin-top": "9px"})
-        self.assertIn("Top => Set_Margin_Side (Px (9.0))", ada)
-        self.assertEqual(ada.count("Set_Margin (Auto_Margin)"), 3)
+        self.assertIn("Margin (Top, Margin (Px (9.0)))", ada)
+        self.assertEqual(ada.count(", Auto_Margin)"), 3)
 
     def test_all_length_shorthand_stays_compact(self):
         # No auto anywhere: keep emitting the CSS_Box form.
         ada = self._gen({"margin": "4px"})
         self.assertIn(
-            "Margin => Set_Margin (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0)))",
+            "Margin (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0)))",
             ada,
         )
 
@@ -1311,7 +1355,7 @@ class TestAutoMargins(unittest.TestCase):
 
     def test_invalid_auto_leaves_valid_siblings_alone(self):
         ada = self._gen({"padding": "auto", "padding-top": "3px"})
-        self.assertIn("Padding => [Top => Set (Px (3.0)), others => <>]", ada)
+        self.assertIn("Padding (Top, Px (3.0))", ada)
 
 
 class TestAutoMarginValidation(unittest.TestCase):
@@ -1438,6 +1482,46 @@ class TestTransitionLists(unittest.TestCase):
         self.assertIsNone(self.parse("none"))
 
 
+class TestChainLength(unittest.TestCase):
+    """A chain names at most Max_Chain_Slots properties over all its rules."""
+
+    def _chain(self, count):
+        steps = [f"Order ({i})" for i in range(count)]
+        return generate_style_chain([(None, None, steps)], "   ", "class 'x'")
+
+    def test_at_the_cap_renders(self):
+        lines = self._chain(MAX_CHAIN_SLOTS)
+        self.assertEqual(lines[0], "     Style_Of")
+        self.assertEqual(lines[-1], "     .Build;")
+
+    def test_past_the_cap_is_refused(self):
+        with self.assertRaises(ChainTooLong) as caught:
+            self._chain(MAX_CHAIN_SLOTS + 1)
+        self.assertIn("class 'x'", str(caught.exception))
+
+    def test_state_rules_count_toward_the_cap(self):
+        half = MAX_CHAIN_SLOTS // 2 + 1
+        with self.assertRaises(ChainTooLong):
+            generate_style_chain(
+                [(None, None, [f"Order ({i})" for i in range(half)]),
+                 ("widget State_Hovered", "When_State (State_Hovered)",
+                  [f"Order ({i})" for i in range(half)])],
+                "   ", "class 'y'")
+
+    def test_the_cap_matches_the_ada_constant(self):
+        ads = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "src", "adi-widget_styles.ads",
+        )
+        with open(ads, "r", encoding="utf-8") as f:
+            source = f.read()
+        match = re.search(
+            r"Max_Chain_Slots\s*:\s*constant\s*:=\s*(\d+)\s*;", source
+        )
+        self.assertIsNotNone(match, "Max_Chain_Slots not found in " + ads)
+        self.assertEqual(int(match.group(1)), MAX_CHAIN_SLOTS)
+
+
 class TestGenerateAdaPackage(unittest.TestCase):
     """Integration test: full CSS -> Ada package generation."""
 
@@ -1447,7 +1531,7 @@ class TestGenerateAdaPackage(unittest.TestCase):
         ada = generate_ada_package(groups, "Test_Styles")
         self.assertIn("package Test_Styles is", ada)
         self.assertIn("end Test_Styles;", ada)
-        self.assertIn("Card_Class_Base_Style", ada)
+        self.assertIn("Card_Class_Widget", ada)
         self.assertIn("Card_Class_Widget", ada)
         self.assertIn("Card_Class_Part_Styles", ada)
         self.assertIn("RGB (10, 20, 30)", ada)
@@ -1491,17 +1575,16 @@ class TestGenerateAdaPackage(unittest.TestCase):
         rules = parse_css(css)
         groups = group_rules_by_widget(rules)
         ada = generate_ada_package(groups, "Btn_Styles")
-        self.assertIn("Btn_Class_Base_Style", ada)
-        self.assertIn("Widget_Hovered", ada)
-        self.assertIn("When_State (State_Hovered)", ada)
+        self.assertIn("Btn_Class_Widget", ada)
+        self.assertIn(".On (When_State (State_Hovered))", ada)
 
     def test_part_styles(self):
         css = ".w::main { padding: 4px; } .w::label { color: white; }"
         rules = parse_css(css)
         groups = group_rules_by_widget(rules)
         ada = generate_ada_package(groups, "W_Styles")
-        self.assertIn("W_Class_Base_Style", ada)
-        self.assertIn("W_Class_Label_Base_Style", ada)
+        self.assertIn("W_Class_Widget", ada)
+        self.assertIn("W_Class_Label_Widget", ada)
         self.assertIn("Label_Part =>", ada)
 
     def test_id_selector(self):
@@ -1509,14 +1592,14 @@ class TestGenerateAdaPackage(unittest.TestCase):
         rules = parse_css(css)
         groups = group_rules_by_widget(rules)
         ada = generate_ada_package(groups, "Id_Styles")
-        self.assertIn("Submit_Id_Base_Style", ada)
+        self.assertIn("Submit_Id_Widget", ada)
 
     def test_tag_selector(self):
         css = "button { color: green; }"
         rules = parse_css(css)
         groups = group_rules_by_widget(rules)
         ada = generate_ada_package(groups, "Tag_Styles")
-        self.assertIn("Button_Tag_Base_Style", ada)
+        self.assertIn("Button_Tag_Widget", ada)
 
     def test_package_declares_a_registration_procedure(self):
         groups = group_rules_by_widget(parse_css("button { color: green; }"))
@@ -1596,10 +1679,10 @@ class TestGenerateAdaPackage(unittest.TestCase):
         rules = parse_css(css)
         groups = group_rules_by_widget(rules)
         ada = generate_ada_package(groups, "Outline_Styles")
-        self.assertIn("Outline_Width => Set_Outline_Width", ada)
-        self.assertIn("Outline_Style => Set (Outline_Solid)", ada)
-        self.assertIn("Outline_Color => Set_Outline_Color", ada)
-        self.assertIn("Outline_Offset => Set_Outline_Offset", ada)
+        self.assertIn("Outline_Width (", ada)
+        self.assertIn("Outline_Style (Outline_Solid)", ada)
+        self.assertIn("Outline_Color (", ada)
+        self.assertIn("Outline_Offset (", ada)
 
     def test_comma_selector_creates_separate_groups(self):
         css = ".a, .b { color: red; }"
@@ -1616,14 +1699,14 @@ class TestGenerateAdaPackage(unittest.TestCase):
         # Should have blue (overridden), not red
         self.assertIn("C (Blue)", ada)
         # Should also have padding
-        self.assertIn("Padding => Set (", ada)
+        self.assertIn("Padding (", ada)
 
     def test_overflow_y_in_package(self):
         css = ".card { overflow-y: auto; }"
         rules = parse_css(css)
         groups = group_rules_by_widget(rules)
         ada = generate_ada_package(groups, "OverflowY_Styles")
-        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Auto)", ada)
+        self.assertIn("Overflow_Y (Overflow_Auto)", ada)
         self.assertNotIn("Overflow => Set (Overflow_Auto)", ada)
 
     def test_object_position_in_package(self):
@@ -1632,7 +1715,7 @@ class TestGenerateAdaPackage(unittest.TestCase):
         groups = group_rules_by_widget(rules)
         ada = generate_ada_package(groups, "ObjectPos_Styles")
         self.assertIn(
-            "Object_Position => Set (Object_Position (Pos_Center, Pos_Center))",
+            "Object_Position (Object_Position (Pos_Center, Pos_Center))",
             ada,
         )
 
@@ -1825,7 +1908,7 @@ class TestCliStrictMode(unittest.TestCase):
         self.assertEqual(proc.returncode, 0)
         self.assertEqual(proc.stderr.strip(), "")
         self.assertTrue(output_exists)
-        self.assertIn("Overflow_Y => Set_Overflow_Y (Overflow_Auto)", output_text)
+        self.assertIn("Overflow_Y (Overflow_Auto)", output_text)
 
     def test_strict_passes_font_family_quoted(self):
         proc, output_exists, output_text = self._run(
@@ -1835,7 +1918,7 @@ class TestCliStrictMode(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(proc.stderr.strip(), "")
         self.assertTrue(output_exists)
-        self.assertIn("Set_Font_Family", output_text)
+        self.assertIn("Font_Family (", output_text)
 
     def test_strict_passes_font_family_comma_list(self):
         proc, output_exists, _ = self._run(
@@ -2111,13 +2194,13 @@ class TestGenerateGradientAda(unittest.TestCase):
     """Test Ada code generation for linear-gradient()."""
 
     def _gen(self, css_value: str) -> str:
-        return "\n".join(generate_style_rules_ada({"background-image": css_value}))
+        return "\n".join(generate_style_chain_ada({"background-image": css_value}))
 
     def test_to_bottom_angle_in_ada(self):
         ada = self._gen("linear-gradient(to bottom, white, black)")
         self.assertIn("180.0", ada)
         self.assertIn("Linear_Gradient", ada)
-        self.assertIn("Set_Bg_Image", ada)
+        self.assertIn("Background_Image (", ada)
 
     def test_to_right_angle_in_ada(self):
         ada = self._gen("linear-gradient(to right, red, blue)")

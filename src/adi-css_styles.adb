@@ -1962,17 +1962,17 @@ package body Adi.CSS_Styles is
    --  one margin side, one border-style edge, and the track list.
    ---------------------------------------------------------------------
 
-   function Intern_Margin (V : Margin_Value) return Value_Ref is
+   function Intern (V : Margin_Value) return Value_Ref is
      (Stored (Margin_Values.Intern (V)));
    function Margin_Of (R : Value_Ref) return Margin_Value is
      (Margin_Values.Get (Stored_Index (R)));
 
-   function Intern_Edge_Style (V : Border_Style_Kind) return Value_Ref is
+   function Intern (V : Border_Style_Kind) return Value_Ref is
      (Immediate (Border_Style_Kind'Pos (V)));
    function Edge_Style_Of (R : Value_Ref) return Border_Style_Kind is
      (Border_Style_Kind'Val (Payload (R)));
 
-   function Intern_Tracks (V : Grid_Track_List) return Value_Ref is
+   function Intern (V : Grid_Track_List) return Value_Ref is
      (Stored (Track_Values.Intern (V)));
    function Tracks_Of (R : Value_Ref) return Grid_Track_List is
      (Track_Values.Get (Stored_Index (R)));
@@ -2225,15 +2225,123 @@ package body Adi.CSS_Styles is
       end case;
    end Clear_Property;
 
+   --  The eight properties whose values cascade one at a time, each
+   --  reading Part as the edge, corner or axis it names. A rule naming
+   --  border-top-width leaves the other three edges to the cascade,
+   --  which is what separates the longhand from the shorthand.
+   procedure Apply_Property
+     (S : in out Style_Rules; P : CSS_Property; Part : Slot_Part;
+      R : Value_Ref) is
+   begin
+      case P is
+         when Prop_Border_Radius =>
+            S.Border_Radius (Corner'Val (Natural (Part))) :=
+              Opt_Length.Val (Length_Of (R));
+         when Prop_Border_Width =>
+            S.Border_Width (Edge'Val (Natural (Part))) :=
+              Opt_Length.Val (Length_Of (R));
+         when Prop_Padding =>
+            S.Padding (Edge'Val (Natural (Part))) :=
+              Opt_Length.Val (Length_Of (R));
+         when Prop_Border_Color =>
+            S.Border_Color (Edge'Val (Natural (Part))) :=
+              Opt_Edge_Color.Val (Color_Of (R));
+         when Prop_Border_Style =>
+            S.Border_Style (Edge'Val (Natural (Part))) :=
+              Opt_Edge_Style.Val (Edge_Style_Of (R));
+         when Prop_Margin =>
+            S.Margin (Edge'Val (Natural (Part))) :=
+              Opt_Margin.Val (Margin_Of (R));
+
+         --  Two axes over one field, so an axis set folds onto what an
+         --  earlier one left.
+         when Prop_Gap =>
+            declare
+               Axis : constant Gap_Value :=
+                 (if Part = Gap_Row_Part
+                  then Gap_Row (Length_Of (R))
+                  else Gap_Column (Length_Of (R)));
+            begin
+               S.Gap := (if Opt_Gap.Is_Set (S.Gap)
+                         then Set (Overlay (S.Gap.Value, Axis))
+                         else Set (Axis));
+            end;
+
+         --  The track list has no CSS_Property literal and travels
+         --  with grid-template-columns, so it is that property's
+         --  second part and cascades beside the count.
+         when Prop_Grid_Columns =>
+            if Part = Tracks_Part then
+               S.Grid_Column_Tracks := Tracks_Of (R);
+            else
+               S.Grid_Columns := Set (Grid_Columns_Of (R));
+            end if;
+
+         when Prop_Overflow =>
+            null;
+
+         when others =>
+            Apply_Property (S, P, R);
+      end case;
+   end Apply_Property;
+
+   procedure Clear_Property
+     (S : in out Style_Rules; P : CSS_Property; Part : Slot_Part) is
+   begin
+      case P is
+         when Prop_Border_Radius =>
+            S.Border_Radius (Corner'Val (Natural (Part))) :=
+              Opt_Length.Cleared;
+         when Prop_Border_Width =>
+            S.Border_Width (Edge'Val (Natural (Part))) := Opt_Length.Cleared;
+         when Prop_Padding =>
+            S.Padding (Edge'Val (Natural (Part))) := Opt_Length.Cleared;
+         when Prop_Border_Color =>
+            S.Border_Color (Edge'Val (Natural (Part))) :=
+              Opt_Edge_Color.Cleared;
+         when Prop_Border_Style =>
+            S.Border_Style (Edge'Val (Natural (Part))) :=
+              Opt_Edge_Style.Cleared;
+         when Prop_Margin =>
+            S.Margin (Edge'Val (Natural (Part))) := Opt_Margin.Cleared;
+
+         --  The field carries named-or-not per axis rather than
+         --  cleared per axis, so a list holding one axis set and the
+         --  other cleared has no Opt_Gap to land in. A cleared axis
+         --  answers only where no axis is set, so the pair collapses to
+         --  the axis that is set and the cleared one reads as unnamed.
+         --
+         --  Unnamed and cleared resolve alike here, both to
+         --  Default_Gap's zero, which is what makes the collapse sound
+         --  rather than merely lossless-looking. Two things hold that:
+         --  Default_Gap is zero on both axes, and Get_Row_Gap /
+         --  Get_Column_Gap read the axis rather than Has_Row /
+         --  Has_Column. style_handle_test pins the pair, so making
+         --  either of those axis-aware meets a failing test rather than
+         --  a silent wrong gap.
+         when Prop_Gap =>
+            if not Opt_Gap.Is_Set (S.Gap) then
+               S.Gap := Opt_Gap.Cleared;
+            end if;
+
+         when Prop_Grid_Columns =>
+            if Part = Tracks_Part then
+               S.Grid_Column_Tracks := Default_Grid_Track_List;
+            else
+               S.Grid_Columns := Opt_Grid_Cols.Cleared;
+            end if;
+
+         when Prop_Overflow =>
+            null;
+
+         when others =>
+            Clear_Property (S, P);
+      end case;
+   end Clear_Property;
+
    -------------------------------------------------
    -- A rule set as a slot list
    -------------------------------------------------
-
-   --  Which value of a property a slot carries, for the eight that
-   --  carry more than one. Every other property uses First_Part.
-   Gap_Row_Part    : constant Slot_Part := 0;
-   Gap_Column_Part : constant Slot_Part := 1;
-   Tracks_Part     : constant Slot_Part := 1;
 
    --  Ordered by property and then by part, which is the order
    --  Slots_Of writes and every walk below relies on.
@@ -2316,7 +2424,7 @@ package body Adi.CSS_Styles is
                for E in Edge loop
                   if Opt_Edge_Style.Is_Set (S.Border_Style (E)) then
                      Emit (P, Slot_Part (Edge'Pos (E)),
-                           Intern_Edge_Style (S.Border_Style (E).Value));
+                           Intern (S.Border_Style (E).Value));
                   elsif Opt_Edge_Style.Is_None (S.Border_Style (E)) then
                      Wipe (P, Slot_Part (Edge'Pos (E)));
                   end if;
@@ -2325,7 +2433,7 @@ package body Adi.CSS_Styles is
                for E in Edge loop
                   if Opt_Margin.Is_Set (S.Margin (E)) then
                      Emit (P, Slot_Part (Edge'Pos (E)),
-                           Intern_Margin (S.Margin (E).Value));
+                           Intern (S.Margin (E).Value));
                   elsif Opt_Margin.Is_None (S.Margin (E)) then
                      Wipe (P, Slot_Part (Edge'Pos (E)));
                   end if;
@@ -2365,7 +2473,7 @@ package body Adi.CSS_Styles is
                   Wipe (P, First_Part);
                end if;
                if S.Grid_Column_Tracks.Count > 0 then
-                  Emit (P, Tracks_Part, Intern_Tracks (S.Grid_Column_Tracks));
+                  Emit (P, Tracks_Part, Intern (S.Grid_Column_Tracks));
                end if;
 
             --  The shorthand owns no field: a rule set holds it as its
@@ -2733,88 +2841,11 @@ package body Adi.CSS_Styles is
    begin
       for I in L'Range loop
          declare
-            E   : Prop_Slot renames L (I);
-            Set : constant Boolean := E.Op = Set_Value;
+            E : Prop_Slot renames L (I);
          begin
-            case E.Prop is
-               when Prop_Border_Radius =>
-                  S.Border_Radius (Corner'Val (Natural (E.Part))) :=
-                    (if Set then Opt_Length.Val (Length_Of (E.Val))
-                     else Opt_Length.Cleared);
-               when Prop_Border_Width =>
-                  S.Border_Width (Edge'Val (Natural (E.Part))) :=
-                    (if Set then Opt_Length.Val (Length_Of (E.Val))
-                     else Opt_Length.Cleared);
-               when Prop_Padding =>
-                  S.Padding (Edge'Val (Natural (E.Part))) :=
-                    (if Set then Opt_Length.Val (Length_Of (E.Val))
-                     else Opt_Length.Cleared);
-               when Prop_Border_Color =>
-                  S.Border_Color (Edge'Val (Natural (E.Part))) :=
-                    (if Set then Opt_Edge_Color.Val (Color_Of (E.Val))
-                     else Opt_Edge_Color.Cleared);
-               when Prop_Border_Style =>
-                  S.Border_Style (Edge'Val (Natural (E.Part))) :=
-                    (if Set then Opt_Edge_Style.Val (Edge_Style_Of (E.Val))
-                     else Opt_Edge_Style.Cleared);
-               when Prop_Margin =>
-                  S.Margin (Edge'Val (Natural (E.Part))) :=
-                    (if Set then Opt_Margin.Val (Margin_Of (E.Val))
-                     else Opt_Margin.Cleared);
-
-               --  Two axes over one field, and the field carries
-               --  named-or-not per axis rather than cleared per axis,
-               --  so a slot list holding one axis set and the other
-               --  cleared has no Opt_Gap to land in. An axis set folds
-               --  onto what an earlier one left, and a cleared axis
-               --  answers only where no axis is set -- so the pair
-               --  collapses to the axis that is set, and the cleared
-               --  one reads as unnamed.
-               --
-               --  Unnamed and cleared resolve alike here, both to
-               --  Default_Gap's zero, which is what makes the collapse
-               --  sound rather than merely lossless-looking. Two things
-               --  hold that: Default_Gap is zero on both axes, and
-               --  Get_Row_Gap / Get_Column_Gap read the axis rather
-               --  than Has_Row / Has_Column. style_handle_test pins the
-               --  pair, so making either of those axis-aware meets a
-               --  failing test rather than a silent wrong gap.
-               when Prop_Gap =>
-                  if Set then
-                     declare
-                        Axis : constant Gap_Value :=
-                          (if E.Part = Gap_Row_Part
-                           then Gap_Row (Length_Of (E.Val))
-                           else Gap_Column (Length_Of (E.Val)));
-                     begin
-                        S.Gap := (if Opt_Gap.Is_Set (S.Gap)
-                                  then Adi.CSS_Styles.Set
-                                         (Overlay (S.Gap.Value, Axis))
-                                  else Adi.CSS_Styles.Set (Axis));
-                     end;
-                  elsif not Opt_Gap.Is_Set (S.Gap) then
-                     S.Gap := Opt_Gap.Cleared;
-                  end if;
-
-               when Prop_Grid_Columns =>
-                  if E.Part = Tracks_Part then
-                     S.Grid_Column_Tracks := Tracks_Of (E.Val);
-                  elsif Set then
-                     S.Grid_Columns :=
-                       Adi.CSS_Styles.Set (Grid_Columns_Of (E.Val));
-                  else
-                     S.Grid_Columns := Opt_Grid_Cols.Cleared;
-                  end if;
-
-               when Prop_Overflow =>
-                  null;
-
-               when others =>
-                  if Set then
-                     Apply_Property (S, E.Prop, E.Val);
-                  else
-                     Clear_Property (S, E.Prop);
-                  end if;
+            case E.Op is
+               when Set_Value   => Apply_Property (S, E.Prop, E.Part, E.Val);
+               when Clear_Value => Clear_Property (S, E.Prop, E.Part);
             end case;
          end;
       end loop;

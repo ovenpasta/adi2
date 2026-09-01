@@ -1584,6 +1584,17 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Grid_Column_Span_Of (R : Value_Ref) return Grid_Column_Span_Value;
    function Grid_Row_Span_Of    (R : Value_Ref) return Grid_Row_Span_Value;
 
+   --  What a reference carries where the property's value cascades one
+   --  part at a time: one margin side, one border-style edge, and the
+   --  track list travelling with grid-template-columns.
+   function Intern (V : Margin_Value)      return Value_Ref;
+   function Intern (V : Border_Style_Kind) return Value_Ref;
+   function Intern (V : Grid_Track_List)   return Value_Ref;
+
+   function Margin_Of     (R : Value_Ref) return Margin_Value;
+   function Edge_Style_Of (R : Value_Ref) return Border_Style_Kind;
+   function Tracks_Of     (R : Value_Ref) return Grid_Track_List;
+
    --  Whether the reference reached a store rather than holding its
    --  value outright. Instrumentation a test reads.
    function Is_Stored (R : Value_Ref) return Boolean;
@@ -1595,23 +1606,56 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    --  axes through Set_Overflow_Shorthand above, which is the same
    --  expansion Adi.CSS_Parser gives the declaration.
    --
-   --  Style_Rules carries one thing no chain can name:
-   --  Grid_Column_Tracks, which has no CSS_Property literal and
-   --  travels with grid-template-columns.
    --  The chain asks nothing of this at run time: it carries a setter
    --  per property, and the two case statements above have no `others`.
    --  It stands as the answer a caller deciding whether to emit a chain
    --  step reads, and as what the composer's tests hold the set to.
    Composable_Properties : constant CSS_Property_Set := [others => True];
 
+   --  Which of a property's values a slot carries. First_Part is the
+   --  one most properties use; an edge or corner uses the position of
+   --  its Edge or Corner literal, a gap axis its own, and the grid
+   --  track list the second of grid-template-columns'.
+   type Slot_Part is range 0 .. 3;
+
+   First_Part      : constant Slot_Part := 0;
+   Gap_Row_Part    : constant Slot_Part := 0;
+   Gap_Column_Part : constant Slot_Part := 1;
+   Tracks_Part     : constant Slot_Part := 1;
+
+   --  Properties whose values cascade one part at a time, and so the
+   --  ones the four-argument Apply_Property and Clear_Property below
+   --  answer for. Every other property carries its whole value in one
+   --  part, which the three-argument forms take.
+   Parted_Properties : constant CSS_Property_Set :=
+     [Prop_Padding | Prop_Margin | Prop_Border_Width | Prop_Border_Color
+      | Prop_Border_Style | Prop_Border_Radius | Prop_Gap
+      | Prop_Grid_Columns => True,
+      others => False];
+
    --  Sets P in S to the value R names, reading R as the type P holds.
    --  The case has no `others`, so every property is answered for.
+   --  The three-argument form names the property's whole value, so
+   --  `padding` takes a CSS_Box_Value and reaches all four edges.
    procedure Apply_Property
      (S : in out Style_Rules; P : CSS_Property; R : Value_Ref);
+
+   --  One part of a property whose values cascade separately: the edge
+   --  or corner at Part's position, a gap axis, or the track list. The
+   --  parts P does not name are left to the cascade, which is what a
+   --  side longhand asks for. A property outside Parted_Properties
+   --  reads Part as First_Part and takes its whole value.
+   procedure Apply_Property
+     (S : in out Style_Rules; P : CSS_Property; Part : Slot_Part;
+      R : Value_Ref);
 
    --  Takes P in S to cleared: named, and holding no value, which is
    --  what stops an earlier rule in the cascade showing through.
    procedure Clear_Property (S : in out Style_Rules; P : CSS_Property);
+
+   --  Clears one part, on the terms Apply_Property states above.
+   procedure Clear_Property
+     (S : in out Style_Rules; P : CSS_Property; Part : Slot_Part);
 
    --  Distinct values the per-type stores hold, and the storage
    --  elements their entries occupy. A value narrow enough to sit in a
@@ -2052,14 +2096,6 @@ private
    No_Value_Ref : constant Value_Ref := 0;
 
    Empty_Rules : constant Rules_Handle := 0;
-
-   --  Which of a property's values a slot carries. First_Part is the
-   --  one most properties use; an edge or corner uses the position of
-   --  its Edge or Corner literal, a gap axis its own, and the grid
-   --  track list the second of grid-template-columns'.
-   type Slot_Part is range 0 .. 3;
-
-   First_Part : constant Slot_Part := 0;
 
    --  A slot says "set" by existing, so clearing -- named, and holding
    --  no value, which is what stops an earlier rule in the cascade

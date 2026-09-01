@@ -27,38 +27,11 @@ package Flat_Values_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'flat-bg'
-   function Flat_Bg_Class_Base_Style return Style_Rules is
-     (
-      Background_Image => Set_Bg_Image (Background_Image_URL ("app://tests/flat-bg.png")),
-      Font_Family => Set_Font_Family ("""Adi Flat Family"", monospace"),
-      others => <>);
-
-   --  Base style for class 'flat-grad'
-   function Flat_Grad_Class_Base_Style return Style_Rules is
-     (
-      Background_Image => Set_Bg_Image (Linear_Gradient (45.0, [Gradient_Stop_Auto (RGB (1, 2, 3)), Gradient_Stop_Auto (RGB (4, 5, 6)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      others => <>);
-
-   --  Base style for class 'flat-list'
-   function Flat_List_Class_Base_Style return Style_Rules is
-     (
-      List_Style_Type => Set (List_String ("-> ")),
-      List_Style_Image => Set (List_Image ("app://tests/flat-marker.svg")),
-      others => <>);
-
-   --  Style for class 'flat-list' when widget State_Hovered
-   function Flat_List_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Font_Family => Set_Font_Family ("'Second Flat Family', sans-serif"),
-      Background_Image => Set_Bg_Image (No_Background_Image),
-      List_Style_Type => Set ((Kind => List_Style_Square)),
-      List_Style_Image => Set (No_List_Image),
-      others => <>);
-
-   --  Complete widget style for class 'flat-bg'
+   --  Style for class 'flat-bg'
    Flat_Bg_Class_Widget : constant Widget_Style :=
-     From (Flat_Bg_Class_Base_Style)
+     Style_Of
+        .Background_Image (Background_Image_URL ("app://tests/flat-bg.png"))
+        .Font_Family ("""Adi Flat Family"", monospace")
      .Build;
 
    --  Part styles bundle for class 'flat-bg'
@@ -68,9 +41,10 @@ package Flat_Values_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'flat-grad'
+   --  Style for class 'flat-grad'
    Flat_Grad_Class_Widget : constant Widget_Style :=
-     From (Flat_Grad_Class_Base_Style)
+     Style_Of
+        .Background_Image (Linear_Gradient (45.0, [Gradient_Stop_Auto (RGB (1, 2, 3)), Gradient_Stop_Auto (RGB (4, 5, 6)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
      .Build;
 
    --  Part styles bundle for class 'flat-grad'
@@ -80,10 +54,17 @@ package Flat_Values_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'flat-list'
+   --  Style for class 'flat-list'
    Flat_List_Class_Widget : constant Widget_Style :=
-     From (Flat_List_Class_Base_Style)
-     .On (When_State (State_Hovered), Flat_List_Class_Widget_Hovered_Style)
+     Style_Of
+        .List_Style_Type (List_String ("-> "))
+        .List_Style_Image (List_Image ("app://tests/flat-marker.svg"))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Font_Family ("'Second Flat Family', sans-serif")
+        .Background_Image (No_Background_Image)
+        .List_Style_Type (List_Style_Type_Value'(Kind => List_Style_Square))
+        .List_Style_Image (No_List_Image)
      .Build;
 
    --  Part styles bundle for class 'flat-list'

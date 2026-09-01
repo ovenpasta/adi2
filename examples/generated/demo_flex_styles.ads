@@ -27,632 +27,42 @@ package Demo_Flex_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Gap => Set (Gap (Px (18.0))),
-      Background_Color => Set_Bg (RGB (24, 26, 33)),
-      Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
-      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
-      others => <>);
-
-   --  Base style for class 'root'::knob
-   function Root_Class_Knob_Base_Style return Style_Rules is
-     (
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (129, 161, 193, 0.3)), Gradient_Stop_Auto (RGBA (94, 129, 172, 0.3)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Transition => Set ((Duration => 0.16, Easing => Ease_Out, Properties => All_Properties)),
-      Border_Width => Set (Border_Width (Px (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGBA (236, 239, 244, 0.1))),
-      Border_Radius => Set (Radius (Px (5.0))),
-      others => <>);
-
-   --  Style for class 'root'::knob when part State_Hovered
-   function Root_Class_Knob_Part_Hovered_Style return Style_Rules is
-     (
-      Background_Image => Set_Bg_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (143, 176, 209, 0.85)), Gradient_Stop_Auto (RGBA (108, 143, 186, 0.85)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2)),
-      Border_Color => Set (Border_Color (RGBA (236, 239, 244, 0.28))),
-      others => <>);
-
-   --  Base style for class 'root'::scroll
-   function Root_Class_Scroll_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (10.0))),
-      Background_Color => Set_Bg (RGBA (94, 129, 172, 0.06)),
-      Transition => Set ((Duration => 0.16, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Border_Radius => Set (Radius (Px (5.0))),
-      others => <>);
-
-   --  Style for class 'root'::scroll when part State_Hovered
-   function Root_Class_Scroll_Part_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (94, 129, 172, 0.16)),
-      others => <>);
-
-   --  Base style for class 'title'::label
-   function Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (236, 239, 244)),
-      Font_Size => Set_Font (Px (22.0)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>);
-
-   --  Base style for class 'section'
-   function Section_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Gap => Set (Gap (Px (6.0))),
-      Flex_Shrink => Set (0.0),
-      Padding => [Right => Set (Px (14.0)), others => <>],
-      others => <>);
-
-   --  Base style for class 'caption'::label
-   function Caption_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (163, 190, 140)),
-      Font_Size => Set_Font (Px (14.0)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>);
-
-   --  Base style for class 'note'::label
-   function Note_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (150, 158, 172)),
-      Font_Size => Set_Font (Px (12.0)),
-      others => <>);
-
-   --  Base style for class 'cases'
-   function Cases_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Flex_Wrap => Set (Wrap),
-      Gap => Set (Gap (Px (12.0))),
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'case'
-   function Case_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Gap => Set (Gap (Px (4.0))),
-      Flex_Grow => Set (1.0),
-      Min_Width => Set (Size (Px (0.0))),
-      others => <>);
-
-   --  Base style for class 'case-label'::label
-   function Case_Label_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (150, 158, 172)),
-      Font_Size => Set_Font (Px (11.0)),
-      others => <>);
-
-   --  Base style for class 'demo'
-   function Demo_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Align_Items => Set (Center),
-      Gap => Set (Gap (Px (6.0))),
-      Background_Color => Set_Bg (RGB (35, 38, 48)),
-      Padding => Set (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0))),
-      Border_Width => Set (Border_Width (Px (2.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (94, 129, 172))),
-      Border_Radius => Set (Radius (Px (6.0))),
-      others => <>);
-
-   --  Base style for class 'item'
-   function Item_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Width => Set (Size (Px (26.0))),
-      Height => Set (Size (Px (26.0))),
-      Background_Color => Set_Bg (RGB (94, 129, 172)),
-      Border_Radius => Set (Radius (Px (4.0))),
-      others => <>);
-
-   --  Base style for class 'item'::label
-   function Item_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (240, 243, 248)),
-      Font_Size => Set_Font (Px (12.0)),
-      Font_Weight => Set (Weight_Bold),
-      Text_Align => Set (Text_Center),
-      others => <>);
-
-   --  Base style for class 'tall'
-   function Tall_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (70.0))),
-      others => <>);
-
-   --  Base style for class 'short'
-   function Short_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (46.0))),
-      others => <>);
-
-   --  Base style for class 'bar'
-   function Bar_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Auto_Size),
-      others => <>);
-
-   --  Base style for class 'dir-row'
-   function Dir_Row_Class_Base_Style return Style_Rules is
-     (
-      Flex_Direction => Set (Row),
-      others => <>);
-
-   --  Base style for class 'dir-row-rev'
-   function Dir_Row_Rev_Class_Base_Style return Style_Rules is
-     (
-      Flex_Direction => Set (Row_Reverse),
-      others => <>);
-
-   --  Base style for class 'dir-col'
-   function Dir_Col_Class_Base_Style return Style_Rules is
-     (
-      Flex_Direction => Set (Column),
-      others => <>);
-
-   --  Base style for class 'dir-col-rev'
-   function Dir_Col_Rev_Class_Base_Style return Style_Rules is
-     (
-      Flex_Direction => Set (Column_Reverse),
-      others => <>);
-
-   --  Base style for class 'grow-1'
-   function Grow_1_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Background_Color => Set_Bg (RGB (163, 190, 140)),
-      others => <>);
-
-   --  Base style for class 'grow-2'
-   function Grow_2_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (2.0),
-      Background_Color => Set_Bg (RGB (235, 203, 139)),
-      others => <>);
-
-   --  Base style for class 'grow-0'
-   function Grow_0_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (0.0),
-      Width => Set (Size (Px (70.0))),
-      others => <>);
-
-   --  Base style for class 'w320'
-   function W320_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (320.0))),
-      others => <>);
-
-   --  Base style for class 'shrink-yes'
-   function Shrink_Yes_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (160.0))),
-      Flex_Shrink => Set (1.0),
-      Min_Width => Set (Size (Px (0.0))),
-      Background_Color => Set_Bg (RGB (163, 190, 140)),
-      others => <>);
-
-   --  Base style for class 'shrink-no'
-   function Shrink_No_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (160.0))),
-      Flex_Shrink => Set (0.0),
-      Background_Color => Set_Bg (RGB (191, 97, 106)),
-      others => <>);
-
-   --  Base style for class 'basis-40'
-   function Basis_40_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (40.0))),
-      Flex_Grow => Set (1.0),
-      Background_Color => Set_Bg (RGB (163, 190, 140)),
-      others => <>);
-
-   --  Base style for class 'basis-120'
-   function Basis_120_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (120.0))),
-      Flex_Grow => Set (1.0),
-      Background_Color => Set_Bg (RGB (235, 203, 139)),
-      others => <>);
-
-   --  Base style for class 'basis-200'
-   function Basis_200_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (200.0))),
-      Flex_Grow => Set (1.0),
-      Background_Color => Set_Bg (RGB (180, 142, 173)),
-      others => <>);
-
-   --  Base style for class 'w300'
-   function W300_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (300.0))),
-      others => <>);
-
-   --  Base style for class 'pct-width'
-   function Pct_Width_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Pct (50.0))),
-      Flex_Grow => Set (0.0),
-      Flex_Shrink => Set (0.0),
-      Background_Color => Set_Bg (RGB (235, 203, 139)),
-      others => <>);
-
-   --  Base style for class 'pct-basis'
-   function Pct_Basis_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Pct (50.0))),
-      Flex_Grow => Set (0.0),
-      Flex_Shrink => Set (0.0),
-      Background_Color => Set_Bg (RGB (163, 190, 140)),
-      others => <>);
-
-   --  Base style for class 'just-start'
-   function Just_Start_Class_Base_Style return Style_Rules is
-     (
-      Justify_Content => Set (Flex_Start),
-      others => <>);
-
-   --  Base style for class 'just-center'
-   function Just_Center_Class_Base_Style return Style_Rules is
-     (
-      Justify_Content => Set (Center),
-      others => <>);
-
-   --  Base style for class 'just-end'
-   function Just_End_Class_Base_Style return Style_Rules is
-     (
-      Justify_Content => Set (Flex_End),
-      others => <>);
-
-   --  Base style for class 'just-around'
-   function Just_Around_Class_Base_Style return Style_Rules is
-     (
-      Justify_Content => Set (Space_Around),
-      others => <>);
-
-   --  Base style for class 'just-between'
-   function Just_Between_Class_Base_Style return Style_Rules is
-     (
-      Justify_Content => Set (Space_Between),
-      others => <>);
-
-   --  Base style for class 'just-evenly'
-   function Just_Evenly_Class_Base_Style return Style_Rules is
-     (
-      Justify_Content => Set (Space_Evenly),
-      others => <>);
-
-   --  Base style for class 'align-start'
-   function Align_Start_Class_Base_Style return Style_Rules is
-     (
-      Align_Items => Set (Flex_Start),
-      others => <>);
-
-   --  Base style for class 'align-center'
-   function Align_Center_Class_Base_Style return Style_Rules is
-     (
-      Align_Items => Set (Center),
-      others => <>);
-
-   --  Base style for class 'align-end'
-   function Align_End_Class_Base_Style return Style_Rules is
-     (
-      Align_Items => Set (Flex_End),
-      others => <>);
-
-   --  Base style for class 'align-stretch'
-   function Align_Stretch_Class_Base_Style return Style_Rules is
-     (
-      Align_Items => Set (Stretch),
-      others => <>);
-
-   --  Base style for class 'h20'
-   function H20_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (20.0))),
-      others => <>);
-
-   --  Base style for class 'h40'
-   function H40_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (40.0))),
-      Background_Color => Set_Bg (RGB (94, 129, 172)),
-      others => <>);
-
-   --  Base style for class 'h-auto'
-   function H_Auto_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Auto_Size),
-      Background_Color => Set_Bg (RGB (180, 142, 173)),
-      others => <>);
-
-   --  Base style for class 'w480'
-   function W480_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (480.0))),
-      others => <>);
-
-   --  Base style for class 'w170'
-   function W170_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (170.0))),
-      others => <>);
-
-   --  Base style for class 'h120'
-   function H120_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (120.0))),
-      others => <>);
-
-   --  Base style for class 'h150'
-   function H150_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (150.0))),
-      others => <>);
-
-   --  Base style for class 'nowrap'
-   function Nowrap_Class_Base_Style return Style_Rules is
-     (
-      Flex_Wrap => Set (No_Wrap),
-      others => <>);
-
-   --  Base style for class 'wrap'
-   function Wrap_Class_Base_Style return Style_Rules is
-     (
-      Flex_Wrap => Set (Wrap),
-      others => <>);
-
-   --  Base style for class 'wrap-reverse'
-   function Wrap_Reverse_Class_Base_Style return Style_Rules is
-     (
-      Flex_Wrap => Set (Wrap_Reverse),
-      others => <>);
-
-   --  Base style for class 'self-center'
-   function Self_Center_Class_Base_Style return Style_Rules is
-     (
-      Align_Self => Set (Center),
-      others => <>);
-
-   --  Base style for class 'self-end'
-   function Self_End_Class_Base_Style return Style_Rules is
-     (
-      Align_Self => Set (Flex_End),
-      others => <>);
-
-   --  Base style for class 'self-stretch'
-   function Self_Stretch_Class_Base_Style return Style_Rules is
-     (
-      Align_Self => Set (Stretch),
-      Height => Set (Auto_Size),
-      others => <>);
-
-   --  Base style for class 'gap-row'
-   function Gap_Row_Class_Base_Style return Style_Rules is
-     (
-      Gap => Set (Gap (Px (24.0), Px (0.0))),
-      others => <>);
-
-   --  Base style for class 'gap-column'
-   function Gap_Column_Class_Base_Style return Style_Rules is
-     (
-      Gap => Set (Gap (Px (0.0), Px (24.0))),
-      others => <>);
-
-   --  Base style for class 'gap-both'
-   function Gap_Both_Class_Base_Style return Style_Rules is
-     (
-      Gap => Set (Gap (Px (24.0), Px (6.0))),
-      others => <>);
-
-   --  Base style for class 'tile-deep'
-   function Tile_Deep_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (46.0))),
-      others => <>);
-
-   --  Base style for class 'w110'
-   function W110_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (110.0))),
-      others => <>);
-
-   --  Base style for class 'ac-start'
-   function Ac_Start_Class_Base_Style return Style_Rules is
-     (
-      Align_Content => Set (Flex_Start),
-      others => <>);
-
-   --  Base style for class 'ac-center'
-   function Ac_Center_Class_Base_Style return Style_Rules is
-     (
-      Align_Content => Set (Center),
-      others => <>);
-
-   --  Base style for class 'ac-end'
-   function Ac_End_Class_Base_Style return Style_Rules is
-     (
-      Align_Content => Set (Flex_End),
-      others => <>);
-
-   --  Base style for class 'ac-between'
-   function Ac_Between_Class_Base_Style return Style_Rules is
-     (
-      Align_Content => Set (Space_Between),
-      others => <>);
-
-   --  Base style for class 'ac-around'
-   function Ac_Around_Class_Base_Style return Style_Rules is
-     (
-      Align_Content => Set (Space_Around),
-      others => <>);
-
-   --  Base style for class 'ac-stretch'
-   function Ac_Stretch_Class_Base_Style return Style_Rules is
-     (
-      Align_Content => Set (Stretch),
-      others => <>);
-
-   --  Base style for class 'tile'
-   function Tile_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (40.0))),
-      Height => Set (Size (Px (34.0))),
-      Flex_Grow => Set (0.0),
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'tile-short'
-   function Tile_Short_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Px (22.0))),
-      others => <>);
-
-   --  Base style for class 'align-start-items'
-   function Align_Start_Items_Class_Base_Style return Style_Rules is
-     (
-      Align_Items => Set (Flex_Start),
-      others => <>);
-
-   --  Base style for class 'pinned'
-   function Pinned_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (90.0))),
-      Min_Width => Set (Size (Px (90.0))),
-      Flex_Shrink => Set (1.0),
-      Background_Color => Set_Bg (RGB (191, 97, 106)),
-      others => <>);
-
-   --  Base style for class 'elastic'
-   function Elastic_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (220.0))),
-      Min_Width => Set (Size (Px (0.0))),
-      Flex_Shrink => Set (1.0),
-      Background_Color => Set_Bg (RGB (163, 190, 140)),
-      others => <>);
-
-   --  Base style for class 'rigid'
-   function Rigid_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (0.0),
-      Flex_Shrink => Set (0.0),
-      Min_Width => Set (Size (Px (90.0))),
-      Background_Color => Set_Bg (RGB (191, 97, 106)),
-      others => <>);
-
-   --  Base style for class 'capped'
-   function Capped_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (220.0))),
-      Flex_Grow => Set (0.0),
-      Flex_Shrink => Set (0.0),
-      Max_Width => Set (Size (Px (90.0))),
-      Background_Color => Set_Bg (RGB (191, 97, 106)),
-      others => <>);
-
-   --  Base style for class 'greedy'
-   function Greedy_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Min_Width => Set (Size (Px (0.0))),
-      Background_Color => Set_Bg (RGB (163, 190, 140)),
-      others => <>);
-
-   --  Base style for class 'frac-half'
-   function Frac_Half_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (0.0))),
-      Flex_Grow => Set (0.5),
-      Min_Width => Set (Size (Px (0.0))),
-      Background_Color => Set_Bg (RGB (180, 142, 173)),
-      others => <>);
-
-   --  Base style for class 'frac-quarter'
-   function Frac_Quarter_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (0.0))),
-      Flex_Grow => Set (0.25),
-      Min_Width => Set (Size (Px (0.0))),
-      Background_Color => Set_Bg (RGB (180, 142, 173)),
-      others => <>);
-
-   --  Base style for class 'floored-wide'
-   function Floored_Wide_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (0.0))),
-      Flex_Grow => Set (1.0),
-      Min_Width => Set (Size (Px (260.0))),
-      Background_Color => Set_Bg (RGB (191, 97, 106)),
-      others => <>);
-
-   --  Base style for class 'based'
-   function Based_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (160.0))),
-      Flex_Grow => Set (1.0),
-      Min_Width => Set (Size (Px (0.0))),
-      Background_Color => Set_Bg (RGB (163, 190, 140)),
-      others => <>);
-
-   --  Base style for class 'triple'
-   function Triple_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (0.0))),
-      Flex_Grow => Set (3.0),
-      Min_Width => Set (Size (Px (0.0))),
-      Background_Color => Set_Bg (RGB (94, 129, 172)),
-      others => <>);
-
-   --  Base style for class 'ceiling'
-   function Ceiling_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (0.0))),
-      Flex_Grow => Set (1.0),
-      Min_Width => Set (Size (Px (0.0))),
-      Max_Width => Set (Size (Px (112.0))),
-      Background_Color => Set_Bg (RGB (180, 142, 173)),
-      others => <>);
-
-   --  Base style for class 'plain-grow'
-   function Plain_Grow_Class_Base_Style return Style_Rules is
-     (
-      Flex_Basis => Set (Basis (Px (0.0))),
-      Flex_Grow => Set (1.0),
-      Min_Width => Set (Size (Px (0.0))),
-      Background_Color => Set_Bg (RGB (163, 190, 140)),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Gap (Gap (Px (18.0)))
+        .Background (RGB (24, 26, 33))
+        .Padding (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0)))
+        .Overflow_Y (Overflow_Auto)
      .Build;
 
-   --  Complete widget style for class 'root'::knob
+   --  Style for class 'root'::knob
    Root_Class_Knob_Widget : constant Widget_Style :=
-     From (Root_Class_Knob_Base_Style)
-     .On (When_Part_State (State_Hovered), Root_Class_Knob_Part_Hovered_Style)
+     Style_Of
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (129, 161, 193, 0.3)), Gradient_Stop_Auto (RGBA (94, 129, 172, 0.3)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Transition ((Duration => 0.16, Easing => Ease_Out, Properties => All_Properties))
+        .Border_Width (Border_Width (Px (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGBA (236, 239, 244, 0.1)))
+        .Radius (Radius (Px (5.0)))
+     --  part State_Hovered
+     .On (When_Part_State (State_Hovered))
+        .Background_Image (Linear_Gradient (90.0, [Gradient_Stop_Auto (RGBA (143, 176, 209, 0.85)), Gradient_Stop_Auto (RGBA (108, 143, 186, 0.85)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black)), Gradient_Stop_Auto (C (Black))], 2))
+        .Border_Color (Border_Color (RGBA (236, 239, 244, 0.28)))
      .Build;
 
-   --  Complete widget style for class 'root'::scroll
+   --  Style for class 'root'::scroll
    Root_Class_Scroll_Widget : constant Widget_Style :=
-     From (Root_Class_Scroll_Base_Style)
-     .On (When_Part_State (State_Hovered), Root_Class_Scroll_Part_Hovered_Style)
+     Style_Of
+        .Width (Size (Px (10.0)))
+        .Background (RGBA (94, 129, 172, 0.06))
+        .Transition ((Duration => 0.16, Easing => Ease_Out, Properties => Props (Prop_Background_Color)))
+        .Radius (Radius (Px (5.0)))
+     --  part State_Hovered
+     .On (When_Part_State (State_Hovered))
+        .Background (RGBA (94, 129, 172, 0.16))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -664,9 +74,12 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'title'::label
+   --  Style for class 'title'::label
    Title_Class_Label_Widget : constant Widget_Style :=
-     From (Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (236, 239, 244))
+        .Font_Size (Px (22.0))
+        .Font_Weight (Weight_Bold)
      .Build;
 
    --  Part styles bundle for class 'title'
@@ -676,9 +89,14 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'section'
+   --  Style for class 'section'
    Section_Class_Widget : constant Widget_Style :=
-     From (Section_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Gap (Gap (Px (6.0)))
+        .Flex_Shrink (0.0)
+        .Padding (Right, Px (14.0))
      .Build;
 
    --  Part styles bundle for class 'section'
@@ -688,9 +106,12 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'caption'::label
+   --  Style for class 'caption'::label
    Caption_Class_Label_Widget : constant Widget_Style :=
-     From (Caption_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (163, 190, 140))
+        .Font_Size (Px (14.0))
+        .Font_Weight (Weight_Bold)
      .Build;
 
    --  Part styles bundle for class 'caption'
@@ -700,9 +121,11 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'note'::label
+   --  Style for class 'note'::label
    Note_Class_Label_Widget : constant Widget_Style :=
-     From (Note_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (150, 158, 172))
+        .Font_Size (Px (12.0))
      .Build;
 
    --  Part styles bundle for class 'note'
@@ -712,9 +135,14 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'cases'
+   --  Style for class 'cases'
    Cases_Class_Widget : constant Widget_Style :=
-     From (Cases_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Flex_Wrap (Wrap)
+        .Gap (Gap (Px (12.0)))
+        .Flex_Shrink (0.0)
      .Build;
 
    --  Part styles bundle for class 'cases'
@@ -724,9 +152,14 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'case'
+   --  Style for class 'case'
    Case_Class_Widget : constant Widget_Style :=
-     From (Case_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Gap (Gap (Px (4.0)))
+        .Flex_Grow (1.0)
+        .Min_Width (Size (Px (0.0)))
      .Build;
 
    --  Part styles bundle for class 'case'
@@ -736,9 +169,11 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'case-label'::label
+   --  Style for class 'case-label'::label
    Case_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Case_Label_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (150, 158, 172))
+        .Font_Size (Px (11.0))
      .Build;
 
    --  Part styles bundle for class 'case-label'
@@ -748,9 +183,19 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'demo'
+   --  Style for class 'demo'
    Demo_Class_Widget : constant Widget_Style :=
-     From (Demo_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Align_Items (Center)
+        .Gap (Gap (Px (6.0)))
+        .Background (RGB (35, 38, 48))
+        .Padding (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0)))
+        .Border_Width (Border_Width (Px (2.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (94, 129, 172)))
+        .Radius (Radius (Px (6.0)))
      .Build;
 
    --  Part styles bundle for class 'demo'
@@ -760,14 +205,25 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'item'
+   --  Style for class 'item'
    Item_Class_Widget : constant Widget_Style :=
-     From (Item_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Width (Size (Px (26.0)))
+        .Height (Size (Px (26.0)))
+        .Background (RGB (94, 129, 172))
+        .Radius (Radius (Px (4.0)))
      .Build;
 
-   --  Complete widget style for class 'item'::label
+   --  Style for class 'item'::label
    Item_Class_Label_Widget : constant Widget_Style :=
-     From (Item_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (240, 243, 248))
+        .Font_Size (Px (12.0))
+        .Font_Weight (Weight_Bold)
+        .Text_Align (Text_Center)
      .Build;
 
    --  Part styles bundle for class 'item'
@@ -778,9 +234,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'tall'
+   --  Style for class 'tall'
    Tall_Class_Widget : constant Widget_Style :=
-     From (Tall_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (70.0)))
      .Build;
 
    --  Part styles bundle for class 'tall'
@@ -790,9 +247,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'short'
+   --  Style for class 'short'
    Short_Class_Widget : constant Widget_Style :=
-     From (Short_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (46.0)))
      .Build;
 
    --  Part styles bundle for class 'short'
@@ -802,9 +260,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'bar'
+   --  Style for class 'bar'
    Bar_Class_Widget : constant Widget_Style :=
-     From (Bar_Class_Base_Style)
+     Style_Of
+        .Width (Auto_Size)
      .Build;
 
    --  Part styles bundle for class 'bar'
@@ -814,9 +273,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'dir-row'
+   --  Style for class 'dir-row'
    Dir_Row_Class_Widget : constant Widget_Style :=
-     From (Dir_Row_Class_Base_Style)
+     Style_Of
+        .Flex_Direction (Row)
      .Build;
 
    --  Part styles bundle for class 'dir-row'
@@ -826,9 +286,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'dir-row-rev'
+   --  Style for class 'dir-row-rev'
    Dir_Row_Rev_Class_Widget : constant Widget_Style :=
-     From (Dir_Row_Rev_Class_Base_Style)
+     Style_Of
+        .Flex_Direction (Row_Reverse)
      .Build;
 
    --  Part styles bundle for class 'dir-row-rev'
@@ -838,9 +299,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'dir-col'
+   --  Style for class 'dir-col'
    Dir_Col_Class_Widget : constant Widget_Style :=
-     From (Dir_Col_Class_Base_Style)
+     Style_Of
+        .Flex_Direction (Column)
      .Build;
 
    --  Part styles bundle for class 'dir-col'
@@ -850,9 +312,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'dir-col-rev'
+   --  Style for class 'dir-col-rev'
    Dir_Col_Rev_Class_Widget : constant Widget_Style :=
-     From (Dir_Col_Rev_Class_Base_Style)
+     Style_Of
+        .Flex_Direction (Column_Reverse)
      .Build;
 
    --  Part styles bundle for class 'dir-col-rev'
@@ -862,9 +325,11 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grow-1'
+   --  Style for class 'grow-1'
    Grow_1_Class_Widget : constant Widget_Style :=
-     From (Grow_1_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Background (RGB (163, 190, 140))
      .Build;
 
    --  Part styles bundle for class 'grow-1'
@@ -874,9 +339,11 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grow-2'
+   --  Style for class 'grow-2'
    Grow_2_Class_Widget : constant Widget_Style :=
-     From (Grow_2_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (2.0)
+        .Background (RGB (235, 203, 139))
      .Build;
 
    --  Part styles bundle for class 'grow-2'
@@ -886,9 +353,11 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grow-0'
+   --  Style for class 'grow-0'
    Grow_0_Class_Widget : constant Widget_Style :=
-     From (Grow_0_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (0.0)
+        .Width (Size (Px (70.0)))
      .Build;
 
    --  Part styles bundle for class 'grow-0'
@@ -898,9 +367,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'w320'
+   --  Style for class 'w320'
    W320_Class_Widget : constant Widget_Style :=
-     From (W320_Class_Base_Style)
+     Style_Of
+        .Width (Size (Px (320.0)))
      .Build;
 
    --  Part styles bundle for class 'w320'
@@ -910,9 +380,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'shrink-yes'
+   --  Style for class 'shrink-yes'
    Shrink_Yes_Class_Widget : constant Widget_Style :=
-     From (Shrink_Yes_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (160.0)))
+        .Flex_Shrink (1.0)
+        .Min_Width (Size (Px (0.0)))
+        .Background (RGB (163, 190, 140))
      .Build;
 
    --  Part styles bundle for class 'shrink-yes'
@@ -922,9 +396,12 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'shrink-no'
+   --  Style for class 'shrink-no'
    Shrink_No_Class_Widget : constant Widget_Style :=
-     From (Shrink_No_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (160.0)))
+        .Flex_Shrink (0.0)
+        .Background (RGB (191, 97, 106))
      .Build;
 
    --  Part styles bundle for class 'shrink-no'
@@ -934,9 +411,12 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'basis-40'
+   --  Style for class 'basis-40'
    Basis_40_Class_Widget : constant Widget_Style :=
-     From (Basis_40_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (40.0)))
+        .Flex_Grow (1.0)
+        .Background (RGB (163, 190, 140))
      .Build;
 
    --  Part styles bundle for class 'basis-40'
@@ -946,9 +426,12 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'basis-120'
+   --  Style for class 'basis-120'
    Basis_120_Class_Widget : constant Widget_Style :=
-     From (Basis_120_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (120.0)))
+        .Flex_Grow (1.0)
+        .Background (RGB (235, 203, 139))
      .Build;
 
    --  Part styles bundle for class 'basis-120'
@@ -958,9 +441,12 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'basis-200'
+   --  Style for class 'basis-200'
    Basis_200_Class_Widget : constant Widget_Style :=
-     From (Basis_200_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (200.0)))
+        .Flex_Grow (1.0)
+        .Background (RGB (180, 142, 173))
      .Build;
 
    --  Part styles bundle for class 'basis-200'
@@ -970,9 +456,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'w300'
+   --  Style for class 'w300'
    W300_Class_Widget : constant Widget_Style :=
-     From (W300_Class_Base_Style)
+     Style_Of
+        .Width (Size (Px (300.0)))
      .Build;
 
    --  Part styles bundle for class 'w300'
@@ -982,9 +469,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'pct-width'
+   --  Style for class 'pct-width'
    Pct_Width_Class_Widget : constant Widget_Style :=
-     From (Pct_Width_Class_Base_Style)
+     Style_Of
+        .Width (Size (Pct (50.0)))
+        .Flex_Grow (0.0)
+        .Flex_Shrink (0.0)
+        .Background (RGB (235, 203, 139))
      .Build;
 
    --  Part styles bundle for class 'pct-width'
@@ -994,9 +485,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'pct-basis'
+   --  Style for class 'pct-basis'
    Pct_Basis_Class_Widget : constant Widget_Style :=
-     From (Pct_Basis_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Pct (50.0)))
+        .Flex_Grow (0.0)
+        .Flex_Shrink (0.0)
+        .Background (RGB (163, 190, 140))
      .Build;
 
    --  Part styles bundle for class 'pct-basis'
@@ -1006,9 +501,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'just-start'
+   --  Style for class 'just-start'
    Just_Start_Class_Widget : constant Widget_Style :=
-     From (Just_Start_Class_Base_Style)
+     Style_Of
+        .Justify_Content (Flex_Start)
      .Build;
 
    --  Part styles bundle for class 'just-start'
@@ -1018,9 +514,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'just-center'
+   --  Style for class 'just-center'
    Just_Center_Class_Widget : constant Widget_Style :=
-     From (Just_Center_Class_Base_Style)
+     Style_Of
+        .Justify_Content (Center)
      .Build;
 
    --  Part styles bundle for class 'just-center'
@@ -1030,9 +527,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'just-end'
+   --  Style for class 'just-end'
    Just_End_Class_Widget : constant Widget_Style :=
-     From (Just_End_Class_Base_Style)
+     Style_Of
+        .Justify_Content (Flex_End)
      .Build;
 
    --  Part styles bundle for class 'just-end'
@@ -1042,9 +540,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'just-around'
+   --  Style for class 'just-around'
    Just_Around_Class_Widget : constant Widget_Style :=
-     From (Just_Around_Class_Base_Style)
+     Style_Of
+        .Justify_Content (Space_Around)
      .Build;
 
    --  Part styles bundle for class 'just-around'
@@ -1054,9 +553,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'just-between'
+   --  Style for class 'just-between'
    Just_Between_Class_Widget : constant Widget_Style :=
-     From (Just_Between_Class_Base_Style)
+     Style_Of
+        .Justify_Content (Space_Between)
      .Build;
 
    --  Part styles bundle for class 'just-between'
@@ -1066,9 +566,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'just-evenly'
+   --  Style for class 'just-evenly'
    Just_Evenly_Class_Widget : constant Widget_Style :=
-     From (Just_Evenly_Class_Base_Style)
+     Style_Of
+        .Justify_Content (Space_Evenly)
      .Build;
 
    --  Part styles bundle for class 'just-evenly'
@@ -1078,9 +579,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'align-start'
+   --  Style for class 'align-start'
    Align_Start_Class_Widget : constant Widget_Style :=
-     From (Align_Start_Class_Base_Style)
+     Style_Of
+        .Align_Items (Flex_Start)
      .Build;
 
    --  Part styles bundle for class 'align-start'
@@ -1090,9 +592,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'align-center'
+   --  Style for class 'align-center'
    Align_Center_Class_Widget : constant Widget_Style :=
-     From (Align_Center_Class_Base_Style)
+     Style_Of
+        .Align_Items (Center)
      .Build;
 
    --  Part styles bundle for class 'align-center'
@@ -1102,9 +605,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'align-end'
+   --  Style for class 'align-end'
    Align_End_Class_Widget : constant Widget_Style :=
-     From (Align_End_Class_Base_Style)
+     Style_Of
+        .Align_Items (Flex_End)
      .Build;
 
    --  Part styles bundle for class 'align-end'
@@ -1114,9 +618,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'align-stretch'
+   --  Style for class 'align-stretch'
    Align_Stretch_Class_Widget : constant Widget_Style :=
-     From (Align_Stretch_Class_Base_Style)
+     Style_Of
+        .Align_Items (Stretch)
      .Build;
 
    --  Part styles bundle for class 'align-stretch'
@@ -1126,9 +631,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'h20'
+   --  Style for class 'h20'
    H20_Class_Widget : constant Widget_Style :=
-     From (H20_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (20.0)))
      .Build;
 
    --  Part styles bundle for class 'h20'
@@ -1138,9 +644,11 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'h40'
+   --  Style for class 'h40'
    H40_Class_Widget : constant Widget_Style :=
-     From (H40_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (40.0)))
+        .Background (RGB (94, 129, 172))
      .Build;
 
    --  Part styles bundle for class 'h40'
@@ -1150,9 +658,11 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'h-auto'
+   --  Style for class 'h-auto'
    H_Auto_Class_Widget : constant Widget_Style :=
-     From (H_Auto_Class_Base_Style)
+     Style_Of
+        .Height (Auto_Size)
+        .Background (RGB (180, 142, 173))
      .Build;
 
    --  Part styles bundle for class 'h-auto'
@@ -1162,9 +672,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'w480'
+   --  Style for class 'w480'
    W480_Class_Widget : constant Widget_Style :=
-     From (W480_Class_Base_Style)
+     Style_Of
+        .Width (Size (Px (480.0)))
      .Build;
 
    --  Part styles bundle for class 'w480'
@@ -1174,9 +685,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'w170'
+   --  Style for class 'w170'
    W170_Class_Widget : constant Widget_Style :=
-     From (W170_Class_Base_Style)
+     Style_Of
+        .Width (Size (Px (170.0)))
      .Build;
 
    --  Part styles bundle for class 'w170'
@@ -1186,9 +698,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'h120'
+   --  Style for class 'h120'
    H120_Class_Widget : constant Widget_Style :=
-     From (H120_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (120.0)))
      .Build;
 
    --  Part styles bundle for class 'h120'
@@ -1198,9 +711,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'h150'
+   --  Style for class 'h150'
    H150_Class_Widget : constant Widget_Style :=
-     From (H150_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (150.0)))
      .Build;
 
    --  Part styles bundle for class 'h150'
@@ -1210,9 +724,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'nowrap'
+   --  Style for class 'nowrap'
    Nowrap_Class_Widget : constant Widget_Style :=
-     From (Nowrap_Class_Base_Style)
+     Style_Of
+        .Flex_Wrap (No_Wrap)
      .Build;
 
    --  Part styles bundle for class 'nowrap'
@@ -1222,9 +737,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'wrap'
+   --  Style for class 'wrap'
    Wrap_Class_Widget : constant Widget_Style :=
-     From (Wrap_Class_Base_Style)
+     Style_Of
+        .Flex_Wrap (Wrap)
      .Build;
 
    --  Part styles bundle for class 'wrap'
@@ -1234,9 +750,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'wrap-reverse'
+   --  Style for class 'wrap-reverse'
    Wrap_Reverse_Class_Widget : constant Widget_Style :=
-     From (Wrap_Reverse_Class_Base_Style)
+     Style_Of
+        .Flex_Wrap (Wrap_Reverse)
      .Build;
 
    --  Part styles bundle for class 'wrap-reverse'
@@ -1246,9 +763,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'self-center'
+   --  Style for class 'self-center'
    Self_Center_Class_Widget : constant Widget_Style :=
-     From (Self_Center_Class_Base_Style)
+     Style_Of
+        .Align_Self (Center)
      .Build;
 
    --  Part styles bundle for class 'self-center'
@@ -1258,9 +776,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'self-end'
+   --  Style for class 'self-end'
    Self_End_Class_Widget : constant Widget_Style :=
-     From (Self_End_Class_Base_Style)
+     Style_Of
+        .Align_Self (Flex_End)
      .Build;
 
    --  Part styles bundle for class 'self-end'
@@ -1270,9 +789,11 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'self-stretch'
+   --  Style for class 'self-stretch'
    Self_Stretch_Class_Widget : constant Widget_Style :=
-     From (Self_Stretch_Class_Base_Style)
+     Style_Of
+        .Align_Self (Stretch)
+        .Height (Auto_Size)
      .Build;
 
    --  Part styles bundle for class 'self-stretch'
@@ -1282,9 +803,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'gap-row'
+   --  Style for class 'gap-row'
    Gap_Row_Class_Widget : constant Widget_Style :=
-     From (Gap_Row_Class_Base_Style)
+     Style_Of
+        .Gap (Gap (Px (24.0), Px (0.0)))
      .Build;
 
    --  Part styles bundle for class 'gap-row'
@@ -1294,9 +816,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'gap-column'
+   --  Style for class 'gap-column'
    Gap_Column_Class_Widget : constant Widget_Style :=
-     From (Gap_Column_Class_Base_Style)
+     Style_Of
+        .Gap (Gap (Px (0.0), Px (24.0)))
      .Build;
 
    --  Part styles bundle for class 'gap-column'
@@ -1306,9 +829,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'gap-both'
+   --  Style for class 'gap-both'
    Gap_Both_Class_Widget : constant Widget_Style :=
-     From (Gap_Both_Class_Base_Style)
+     Style_Of
+        .Gap (Gap (Px (24.0), Px (6.0)))
      .Build;
 
    --  Part styles bundle for class 'gap-both'
@@ -1318,9 +842,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'tile-deep'
+   --  Style for class 'tile-deep'
    Tile_Deep_Class_Widget : constant Widget_Style :=
-     From (Tile_Deep_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (46.0)))
      .Build;
 
    --  Part styles bundle for class 'tile-deep'
@@ -1330,9 +855,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'w110'
+   --  Style for class 'w110'
    W110_Class_Widget : constant Widget_Style :=
-     From (W110_Class_Base_Style)
+     Style_Of
+        .Width (Size (Px (110.0)))
      .Build;
 
    --  Part styles bundle for class 'w110'
@@ -1342,9 +868,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'ac-start'
+   --  Style for class 'ac-start'
    Ac_Start_Class_Widget : constant Widget_Style :=
-     From (Ac_Start_Class_Base_Style)
+     Style_Of
+        .Align_Content (Flex_Start)
      .Build;
 
    --  Part styles bundle for class 'ac-start'
@@ -1354,9 +881,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'ac-center'
+   --  Style for class 'ac-center'
    Ac_Center_Class_Widget : constant Widget_Style :=
-     From (Ac_Center_Class_Base_Style)
+     Style_Of
+        .Align_Content (Center)
      .Build;
 
    --  Part styles bundle for class 'ac-center'
@@ -1366,9 +894,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'ac-end'
+   --  Style for class 'ac-end'
    Ac_End_Class_Widget : constant Widget_Style :=
-     From (Ac_End_Class_Base_Style)
+     Style_Of
+        .Align_Content (Flex_End)
      .Build;
 
    --  Part styles bundle for class 'ac-end'
@@ -1378,9 +907,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'ac-between'
+   --  Style for class 'ac-between'
    Ac_Between_Class_Widget : constant Widget_Style :=
-     From (Ac_Between_Class_Base_Style)
+     Style_Of
+        .Align_Content (Space_Between)
      .Build;
 
    --  Part styles bundle for class 'ac-between'
@@ -1390,9 +920,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'ac-around'
+   --  Style for class 'ac-around'
    Ac_Around_Class_Widget : constant Widget_Style :=
-     From (Ac_Around_Class_Base_Style)
+     Style_Of
+        .Align_Content (Space_Around)
      .Build;
 
    --  Part styles bundle for class 'ac-around'
@@ -1402,9 +933,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'ac-stretch'
+   --  Style for class 'ac-stretch'
    Ac_Stretch_Class_Widget : constant Widget_Style :=
-     From (Ac_Stretch_Class_Base_Style)
+     Style_Of
+        .Align_Content (Stretch)
      .Build;
 
    --  Part styles bundle for class 'ac-stretch'
@@ -1414,9 +946,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'tile'
+   --  Style for class 'tile'
    Tile_Class_Widget : constant Widget_Style :=
-     From (Tile_Class_Base_Style)
+     Style_Of
+        .Width (Size (Px (40.0)))
+        .Height (Size (Px (34.0)))
+        .Flex_Grow (0.0)
+        .Flex_Shrink (0.0)
      .Build;
 
    --  Part styles bundle for class 'tile'
@@ -1426,9 +962,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'tile-short'
+   --  Style for class 'tile-short'
    Tile_Short_Class_Widget : constant Widget_Style :=
-     From (Tile_Short_Class_Base_Style)
+     Style_Of
+        .Height (Size (Px (22.0)))
      .Build;
 
    --  Part styles bundle for class 'tile-short'
@@ -1438,9 +975,10 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'align-start-items'
+   --  Style for class 'align-start-items'
    Align_Start_Items_Class_Widget : constant Widget_Style :=
-     From (Align_Start_Items_Class_Base_Style)
+     Style_Of
+        .Align_Items (Flex_Start)
      .Build;
 
    --  Part styles bundle for class 'align-start-items'
@@ -1450,9 +988,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'pinned'
+   --  Style for class 'pinned'
    Pinned_Class_Widget : constant Widget_Style :=
-     From (Pinned_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (90.0)))
+        .Min_Width (Size (Px (90.0)))
+        .Flex_Shrink (1.0)
+        .Background (RGB (191, 97, 106))
      .Build;
 
    --  Part styles bundle for class 'pinned'
@@ -1462,9 +1004,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'elastic'
+   --  Style for class 'elastic'
    Elastic_Class_Widget : constant Widget_Style :=
-     From (Elastic_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (220.0)))
+        .Min_Width (Size (Px (0.0)))
+        .Flex_Shrink (1.0)
+        .Background (RGB (163, 190, 140))
      .Build;
 
    --  Part styles bundle for class 'elastic'
@@ -1474,9 +1020,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'rigid'
+   --  Style for class 'rigid'
    Rigid_Class_Widget : constant Widget_Style :=
-     From (Rigid_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (0.0)
+        .Flex_Shrink (0.0)
+        .Min_Width (Size (Px (90.0)))
+        .Background (RGB (191, 97, 106))
      .Build;
 
    --  Part styles bundle for class 'rigid'
@@ -1486,9 +1036,14 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'capped'
+   --  Style for class 'capped'
    Capped_Class_Widget : constant Widget_Style :=
-     From (Capped_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (220.0)))
+        .Flex_Grow (0.0)
+        .Flex_Shrink (0.0)
+        .Max_Width (Size (Px (90.0)))
+        .Background (RGB (191, 97, 106))
      .Build;
 
    --  Part styles bundle for class 'capped'
@@ -1498,9 +1053,12 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'greedy'
+   --  Style for class 'greedy'
    Greedy_Class_Widget : constant Widget_Style :=
-     From (Greedy_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Min_Width (Size (Px (0.0)))
+        .Background (RGB (163, 190, 140))
      .Build;
 
    --  Part styles bundle for class 'greedy'
@@ -1510,9 +1068,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'frac-half'
+   --  Style for class 'frac-half'
    Frac_Half_Class_Widget : constant Widget_Style :=
-     From (Frac_Half_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (0.0)))
+        .Flex_Grow (0.5)
+        .Min_Width (Size (Px (0.0)))
+        .Background (RGB (180, 142, 173))
      .Build;
 
    --  Part styles bundle for class 'frac-half'
@@ -1522,9 +1084,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'frac-quarter'
+   --  Style for class 'frac-quarter'
    Frac_Quarter_Class_Widget : constant Widget_Style :=
-     From (Frac_Quarter_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (0.0)))
+        .Flex_Grow (0.25)
+        .Min_Width (Size (Px (0.0)))
+        .Background (RGB (180, 142, 173))
      .Build;
 
    --  Part styles bundle for class 'frac-quarter'
@@ -1534,9 +1100,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'floored-wide'
+   --  Style for class 'floored-wide'
    Floored_Wide_Class_Widget : constant Widget_Style :=
-     From (Floored_Wide_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (0.0)))
+        .Flex_Grow (1.0)
+        .Min_Width (Size (Px (260.0)))
+        .Background (RGB (191, 97, 106))
      .Build;
 
    --  Part styles bundle for class 'floored-wide'
@@ -1546,9 +1116,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'based'
+   --  Style for class 'based'
    Based_Class_Widget : constant Widget_Style :=
-     From (Based_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (160.0)))
+        .Flex_Grow (1.0)
+        .Min_Width (Size (Px (0.0)))
+        .Background (RGB (163, 190, 140))
      .Build;
 
    --  Part styles bundle for class 'based'
@@ -1558,9 +1132,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'triple'
+   --  Style for class 'triple'
    Triple_Class_Widget : constant Widget_Style :=
-     From (Triple_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (0.0)))
+        .Flex_Grow (3.0)
+        .Min_Width (Size (Px (0.0)))
+        .Background (RGB (94, 129, 172))
      .Build;
 
    --  Part styles bundle for class 'triple'
@@ -1570,9 +1148,14 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'ceiling'
+   --  Style for class 'ceiling'
    Ceiling_Class_Widget : constant Widget_Style :=
-     From (Ceiling_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (0.0)))
+        .Flex_Grow (1.0)
+        .Min_Width (Size (Px (0.0)))
+        .Max_Width (Size (Px (112.0)))
+        .Background (RGB (180, 142, 173))
      .Build;
 
    --  Part styles bundle for class 'ceiling'
@@ -1582,9 +1165,13 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'plain-grow'
+   --  Style for class 'plain-grow'
    Plain_Grow_Class_Widget : constant Widget_Style :=
-     From (Plain_Grow_Class_Base_Style)
+     Style_Of
+        .Flex_Basis (Basis (Px (0.0)))
+        .Flex_Grow (1.0)
+        .Min_Width (Size (Px (0.0)))
+        .Background (RGB (163, 190, 140))
      .Build;
 
    --  Part styles bundle for class 'plain-grow'

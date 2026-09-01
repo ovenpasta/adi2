@@ -338,7 +338,7 @@ W := UI.Build;
 ```
 
 Inline CSS is generated in **two forms**, one per mode:
-- Compiled to Ada `Style_Rules` constants, registered by `Register_Inline_Selectors` — what `Static_Mode` uses
+- Compiled to Ada `Widget_Style` constants, registered by `Register_Inline_Selectors` — what `Static_Mode` uses
 - Emitted verbatim as `Inline_CSS : constant String` and installed with `CSS_Text`, after the `<link>` sheets — what `Dynamic_Mode` uses
 
 Both are needed because `Selector_Styles` consults the static entries only
@@ -740,7 +740,7 @@ Key points:
 
 The body contains:
 
-1. **CSS source and style constants** — `Style_Source`, precompiled `Style_Rules` constants for inline `<style>` blocks
+1. **CSS source and style constants** — `Style_Source`, precompiled `Widget_Style` constants for inline `<style>` blocks
 2. **Option group variables and wrappers** — Group records and callback wrapper procedures
 3. **Tick/Set_CSS_File (or Set_CSS_Sheets) procedures** — CSS reload support
 4. **`Build` function** — Creates all widgets, registers static CSS entries, loads dynamic CSS, binds classes, builds the widget hierarchy, wires option groups, and attaches tick callback

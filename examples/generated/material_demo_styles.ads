@@ -18,15 +18,15 @@ package Material_Demo_Styles is
    function Has_Root_Font_Size return Boolean is (True);
    function Root_Font_Size return Length_Value is (Dip (16.0));
 
-   function Root_Base_Style return Style_Rules is
-     (
-      Font_Size => Set_Font (Dip (16.0)),
-      others => <>);
-
    function Has_Root_Styles return Boolean is (True);
+   Root_Style : constant Widget_Style :=
+     Style_Of
+        .Font_Size (Dip (16.0))
+     .Build;
+
    Root_Part_Styles : constant Part_Style_Array :=
      [
-      Main_Part => (Style => From (Root_Base_Style).Build, Enabled => True),
+      Main_Part => (Style => Root_Style, Enabled => True),
       others => <>
    ];
 
@@ -74,871 +74,12 @@ package Material_Demo_Styles is
    function Var_Quit_Title return String is ("Quit?");
    function Var_Quit_Message return String is ("Are you sure you want to quit the Material Demo?");
 
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Background_Color => Set_Bg (RGB (28, 27, 31)),
-      others => <>);
-
-   --  Base style for class 'app-bar'
-   function App_Bar_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Align_Items => Set (Center),
-      Flex_Shrink => Set (0.0),
-      Background_Color => Set_Bg (RGB (28, 27, 31)),
-      Padding => Set (CSS_Box (Dip (16.0), Dip (24.0), Dip (16.0), Dip (24.0))),
-      others => <>);
-
-   --  Base style for class 'app-title'
-   function App_Title_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Align_Items => Set (Center),
-      Gap => Set (Gap (Dip (10.0))),
-      others => <>);
-
-   --  Base style for class 'app-title'::icon
-   function App_Title_Class_Icon_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Dip (28.0))),
-      Height => Set (Size (Dip (28.0))),
-      others => <>);
-
-   --  Base style for class 'app-title'::label
-   function App_Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Root_Em (1.375)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>);
-
-   --  Base style for class 'nav-bar'
-   function Nav_Bar_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Align_Items => Set (Center),
-      Gap => Set (Gap (Dip (4.0))),
-      Background_Color => Set_Bg (RGB (43, 41, 48)),
-      Padding => Set (CSS_Box (Dip (4.0), Dip (16.0), Dip (4.0), Dip (16.0))),
-      others => <>);
-
-   --  Base style for class 'lock-bar'
-   function Lock_Bar_Class_Base_Style return Style_Rules is
-     (
-      Padding => Set (CSS_Box (Dip (8.0), Dip (20.0), Dip (8.0), Dip (20.0))),
-      others => <>);
-
-   --  Base style for class 'nav-btn'
-   function Nav_Btn_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Dip (12.0), Dip (24.0), Dip (12.0), Dip (24.0))),
-      Border_Radius => Set (Radius (Dip (999.0))),
-      others => <>);
-
-   --  Style for class 'nav-btn' when widget State_Hovered
-   function Nav_Btn_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.08)),
-      others => <>);
-
-   --  Style for class 'nav-btn' when widget State_Focused
-   function Nav_Btn_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Dip (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
-      others => <>);
-
-   --  Style for class 'nav-btn' when widget State_Selected
-   function Nav_Btn_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (74, 68, 88)),
-      others => <>);
-
-   --  Base style for class 'nav-btn'::label
-   function Nav_Btn_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (202, 196, 208)),
-      Font_Size => Set_Font (Root_Em (0.875)),
-      Font_Weight => Set (Weight_Medium),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Color))),
-      others => <>);
-
-   --  Style for class 'nav-btn'::label when widget State_Hovered
-   function Nav_Btn_Class_Label_Widget_Hovered_Style return Style_Rules is
-     (
-      Color => Set (RGB (208, 188, 255)),
-      others => <>);
-
-   --  Style for class 'nav-btn'::label when widget State_Selected
-   function Nav_Btn_Class_Label_Widget_Selected_Style return Style_Rules is
-     (
-      Color => Set (RGB (208, 188, 255)),
-      Font_Weight => Set (Weight_Bold),
-      others => <>);
-
-   --  Base style for class 'pages'
-   function Pages_Class_Base_Style return Style_Rules is
-     (
-      Flex_Grow => Set (1.0),
-      Padding => Set (CSS_Box (Vh (2.0), Vw (2.5), Vh (2.0), Vw (2.5))),
-      others => <>);
-
-   --  Base style for class 'page'
-   function Page_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Gap => Set (Gap (Dip (16.0))),
-      Padding => Set (CSS_Box (Dip (8.0), Dip (8.0), Dip (8.0), Dip (8.0))),
-      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
-      others => <>);
-
-   --  Base style for class 'label-inline'
-   function Label_Inline_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      Display => Set (Inline_Flex),
-      others => <>);
-
-   --  Base style for class 'card'
-   function Card_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Background_Color => Set_Bg (RGB (43, 41, 48)),
-      Gap => Set (Gap (Dip (12.0))),
-      Box_Shadow => Set (Shadow (Dip (0.0), Dip (2.0), Dip (8.0), Dip (0.0), RGBA (0, 0, 0, 0.3))),
-      Transition => Set ((Duration => 0.25, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
-      Padding => Set (CSS_Box (Dip (24.0), Dip (24.0), Dip (24.0), Dip (24.0))),
-      Border_Radius => Set (Radius (Dip (16.0))),
-      others => <>);
-
-   --  Base style for class 'card-title'::label
-   function Card_Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Root_Em (1.25)),
-      Font_Weight => Set (Weight_Semi_Bold),
-      others => <>);
-
-   --  Base style for class 'card-body'::label
-   function Card_Body_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (202, 196, 208)),
-      Font_Size => Set_Font (Root_Em (0.875)),
-      Font_Weight => Set (Weight_Normal),
-      others => <>);
-
-   --  Base style for class 'card-hint'::label
-   function Card_Hint_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGBA (202, 196, 208, 0.6)),
-      Font_Size => Set_Font (Root_Em (0.75)),
-      Font_Weight => Set (Weight_Normal),
-      others => <>);
-
-   --  Base style for class 'control-grid'
-   function Control_Grid_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Grid),
-      Grid_Columns => Set (Grid_Columns_Value (3)),
-      Grid_Column_Tracks => (Count => 3, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), others => <>]),
-      Gap => Set (Gap (Dip (12.0), Dip (16.0))),
-      Align_Items => Set (Center),
-      Padding => Set (CSS_Box (Dip (4.0), Dip (0.0), Dip (4.0), Dip (0.0))),
-      others => <>);
-
-   --  Base style for class 'grid-header'::label
-   function Grid_Header_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGBA (202, 196, 208, 0.6)),
-      Font_Size => Set_Font (Root_Em (0.75)),
-      Font_Weight => Set (Weight_Semi_Bold),
-      others => <>);
-
-   --  Base style for class 'grid-label'
-   function Grid_Label_Class_Base_Style return Style_Rules is
-     (
-      Align_Self => Set (Center),
-      others => <>);
-
-   --  Base style for class 'grid-label'::label
-   function Grid_Label_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (202, 196, 208)),
-      Font_Size => Set_Font (Root_Em (0.875)),
-      Font_Weight => Set (Weight_Medium),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'grid-cell'
-   function Grid_Cell_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      Align_Self => Set (Center),
-      others => <>);
-
-   --  Base style for class 'btn'
-   function Btn_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Height => Set (Size (Dip (44.0))),
-      Min_Height => Set (Size (Dip (44.0))),
-      Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow))),
-      Padding => Set (CSS_Box (Dip (0.0), Dip (24.0), Dip (0.0), Dip (24.0))),
-      Border_Radius => Set (Radius (Dip (999.0))),
-      others => <>);
-
-   --  Style for class 'btn' when widget State_Disabled
-   function Btn_Class_Widget_Disabled_Style return Style_Rules is
-     (
-      Opacity => Set (0.5),
-      Cursor => Set (Cursor_Default),
-      others => <>);
-
-   --  Base style for class 'btn'::label
-   function Btn_Class_Label_Base_Style return Style_Rules is
-     (
-      Font_Size => Set_Font (Root_Em (0.875)),
-      Font_Weight => Set (Weight_Semi_Bold),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'btn-primary'
-   function Btn_Primary_Class_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (208, 188, 255)),
-      Box_Shadow => Set (Shadow (Dip (0.0), Dip (1.0), Dip (3.0), Dip (0.0), RGBA (0, 0, 0, 0.3))),
-      others => <>);
-
-   --  Style for class 'btn-primary' when widget State_Hovered
-   function Btn_Primary_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (220, 204, 255)),
-      Box_Shadow => Set (Shadow (Dip (0.0), Dip (2.0), Dip (6.0), Dip (0.0), RGBA (0, 0, 0, 0.35))),
-      others => <>);
-
-   --  Style for class 'btn-primary' when widget State_Pressed
-   function Btn_Primary_Class_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (190, 168, 240)),
-      Box_Shadow => Set (Shadow (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0), RGBA (0, 0, 0, 0.2))),
-      others => <>);
-
-   --  Style for class 'btn-primary' when widget State_Focused
-   function Btn_Primary_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Dip (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGB (255, 255, 255)),
-      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
-      others => <>);
-
-   --  Base style for class 'btn-primary'::label
-   function Btn_Primary_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (56, 30, 114)),
-      others => <>);
-
-   --  Base style for class 'btn-secondary'
-   function Btn_Secondary_Class_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
-      others => <>);
-
-   --  Style for class 'btn-secondary' when widget State_Hovered
-   function Btn_Secondary_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.08)),
-      Box_Shadow => Set (Shadow (Dip (0.0), Dip (1.0), Dip (4.0), Dip (0.0), RGBA (0, 0, 0, 0.25))),
-      others => <>);
-
-   --  Style for class 'btn-secondary' when widget State_Pressed
-   function Btn_Secondary_Class_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.16)),
-      Box_Shadow => Set (No_Shadow),
-      others => <>);
-
-   --  Style for class 'btn-secondary' when widget State_Focused
-   function Btn_Secondary_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Dip (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
-      others => <>);
-
-   --  Base style for class 'btn-secondary'::label
-   function Btn_Secondary_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (208, 188, 255)),
-      others => <>);
-
-   --  Base style for class 'btn-row'
-   function Btn_Row_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Gap => Set (Gap (Dip (12.0))),
-      Padding => Set (CSS_Box (Dip (8.0), Dip (0.0), Dip (0.0), Dip (0.0))),
-      others => <>);
-
-   --  Base style for class 'field-label'
-   function Field_Label_Class_Base_Style return Style_Rules is
-     (
-      Padding => Set (CSS_Box (Dip (4.0), Dip (0.0), Dip (0.0), Dip (0.0))),
-      others => <>);
-
-   --  Base style for class 'field-label'::label
-   function Field_Label_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (202, 196, 208)),
-      Font_Size => Set_Font (Root_Em (0.75)),
-      Font_Weight => Set (Weight_Medium),
-      others => <>);
-
-   --  Base style for class 'text-field'
-   function Text_Field_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Dip (44.0))),
-      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Cursor => Set (Cursor_Text),
-      Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color))),
-      Padding => Set (CSS_Box (Dip (0.0), Dip (16.0), Dip (0.0), Dip (16.0))),
-      Border_Width => Set (Border_Width (Dip (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
-      Border_Radius => Set (Radius (Dip (8.0))),
-      others => <>);
-
-   --  Style for class 'text-field' when widget State_Focused
-   function Text_Field_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
-      others => <>);
-
-   --  Style for class 'text-field' when widget State_Disabled
-   function Text_Field_Class_Widget_Disabled_Style return Style_Rules is
-     (
-      Opacity => Set (0.5),
-      Cursor => Set (Cursor_Default),
-      others => <>);
-
-   --  Base style for class 'text-field'::cursor
-   function Text_Field_Class_Cursor_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (208, 188, 255)),
-      Width => Set (Size (Dip (2.0))),
-      others => <>);
-
-   --  Base style for class 'text-field'::label
-   function Text_Field_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (147, 143, 153)),
-      Font_Size => Set_Font (Root_Em (0.75)),
-      Font_Weight => Set (Weight_Medium),
-      Background_Color => Set_Bg (RGB (43, 41, 48)),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      Top => Set_Top (Inset (Dip (-8.0))),
-      Left => Set_Left (Inset (Dip (12.0))),
-      Padding => Set (CSS_Box (Dip (0.0), Dip (4.0), Dip (0.0), Dip (4.0))),
-      others => <>);
-
-   --  Style for class 'text-field'::label when widget State_Focused
-   function Text_Field_Class_Label_Widget_Focused_Style return Style_Rules is
-     (
-      Color => Set (RGB (208, 188, 255)),
-      others => <>);
-
-   --  Base style for class 'text-field'::selected
-   function Text_Field_Class_Selected_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.3)),
-      others => <>);
-
-   --  Base style for class 'text-field'::text
-   function Text_Field_Class_Text_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Root_Em (0.875)),
-      others => <>);
-
-   --  Base style for class 'combo'
-   function Combo_Class_Base_Style return Style_Rules is
-     (
-      Height => Set (Size (Dip (44.0))),
-      Align_Items => Set (Center),
-      Background_Color => Set_Bg (RGB (54, 52, 59)),
-      Cursor => Set (Cursor_Pointer),
-      Padding => Set (CSS_Box (Dip (9.0), Dip (16.0), Dip (9.0), Dip (16.0))),
-      Border_Width => Set (Border_Width (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
-      Border_Radius => Set (Radius (Dip (8.0), Dip (8.0), Dip (0.0), Dip (0.0))),
-      others => <>);
-
-   --  Style for class 'combo' when widget State_Hovered
-   function Combo_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Box_Shadow => Set (Shadow (Dip (0.0), Dip (0.0), Dip (8.0), Dip (0.0), RGBA (208, 188, 255, 0.15))),
-      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
-      others => <>);
-
-   --  Style for class 'combo' when widget State_Focused
-   function Combo_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Box_Shadow => Set (Shadow (Dip (0.0), Dip (0.0), Dip (10.0), Dip (0.0), RGBA (208, 188, 255, 0.5))),
-      Border_Width => Set (Border_Width (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0))),
-      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
-      others => <>);
-
-   --  Style for class 'combo' when widget State_Disabled
-   function Combo_Class_Widget_Disabled_Style return Style_Rules is
-     (
-      Opacity => Set (0.5),
-      Cursor => Set (Cursor_Default),
-      others => <>);
-
-   --  Base style for class 'combo'::indicator
-   function Combo_Class_Indicator_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (202, 196, 208)),
-      Font_Size => Set_Font (Root_Em (0.75)),
-      others => <>);
-
-   --  Base style for class 'combo'::text
-   function Combo_Class_Text_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Root_Em (0.875)),
-      others => <>);
-
-   --  Base style for class 'setting-row'
-   function Setting_Row_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Align_Items => Set (Center),
-      Justify_Content => Set (Space_Between),
-      Padding => Set (CSS_Box (Dip (8.0), Dip (0.0), Dip (8.0), Dip (0.0))),
-      others => <>);
-
-   --  Base style for class 'setting-label'
-   function Setting_Label_Class_Base_Style return Style_Rules is
-     (
-      others => <>);
-
-   --  Base style for class 'setting-label'::label
-   function Setting_Label_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Root_Em (1.0)),
-      Font_Weight => Set (Weight_Normal),
-      White_Space => Set (WS_Nowrap),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'setting-switch'
-   function Setting_Switch_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      Width => Set (Size (Dip (52.0))),
-      Height => Set (Size (Dip (32.0))),
-      Background_Color => Set_Bg (RGB (73, 69, 79)),
-      Cursor => Set (Cursor_Pointer),
-      Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color))),
-      Border_Width => Set (Border_Width (Dip (2.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
-      Border_Radius => Set (Radius (Dip (999.0))),
-      others => <>);
-
-   --  Style for class 'setting-switch' when widget State_Selected
-   function Setting_Switch_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (208, 188, 255)),
-      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
-      others => <>);
-
-   --  Style for class 'setting-switch' when widget State_Focused
-   function Setting_Switch_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Dip (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
-      others => <>);
-
-   --  Style for class 'setting-switch' when widget State_Selected, widget State_Focused
-   function Setting_Switch_Class_Widget_Selected_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Dip (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
-      others => <>);
-
-   --  Style for class 'setting-switch' when widget State_Disabled
-   function Setting_Switch_Class_Widget_Disabled_Style return Style_Rules is
-     (
-      Opacity => Set (0.5),
-      Cursor => Set (Cursor_Default),
-      others => <>);
-
-   --  Base style for class 'setting-switch'::knob
-   function Setting_Switch_Class_Knob_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Dip (24.0))),
-      Height => Set (Size (Dip (24.0))),
-      Background_Color => Set_Bg (RGB (147, 143, 153)),
-      Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Margin) + Props (Prop_Background_Color))),
-      Margin => Set_Margin (CSS_Box (Dip (2.0), Dip (2.0), Dip (2.0), Dip (2.0))),
-      Border_Radius => Set (Radius (Dip (999.0))),
-      others => <>);
-
-   --  Style for class 'setting-switch'::knob when widget State_Selected
-   function Setting_Switch_Class_Knob_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (56, 30, 114)),
-      Margin => Set_Margin (CSS_Box (Dip (2.0), Dip (2.0), Dip (2.0), Dip (22.0))),
-      others => <>);
-
-   --  Base style for class 'combo-dropdown'
-   function Combo_Dropdown_Class_Base_Style return Style_Rules is
-     (
-      Max_Height => Set (Size (Vh (40.0))),
-      Background_Color => Set_Bg (RGB (54, 52, 60)),
-      Box_Shadow => Set (Shadow (Dip (0.0), Dip (8.0), Dip (20.0), Dip (0.0), RGBA (0, 0, 0, 0.4))),
-      Padding => Set (CSS_Box (Dip (4.0), Dip (4.0), Dip (4.0), Dip (4.0))),
-      Border_Width => Set (Border_Width (Dip (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (73, 69, 79))),
-      Border_Radius => Set (Radius (Dip (12.0))),
-      Overflow_X => Set_Overflow_X (Overflow_Auto),
-      Overflow_Y => Set_Overflow_Y (Overflow_Auto),
-      others => <>);
-
-   --  Base style for class 'combo-option'
-   function Combo_Option_Class_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Transition => Set ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Dip (10.0), Dip (14.0), Dip (10.0), Dip (14.0))),
-      Margin => Set_Margin (CSS_Box (Dip (2.0), Dip (0.0), Dip (2.0), Dip (0.0))),
-      Border_Radius => Set (Radius (Dip (8.0))),
-      others => <>);
-
-   --  Style for class 'combo-option' when widget State_Hovered
-   function Combo_Option_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.08)),
-      others => <>);
-
-   --  Style for class 'combo-option' when widget State_Selected
-   function Combo_Option_Class_Widget_Selected_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (74, 68, 88)),
-      others => <>);
-
-   --  Base style for class 'combo-option'::label
-   function Combo_Option_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Root_Em (0.875)),
-      others => <>);
-
-   --  Style for class 'combo-option'::label when widget State_Selected
-   function Combo_Option_Class_Label_Widget_Selected_Style return Style_Rules is
-     (
-      Color => Set (RGB (208, 188, 255)),
-      others => <>);
-
-   --  Base style for class 'dialog-backdrop'
-   function Dialog_Backdrop_Class_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.5)),
-      others => <>);
-
-   --  Base style for class 'dialog-panel'
-   function Dialog_Panel_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Gap => Set (Gap (Dip (16.0))),
-      Min_Width => Set (Size (Dip (320.0))),
-      Max_Width => Set (Size (Dip (460.0))),
-      Background_Color => Set_Bg (RGB (48, 45, 56)),
-      Box_Shadow => Set (Shadow (Dip (0.0), Dip (8.0), Dip (32.0), Dip (0.0), RGBA (0, 0, 0, 0.5))),
-      Padding => Set (CSS_Box (Dip (24.0), Dip (24.0), Dip (24.0), Dip (24.0))),
-      Border_Radius => Set (Radius (Dip (28.0))),
-      others => <>);
-
-   --  Base style for class 'dialog-message'
-   function Dialog_Message_Class_Base_Style return Style_Rules is
-     (
-      Flex_Direction => Set (Row),
-      Align_Items => Set (Flex_Start),
-      Gap => Set (Gap (Dip (12.0))),
-      others => <>);
-
-   --  Base style for class 'dialog-message'::icon
-   function Dialog_Message_Class_Icon_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Dip (32.0))),
-      Height => Set (Size (Dip (32.0))),
-      others => <>);
-
-   --  Base style for class 'dialog-message'::label
-   function Dialog_Message_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (202, 196, 208)),
-      Font_Size => Set_Font (Root_Em (0.875)),
-      Text_Wrap_Mode => Set (TWM_Wrap),
-      others => <>);
-
-   --  Base style for class 'dialog-title'
-   function Dialog_Title_Class_Base_Style return Style_Rules is
-     (
-      Flex_Shrink => Set (0.0),
-      others => <>);
-
-   --  Base style for class 'dialog-title'::label
-   function Dialog_Title_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Root_Em (1.5)),
-      Font_Weight => Set (Weight_Semi_Bold),
-      others => <>);
-
-   --  Base style for class 'dialog-btn-row'
-   function Dialog_Btn_Row_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Justify_Content => Set (Flex_End),
-      Gap => Set (Gap (Dip (8.0))),
-      Padding => Set (CSS_Box (Dip (8.0), Dip (0.0), Dip (0.0), Dip (0.0))),
-      others => <>);
-
-   --  Base style for class 'dialog-btn'
-   function Dialog_Btn_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Inline_Flex),
-      Justify_Content => Set (Center),
-      Align_Items => Set (Center),
-      Height => Set (Size (Dip (44.0))),
-      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Padding => Set (CSS_Box (Dip (0.0), Dip (24.0), Dip (0.0), Dip (24.0))),
-      Border_Radius => Set (Radius (Dip (999.0))),
-      others => <>);
-
-   --  Style for class 'dialog-btn' when widget State_Hovered
-   function Dialog_Btn_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.08)),
-      others => <>);
-
-   --  Style for class 'dialog-btn' when widget State_Pressed
-   function Dialog_Btn_Class_Widget_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.12)),
-      others => <>);
-
-   --  Style for class 'dialog-btn' when widget State_Focused
-   function Dialog_Btn_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.12)),
-      others => <>);
-
-   --  Base style for class 'dialog-btn'::label
-   function Dialog_Btn_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (208, 188, 255)),
-      Font_Size => Set_Font (Root_Em (0.875)),
-      Font_Weight => Set (Weight_Semi_Bold),
-      Text_Wrap_Mode => Set (TWM_Nowrap),
-      others => <>);
-
-   --  Base style for class 'grid-slider'
-   function Grid_Slider_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Pct (100.0))),
-      others => <>);
-
-   --  Base style for class 'slider'
-   function Slider_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Dip (200.0))),
-      Height => Set (Size (Dip (20.0))),
-      Background_Color => Set_Bg (RGB (73, 69, 79)),
-      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Border_Radius => Set (Radius (Dip (999.0))),
-      others => <>);
-
-   --  Style for class 'slider' when widget State_Focused
-   function Slider_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Dip (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
-      others => <>);
-
-   --  Style for class 'slider' when widget State_Disabled
-   function Slider_Class_Widget_Disabled_Style return Style_Rules is
-     (
-      Opacity => Set (0.5),
-      others => <>);
-
-   --  Base style for class 'slider'::indicator
-   function Slider_Class_Indicator_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (208, 188, 255)),
-      Border_Radius => Set (Radius (Dip (999.0))),
-      others => <>);
-
-   --  Style for class 'slider'::indicator when widget State_Disabled
-   function Slider_Class_Indicator_Widget_Disabled_Style return Style_Rules is
-     (
-      Opacity => Set (0.5),
-      others => <>);
-
-   --  Base style for class 'slider'::knob
-   function Slider_Class_Knob_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Dip (20.0))),
-      Background_Color => Set_Bg (RGB (230, 225, 229)),
-      Transition => Set ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color))),
-      Border_Radius => Set (Radius (Pct (50.0))),
-      others => <>);
-
-   --  Style for class 'slider'::knob when part State_Hovered
-   function Slider_Class_Knob_Part_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (208, 188, 255)),
-      others => <>);
-
-   --  Style for class 'slider'::knob when part State_Pressed
-   function Slider_Class_Knob_Part_Pressed_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (208, 188, 255)),
-      others => <>);
-
-   --  Style for class 'slider'::knob when widget State_Disabled
-   function Slider_Class_Knob_Widget_Disabled_Style return Style_Rules is
-     (
-      Opacity => Set (0.5),
-      others => <>);
-
-   --  Base style for class 'num-field'
-   function Num_Field_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Dip (100.0))),
-      Background_Color => Set_Bg (RGB (54, 52, 59)),
-      Cursor => Set (Cursor_Text),
-      Transition => Set ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color))),
-      Padding => Set (CSS_Box (Dip (10.0), Dip (12.0), Dip (10.0), Dip (12.0))),
-      Border_Width => Set (Border_Width (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (147, 143, 153))),
-      Border_Radius => Set (Radius (Dip (8.0), Dip (8.0), Dip (0.0), Dip (0.0))),
-      others => <>);
-
-   --  Style for class 'num-field' when widget State_Focused
-   function Num_Field_Class_Widget_Focused_Style return Style_Rules is
-     (
-      Outline_Width => Set_Outline_Width (Dip (2.0)),
-      Outline_Style => Set (Outline_Solid),
-      Outline_Color => Set_Outline_Color (RGB (208, 188, 255)),
-      Outline_Offset => Set_Outline_Offset (Dip (2.0)),
-      Border_Color => Set (Border_Color (RGB (208, 188, 255))),
-      others => <>);
-
-   --  Style for class 'num-field' when widget State_Disabled
-   function Num_Field_Class_Widget_Disabled_Style return Style_Rules is
-     (
-      Opacity => Set (0.5),
-      Cursor => Set (Cursor_Default),
-      others => <>);
-
-   --  Base style for class 'num-field'::cursor
-   function Num_Field_Class_Cursor_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (208, 188, 255)),
-      Width => Set (Size (Dip (2.0))),
-      others => <>);
-
-   --  Base style for class 'num-field'::selected
-   function Num_Field_Class_Selected_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.3)),
-      others => <>);
-
-   --  Base style for class 'num-field'::text
-   function Num_Field_Class_Text_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Root_Em (0.875)),
-      others => <>);
-
-   --  Base style for class 'context-menu'
-   function Context_Menu_Class_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Dip (180.0))),
-      Background_Color => Set_Bg (RGB (54, 52, 60)),
-      Box_Shadow => Set (Shadow (Dip (0.0), Dip (8.0), Dip (24.0), Dip (0.0), RGBA (0, 0, 0, 0.45))),
-      Padding => Set (CSS_Box (Dip (6.0), Dip (6.0), Dip (6.0), Dip (6.0))),
-      Border_Width => Set (Border_Width (Dip (1.0))),
-      Border_Style => Set (Border_Style (Solid)),
-      Border_Color => Set (Border_Color (RGB (73, 69, 79))),
-      Border_Radius => Set (Radius (Dip (8.0))),
-      others => <>);
-
-   --  Base style for class 'context-menu-item'
-   function Context_Menu_Item_Class_Base_Style return Style_Rules is
-     (
-      Min_Height => Set (Size (Dip (28.0))),
-      Background_Color => Set_Bg (RGBA (0, 0, 0, 0.0)),
-      Padding => Set (CSS_Box (Dip (6.0), Dip (10.0), Dip (6.0), Dip (10.0))),
-      Border_Radius => Set (Radius (Dip (6.0))),
-      others => <>);
-
-   --  Style for class 'context-menu-item' when widget State_Hovered
-   function Context_Menu_Item_Class_Widget_Hovered_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGBA (208, 188, 255, 0.15)),
-      others => <>);
-
-   --  Base style for class 'context-menu-item'::label
-   function Context_Menu_Item_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (230, 225, 229)),
-      Font_Size => Set_Font (Dip (13.0)),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Background (RGB (28, 27, 31))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -948,9 +89,15 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'app-bar'
+   --  Style for class 'app-bar'
    App_Bar_Class_Widget : constant Widget_Style :=
-     From (App_Bar_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Align_Items (Center)
+        .Flex_Shrink (0.0)
+        .Background (RGB (28, 27, 31))
+        .Padding (CSS_Box (Dip (16.0), Dip (24.0), Dip (16.0), Dip (24.0)))
      .Build;
 
    --  Part styles bundle for class 'app-bar'
@@ -960,19 +107,28 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'app-title'
+   --  Style for class 'app-title'
    App_Title_Class_Widget : constant Widget_Style :=
-     From (App_Title_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Align_Items (Center)
+        .Gap (Gap (Dip (10.0)))
      .Build;
 
-   --  Complete widget style for class 'app-title'::icon
+   --  Style for class 'app-title'::icon
    App_Title_Class_Icon_Widget : constant Widget_Style :=
-     From (App_Title_Class_Icon_Base_Style)
+     Style_Of
+        .Width (Size (Dip (28.0)))
+        .Height (Size (Dip (28.0)))
      .Build;
 
-   --  Complete widget style for class 'app-title'::label
+   --  Style for class 'app-title'::label
    App_Title_Class_Label_Widget : constant Widget_Style :=
-     From (App_Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (230, 225, 229))
+        .Font_Size (Root_Em (1.375))
+        .Font_Weight (Weight_Bold)
      .Build;
 
    --  Part styles bundle for class 'app-title'
@@ -984,9 +140,15 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'nav-bar'
+   --  Style for class 'nav-bar'
    Nav_Bar_Class_Widget : constant Widget_Style :=
-     From (Nav_Bar_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Align_Items (Center)
+        .Gap (Gap (Dip (4.0)))
+        .Background (RGB (43, 41, 48))
+        .Padding (CSS_Box (Dip (4.0), Dip (16.0), Dip (4.0), Dip (16.0)))
      .Build;
 
    --  Part styles bundle for class 'nav-bar'
@@ -996,9 +158,10 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'lock-bar'
+   --  Style for class 'lock-bar'
    Lock_Bar_Class_Widget : constant Widget_Style :=
-     From (Lock_Bar_Class_Base_Style)
+     Style_Of
+        .Padding (CSS_Box (Dip (8.0), Dip (20.0), Dip (8.0), Dip (20.0)))
      .Build;
 
    --  Part styles bundle for class 'lock-bar'
@@ -1008,19 +171,45 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'nav-btn'
+   --  Style for class 'nav-btn'
    Nav_Btn_Class_Widget : constant Widget_Style :=
-     From (Nav_Btn_Class_Base_Style)
-     .On (When_State (State_Hovered), Nav_Btn_Class_Widget_Hovered_Style)
-     .On (When_State (State_Focused), Nav_Btn_Class_Widget_Focused_Style)
-     .On (When_State (State_Selected), Nav_Btn_Class_Widget_Selected_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Background (RGBA (0, 0, 0, 0.0))
+        .Transition ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color)))
+        .Padding (CSS_Box (Dip (12.0), Dip (24.0), Dip (12.0), Dip (24.0)))
+        .Radius (Radius (Dip (999.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGBA (208, 188, 255, 0.08))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Outline_Width (Dip (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGB (208, 188, 255))
+        .Outline_Offset (Dip (2.0))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (74, 68, 88))
      .Build;
 
-   --  Complete widget style for class 'nav-btn'::label
+   --  Style for class 'nav-btn'::label
    Nav_Btn_Class_Label_Widget : constant Widget_Style :=
-     From (Nav_Btn_Class_Label_Base_Style)
-     .On (When_State (State_Hovered), Nav_Btn_Class_Label_Widget_Hovered_Style)
-     .On (When_State (State_Selected), Nav_Btn_Class_Label_Widget_Selected_Style)
+     Style_Of
+        .Text_Color (RGB (202, 196, 208))
+        .Font_Size (Root_Em (0.875))
+        .Font_Weight (Weight_Medium)
+        .Text_Wrap_Mode (TWM_Nowrap)
+        .Transition ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Color)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Text_Color (RGB (208, 188, 255))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Text_Color (RGB (208, 188, 255))
+        .Font_Weight (Weight_Bold)
      .Build;
 
    --  Part styles bundle for class 'nav-btn'
@@ -1031,9 +220,11 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'pages'
+   --  Style for class 'pages'
    Pages_Class_Widget : constant Widget_Style :=
-     From (Pages_Class_Base_Style)
+     Style_Of
+        .Flex_Grow (1.0)
+        .Padding (CSS_Box (Vh (2.0), Vw (2.5), Vh (2.0), Vw (2.5)))
      .Build;
 
    --  Part styles bundle for class 'pages'
@@ -1043,9 +234,14 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'page'
+   --  Style for class 'page'
    Page_Class_Widget : constant Widget_Style :=
-     From (Page_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Gap (Gap (Dip (16.0)))
+        .Padding (CSS_Box (Dip (8.0), Dip (8.0), Dip (8.0), Dip (8.0)))
+        .Overflow_Y (Overflow_Auto)
      .Build;
 
    --  Part styles bundle for class 'page'
@@ -1055,9 +251,11 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'label-inline'
+   --  Style for class 'label-inline'
    Label_Inline_Class_Widget : constant Widget_Style :=
-     From (Label_Inline_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
+        .Display (Inline_Flex)
      .Build;
 
    --  Part styles bundle for class 'label-inline'
@@ -1067,9 +265,17 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'card'
+   --  Style for class 'card'
    Card_Class_Widget : constant Widget_Style :=
-     From (Card_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Background (RGB (43, 41, 48))
+        .Gap (Gap (Dip (12.0)))
+        .Box_Shadow (Shadow (Dip (0.0), Dip (2.0), Dip (8.0), Dip (0.0), RGBA (0, 0, 0, 0.3)))
+        .Transition ((Duration => 0.25, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow)))
+        .Padding (CSS_Box (Dip (24.0), Dip (24.0), Dip (24.0), Dip (24.0)))
+        .Radius (Radius (Dip (16.0)))
      .Build;
 
    --  Part styles bundle for class 'card'
@@ -1079,9 +285,12 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'card-title'::label
+   --  Style for class 'card-title'::label
    Card_Title_Class_Label_Widget : constant Widget_Style :=
-     From (Card_Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (230, 225, 229))
+        .Font_Size (Root_Em (1.25))
+        .Font_Weight (Weight_Semi_Bold)
      .Build;
 
    --  Part styles bundle for class 'card-title'
@@ -1091,9 +300,12 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'card-body'::label
+   --  Style for class 'card-body'::label
    Card_Body_Class_Label_Widget : constant Widget_Style :=
-     From (Card_Body_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (202, 196, 208))
+        .Font_Size (Root_Em (0.875))
+        .Font_Weight (Weight_Normal)
      .Build;
 
    --  Part styles bundle for class 'card-body'
@@ -1103,9 +315,12 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'card-hint'::label
+   --  Style for class 'card-hint'::label
    Card_Hint_Class_Label_Widget : constant Widget_Style :=
-     From (Card_Hint_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGBA (202, 196, 208, 0.6))
+        .Font_Size (Root_Em (0.75))
+        .Font_Weight (Weight_Normal)
      .Build;
 
    --  Part styles bundle for class 'card-hint'
@@ -1115,9 +330,15 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'control-grid'
+   --  Style for class 'control-grid'
    Control_Grid_Class_Widget : constant Widget_Style :=
-     From (Control_Grid_Class_Base_Style)
+     Style_Of
+        .Display (Grid)
+        .Grid_Columns (Grid_Columns_Value (3))
+        .Grid_Columns ((Count => 3, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), others => <>]))
+        .Gap (Gap (Dip (12.0), Dip (16.0)))
+        .Align_Items (Center)
+        .Padding (CSS_Box (Dip (4.0), Dip (0.0), Dip (4.0), Dip (0.0)))
      .Build;
 
    --  Part styles bundle for class 'control-grid'
@@ -1127,9 +348,12 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grid-header'::label
+   --  Style for class 'grid-header'::label
    Grid_Header_Class_Label_Widget : constant Widget_Style :=
-     From (Grid_Header_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGBA (202, 196, 208, 0.6))
+        .Font_Size (Root_Em (0.75))
+        .Font_Weight (Weight_Semi_Bold)
      .Build;
 
    --  Part styles bundle for class 'grid-header'
@@ -1139,14 +363,19 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grid-label'
+   --  Style for class 'grid-label'
    Grid_Label_Class_Widget : constant Widget_Style :=
-     From (Grid_Label_Class_Base_Style)
+     Style_Of
+        .Align_Self (Center)
      .Build;
 
-   --  Complete widget style for class 'grid-label'::label
+   --  Style for class 'grid-label'::label
    Grid_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Grid_Label_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (202, 196, 208))
+        .Font_Size (Root_Em (0.875))
+        .Font_Weight (Weight_Medium)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'grid-label'
@@ -1157,9 +386,11 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grid-cell'
+   --  Style for class 'grid-cell'
    Grid_Cell_Class_Widget : constant Widget_Style :=
-     From (Grid_Cell_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
+        .Align_Self (Center)
      .Build;
 
    --  Part styles bundle for class 'grid-cell'
@@ -1169,15 +400,30 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'btn'
+   --  Style for class 'btn'
    Btn_Class_Widget : constant Widget_Style :=
-     From (Btn_Class_Base_Style)
-     .On (When_State (State_Disabled), Btn_Class_Widget_Disabled_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Height (Size (Dip (44.0)))
+        .Min_Height (Size (Dip (44.0)))
+        .Cursor_Style (Cursor_Pointer)
+        .Transition ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Box_Shadow)))
+        .Padding (CSS_Box (Dip (0.0), Dip (24.0), Dip (0.0), Dip (24.0)))
+        .Radius (Radius (Dip (999.0)))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Opacity (0.5)
+        .Cursor_Style (Cursor_Default)
      .Build;
 
-   --  Complete widget style for class 'btn'::label
+   --  Style for class 'btn'::label
    Btn_Class_Label_Widget : constant Widget_Style :=
-     From (Btn_Class_Label_Base_Style)
+     Style_Of
+        .Font_Size (Root_Em (0.875))
+        .Font_Weight (Weight_Semi_Bold)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'btn'
@@ -1188,17 +434,31 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'btn-primary'
+   --  Style for class 'btn-primary'
    Btn_Primary_Class_Widget : constant Widget_Style :=
-     From (Btn_Primary_Class_Base_Style)
-     .On (When_State (State_Hovered), Btn_Primary_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Btn_Primary_Class_Widget_Pressed_Style)
-     .On (When_State (State_Focused), Btn_Primary_Class_Widget_Focused_Style)
+     Style_Of
+        .Background (RGB (208, 188, 255))
+        .Box_Shadow (Shadow (Dip (0.0), Dip (1.0), Dip (3.0), Dip (0.0), RGBA (0, 0, 0, 0.3)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGB (220, 204, 255))
+        .Box_Shadow (Shadow (Dip (0.0), Dip (2.0), Dip (6.0), Dip (0.0), RGBA (0, 0, 0, 0.35)))
+     --  widget State_Pressed
+     .On (When_State (State_Pressed))
+        .Background (RGB (190, 168, 240))
+        .Box_Shadow (Shadow (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0), RGBA (0, 0, 0, 0.2)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Outline_Width (Dip (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGB (255, 255, 255))
+        .Outline_Offset (Dip (2.0))
      .Build;
 
-   --  Complete widget style for class 'btn-primary'::label
+   --  Style for class 'btn-primary'::label
    Btn_Primary_Class_Label_Widget : constant Widget_Style :=
-     From (Btn_Primary_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (56, 30, 114))
      .Build;
 
    --  Part styles bundle for class 'btn-primary'
@@ -1209,17 +469,31 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'btn-secondary'
+   --  Style for class 'btn-secondary'
    Btn_Secondary_Class_Widget : constant Widget_Style :=
-     From (Btn_Secondary_Class_Base_Style)
-     .On (When_State (State_Hovered), Btn_Secondary_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Btn_Secondary_Class_Widget_Pressed_Style)
-     .On (When_State (State_Focused), Btn_Secondary_Class_Widget_Focused_Style)
+     Style_Of
+        .Background (RGBA (0, 0, 0, 0.0))
+        .Border_Color (Border_Color (RGB (147, 143, 153)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGBA (208, 188, 255, 0.08))
+        .Box_Shadow (Shadow (Dip (0.0), Dip (1.0), Dip (4.0), Dip (0.0), RGBA (0, 0, 0, 0.25)))
+     --  widget State_Pressed
+     .On (When_State (State_Pressed))
+        .Background (RGBA (208, 188, 255, 0.16))
+        .Box_Shadow (No_Shadow)
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Outline_Width (Dip (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGB (208, 188, 255))
+        .Outline_Offset (Dip (2.0))
      .Build;
 
-   --  Complete widget style for class 'btn-secondary'::label
+   --  Style for class 'btn-secondary'::label
    Btn_Secondary_Class_Label_Widget : constant Widget_Style :=
-     From (Btn_Secondary_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (208, 188, 255))
      .Build;
 
    --  Part styles bundle for class 'btn-secondary'
@@ -1230,9 +504,13 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'btn-row'
+   --  Style for class 'btn-row'
    Btn_Row_Class_Widget : constant Widget_Style :=
-     From (Btn_Row_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Gap (Gap (Dip (12.0)))
+        .Padding (CSS_Box (Dip (8.0), Dip (0.0), Dip (0.0), Dip (0.0)))
      .Build;
 
    --  Part styles bundle for class 'btn-row'
@@ -1242,14 +520,18 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'field-label'
+   --  Style for class 'field-label'
    Field_Label_Class_Widget : constant Widget_Style :=
-     From (Field_Label_Class_Base_Style)
+     Style_Of
+        .Padding (CSS_Box (Dip (4.0), Dip (0.0), Dip (0.0), Dip (0.0)))
      .Build;
 
-   --  Complete widget style for class 'field-label'::label
+   --  Style for class 'field-label'::label
    Field_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Field_Label_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (202, 196, 208))
+        .Font_Size (Root_Em (0.75))
+        .Font_Weight (Weight_Medium)
      .Build;
 
    --  Part styles bundle for class 'field-label'
@@ -1260,32 +542,61 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'text-field'
+   --  Style for class 'text-field'
    Text_Field_Class_Widget : constant Widget_Style :=
-     From (Text_Field_Class_Base_Style)
-     .On (When_State (State_Focused), Text_Field_Class_Widget_Focused_Style)
-     .On (When_State (State_Disabled), Text_Field_Class_Widget_Disabled_Style)
+     Style_Of
+        .Height (Size (Dip (44.0)))
+        .Background (RGBA (0, 0, 0, 0.0))
+        .Cursor_Style (Cursor_Text)
+        .Transition ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color)))
+        .Padding (CSS_Box (Dip (0.0), Dip (16.0), Dip (0.0), Dip (16.0)))
+        .Border_Width (Border_Width (Dip (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (147, 143, 153)))
+        .Radius (Radius (Dip (8.0)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Border_Color (Border_Color (RGB (208, 188, 255)))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Opacity (0.5)
+        .Cursor_Style (Cursor_Default)
      .Build;
 
-   --  Complete widget style for class 'text-field'::cursor
+   --  Style for class 'text-field'::cursor
    Text_Field_Class_Cursor_Widget : constant Widget_Style :=
-     From (Text_Field_Class_Cursor_Base_Style)
+     Style_Of
+        .Background (RGB (208, 188, 255))
+        .Width (Size (Dip (2.0)))
      .Build;
 
-   --  Complete widget style for class 'text-field'::label
+   --  Style for class 'text-field'::label
    Text_Field_Class_Label_Widget : constant Widget_Style :=
-     From (Text_Field_Class_Label_Base_Style)
-     .On (When_State (State_Focused), Text_Field_Class_Label_Widget_Focused_Style)
+     Style_Of
+        .Text_Color (RGB (147, 143, 153))
+        .Font_Size (Root_Em (0.75))
+        .Font_Weight (Weight_Medium)
+        .Background (RGB (43, 41, 48))
+        .Text_Wrap_Mode (TWM_Nowrap)
+        .Top (Inset (Dip (-8.0)))
+        .Left (Inset (Dip (12.0)))
+        .Padding (CSS_Box (Dip (0.0), Dip (4.0), Dip (0.0), Dip (4.0)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Text_Color (RGB (208, 188, 255))
      .Build;
 
-   --  Complete widget style for class 'text-field'::selected
+   --  Style for class 'text-field'::selected
    Text_Field_Class_Selected_Widget : constant Widget_Style :=
-     From (Text_Field_Class_Selected_Base_Style)
+     Style_Of
+        .Background (RGBA (208, 188, 255, 0.3))
      .Build;
 
-   --  Complete widget style for class 'text-field'::text
+   --  Style for class 'text-field'::text
    Text_Field_Class_Text_Widget : constant Widget_Style :=
-     From (Text_Field_Class_Text_Base_Style)
+     Style_Of
+        .Text_Color (RGB (230, 225, 229))
+        .Font_Size (Root_Em (0.875))
      .Build;
 
    --  Part styles bundle for class 'text-field'
@@ -1299,22 +610,45 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'combo'
+   --  Style for class 'combo'
    Combo_Class_Widget : constant Widget_Style :=
-     From (Combo_Class_Base_Style)
-     .On (When_State (State_Hovered), Combo_Class_Widget_Hovered_Style)
-     .On (When_State (State_Focused), Combo_Class_Widget_Focused_Style)
-     .On (When_State (State_Disabled), Combo_Class_Widget_Disabled_Style)
+     Style_Of
+        .Height (Size (Dip (44.0)))
+        .Align_Items (Center)
+        .Background (RGB (54, 52, 59))
+        .Cursor_Style (Cursor_Pointer)
+        .Padding (CSS_Box (Dip (9.0), Dip (16.0), Dip (9.0), Dip (16.0)))
+        .Border_Width (Border_Width (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (147, 143, 153)))
+        .Radius (Radius (Dip (8.0), Dip (8.0), Dip (0.0), Dip (0.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Box_Shadow (Shadow (Dip (0.0), Dip (0.0), Dip (8.0), Dip (0.0), RGBA (208, 188, 255, 0.15)))
+        .Border_Color (Border_Color (RGB (208, 188, 255)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Box_Shadow (Shadow (Dip (0.0), Dip (0.0), Dip (10.0), Dip (0.0), RGBA (208, 188, 255, 0.5)))
+        .Border_Width (Border_Width (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0)))
+        .Border_Color (Border_Color (RGB (208, 188, 255)))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Opacity (0.5)
+        .Cursor_Style (Cursor_Default)
      .Build;
 
-   --  Complete widget style for class 'combo'::indicator
+   --  Style for class 'combo'::indicator
    Combo_Class_Indicator_Widget : constant Widget_Style :=
-     From (Combo_Class_Indicator_Base_Style)
+     Style_Of
+        .Text_Color (RGB (202, 196, 208))
+        .Font_Size (Root_Em (0.75))
      .Build;
 
-   --  Complete widget style for class 'combo'::text
+   --  Style for class 'combo'::text
    Combo_Class_Text_Widget : constant Widget_Style :=
-     From (Combo_Class_Text_Base_Style)
+     Style_Of
+        .Text_Color (RGB (230, 225, 229))
+        .Font_Size (Root_Em (0.875))
      .Build;
 
    --  Part styles bundle for class 'combo'
@@ -1326,9 +660,14 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'setting-row'
+   --  Style for class 'setting-row'
    Setting_Row_Class_Widget : constant Widget_Style :=
-     From (Setting_Row_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Align_Items (Center)
+        .Justify_Content (Space_Between)
+        .Padding (CSS_Box (Dip (8.0), Dip (0.0), Dip (8.0), Dip (0.0)))
      .Build;
 
    --  Part styles bundle for class 'setting-row'
@@ -1338,14 +677,19 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'setting-label'
+   --  Style for class 'setting-label'
    Setting_Label_Class_Widget : constant Widget_Style :=
-     From (Setting_Label_Class_Base_Style)
+     Style_Of
      .Build;
 
-   --  Complete widget style for class 'setting-label'::label
+   --  Style for class 'setting-label'::label
    Setting_Label_Class_Label_Widget : constant Widget_Style :=
-     From (Setting_Label_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (230, 225, 229))
+        .Font_Size (Root_Em (1.0))
+        .Font_Weight (Weight_Normal)
+        .White_Space (WS_Nowrap)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'setting-label'
@@ -1356,19 +700,54 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'setting-switch'
+   --  Style for class 'setting-switch'
    Setting_Switch_Class_Widget : constant Widget_Style :=
-     From (Setting_Switch_Class_Base_Style)
-     .On (When_State (State_Selected), Setting_Switch_Class_Widget_Selected_Style)
-     .On (When_State (State_Focused), Setting_Switch_Class_Widget_Focused_Style)
-     .On (When_State (State_Selected) and When_State (State_Focused), Setting_Switch_Class_Widget_Selected_Widget_Focused_Style)
-     .On (When_State (State_Disabled), Setting_Switch_Class_Widget_Disabled_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
+        .Width (Size (Dip (52.0)))
+        .Height (Size (Dip (32.0)))
+        .Background (RGB (73, 69, 79))
+        .Cursor_Style (Cursor_Pointer)
+        .Transition ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color) + Props (Prop_Border_Color)))
+        .Border_Width (Border_Width (Dip (2.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (147, 143, 153)))
+        .Radius (Radius (Dip (999.0)))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (208, 188, 255))
+        .Border_Color (Border_Color (RGB (208, 188, 255)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Outline_Width (Dip (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGB (208, 188, 255))
+        .Outline_Offset (Dip (2.0))
+     --  widget State_Selected, widget State_Focused
+     .On (When_State (State_Selected) and When_State (State_Focused))
+        .Outline_Width (Dip (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGB (208, 188, 255))
+        .Outline_Offset (Dip (2.0))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Opacity (0.5)
+        .Cursor_Style (Cursor_Default)
      .Build;
 
-   --  Complete widget style for class 'setting-switch'::knob
+   --  Style for class 'setting-switch'::knob
    Setting_Switch_Class_Knob_Widget : constant Widget_Style :=
-     From (Setting_Switch_Class_Knob_Base_Style)
-     .On (When_State (State_Selected), Setting_Switch_Class_Knob_Widget_Selected_Style)
+     Style_Of
+        .Width (Size (Dip (24.0)))
+        .Height (Size (Dip (24.0)))
+        .Background (RGB (147, 143, 153))
+        .Transition ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Margin) + Props (Prop_Background_Color)))
+        .Margin (CSS_Box (Dip (2.0), Dip (2.0), Dip (2.0), Dip (2.0)))
+        .Radius (Radius (Dip (999.0)))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (56, 30, 114))
+        .Margin (CSS_Box (Dip (2.0), Dip (2.0), Dip (2.0), Dip (22.0)))
      .Build;
 
    --  Part styles bundle for class 'setting-switch'
@@ -1379,9 +758,19 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'combo-dropdown'
+   --  Style for class 'combo-dropdown'
    Combo_Dropdown_Class_Widget : constant Widget_Style :=
-     From (Combo_Dropdown_Class_Base_Style)
+     Style_Of
+        .Max_Height (Size (Vh (40.0)))
+        .Background (RGB (54, 52, 60))
+        .Box_Shadow (Shadow (Dip (0.0), Dip (8.0), Dip (20.0), Dip (0.0), RGBA (0, 0, 0, 0.4)))
+        .Padding (CSS_Box (Dip (4.0), Dip (4.0), Dip (4.0), Dip (4.0)))
+        .Border_Width (Border_Width (Dip (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (73, 69, 79)))
+        .Radius (Radius (Dip (12.0)))
+        .Overflow_X (Overflow_Auto)
+        .Overflow_Y (Overflow_Auto)
      .Build;
 
    --  Part styles bundle for class 'combo-dropdown'
@@ -1391,17 +780,30 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'combo-option'
+   --  Style for class 'combo-option'
    Combo_Option_Class_Widget : constant Widget_Style :=
-     From (Combo_Option_Class_Base_Style)
-     .On (When_State (State_Hovered), Combo_Option_Class_Widget_Hovered_Style)
-     .On (When_State (State_Selected), Combo_Option_Class_Widget_Selected_Style)
+     Style_Of
+        .Background (RGBA (0, 0, 0, 0.0))
+        .Transition ((Duration => 0.15, Easing => Ease_Out, Properties => Props (Prop_Background_Color)))
+        .Padding (CSS_Box (Dip (10.0), Dip (14.0), Dip (10.0), Dip (14.0)))
+        .Margin (CSS_Box (Dip (2.0), Dip (0.0), Dip (2.0), Dip (0.0)))
+        .Radius (Radius (Dip (8.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGBA (208, 188, 255, 0.08))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Background (RGB (74, 68, 88))
      .Build;
 
-   --  Complete widget style for class 'combo-option'::label
+   --  Style for class 'combo-option'::label
    Combo_Option_Class_Label_Widget : constant Widget_Style :=
-     From (Combo_Option_Class_Label_Base_Style)
-     .On (When_State (State_Selected), Combo_Option_Class_Label_Widget_Selected_Style)
+     Style_Of
+        .Text_Color (RGB (230, 225, 229))
+        .Font_Size (Root_Em (0.875))
+     --  widget State_Selected
+     .On (When_State (State_Selected))
+        .Text_Color (RGB (208, 188, 255))
      .Build;
 
    --  Part styles bundle for class 'combo-option'
@@ -1412,9 +814,10 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'dialog-backdrop'
+   --  Style for class 'dialog-backdrop'
    Dialog_Backdrop_Class_Widget : constant Widget_Style :=
-     From (Dialog_Backdrop_Class_Base_Style)
+     Style_Of
+        .Background (RGBA (0, 0, 0, 0.5))
      .Build;
 
    --  Part styles bundle for class 'dialog-backdrop'
@@ -1424,9 +827,18 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'dialog-panel'
+   --  Style for class 'dialog-panel'
    Dialog_Panel_Class_Widget : constant Widget_Style :=
-     From (Dialog_Panel_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Gap (Gap (Dip (16.0)))
+        .Min_Width (Size (Dip (320.0)))
+        .Max_Width (Size (Dip (460.0)))
+        .Background (RGB (48, 45, 56))
+        .Box_Shadow (Shadow (Dip (0.0), Dip (8.0), Dip (32.0), Dip (0.0), RGBA (0, 0, 0, 0.5)))
+        .Padding (CSS_Box (Dip (24.0), Dip (24.0), Dip (24.0), Dip (24.0)))
+        .Radius (Radius (Dip (28.0)))
      .Build;
 
    --  Part styles bundle for class 'dialog-panel'
@@ -1436,19 +848,27 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'dialog-message'
+   --  Style for class 'dialog-message'
    Dialog_Message_Class_Widget : constant Widget_Style :=
-     From (Dialog_Message_Class_Base_Style)
+     Style_Of
+        .Flex_Direction (Row)
+        .Align_Items (Flex_Start)
+        .Gap (Gap (Dip (12.0)))
      .Build;
 
-   --  Complete widget style for class 'dialog-message'::icon
+   --  Style for class 'dialog-message'::icon
    Dialog_Message_Class_Icon_Widget : constant Widget_Style :=
-     From (Dialog_Message_Class_Icon_Base_Style)
+     Style_Of
+        .Width (Size (Dip (32.0)))
+        .Height (Size (Dip (32.0)))
      .Build;
 
-   --  Complete widget style for class 'dialog-message'::label
+   --  Style for class 'dialog-message'::label
    Dialog_Message_Class_Label_Widget : constant Widget_Style :=
-     From (Dialog_Message_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (202, 196, 208))
+        .Font_Size (Root_Em (0.875))
+        .Text_Wrap_Mode (TWM_Wrap)
      .Build;
 
    --  Part styles bundle for class 'dialog-message'
@@ -1460,14 +880,18 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'dialog-title'
+   --  Style for class 'dialog-title'
    Dialog_Title_Class_Widget : constant Widget_Style :=
-     From (Dialog_Title_Class_Base_Style)
+     Style_Of
+        .Flex_Shrink (0.0)
      .Build;
 
-   --  Complete widget style for class 'dialog-title'::label
+   --  Style for class 'dialog-title'::label
    Dialog_Title_Class_Label_Widget : constant Widget_Style :=
-     From (Dialog_Title_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (230, 225, 229))
+        .Font_Size (Root_Em (1.5))
+        .Font_Weight (Weight_Semi_Bold)
      .Build;
 
    --  Part styles bundle for class 'dialog-title'
@@ -1478,9 +902,14 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'dialog-btn-row'
+   --  Style for class 'dialog-btn-row'
    Dialog_Btn_Row_Class_Widget : constant Widget_Style :=
-     From (Dialog_Btn_Row_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Justify_Content (Flex_End)
+        .Gap (Gap (Dip (8.0)))
+        .Padding (CSS_Box (Dip (8.0), Dip (0.0), Dip (0.0), Dip (0.0)))
      .Build;
 
    --  Part styles bundle for class 'dialog-btn-row'
@@ -1490,17 +919,35 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'dialog-btn'
+   --  Style for class 'dialog-btn'
    Dialog_Btn_Class_Widget : constant Widget_Style :=
-     From (Dialog_Btn_Class_Base_Style)
-     .On (When_State (State_Hovered), Dialog_Btn_Class_Widget_Hovered_Style)
-     .On (When_State (State_Pressed), Dialog_Btn_Class_Widget_Pressed_Style)
-     .On (When_State (State_Focused), Dialog_Btn_Class_Widget_Focused_Style)
+     Style_Of
+        .Display (Inline_Flex)
+        .Justify_Content (Center)
+        .Align_Items (Center)
+        .Height (Size (Dip (44.0)))
+        .Background (RGBA (0, 0, 0, 0.0))
+        .Transition ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color)))
+        .Padding (CSS_Box (Dip (0.0), Dip (24.0), Dip (0.0), Dip (24.0)))
+        .Radius (Radius (Dip (999.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGBA (208, 188, 255, 0.08))
+     --  widget State_Pressed
+     .On (When_State (State_Pressed))
+        .Background (RGBA (208, 188, 255, 0.12))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Background (RGBA (208, 188, 255, 0.12))
      .Build;
 
-   --  Complete widget style for class 'dialog-btn'::label
+   --  Style for class 'dialog-btn'::label
    Dialog_Btn_Class_Label_Widget : constant Widget_Style :=
-     From (Dialog_Btn_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (208, 188, 255))
+        .Font_Size (Root_Em (0.875))
+        .Font_Weight (Weight_Semi_Bold)
+        .Text_Wrap_Mode (TWM_Nowrap)
      .Build;
 
    --  Part styles bundle for class 'dialog-btn'
@@ -1511,9 +958,10 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'grid-slider'
+   --  Style for class 'grid-slider'
    Grid_Slider_Class_Widget : constant Widget_Style :=
-     From (Grid_Slider_Class_Base_Style)
+     Style_Of
+        .Width (Size (Pct (100.0)))
      .Build;
 
    --  Part styles bundle for class 'grid-slider'
@@ -1523,25 +971,51 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'slider'
+   --  Style for class 'slider'
    Slider_Class_Widget : constant Widget_Style :=
-     From (Slider_Class_Base_Style)
-     .On (When_State (State_Focused), Slider_Class_Widget_Focused_Style)
-     .On (When_State (State_Disabled), Slider_Class_Widget_Disabled_Style)
+     Style_Of
+        .Width (Size (Dip (200.0)))
+        .Height (Size (Dip (20.0)))
+        .Background (RGB (73, 69, 79))
+        .Transition ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color)))
+        .Radius (Radius (Dip (999.0)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Outline_Width (Dip (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGB (208, 188, 255))
+        .Outline_Offset (Dip (2.0))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Opacity (0.5)
      .Build;
 
-   --  Complete widget style for class 'slider'::indicator
+   --  Style for class 'slider'::indicator
    Slider_Class_Indicator_Widget : constant Widget_Style :=
-     From (Slider_Class_Indicator_Base_Style)
-     .On (When_State (State_Disabled), Slider_Class_Indicator_Widget_Disabled_Style)
+     Style_Of
+        .Background (RGB (208, 188, 255))
+        .Radius (Radius (Dip (999.0)))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Opacity (0.5)
      .Build;
 
-   --  Complete widget style for class 'slider'::knob
+   --  Style for class 'slider'::knob
    Slider_Class_Knob_Widget : constant Widget_Style :=
-     From (Slider_Class_Knob_Base_Style)
-     .On (When_Part_State (State_Hovered), Slider_Class_Knob_Part_Hovered_Style)
-     .On (When_Part_State (State_Pressed), Slider_Class_Knob_Part_Pressed_Style)
-     .On (When_State (State_Disabled), Slider_Class_Knob_Widget_Disabled_Style)
+     Style_Of
+        .Width (Size (Dip (20.0)))
+        .Background (RGB (230, 225, 229))
+        .Transition ((Duration => 0.15, Easing => Ease_In_Out, Properties => Props (Prop_Background_Color)))
+        .Radius (Radius (Pct (50.0)))
+     --  part State_Hovered
+     .On (When_Part_State (State_Hovered))
+        .Background (RGB (208, 188, 255))
+     --  part State_Pressed
+     .On (When_Part_State (State_Pressed))
+        .Background (RGB (208, 188, 255))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Opacity (0.5)
      .Build;
 
    --  Part styles bundle for class 'slider'
@@ -1553,26 +1027,49 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'num-field'
+   --  Style for class 'num-field'
    Num_Field_Class_Widget : constant Widget_Style :=
-     From (Num_Field_Class_Base_Style)
-     .On (When_State (State_Focused), Num_Field_Class_Widget_Focused_Style)
-     .On (When_State (State_Disabled), Num_Field_Class_Widget_Disabled_Style)
+     Style_Of
+        .Width (Size (Dip (100.0)))
+        .Background (RGB (54, 52, 59))
+        .Cursor_Style (Cursor_Text)
+        .Transition ((Duration => 0.2, Easing => Ease_In_Out, Properties => Props (Prop_Border_Color)))
+        .Padding (CSS_Box (Dip (10.0), Dip (12.0), Dip (10.0), Dip (12.0)))
+        .Border_Width (Border_Width (Dip (0.0), Dip (0.0), Dip (2.0), Dip (0.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (147, 143, 153)))
+        .Radius (Radius (Dip (8.0), Dip (8.0), Dip (0.0), Dip (0.0)))
+     --  widget State_Focused
+     .On (When_State (State_Focused))
+        .Outline_Width (Dip (2.0))
+        .Outline_Style (Outline_Solid)
+        .Outline_Color (RGB (208, 188, 255))
+        .Outline_Offset (Dip (2.0))
+        .Border_Color (Border_Color (RGB (208, 188, 255)))
+     --  widget State_Disabled
+     .On (When_State (State_Disabled))
+        .Opacity (0.5)
+        .Cursor_Style (Cursor_Default)
      .Build;
 
-   --  Complete widget style for class 'num-field'::cursor
+   --  Style for class 'num-field'::cursor
    Num_Field_Class_Cursor_Widget : constant Widget_Style :=
-     From (Num_Field_Class_Cursor_Base_Style)
+     Style_Of
+        .Background (RGB (208, 188, 255))
+        .Width (Size (Dip (2.0)))
      .Build;
 
-   --  Complete widget style for class 'num-field'::selected
+   --  Style for class 'num-field'::selected
    Num_Field_Class_Selected_Widget : constant Widget_Style :=
-     From (Num_Field_Class_Selected_Base_Style)
+     Style_Of
+        .Background (RGBA (208, 188, 255, 0.3))
      .Build;
 
-   --  Complete widget style for class 'num-field'::text
+   --  Style for class 'num-field'::text
    Num_Field_Class_Text_Widget : constant Widget_Style :=
-     From (Num_Field_Class_Text_Base_Style)
+     Style_Of
+        .Text_Color (RGB (230, 225, 229))
+        .Font_Size (Root_Em (0.875))
      .Build;
 
    --  Part styles bundle for class 'num-field'
@@ -1585,9 +1082,17 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'context-menu'
+   --  Style for class 'context-menu'
    Context_Menu_Class_Widget : constant Widget_Style :=
-     From (Context_Menu_Class_Base_Style)
+     Style_Of
+        .Width (Size (Dip (180.0)))
+        .Background (RGB (54, 52, 60))
+        .Box_Shadow (Shadow (Dip (0.0), Dip (8.0), Dip (24.0), Dip (0.0), RGBA (0, 0, 0, 0.45)))
+        .Padding (CSS_Box (Dip (6.0), Dip (6.0), Dip (6.0), Dip (6.0)))
+        .Border_Width (Border_Width (Dip (1.0)))
+        .Border_Style (Border_Style (Solid))
+        .Border_Color (Border_Color (RGB (73, 69, 79)))
+        .Radius (Radius (Dip (8.0)))
      .Build;
 
    --  Part styles bundle for class 'context-menu'
@@ -1597,15 +1102,23 @@ package Material_Demo_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'context-menu-item'
+   --  Style for class 'context-menu-item'
    Context_Menu_Item_Class_Widget : constant Widget_Style :=
-     From (Context_Menu_Item_Class_Base_Style)
-     .On (When_State (State_Hovered), Context_Menu_Item_Class_Widget_Hovered_Style)
+     Style_Of
+        .Min_Height (Size (Dip (28.0)))
+        .Background (RGBA (0, 0, 0, 0.0))
+        .Padding (CSS_Box (Dip (6.0), Dip (10.0), Dip (6.0), Dip (10.0)))
+        .Radius (Radius (Dip (6.0)))
+     --  widget State_Hovered
+     .On (When_State (State_Hovered))
+        .Background (RGBA (208, 188, 255, 0.15))
      .Build;
 
-   --  Complete widget style for class 'context-menu-item'::label
+   --  Style for class 'context-menu-item'::label
    Context_Menu_Item_Class_Label_Widget : constant Widget_Style :=
-     From (Context_Menu_Item_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (230, 225, 229))
+        .Font_Size (Dip (13.0))
      .Build;
 
    --  Part styles bundle for class 'context-menu-item'

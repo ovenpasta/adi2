@@ -27,113 +27,10 @@ package Label_Example_Styles is
       Root_Styles => Root_Part_Styles,
       Has_Root_Font_Size => Has_Root_Font_Size,
       Root_Font_Size => Root_Font_Size);
-   --  Base style for class 'root'
-   function Root_Class_Base_Style return Style_Rules is
-     (
-      Background_Color => Set_Bg (RGB (40, 44, 52)),
-      others => <>);
-
-   --  Base style for class 'container'
-   function Container_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Gap => Set (Gap (Px (20.0))),
-      Background_Color => Set_Bg (RGB (60, 63, 70)),
-      Padding => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
-      Border_Radius => Set (Radius (Px (8.0))),
-      others => <>);
-
-   --  Base style for class 'label1'
-   function Label1_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Align_Items => Set (Center),
-      Background_Color => Set_Bg (RGB (97, 175, 239)),
-      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
-      Border_Radius => Set (Radius (Px (4.0))),
-      others => <>);
-
-   --  Base style for class 'label1'::label
-   function Label1_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (255, 255, 255)),
-      Font_Size => Set_Font (Px (18.0)),
-      others => <>);
-
-   --  Base style for class 'label2'
-   function Label2_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Align_Items => Set (Center),
-      Justify_Content => Set (Center),
-      Background_Color => Set_Bg (RGB (152, 195, 121)),
-      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
-      Border_Radius => Set (Radius (Px (4.0))),
-      others => <>);
-
-   --  Base style for class 'label2'::icon
-   function Label2_Class_Icon_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (32.0))),
-      Height => Set (Size (Px (32.0))),
-      others => <>);
-
-   --  Base style for class 'label3'
-   function Label3_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Row),
-      Align_Items => Set (Center),
-      Gap => Set (Gap (Px (8.0))),
-      Background_Color => Set_Bg (RGB (198, 120, 221)),
-      Padding => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
-      Border_Radius => Set (Radius (Px (4.0))),
-      others => <>);
-
-   --  Base style for class 'label3'::icon
-   function Label3_Class_Icon_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (24.0))),
-      Height => Set (Size (Px (24.0))),
-      others => <>);
-
-   --  Base style for class 'label3'::label
-   function Label3_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (255, 255, 255)),
-      Font_Size => Set_Font (Px (16.0)),
-      others => <>);
-
-   --  Base style for class 'label4'
-   function Label4_Class_Base_Style return Style_Rules is
-     (
-      Display => Set (Flex),
-      Flex_Direction => Set (Column),
-      Align_Items => Set (Center),
-      Gap => Set (Gap (Px (8.0))),
-      Background_Color => Set_Bg (RGB (229, 192, 123)),
-      Padding => Set (CSS_Box (Px (15.0), Px (15.0), Px (15.0), Px (15.0))),
-      Border_Radius => Set (Radius (Px (4.0))),
-      others => <>);
-
-   --  Base style for class 'label4'::icon
-   function Label4_Class_Icon_Base_Style return Style_Rules is
-     (
-      Width => Set (Size (Px (48.0))),
-      Height => Set (Size (Px (48.0))),
-      others => <>);
-
-   --  Base style for class 'label4'::label
-   function Label4_Class_Label_Base_Style return Style_Rules is
-     (
-      Color => Set (RGB (40, 44, 52)),
-      Font_Size => Set_Font (Px (14.0)),
-      others => <>);
-
-   --  Complete widget style for class 'root'
+   --  Style for class 'root'
    Root_Class_Widget : constant Widget_Style :=
-     From (Root_Class_Base_Style)
+     Style_Of
+        .Background (RGB (40, 44, 52))
      .Build;
 
    --  Part styles bundle for class 'root'
@@ -143,9 +40,15 @@ package Label_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'container'
+   --  Style for class 'container'
    Container_Class_Widget : constant Widget_Style :=
-     From (Container_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Gap (Gap (Px (20.0)))
+        .Background (RGB (60, 63, 70))
+        .Padding (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0)))
+        .Radius (Radius (Px (8.0)))
      .Build;
 
    --  Part styles bundle for class 'container'
@@ -155,14 +58,21 @@ package Label_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'label1'
+   --  Style for class 'label1'
    Label1_Class_Widget : constant Widget_Style :=
-     From (Label1_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Align_Items (Center)
+        .Background (RGB (97, 175, 239))
+        .Padding (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0)))
+        .Radius (Radius (Px (4.0)))
      .Build;
 
-   --  Complete widget style for class 'label1'::label
+   --  Style for class 'label1'::label
    Label1_Class_Label_Widget : constant Widget_Style :=
-     From (Label1_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (255, 255, 255))
+        .Font_Size (Px (18.0))
      .Build;
 
    --  Part styles bundle for class 'label1'
@@ -173,14 +83,22 @@ package Label_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'label2'
+   --  Style for class 'label2'
    Label2_Class_Widget : constant Widget_Style :=
-     From (Label2_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Align_Items (Center)
+        .Justify_Content (Center)
+        .Background (RGB (152, 195, 121))
+        .Padding (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0)))
+        .Radius (Radius (Px (4.0)))
      .Build;
 
-   --  Complete widget style for class 'label2'::icon
+   --  Style for class 'label2'::icon
    Label2_Class_Icon_Widget : constant Widget_Style :=
-     From (Label2_Class_Icon_Base_Style)
+     Style_Of
+        .Width (Size (Px (32.0)))
+        .Height (Size (Px (32.0)))
      .Build;
 
    --  Part styles bundle for class 'label2'
@@ -191,19 +109,30 @@ package Label_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'label3'
+   --  Style for class 'label3'
    Label3_Class_Widget : constant Widget_Style :=
-     From (Label3_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Row)
+        .Align_Items (Center)
+        .Gap (Gap (Px (8.0)))
+        .Background (RGB (198, 120, 221))
+        .Padding (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0)))
+        .Radius (Radius (Px (4.0)))
      .Build;
 
-   --  Complete widget style for class 'label3'::icon
+   --  Style for class 'label3'::icon
    Label3_Class_Icon_Widget : constant Widget_Style :=
-     From (Label3_Class_Icon_Base_Style)
+     Style_Of
+        .Width (Size (Px (24.0)))
+        .Height (Size (Px (24.0)))
      .Build;
 
-   --  Complete widget style for class 'label3'::label
+   --  Style for class 'label3'::label
    Label3_Class_Label_Widget : constant Widget_Style :=
-     From (Label3_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (255, 255, 255))
+        .Font_Size (Px (16.0))
      .Build;
 
    --  Part styles bundle for class 'label3'
@@ -215,19 +144,30 @@ package Label_Example_Styles is
       others => <>
    ];
 
-   --  Complete widget style for class 'label4'
+   --  Style for class 'label4'
    Label4_Class_Widget : constant Widget_Style :=
-     From (Label4_Class_Base_Style)
+     Style_Of
+        .Display (Flex)
+        .Flex_Direction (Column)
+        .Align_Items (Center)
+        .Gap (Gap (Px (8.0)))
+        .Background (RGB (229, 192, 123))
+        .Padding (CSS_Box (Px (15.0), Px (15.0), Px (15.0), Px (15.0)))
+        .Radius (Radius (Px (4.0)))
      .Build;
 
-   --  Complete widget style for class 'label4'::icon
+   --  Style for class 'label4'::icon
    Label4_Class_Icon_Widget : constant Widget_Style :=
-     From (Label4_Class_Icon_Base_Style)
+     Style_Of
+        .Width (Size (Px (48.0)))
+        .Height (Size (Px (48.0)))
      .Build;
 
-   --  Complete widget style for class 'label4'::label
+   --  Style for class 'label4'::label
    Label4_Class_Label_Widget : constant Widget_Style :=
-     From (Label4_Class_Label_Base_Style)
+     Style_Of
+        .Text_Color (RGB (40, 44, 52))
+        .Font_Size (Px (14.0))
      .Build;
 
    --  Part styles bundle for class 'label4'

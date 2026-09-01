@@ -930,9 +930,9 @@ Custom properties use a flat, root-scoped model (no per-selector inheritance):
 
 ## Composing a Style in Ada
 
-`Adi.Widget_Styles` offers a second way to write a style, beside the
-`Style_Rules` aggregate the generator emits: a chain that names one
-property at a time.
+`Adi.Widget_Styles` composes a style one property at a time. This is what
+`tools/css_to_ada.py` emits, and the `Style_Rules` aggregate stands beside
+it as the form `Adi.CSS_Parser` fills.
 
 ```ada
 Primary : constant Widget_Style :=
@@ -1004,6 +1004,42 @@ CSS's two-value `overflow` is the two longhands, `.Overflow_X (A)
 operation emits exactly one slot, so a step lost to a full buffer is
 attributable to the call that named it and no operation can be left half
 applied.
+
+### One value of a property that cascades several
+
+`padding`, `margin`, the three border groups and `border-radius` each
+cascade one side or corner at a time, so each carries a second setter
+naming one of them:
+
+```ada
+Style_Of
+   .Padding      (Right, Px (14.0))
+   .Margin       (Left,  Auto_Margin)
+   .Border_Width (Top,   Px (2.0))
+   .Border_Color (Top,   RGB (9, 9, 9))
+   .Border_Style (Right, Dashed)
+   .Radius       (Bottom_Left, Px (2.0))
+.Build
+```
+
+A step naming an edge leaves the other three to the cascade, which is
+what separates `padding-right: 14px` from `padding: 14px`; the
+whole-value setters name all four. `margin` takes a `Margin_Value` per
+side, so `Auto_Margin` composes where no `CSS_Box_Value` carries it.
+
+`grid-template-columns` carries a count and a track list, and the list
+has no `CSS_Property` literal of its own, so it is that property's second
+value and a chain naming both takes two steps:
+
+```ada
+Style_Of
+   .Grid_Columns (Grid_Columns_Value (2))
+   .Grid_Columns ((Count  => 2,
+                   Tracks => [1 => (Track_Px, 120.0),
+                              2 => (Track_Fr, 1.0),
+                              others => <>]))
+.Build
+```
 
 Setters that carry text take the text. `.Font_Family` has two argument
 types, since the property's value is either a family the application has
@@ -1211,35 +1247,39 @@ Incremental generation for all examples via `tools/generate_example_styles.sh`.
 
 ### Generated Code Structure
 
-For each CSS selector, the generator produces three layers of constants:
+For each CSS selector, the generator produces two layers of constants:
 
-**1. Style_Rules** — Individual style declarations per selector+state+part:
-
-```ada
-Button_Class_Base_Style : constant Style_Rules := (
-   Display => Set (Inline_Flex),
-   Background_Color => Set_Bg (RGB (59, 130, 246)),
-   Border_Radius => Set (Radius (Px (6.0))),
-   Padding => Set (CSS_Box (Px (12.0), Px (24.0))),
-   Cursor => Set (Pointer),
-   others => <>
-);
-
-Button_Class_Widget_Hovered_Style : constant Style_Rules := (
-   Background_Color => Set_Bg (RGB (37, 99, 235)),
-   others => <>
-);
-```
-
-**2. Widget_Style** — Fluent builder combining base + state rules:
+**1. Widget_Style** — one composer chain per selector-and-part, naming
+each property once:
 
 ```ada
 Button_Class_Widget : constant Widget_Style :=
-  From (Button_Class_Base_Style)
-  .On (When_State (State_Hovered), Button_Class_Widget_Hovered_Style)
-  .On (When_State (State_Pressed), Button_Class_Widget_Pressed_Style)
+  Style_Of
+     .Display (Inline_Flex)
+     .Background (RGB (59, 130, 246))
+     .Radius (Radius (Px (6.0)))
+     .Padding (CSS_Box (Px (12.0), Px (24.0)))
+     .Cursor_Style (Pointer)
+  --  widget State_Hovered
+  .On (When_State (State_Hovered))
+     .Background (RGB (37, 99, 235))
+  --  widget State_Pressed
+  .On (When_State (State_Pressed))
+     .Background (RGB (29, 78, 216))
   .Build;
 ```
+
+A chain step is eight bytes, where the `Style_Rules` aggregate the same
+rule was written as materialises 1,072. A side longhand takes a step per
+side it names, so `padding-right: 14px` emits `.Padding (Right, Px
+(14.0))` and leaves the other three edges to the cascade.
+
+A chain holds one buffer while it runs and the pool lends
+`Adi.Widget_Styles.Max_Open_Chains` (8) of them; each generated constant
+opens one chain and closes it at `.Build`, so a sheet of any size holds
+one at a time. `Max_Chain_Slots` (64) is the properties one chain names
+over all its rules, and the generator refuses a longer one, naming the
+CSS selector.
 
 A `Widget_Style` is a four-byte handle into a store the library keeps.
 `.Build` interns what the chain named and answers the handle; interning
@@ -1255,7 +1295,7 @@ to generate a longer chain, naming the CSS selector; the runtime parser
 rejects the sheet and keeps the last good one; and a merge of two styles,
 which has nowhere to report to, drops the rule and logs it.
 
-**3. Part_Style_Array** — Bundle of all parts for a selector:
+**2. Part_Style_Array** — Bundle of all parts for a selector:
 
 ```ada
 Button_Class_Part_Styles : constant Part_Style_Array := [
@@ -1270,9 +1310,9 @@ Button_Class_Part_Styles : constant Part_Style_Array := [
 
 Generated constant names follow the pattern:
 
-- `{Selector}_Class_{Part}_{State}_Style` — Style_Rules
 - `{Selector}_Class_{Part}_Widget` — Widget_Style
 - `{Selector}_Class_Part_Styles` — Part_Style_Array
+- `Root_Style` and `Root_Part_Styles` — what `:root` declares
 
 For ID selectors, `_Class_` becomes `_Id_`; for tag selectors, `_Tag_`.
 

@@ -24,9 +24,8 @@ package body Adi.Style_Merge is
          Rule_Index : Natural;
          Added      : Boolean;
       begin
-         Result.Base := Adi.CSS_Styles.Intern_Rules
-           (Adi.CSS_Styles.Merge (Adi.CSS_Styles.Rules_Of (Result.Base),
-                                  Adi.CSS_Styles.Rules_Of (Extra.Base)));
+         Result.Base :=
+           Adi.CSS_Styles.Merge (Result.Base, Extra.Base);
 
          for I in 1 .. Extra.Rule_Count loop
             Rule_Index := 0;
@@ -41,11 +40,9 @@ package body Adi.Style_Merge is
                Try_Add_Rule (Result, Extra.Rules (I), Added);
             else
                Result.Rules (Rule_Index).Style :=
-                 Adi.CSS_Styles.Intern_Rules
-                   (Adi.CSS_Styles.Merge
-                      (Adi.CSS_Styles.Rules_Of
-                         (Result.Rules (Rule_Index).Style),
-                       Adi.CSS_Styles.Rules_Of (Extra.Rules (I).Style)));
+                 Adi.CSS_Styles.Merge
+                   (Result.Rules (Rule_Index).Style,
+                    Extra.Rules (I).Style);
             end if;
          end loop;
 

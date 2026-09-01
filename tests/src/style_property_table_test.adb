@@ -395,6 +395,28 @@ procedure Style_Property_Table_Test is
       end loop;
    end Test_Inheritance_Table_Matches;
 
+   --  Max_Rule_Slots has to be the values the whole vocabulary
+   --  cascades: Slots_Of emits at most one slot per key and a merge
+   --  answers with a union, so a rule set naming every property fills
+   --  the list and nothing composes past it. The sum does not fold at
+   --  compile time, so it is measured here, through Slots_Of rather
+   --  than through a table beside it -- a property gaining a part, or a
+   --  new multi-part property, moves this figure.
+   --
+   --  All_Set is a named aggregate over every Style_Rules component, so
+   --  a new field stops this unit compiling until it is named there
+   --  too.
+   procedure Test_Slot_Bound_Holds_The_Vocabulary is
+      Every : constant Rule_Slots := Slots_Of (All_Set);
+   begin
+      Section ("Max_Rule_Slots is what the whole vocabulary fills");
+
+      Assert (Slot_Count (Every) = Max_Rule_Slots,
+              "a rule set naming every property fills the list exactly,"
+              & " not" & Natural'Image (Slot_Count (Every)) & " of"
+              & Natural'Image (Max_Rule_Slots));
+   end Test_Slot_Bound_Holds_The_Vocabulary;
+
 begin
    Start_Suite ("Style Property Table Test");
 
@@ -403,6 +425,7 @@ begin
    Test_Layout_Handles_Match_The_Table;
    Test_Interpolate_Snaps_As_Before;
    Test_Inheritance_Table_Matches;
+   Test_Slot_Bound_Holds_The_Vocabulary;
 
    Finish;
 end Style_Property_Table_Test;

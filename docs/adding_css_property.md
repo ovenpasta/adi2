@@ -111,12 +111,12 @@ type Opt_Edge_Lengths is array (Edge) of Opt_Length.Optional;
 Padding : Opt_Edge_Lengths := Unset_Edge_Lengths;
 ```
 
-`Merge` then runs per side, and `Resolve` folds the four back into the
+Each side then becomes a slot of its own, so the cascade runs per side
+without naming the property, and `Resolve` folds the four back into the
 concrete group value `Resolved_Style` carries — narrowest shape first, so
 two rule sets that say the same thing compare equal in the style caches:
 
 ```ada
-Padding => Merge (Base.Padding, Override.Padding),   --  2a
 Padding => To_Box (S.Padding),                       --  2b
 ```
 
@@ -130,16 +130,36 @@ them rather than add a fifth shape.
 
 ## Step 2 — Merge & Resolve (`src/adi-css_styles.adb`)
 
-### 2a. Merge
+### 2a. Slots_Of and Rules_Of
 
-In the `Merge` function, add one line per field. `Merge` combines two `Style_Rules` (base + override) following CSS cascade rules:
+A rule set is stored as the slots it names, so `Merge`, `Set_Properties`
+and `Inherit_From` reach a new property without a line each: they compare
+keys. What names the property is the pair that converts. `Slots_Of` is a
+`case` over `CSS_Property` with no `others`, so a new literal is a
+compile error until it is written. `Rules_Of` has one, routing every
+single-value property to `Apply_Property` and `Clear_Property`; those two
+have no `others` of their own, so the completeness a new literal needs is
+enforced there rather than here.
+
+`Slots_Of` reads the field and names a slot:
 
 ```ada
-Outline_Width  => Opt_Outline_Width.Merge (Base.Outline_Width, Override.Outline_Width),
-Outline_Color  => Opt_Outline_Color.Merge (Base.Outline_Color, Override.Outline_Color),
-Outline_Style  => Opt_Outline_Style.Merge (Base.Outline_Style, Override.Outline_Style),
-Outline_Offset => Opt_Outline_Offset.Merge (Base.Outline_Offset, Override.Outline_Offset),
+when Prop_Outline_Width =>
+   if Opt_Outline_Width.Is_Set (S.Outline_Width) then
+      Emit (P, First_Part, Intern (S.Outline_Width.Value));
+   elsif Opt_Outline_Width.Is_None (S.Outline_Width) then
+      Wipe (P, First_Part);
+   end if;
 ```
+
+`Rules_Of` writes it back. A property carrying one value needs nothing
+there: the `others` arm reaches `Apply_Property` and `Clear_Property`,
+which 2e adds anyway. A property carrying a value per part — an edge, a
+corner, a gap axis — needs an arm of its own in both, and
+`Max_Rule_Slots` raised by the parts it adds.
+`tests/src/style_property_table_test.adb` measures that bound through
+`Slots_Of` on a rule set naming every property, so a part added without
+raising it fails there.
 
 ### 2b. Resolve
 
@@ -154,22 +174,14 @@ Outline_Offset => Opt_Outline_Offset.Resolve (S.Outline_Offset),
 
 ### 2c. Set_Properties
 
-In `Set_Properties`, add one line per field. It reports which properties
-a rule set names, and interning hashes styles on it:
-
-```ada
-Prop_Outline_Width  => Opt_Outline_Width.Is_Specified (S.Outline_Width),
-```
-
-`Set_Properties` returns a complete named aggregate over `CSS_Property`
-with no `others`, so a new enumeration value with no line here does not
-compile. Adding the field to `Style_Rules` without adding the value to
-`CSS_Property` does compile, and costs only a bucket probe that equality
-then settles. See `docs/style_storage_optimization.md`.
+`Set_Properties` reports which properties a rule set names, and it reads
+the slots: a property named by a slot is reported, and adding the field
+to `Style_Rules` without adding a literal to `CSS_Property` leaves the
+property unnamed there. Nothing to add.
 
 ### 2d. The per-property tables
 
-Five more places name every `CSS_Property` literal with no `others`, so a
+Four more places name every `CSS_Property` literal with no `others`, so a
 new literal is a compile error until each is decided:
 
 | Where | The decision |
@@ -178,11 +190,10 @@ new literal is a compile error until each is decided:
 | `Property_Differs` (same) | how two resolved styles are compared for it |
 | `Layout_Affecting_Properties` (`src/adi-css_styles.ads`) | whether a change to it demands a new layout pass, or only a repaint |
 | `Snaps_At_Midpoint` (`src/adi-animation.adb`) | whether a transition holds the start value to T = 0.5, or takes the target from T = 0 |
-| `Inherit_Property` (`src/adi-css_styles.adb`) | how the property merges from a parent part, if it inherits |
 
 Whether it inherits is `Inheritable_Properties` (`src/adi-css_styles.ads`),
-which `Inherit_From` reads — that one is a policy line, not a table of
-behaviour, and flipping it is the whole change.
+which `Inherit_From` reads and which is the whole statement of the policy:
+flipping a line there is the whole change.
 
 A property that is interpolated rather than snapped also needs a branch
 in `Interpolate` and an `Animatable_Property` literal.
@@ -500,7 +511,8 @@ When adding a new CSS property, touch these files:
 | # | File | What to add |
 |---|------|-------------|
 | 1 | `src/adi-css_styles.ads` | Value type, defaults, `Opt_*` package, `Style_Rules` field, `Resolved_Style` field, `Set` function |
-| 2 | `src/adi-css_styles.adb` | `Merge` line, `Resolve` line, `Set_Properties` line, `Copy_Property` and `Property_Differs` branches |
+| 2 | `src/adi-css_styles.adb` | `Slots_Of` arm, `Resolve` line, `Copy_Property` and `Property_Differs` branches. `Merge`, `Set_Properties` and `Inherit_From` walk the slots and need nothing |
+| 2a | `src/adi-css_styles` | A property carrying a value per part — an edge, a corner, an axis — also needs a `Rules_Of` arm and `Max_Rule_Slots` raised by the parts it adds; a single-value property needs neither |
 | 2b | `src/adi-css_styles.ads` + `src/adi-animation.adb` | `Layout_Affecting_Properties` and `Snaps_At_Midpoint` entries |
 | 2c | `src/adi-resolved_styles.adb` | `Hash` line, for the store to tell two styles apart on it |
 | 2d | `src/adi-css_styles` + `src/adi-widget_styles` | `Intern`/`_Of` pair, `Apply_Property` and `Clear_Property` branches, `Composer` setter |

@@ -967,6 +967,15 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    --  longhands write this one field, so the cascade has to tell an axis
    --  that was set to zero from one that was never mentioned — otherwise
    --  a rule saying only `row-gap` would wipe an inherited column gap.
+   --
+   --  Named-or-not is the whole of what the flags carry: an axis has no
+   --  cleared state of its own, that being a state of the Opt_Gap
+   --  wrapping the value. So `gap` clears on both axes at once, and a
+   --  rule set that would name one axis set beside the other cleared
+   --  carries the set axis with the other reading as unnamed. The two
+   --  resolve alike, Default_Gap being zero on both axes, which is what
+   --  keeps that sound; Adi.CSS_Styles' Rules_Of holds the reasoning
+   --  and style_handle_test pins it.
    type Gap_Value (Kind : Gap_Kind := Gap_Uniform) is record
       case Kind is
          when Gap_Uniform  => All_Gap : Length_Value := Zero_Length;
@@ -1326,10 +1335,13 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    -- Interned rule sets
    -------------------------------------------------
 
-   --  A rule set stored once and named by a four-byte handle. Interning
-   --  is canonical, so equal rule sets share one handle and comparing
-   --  two handles compares two values. The store holds an entry for the
-   --  life of the process.
+   --  A rule set stored once and named by a four-byte handle. What the
+   --  store holds is the slot list below -- the properties the rule set
+   --  names and nothing else, eight bytes each -- so an entry costs the
+   --  properties it carries rather than the 1,072 bytes of the record.
+   --  Interning is canonical, so equal rule sets share one handle and
+   --  comparing two handles compares two values. The store holds an
+   --  entry for the life of the process.
    type Rules_Handle is private;
 
    --  What Empty_Style interns to.
@@ -1345,13 +1357,6 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
 
    --  The store index a handle carries, for a caller that keys on it.
    function Index (H : Rules_Handle) return Natural;
-
-   type Const_Rules_Access is access constant Style_Rules;
-
-   --  The stored value in place, for a reader that would otherwise copy
-   --  a kilobyte to reach one component. The address stays good for the
-   --  life of the process.
-   function Rules_Ref (H : Rules_Handle) return not null Const_Rules_Access;
 
    --  Distinct rule sets the store holds, and the storage elements they
    --  occupy. Instrumentation a test reads.
@@ -1615,6 +1620,68 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Interned_Value_Bytes return Natural;
 
    -------------------------------------------------
+   --  A rule set as a slot list
+   -------------------------------------------------
+
+   --  A rule set as it is stored and worked on: the properties it names
+   --  and nothing else, one eight-byte slot each, in property order. A
+   --  rule naming three properties is 24 bytes where the record naming
+   --  all sixty-six is 1,072.
+   --
+   --  Merging, inheriting and interning are comparisons of keys, so
+   --  none of them names a property: each walks two ordered lists at
+   --  the three properties a rule carries rather than sixty-six fields.
+   --  Slots_Of and Rules_Of below convert, which is what leaves the
+   --  aggregate as the form an author writes and Adi.CSS_Parser fills.
+   type Rule_Slots is private;
+
+   --  A property whose values cascade one at a time -- a border or
+   --  padding edge, a border-radius corner, a gap axis, and the track
+   --  list travelling with grid-template-columns -- carries a slot per
+   --  value, so border-top-width from one rule and border-left-width
+   --  from another both stand. Every other property carries one, and
+   --  the shorthand `overflow` carries none: it is stored as its two
+   --  axes. So a rule set naming the whole vocabulary at once is
+   --  fifty-seven single slots and twenty-eight group slots, and
+   --  nothing composes past that -- merging and inheriting each answer
+   --  with the union of two such lists.
+   --
+   --  The sum does not fold at compile time, so what holds the figure
+   --  is style_property_table_test, which measures it through Slots_Of
+   --  on a rule set naming every property. A part added without raising
+   --  this fails there rather than indexing past the list.
+   Max_Rule_Slots : constant := 85;
+
+   function Slots_Of (S : Style_Rules)  return Rule_Slots;
+   function Slots_Of (H : Rules_Handle) return Rule_Slots;
+   function Rules_Of (L : Rule_Slots)   return Style_Rules;
+   function Intern_Rules (L : Rule_Slots) return Rules_Handle;
+
+   --  Slots the list holds. Instrumentation a test reads.
+   function Slot_Count (L : Rule_Slots) return Natural;
+
+   --  Override wins every key it names and the rest of Base stands, so
+   --  a rule naming one border edge leaves the other three alone.
+   function Merge (Base, Override : Rule_Slots) return Rule_Slots;
+   function Merge (Base : Rule_Slots; Override : Rules_Handle)
+     return Rule_Slots;
+   function Merge (Base, Override : Rules_Handle) return Rules_Handle;
+
+   function Set_Properties (L : Rule_Slots) return CSS_Property_Set;
+
+   --  Each key Parent names that Child does not, where the property is
+   --  in Inheritable_Properties, is taken from Parent. That table is
+   --  the whole statement of the policy.
+   function Inherit_From (Parent, Child : Rule_Slots) return Rule_Slots;
+
+   --  The properties a rule set carries and the values under them.
+   --  Which side of a group a value sits on is left to the comparison
+   --  the store makes: a group holds four values at most, so two rule
+   --  sets that differ only in which edge they name share a bucket and
+   --  are separated there.
+   function Hash (L : Rule_Slots) return Ada.Containers.Hash_Type;
+
+   -------------------------------------------------
    -- Resolved style for rendering
    -------------------------------------------------
 
@@ -1712,6 +1779,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    end record;
 
    function Resolve (S : Style_Rules) return Resolved_Style;
+   function Resolve (L : Rule_Slots) return Resolved_Style;
 
    --  The fields one property owns, copied from Source into Target.
    procedure Copy_Property
@@ -1984,5 +2052,40 @@ private
    No_Value_Ref : constant Value_Ref := 0;
 
    Empty_Rules : constant Rules_Handle := 0;
+
+   --  Which of a property's values a slot carries. First_Part is the
+   --  one most properties use; an edge or corner uses the position of
+   --  its Edge or Corner literal, a gap axis its own, and the grid
+   --  track list the second of grid-template-columns'.
+   type Slot_Part is range 0 .. 3;
+
+   First_Part : constant Slot_Part := 0;
+
+   --  A slot says "set" by existing, so clearing -- named, and holding
+   --  no value, which is what stops an earlier rule in the cascade
+   --  showing through -- takes a spelling of its own.
+   type Slot_Op is (Set_Value, Clear_Value);
+
+   --  Prop and Part say how Val reads, and a slot is read only through
+   --  the property it names, so a variant record has nothing to add --
+   --  and a variant would stand as wide as Grid_Track_List rather than
+   --  at these eight bytes.
+   type Prop_Slot is record
+      Prop : CSS_Property := CSS_Property'First;
+      Part : Slot_Part    := First_Part;
+      Op   : Slot_Op      := Set_Value;
+      Val  : Value_Ref    := No_Value_Ref;
+   end record;
+
+   type Slot_List is array (Positive range <>) of Prop_Slot;
+
+   subtype Slot_Array is Slot_List (1 .. Max_Rule_Slots);
+
+   --  Ordered by property and then by part, so a merge, an inheritance
+   --  pass and an interning comparison each walk the two lists once.
+   type Rule_Slots is record
+      Count : Natural := 0;
+      Items : Slot_Array;
+   end record;
 
 end Adi.CSS_Styles;

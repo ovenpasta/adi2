@@ -817,470 +817,25 @@ package body Adi.CSS_Styles is
    end Parse_Named_Color;
 
    -------------------------------------------------
-   -- Merge: Combine two Style_Rules (Override wins for set values)
+   -- Merge and the property set
    -------------------------------------------------
 
-   function Merge_Gap
-     (Base, Override : Opt_Gap.Optional) return Opt_Gap.Optional is
-   begin
-      if not Opt_Gap.Is_Set (Override) then
-         return Opt_Gap.Merge (Base, Override);
-      elsif not Opt_Gap.Is_Set (Base) then
-         return Override;
-      end if;
-      return Set (Overlay (Base.Value, Override.Value));
-   end Merge_Gap;
-
+   --  Both walk the slots. Converting an aggregate is what costs here,
+   --  and it is what leaves Style_Rules as the form an author writes
+   --  and Adi.CSS_Parser fills.
    function Merge (Base, Override : Style_Rules) return Style_Rules is
-   begin
-      return (
-         -- Colors
-         Color            => Opt_Text_Color.Merge (Base.Color, Override.Color),
-         Background_Color => Opt_Bg_Color.Merge (Base.Background_Color, Override.Background_Color),
-         Background_Image => Opt_Bg_Image.Merge (Base.Background_Image, Override.Background_Image),
-
-         -- Border
-         Border_Radius    => Merge (Base.Border_Radius, Override.Border_Radius),
-         Border_Width     => Merge (Base.Border_Width, Override.Border_Width),
-         Border_Color     => Merge (Base.Border_Color, Override.Border_Color),
-         Border_Style     => Merge (Base.Border_Style, Override.Border_Style),
-
-         -- Outline
-         Outline_Width    => Opt_Outline_Width.Merge (Base.Outline_Width, Override.Outline_Width),
-         Outline_Color    => Opt_Outline_Color.Merge (Base.Outline_Color, Override.Outline_Color),
-         Outline_Style    => Opt_Outline_Style.Merge (Base.Outline_Style, Override.Outline_Style),
-         Outline_Offset   => Opt_Outline_Offset.Merge (Base.Outline_Offset, Override.Outline_Offset),
-
-         -- Spacing
-         Padding          => Merge (Base.Padding, Override.Padding),
-         Margin           => Merge (Base.Margin, Override.Margin),
-
-         -- Sizing
-         Width            => Opt_Size.Merge (Base.Width, Override.Width),
-         Height           => Opt_Size.Merge (Base.Height, Override.Height),
-         Min_Width        => Opt_Size.Merge (Base.Min_Width, Override.Min_Width),
-         Max_Width        => Opt_Size.Merge (Base.Max_Width, Override.Max_Width),
-         Min_Height       => Opt_Size.Merge (Base.Min_Height, Override.Min_Height),
-         Max_Height       => Opt_Size.Merge (Base.Max_Height, Override.Max_Height),
-
-         -- Typography
-         Font_Size        => Opt_Font_Size.Merge (Base.Font_Size, Override.Font_Size),
-         Font_Family      => Opt_Font.Merge (Base.Font_Family, Override.Font_Family),
-         Font_Weight      => Opt_Font_Weight.Merge (Base.Font_Weight, Override.Font_Weight),
-         Font_Style       => Opt_Font_Style.Merge (Base.Font_Style, Override.Font_Style),
-         Text_Decoration  => Opt_Text_Decoration.Merge (Base.Text_Decoration, Override.Text_Decoration),
-         List_Style_Type  => Opt_List_Style_Type.Merge (Base.List_Style_Type, Override.List_Style_Type),
-         List_Style_Image => Opt_List_Style_Image.Merge (Base.List_Style_Image, Override.List_Style_Image),
-         List_Style_Position => Opt_List_Style_Position.Merge (Base.List_Style_Position, Override.List_Style_Position),
-         White_Space      => Opt_White_Space.Merge (Base.White_Space, Override.White_Space),
-         Text_Overflow    => Opt_Text_Overflow.Merge (Base.Text_Overflow, Override.Text_Overflow),
-         Text_Wrap_Mode   => Opt_Text_Wrap_Mode.Merge (Base.Text_Wrap_Mode, Override.Text_Wrap_Mode),
-         Line_Height      => Opt_Line_Height.Merge (Base.Line_Height, Override.Line_Height),
-
-         Text_Align       => Opt_Text_Align.Merge (Base.Text_Align, Override.Text_Align),
-         Vertical_Align   => Opt_Vertical_Align.Merge (Base.Vertical_Align, Override.Vertical_Align),
-
-         -- Layout
-         Display          => Opt_Display.Merge (Base.Display, Override.Display),
-         Position         => Opt_Position.Merge (Base.Position, Override.Position),
-         Top              => Opt_Top.Merge (Base.Top, Override.Top),
-         Right            => Opt_Right.Merge (Base.Right, Override.Right),
-         Bottom           => Opt_Bottom.Merge (Base.Bottom, Override.Bottom),
-         Left             => Opt_Left.Merge (Base.Left, Override.Left),
-         Overflow_X       => Opt_Overflow.Merge (Base.Overflow_X, Override.Overflow_X),
-         Overflow_Y       => Opt_Overflow.Merge (Base.Overflow_Y, Override.Overflow_Y),
-         Visibility       => Opt_Visibility.Merge (Base.Visibility, Override.Visibility),
-
-         -- Visual
-         Opacity          => Opt_Opacity.Merge (Base.Opacity, Override.Opacity),
-         Cursor           => Opt_Cursor.Merge (Base.Cursor, Override.Cursor),
-         Box_Shadow       => Opt_Box_Shadow.Merge (Base.Box_Shadow, Override.Box_Shadow),
-
-         -- Object/Image
-         Object_Fit       => Opt_Object_Fit.Merge (Base.Object_Fit, Override.Object_Fit),
-         Object_Position  => Opt_Object_Pos.Merge (Base.Object_Position, Override.Object_Position),
-
-         -- Flexbox Container
-         Flex_Direction   => Opt_Flex_Dir.Merge (Base.Flex_Direction, Override.Flex_Direction),
-         Flex_Wrap        => Opt_Flex_Wrap.Merge (Base.Flex_Wrap, Override.Flex_Wrap),
-         Justify_Content  => Opt_Justify.Merge (Base.Justify_Content, Override.Justify_Content),
-         Align_Items      => Opt_Align_Items.Merge (Base.Align_Items, Override.Align_Items),
-         Align_Content    => Opt_Align_Content.Merge (Base.Align_Content, Override.Align_Content),
-         --  Not Opt_Gap.Merge: a rule naming one axis must not drop the
-         --  other axis an earlier rule set.
-         Gap              => Merge_Gap (Base.Gap, Override.Gap),
-         Grid_Columns     => Opt_Grid_Cols.Merge (Base.Grid_Columns, Override.Grid_Columns),
-         Grid_Rows        => Opt_Grid_Rows.Merge (Base.Grid_Rows, Override.Grid_Rows),
-         Grid_Column_Tracks =>
-           (if Override.Grid_Column_Tracks.Count > 0
-            then Override.Grid_Column_Tracks
-            else Base.Grid_Column_Tracks),
-
-         -- Flexbox Item
-         Align_Self       => Opt_Align_Self.Merge (Base.Align_Self, Override.Align_Self),
-         Flex_Grow        => Opt_Flex_Grow.Merge (Base.Flex_Grow, Override.Flex_Grow),
-         Flex_Shrink      => Opt_Flex_Shrink.Merge (Base.Flex_Shrink, Override.Flex_Shrink),
-         Flex_Basis       => Opt_Flex_Basis.Merge (Base.Flex_Basis, Override.Flex_Basis),
-         Order            => Opt_Order.Merge (Base.Order, Override.Order),
-         Grid_Column      => Opt_Grid_Column.Merge (Base.Grid_Column, Override.Grid_Column),
-         Grid_Row         => Opt_Grid_Row.Merge (Base.Grid_Row, Override.Grid_Row),
-         Grid_Column_Span => Opt_Grid_Col_Span.Merge (Base.Grid_Column_Span, Override.Grid_Column_Span),
-         Grid_Row_Span    => Opt_Grid_Row_Span.Merge (Base.Grid_Row_Span, Override.Grid_Row_Span),
-
-         -- Animation
-         Transition       => Opt_Transition.Merge (Base.Transition, Override.Transition)
-      );
-   end Merge;
-
-   -------------------------------------------------
-   --  Set_Properties: one line per field, like Merge
-   -------------------------------------------------
+     (Rules_Of (Merge (Slots_Of (Base), Slots_Of (Override))));
 
    function Set_Properties (S : Style_Rules) return CSS_Property_Set is
-      function Any_Edge (A : Opt_Edge_Lengths) return Boolean is
-        (for some E in Edge => Opt_Length.Is_Specified (A (E)));
-      function Any_Edge (A : Opt_Edge_Colors) return Boolean is
-        (for some E in Edge => Opt_Edge_Color.Is_Specified (A (E)));
-      function Any_Edge (A : Opt_Edge_Styles) return Boolean is
-        (for some E in Edge => Opt_Edge_Style.Is_Specified (A (E)));
-      function Any_Edge (A : Opt_Margin_Sides) return Boolean is
-        (for some E in Edge => Opt_Margin.Is_Specified (A (E)));
-      function Any_Corner (A : Opt_Corner_Lengths) return Boolean is
-        (for some C in Corner => Opt_Length.Is_Specified (A (C)));
-   begin
-      return
-        [--  Colors
-         Prop_Color            => Opt_Text_Color.Is_Specified (S.Color),
-         Prop_Background_Color => Opt_Bg_Color.Is_Specified (S.Background_Color),
-         Prop_Background_Image => Opt_Bg_Image.Is_Specified (S.Background_Image),
-
-         --  Border
-         Prop_Border_Radius    => Any_Corner (S.Border_Radius),
-         Prop_Border_Width     => Any_Edge (S.Border_Width),
-         Prop_Border_Color     => Any_Edge (S.Border_Color),
-         Prop_Border_Style     => Any_Edge (S.Border_Style),
-
-         --  Outline
-         Prop_Outline_Width    => Opt_Outline_Width.Is_Specified (S.Outline_Width),
-         Prop_Outline_Color    => Opt_Outline_Color.Is_Specified (S.Outline_Color),
-         Prop_Outline_Style    => Opt_Outline_Style.Is_Specified (S.Outline_Style),
-         Prop_Outline_Offset   => Opt_Outline_Offset.Is_Specified (S.Outline_Offset),
-
-         --  Spacing
-         Prop_Padding          => Any_Edge (S.Padding),
-         Prop_Margin           => Any_Edge (S.Margin),
-
-         --  Sizing
-         Prop_Width            => Opt_Size.Is_Specified (S.Width),
-         Prop_Height           => Opt_Size.Is_Specified (S.Height),
-         Prop_Min_Width        => Opt_Size.Is_Specified (S.Min_Width),
-         Prop_Max_Width        => Opt_Size.Is_Specified (S.Max_Width),
-         Prop_Min_Height       => Opt_Size.Is_Specified (S.Min_Height),
-         Prop_Max_Height       => Opt_Size.Is_Specified (S.Max_Height),
-
-         --  Typography
-         Prop_Font_Family      => Opt_Font.Is_Specified (S.Font_Family),
-         Prop_Font_Size        => Opt_Font_Size.Is_Specified (S.Font_Size),
-         Prop_Font_Weight      => Opt_Font_Weight.Is_Specified (S.Font_Weight),
-         Prop_Font_Style       => Opt_Font_Style.Is_Specified (S.Font_Style),
-         Prop_Text_Align       => Opt_Text_Align.Is_Specified (S.Text_Align),
-         Prop_Vertical_Align   => Opt_Vertical_Align.Is_Specified (S.Vertical_Align),
-         Prop_Text_Decoration  => Opt_Text_Decoration.Is_Specified (S.Text_Decoration),
-         Prop_List_Style_Type  => Opt_List_Style_Type.Is_Specified (S.List_Style_Type),
-         Prop_List_Style_Image => Opt_List_Style_Image.Is_Specified (S.List_Style_Image),
-         Prop_List_Style_Position =>
-           Opt_List_Style_Position.Is_Specified (S.List_Style_Position),
-         Prop_White_Space      => Opt_White_Space.Is_Specified (S.White_Space),
-         Prop_Text_Overflow    => Opt_Text_Overflow.Is_Specified (S.Text_Overflow),
-         Prop_Text_Wrap_Mode   => Opt_Text_Wrap_Mode.Is_Specified (S.Text_Wrap_Mode),
-         Prop_Line_Height      => Opt_Line_Height.Is_Specified (S.Line_Height),
-
-         --  Layout. Prop_Overflow is shorthand metadata with no field of
-         --  its own; the axes carry it.
-         Prop_Display          => Opt_Display.Is_Specified (S.Display),
-         Prop_Position         => Opt_Position.Is_Specified (S.Position),
-         Prop_Top              => Opt_Top.Is_Specified (S.Top),
-         Prop_Right            => Opt_Right.Is_Specified (S.Right),
-         Prop_Bottom           => Opt_Bottom.Is_Specified (S.Bottom),
-         Prop_Left             => Opt_Left.Is_Specified (S.Left),
-         Prop_Overflow         => False,
-         Prop_Overflow_X       => Opt_Overflow.Is_Specified (S.Overflow_X),
-         Prop_Overflow_Y       => Opt_Overflow.Is_Specified (S.Overflow_Y),
-         Prop_Visibility       => Opt_Visibility.Is_Specified (S.Visibility),
-
-         --  Visual
-         Prop_Opacity          => Opt_Opacity.Is_Specified (S.Opacity),
-         Prop_Cursor           => Opt_Cursor.Is_Specified (S.Cursor),
-         Prop_Box_Shadow       => Opt_Box_Shadow.Is_Specified (S.Box_Shadow),
-
-         --  Object/Image
-         Prop_Object_Fit       => Opt_Object_Fit.Is_Specified (S.Object_Fit),
-         Prop_Object_Position  => Opt_Object_Pos.Is_Specified (S.Object_Position),
-
-         --  Flexbox container. Grid_Column_Tracks has no property of its
-         --  own and travels with grid-template-columns.
-         Prop_Flex_Direction   => Opt_Flex_Dir.Is_Specified (S.Flex_Direction),
-         Prop_Flex_Wrap        => Opt_Flex_Wrap.Is_Specified (S.Flex_Wrap),
-         Prop_Justify_Content  => Opt_Justify.Is_Specified (S.Justify_Content),
-         Prop_Align_Items      => Opt_Align_Items.Is_Specified (S.Align_Items),
-         Prop_Align_Content    => Opt_Align_Content.Is_Specified (S.Align_Content),
-         Prop_Gap              => Opt_Gap.Is_Specified (S.Gap),
-         Prop_Grid_Columns     => Opt_Grid_Cols.Is_Specified (S.Grid_Columns)
-                                    or else S.Grid_Column_Tracks.Count > 0,
-         Prop_Grid_Rows        => Opt_Grid_Rows.Is_Specified (S.Grid_Rows),
-
-         --  Flexbox item
-         Prop_Align_Self       => Opt_Align_Self.Is_Specified (S.Align_Self),
-         Prop_Flex_Grow        => Opt_Flex_Grow.Is_Specified (S.Flex_Grow),
-         Prop_Flex_Shrink      => Opt_Flex_Shrink.Is_Specified (S.Flex_Shrink),
-         Prop_Flex_Basis       => Opt_Flex_Basis.Is_Specified (S.Flex_Basis),
-         Prop_Order            => Opt_Order.Is_Specified (S.Order),
-         Prop_Grid_Column      => Opt_Grid_Column.Is_Specified (S.Grid_Column),
-         Prop_Grid_Row         => Opt_Grid_Row.Is_Specified (S.Grid_Row),
-         Prop_Grid_Column_Span => Opt_Grid_Col_Span.Is_Specified (S.Grid_Column_Span),
-         Prop_Grid_Row_Span    => Opt_Grid_Row_Span.Is_Specified (S.Grid_Row_Span),
-
-         --  Animation
-         Prop_Transition       => Opt_Transition.Is_Specified (S.Transition)];
-   end Set_Properties;
+     (Set_Properties (Slots_Of (S)));
 
    -------------------------------------------------
    --  Inherit_From: cascade inheritable properties
    --  See Inheritable_Properties in adi-css_styles.ads
    -------------------------------------------------
 
-   --  Apply one property's merge from Parent into Into, the same merge
-   --  the cascade gives it. Which properties this is called for is
-   --  Inheritable_Properties' decision alone, so most arms here are for
-   --  a property that does not inherit today: each is written for the
-   --  case where the table selects it, and flipping a table entry is the
-   --  whole change.
-   procedure Inherit_Property
-     (P      : CSS_Property;
-      Parent : Style_Rules;
-      Into   : in out Style_Rules) is
-   begin
-      case P is
-         when Prop_Color =>
-            Into.Color := Opt_Text_Color.Merge (Parent.Color, Into.Color);
-         when Prop_Background_Color =>
-            Into.Background_Color :=
-              Opt_Bg_Color.Merge (Parent.Background_Color,
-                                  Into.Background_Color);
-         when Prop_Background_Image =>
-            Into.Background_Image :=
-              Opt_Bg_Image.Merge (Parent.Background_Image,
-                                  Into.Background_Image);
-         when Prop_Border_Radius =>
-            Into.Border_Radius :=
-              Merge (Parent.Border_Radius, Into.Border_Radius);
-         when Prop_Border_Width =>
-            Into.Border_Width :=
-              Merge (Parent.Border_Width, Into.Border_Width);
-         when Prop_Border_Color =>
-            Into.Border_Color :=
-              Merge (Parent.Border_Color, Into.Border_Color);
-         when Prop_Border_Style =>
-            Into.Border_Style :=
-              Merge (Parent.Border_Style, Into.Border_Style);
-         when Prop_Outline_Width =>
-            Into.Outline_Width :=
-              Opt_Outline_Width.Merge (Parent.Outline_Width,
-                                       Into.Outline_Width);
-         when Prop_Outline_Color =>
-            Into.Outline_Color :=
-              Opt_Outline_Color.Merge (Parent.Outline_Color,
-                                       Into.Outline_Color);
-         when Prop_Outline_Style =>
-            Into.Outline_Style :=
-              Opt_Outline_Style.Merge (Parent.Outline_Style,
-                                       Into.Outline_Style);
-         when Prop_Outline_Offset =>
-            Into.Outline_Offset :=
-              Opt_Outline_Offset.Merge (Parent.Outline_Offset,
-                                        Into.Outline_Offset);
-         when Prop_Padding =>
-            Into.Padding := Merge (Parent.Padding, Into.Padding);
-         when Prop_Margin =>
-            Into.Margin := Merge (Parent.Margin, Into.Margin);
-         when Prop_Width =>
-            Into.Width := Opt_Size.Merge (Parent.Width, Into.Width);
-         when Prop_Height =>
-            Into.Height := Opt_Size.Merge (Parent.Height, Into.Height);
-         when Prop_Min_Width =>
-            Into.Min_Width :=
-              Opt_Size.Merge (Parent.Min_Width, Into.Min_Width);
-         when Prop_Max_Width =>
-            Into.Max_Width :=
-              Opt_Size.Merge (Parent.Max_Width, Into.Max_Width);
-         when Prop_Min_Height =>
-            Into.Min_Height :=
-              Opt_Size.Merge (Parent.Min_Height, Into.Min_Height);
-         when Prop_Max_Height =>
-            Into.Max_Height :=
-              Opt_Size.Merge (Parent.Max_Height, Into.Max_Height);
-         when Prop_Font_Family =>
-            Into.Font_Family :=
-              Opt_Font.Merge (Parent.Font_Family, Into.Font_Family);
-         when Prop_Font_Size =>
-            Into.Font_Size :=
-              Opt_Font_Size.Merge (Parent.Font_Size, Into.Font_Size);
-         when Prop_Font_Weight =>
-            Into.Font_Weight :=
-              Opt_Font_Weight.Merge (Parent.Font_Weight, Into.Font_Weight);
-         when Prop_Font_Style =>
-            Into.Font_Style :=
-              Opt_Font_Style.Merge (Parent.Font_Style, Into.Font_Style);
-         when Prop_Text_Align =>
-            Into.Text_Align :=
-              Opt_Text_Align.Merge (Parent.Text_Align, Into.Text_Align);
-         when Prop_Vertical_Align =>
-            Into.Vertical_Align :=
-              Opt_Vertical_Align.Merge (Parent.Vertical_Align,
-                                        Into.Vertical_Align);
-         when Prop_Text_Decoration =>
-            Into.Text_Decoration :=
-              Opt_Text_Decoration.Merge (Parent.Text_Decoration,
-                                         Into.Text_Decoration);
-         when Prop_List_Style_Type =>
-            Into.List_Style_Type :=
-              Opt_List_Style_Type.Merge (Parent.List_Style_Type,
-                                         Into.List_Style_Type);
-         when Prop_List_Style_Image =>
-            Into.List_Style_Image :=
-              Opt_List_Style_Image.Merge (Parent.List_Style_Image,
-                                          Into.List_Style_Image);
-         when Prop_List_Style_Position =>
-            Into.List_Style_Position :=
-              Opt_List_Style_Position.Merge (Parent.List_Style_Position,
-                                             Into.List_Style_Position);
-         when Prop_White_Space =>
-            Into.White_Space :=
-              Opt_White_Space.Merge (Parent.White_Space, Into.White_Space);
-         when Prop_Text_Overflow =>
-            Into.Text_Overflow :=
-              Opt_Text_Overflow.Merge (Parent.Text_Overflow,
-                                       Into.Text_Overflow);
-         when Prop_Text_Wrap_Mode =>
-            Into.Text_Wrap_Mode :=
-              Opt_Text_Wrap_Mode.Merge (Parent.Text_Wrap_Mode,
-                                        Into.Text_Wrap_Mode);
-         when Prop_Line_Height =>
-            Into.Line_Height :=
-              Opt_Line_Height.Merge (Parent.Line_Height, Into.Line_Height);
-         when Prop_Display =>
-            Into.Display := Opt_Display.Merge (Parent.Display, Into.Display);
-         when Prop_Position =>
-            Into.Position :=
-              Opt_Position.Merge (Parent.Position, Into.Position);
-         when Prop_Overflow =>
-            --  Shorthand metadata; the two axes carry it.
-            null;
-         when Prop_Overflow_X =>
-            Into.Overflow_X :=
-              Opt_Overflow.Merge (Parent.Overflow_X, Into.Overflow_X);
-         when Prop_Overflow_Y =>
-            Into.Overflow_Y :=
-              Opt_Overflow.Merge (Parent.Overflow_Y, Into.Overflow_Y);
-         when Prop_Visibility =>
-            Into.Visibility :=
-              Opt_Visibility.Merge (Parent.Visibility, Into.Visibility);
-         when Prop_Top =>
-            Into.Top := Opt_Top.Merge (Parent.Top, Into.Top);
-         when Prop_Right =>
-            Into.Right := Opt_Right.Merge (Parent.Right, Into.Right);
-         when Prop_Bottom =>
-            Into.Bottom := Opt_Bottom.Merge (Parent.Bottom, Into.Bottom);
-         when Prop_Left =>
-            Into.Left := Opt_Left.Merge (Parent.Left, Into.Left);
-         when Prop_Opacity =>
-            Into.Opacity := Opt_Opacity.Merge (Parent.Opacity, Into.Opacity);
-         when Prop_Cursor =>
-            Into.Cursor := Opt_Cursor.Merge (Parent.Cursor, Into.Cursor);
-         when Prop_Box_Shadow =>
-            Into.Box_Shadow :=
-              Opt_Box_Shadow.Merge (Parent.Box_Shadow, Into.Box_Shadow);
-         when Prop_Object_Fit =>
-            Into.Object_Fit :=
-              Opt_Object_Fit.Merge (Parent.Object_Fit, Into.Object_Fit);
-         when Prop_Object_Position =>
-            Into.Object_Position :=
-              Opt_Object_Pos.Merge (Parent.Object_Position,
-                                    Into.Object_Position);
-         when Prop_Flex_Direction =>
-            Into.Flex_Direction :=
-              Opt_Flex_Dir.Merge (Parent.Flex_Direction,
-                                  Into.Flex_Direction);
-         when Prop_Flex_Wrap =>
-            Into.Flex_Wrap :=
-              Opt_Flex_Wrap.Merge (Parent.Flex_Wrap, Into.Flex_Wrap);
-         when Prop_Justify_Content =>
-            Into.Justify_Content :=
-              Opt_Justify.Merge (Parent.Justify_Content,
-                                 Into.Justify_Content);
-         when Prop_Align_Items =>
-            Into.Align_Items :=
-              Opt_Align_Items.Merge (Parent.Align_Items, Into.Align_Items);
-         when Prop_Align_Content =>
-            Into.Align_Content :=
-              Opt_Align_Content.Merge (Parent.Align_Content,
-                                       Into.Align_Content);
-         when Prop_Gap =>
-            --  Axis-wise, so one axis named here keeps the other.
-            Into.Gap := Merge_Gap (Parent.Gap, Into.Gap);
-         when Prop_Grid_Columns =>
-            Into.Grid_Columns :=
-              Opt_Grid_Cols.Merge (Parent.Grid_Columns, Into.Grid_Columns);
-            if Into.Grid_Column_Tracks.Count = 0 then
-               Into.Grid_Column_Tracks := Parent.Grid_Column_Tracks;
-            end if;
-         when Prop_Grid_Rows =>
-            Into.Grid_Rows :=
-              Opt_Grid_Rows.Merge (Parent.Grid_Rows, Into.Grid_Rows);
-         when Prop_Align_Self =>
-            Into.Align_Self :=
-              Opt_Align_Self.Merge (Parent.Align_Self, Into.Align_Self);
-         when Prop_Flex_Grow =>
-            Into.Flex_Grow :=
-              Opt_Flex_Grow.Merge (Parent.Flex_Grow, Into.Flex_Grow);
-         when Prop_Flex_Shrink =>
-            Into.Flex_Shrink :=
-              Opt_Flex_Shrink.Merge (Parent.Flex_Shrink, Into.Flex_Shrink);
-         when Prop_Flex_Basis =>
-            Into.Flex_Basis :=
-              Opt_Flex_Basis.Merge (Parent.Flex_Basis, Into.Flex_Basis);
-         when Prop_Order =>
-            Into.Order := Opt_Order.Merge (Parent.Order, Into.Order);
-         when Prop_Grid_Column =>
-            Into.Grid_Column :=
-              Opt_Grid_Column.Merge (Parent.Grid_Column, Into.Grid_Column);
-         when Prop_Grid_Row =>
-            Into.Grid_Row :=
-              Opt_Grid_Row.Merge (Parent.Grid_Row, Into.Grid_Row);
-         when Prop_Grid_Column_Span =>
-            Into.Grid_Column_Span :=
-              Opt_Grid_Col_Span.Merge (Parent.Grid_Column_Span,
-                                       Into.Grid_Column_Span);
-         when Prop_Grid_Row_Span =>
-            Into.Grid_Row_Span :=
-              Opt_Grid_Row_Span.Merge (Parent.Grid_Row_Span,
-                                       Into.Grid_Row_Span);
-         when Prop_Transition =>
-            Into.Transition :=
-              Opt_Transition.Merge (Parent.Transition, Into.Transition);
-      end case;
-   end Inherit_Property;
-
    function Inherit_From (Parent, Child : Style_Rules) return Style_Rules is
-      Result : Style_Rules := Child;
-   begin
-      for P in CSS_Property loop
-         if Inheritable_Properties (P) then
-            Inherit_Property (P, Parent, Result);
-         end if;
-      end loop;
-      return Result;
-   end Inherit_From;
+     (Rules_Of (Inherit_From (Slots_Of (Parent), Slots_Of (Child))));
 
    -------------------------------------------------
    -- Resolve_Font_Family: resolve Font_Family_Value to Font_Handle
@@ -1866,197 +1421,7 @@ package body Adi.CSS_Styles is
 
    end Value_Hash;
 
-   -------------------------------------------------
-   -- Interned rule sets
-   -------------------------------------------------
-
    use Value_Hash;
-
-   --  Which properties the rule set names, then the value each of them
-   --  carries. Resolve answers the default for a property the set
-   --  leaves alone, so no inactive variant arm is read.
-   function Hash (S : Style_Rules) return Ada.Containers.Hash_Type is
-      Named : constant CSS_Property_Set := Set_Properties (S);
-      H     : Digest := Seed;
-   begin
-      for P in CSS_Property loop
-         H := Mix (H, Boolean'Pos (Named (P)));
-      end loop;
-
-      H := Add (H, Opt_Text_Color.Resolve (S.Color));
-      H := Add (H, Opt_Bg_Color.Resolve (S.Background_Color));
-      H := Add (H, Opt_Bg_Image.Resolve (S.Background_Image));
-      H := Add (H, To_Border_Radius (S.Border_Radius));
-      H := Add (H, To_Border_Width (S.Border_Width));
-      H := Add (H, To_Border_Color (S.Border_Color));
-      H := Add (H, To_Border_Style (S.Border_Style));
-      H := Add (H, Opt_Outline_Width.Resolve (S.Outline_Width));
-      H := Add (H, Opt_Outline_Color.Resolve (S.Outline_Color));
-      H := Mix (H, Outline_Style_Kind'Pos
-                     (Opt_Outline_Style.Resolve (S.Outline_Style)));
-      H := Add (H, Opt_Outline_Offset.Resolve (S.Outline_Offset));
-      H := Add (H, To_Box (S.Padding));
-      for E in Edge loop
-         H := Add (H, Opt_Margin.Resolve (S.Margin (E)));
-      end loop;
-      H := Add (H, Opt_Size.Resolve (S.Width));
-      H := Add (H, Opt_Size.Resolve (S.Height));
-      H := Add (H, Opt_Size.Resolve (S.Min_Width));
-      H := Add (H, Opt_Size.Resolve (S.Max_Width));
-      H := Add (H, Opt_Size.Resolve (S.Min_Height));
-      H := Add (H, Opt_Size.Resolve (S.Max_Height));
-      H := Add (H, Opt_Font.Resolve (S.Font_Family));
-      H := Add (H, Opt_Font_Size.Resolve (S.Font_Size));
-      H := Mix (H, Font_Weight_Value'Pos
-                     (Opt_Font_Weight.Resolve (S.Font_Weight)));
-      H := Mix (H, Font_Style_Value'Pos
-                     (Opt_Font_Style.Resolve (S.Font_Style)));
-      H := Mix (H, Text_Align_Value'Pos
-                     (Opt_Text_Align.Resolve (S.Text_Align)));
-      H := Mix (H, Vertical_Align_Value'Pos
-                     (Opt_Vertical_Align.Resolve (S.Vertical_Align)));
-      H := Mix (H, Text_Decoration_Value'Pos
-                     (Opt_Text_Decoration.Resolve (S.Text_Decoration)));
-      H := Add (H, Opt_List_Style_Type.Resolve (S.List_Style_Type));
-      H := Add (H, Opt_List_Style_Image.Resolve (S.List_Style_Image));
-      H := Mix (H, List_Style_Position_Value'Pos
-                     (Opt_List_Style_Position.Resolve (S.List_Style_Position)));
-      H := Mix (H, White_Space_Value'Pos
-                     (Opt_White_Space.Resolve (S.White_Space)));
-      H := Mix (H, Text_Overflow_Value'Pos
-                     (Opt_Text_Overflow.Resolve (S.Text_Overflow)));
-      H := Mix (H, Text_Wrap_Mode_Value'Pos
-                     (Opt_Text_Wrap_Mode.Resolve (S.Text_Wrap_Mode)));
-      H := Add (H, Opt_Line_Height.Resolve (S.Line_Height));
-      H := Mix (H, Display_Value'Pos (Opt_Display.Resolve (S.Display)));
-      H := Mix (H, Position_Value'Pos (Opt_Position.Resolve (S.Position)));
-      H := Add (H, Opt_Top.Resolve (S.Top));
-      H := Add (H, Opt_Right.Resolve (S.Right));
-      H := Add (H, Opt_Bottom.Resolve (S.Bottom));
-      H := Add (H, Opt_Left.Resolve (S.Left));
-      H := Mix (H, Overflow_Value'Pos (Opt_Overflow.Resolve (S.Overflow_X)));
-      H := Mix (H, Overflow_Value'Pos (Opt_Overflow.Resolve (S.Overflow_Y)));
-      H := Mix (H, Visibility_Value'Pos
-                     (Opt_Visibility.Resolve (S.Visibility)));
-      H := Mix (H, Num (Float (Opt_Opacity.Resolve (S.Opacity))));
-      H := Mix (H, Cursor_Value'Pos (Opt_Cursor.Resolve (S.Cursor)));
-      H := Add (H, Opt_Box_Shadow.Resolve (S.Box_Shadow));
-      H := Mix (H, Object_Fit_Value'Pos
-                     (Opt_Object_Fit.Resolve (S.Object_Fit)));
-      H := Add (H, Opt_Object_Pos.Resolve (S.Object_Position));
-      H := Mix (H, Flex_Direction_Value'Pos
-                     (Opt_Flex_Dir.Resolve (S.Flex_Direction)));
-      H := Mix (H, Flex_Wrap_Value'Pos
-                     (Opt_Flex_Wrap.Resolve (S.Flex_Wrap)));
-      H := Mix (H, Justify_Content_Value'Pos
-                     (Opt_Justify.Resolve (S.Justify_Content)));
-      H := Mix (H, Align_Items_Value'Pos
-                     (Opt_Align_Items.Resolve (S.Align_Items)));
-      H := Mix (H, Align_Content_Value'Pos
-                     (Opt_Align_Content.Resolve (S.Align_Content)));
-      H := Add (H, Opt_Gap.Resolve (S.Gap));
-      H := Mix (H, Digest (Opt_Grid_Cols.Resolve (S.Grid_Columns)));
-      H := Mix (H, Digest (Opt_Grid_Rows.Resolve (S.Grid_Rows)));
-      H := Add (H, S.Grid_Column_Tracks);
-      H := Mix (H, Align_Self_Value'Pos
-                     (Opt_Align_Self.Resolve (S.Align_Self)));
-      H := Mix (H, Num (Float (Opt_Flex_Grow.Resolve (S.Flex_Grow))));
-      H := Mix (H, Num (Float (Opt_Flex_Shrink.Resolve (S.Flex_Shrink))));
-      H := Add (H, Opt_Flex_Basis.Resolve (S.Flex_Basis));
-      H := Mix (H, Digest (Integer (Opt_Order.Resolve (S.Order))
-                             mod 2 ** 24));
-      H := Mix (H, Digest (Opt_Grid_Column.Resolve (S.Grid_Column)));
-      H := Mix (H, Digest (Opt_Grid_Row.Resolve (S.Grid_Row)));
-      H := Mix (H, Digest (Opt_Grid_Col_Span.Resolve (S.Grid_Column_Span)));
-      H := Mix (H, Digest (Opt_Grid_Row_Span.Resolve (S.Grid_Row_Span)));
-      H := Add (H, Opt_Transition.Resolve (S.Transition));
-      return H;
-   end Hash;
-
-   package Rules_Vectors is new Ada.Containers.Vectors
-     (Positive, Const_Rules_Access);
-
-   Rules_Store : Rules_Vectors.Vector;
-
-   package Rules_Handle_Vectors is new Ada.Containers.Vectors
-     (Positive, Rules_Handle);
-
-   function Same_Digest (H : Ada.Containers.Hash_Type)
-     return Ada.Containers.Hash_Type is (H);
-
-   --  Handles grouped by digest, so interning compares against a
-   --  handful of candidates rather than the whole store.
-   package Rules_Index_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Ada.Containers.Hash_Type,
-      Element_Type    => Rules_Handle_Vectors.Vector,
-      Hash            => Same_Digest,
-      Equivalent_Keys => Ada.Containers."=",
-      "="             => Rules_Handle_Vectors."=");
-
-   Rules_Index : Rules_Index_Maps.Map;
-
-   Empty_Rules_Value : aliased constant Style_Rules := Empty_Style;
-
-   Rule_Set_Count : Natural := 0;
-   Rule_Set_Bytes : Natural := 0;
-
-   function Interned_Rule_Sets return Natural is (Rule_Set_Count);
-   function Interned_Rule_Bytes return Natural is (Rule_Set_Bytes);
-
-   function Rules_Ref (H : Rules_Handle) return not null Const_Rules_Access is
-   begin
-      if H = Empty_Rules
-        or else Natural (H) > Natural (Rules_Store.Length)
-      then
-         return Empty_Rules_Value'Access;
-      end if;
-      return Rules_Store.Element (Positive (H));
-   end Rules_Ref;
-
-   function Rules_Of (H : Rules_Handle) return Style_Rules is
-     (Rules_Ref (H).all);
-
-   function Index (H : Rules_Handle) return Natural is (Natural (H));
-
-   function Intern_Rules (S : Style_Rules) return Rules_Handle is
-   begin
-      if S = Empty_Style then
-         return Empty_Rules;
-      end if;
-
-      declare
-         Key      : constant Ada.Containers.Hash_Type := Hash (S);
-         Bucket   : constant Rules_Index_Maps.Cursor := Rules_Index.Find (Key);
-         Interned : Rules_Handle;
-      begin
-         if Rules_Index_Maps.Has_Element (Bucket) then
-            for H of Rules_Index_Maps.Element (Bucket) loop
-               if Rules_Store.Element (Positive (H)).all = S then
-                  return H;
-               end if;
-            end loop;
-         end if;
-
-         Rules_Store.Append (new Style_Rules'(S));
-         Interned := Rules_Handle (Rules_Store.Length);
-         Rule_Set_Count := Natural (Rules_Store.Length);
-         Rule_Set_Bytes :=
-           Rule_Set_Bytes + Style_Rules'Max_Size_In_Storage_Elements;
-
-         if Rules_Index_Maps.Has_Element (Bucket) then
-            Rules_Index.Reference (Bucket).Append (Interned);
-         else
-            declare
-               Fresh : Rules_Handle_Vectors.Vector;
-            begin
-               Fresh.Append (Interned);
-               Rules_Index.Insert (Key, Fresh);
-            end;
-         end if;
-
-         return Interned;
-      end;
-   end Intern_Rules;
 
    -------------------------------------------------
    -- Value stores
@@ -2185,6 +1550,12 @@ package body Adi.CSS_Styles is
 
    package Order_Values is new Value_Store (Order_Value, Order_Digest);
 
+   --  The two a rule set names through a slot and a chain step never
+   --  does: one margin side, and the track list travelling with
+   --  grid-template-columns.
+   package Margin_Values is new Value_Store (Margin_Value, Value_Hash.Add);
+   package Track_Values is new Value_Store (Grid_Track_List, Value_Hash.Add);
+
    function Interned_Values return Natural is
      (Color_Values.Count + Length_Values.Count + Size_Values.Count
       + Box_Values.Count + Border_Width_Values.Count
@@ -2195,7 +1566,8 @@ package body Adi.CSS_Styles is
       + Line_Height_Values.Count + Flex_Basis_Values.Count
       + Object_Position_Values.Count + Bg_Image_Values.Count
       + Font_Family_Values.Count + List_Type_Values.Count
-      + List_Image_Values.Count + Order_Values.Count);
+      + List_Image_Values.Count + Order_Values.Count
+      + Margin_Values.Count + Track_Values.Count);
 
    function Interned_Value_Bytes return Natural is
      (Color_Values.Bytes + Length_Values.Bytes + Size_Values.Bytes
@@ -2207,7 +1579,8 @@ package body Adi.CSS_Styles is
       + Line_Height_Values.Bytes + Flex_Basis_Values.Bytes
       + Object_Position_Values.Bytes + Bg_Image_Values.Bytes
       + Font_Family_Values.Bytes + List_Type_Values.Bytes
-      + List_Image_Values.Bytes + Order_Values.Bytes);
+      + List_Image_Values.Bytes + Order_Values.Bytes
+      + Margin_Values.Bytes + Track_Values.Bytes);
 
    -------------------------------------------------
    -- Value references
@@ -2584,6 +1957,26 @@ package body Adi.CSS_Styles is
    function Grid_Row_Span_Of (R : Value_Ref) return Grid_Row_Span_Value is
      (Grid_Row_Span_Value (Payload (R)));
 
+   ---------------------------------------------------------------------
+   --  What a slot carries where a chain step carries the whole group:
+   --  one margin side, one border-style edge, and the track list.
+   ---------------------------------------------------------------------
+
+   function Intern_Margin (V : Margin_Value) return Value_Ref is
+     (Stored (Margin_Values.Intern (V)));
+   function Margin_Of (R : Value_Ref) return Margin_Value is
+     (Margin_Values.Get (Stored_Index (R)));
+
+   function Intern_Edge_Style (V : Border_Style_Kind) return Value_Ref is
+     (Immediate (Border_Style_Kind'Pos (V)));
+   function Edge_Style_Of (R : Value_Ref) return Border_Style_Kind is
+     (Border_Style_Kind'Val (Payload (R)));
+
+   function Intern_Tracks (V : Grid_Track_List) return Value_Ref is
+     (Stored (Track_Values.Intern (V)));
+   function Tracks_Of (R : Value_Ref) return Grid_Track_List is
+     (Track_Values.Get (Stored_Index (R)));
+
    -------------------------------------------------
    -- Folding a named property into a rule set
    -------------------------------------------------
@@ -2831,5 +2224,842 @@ package body Adi.CSS_Styles is
             S.Overflow_Y := Opt_Overflow.Cleared;
       end case;
    end Clear_Property;
+
+   -------------------------------------------------
+   -- A rule set as a slot list
+   -------------------------------------------------
+
+   --  Which value of a property a slot carries, for the eight that
+   --  carry more than one. Every other property uses First_Part.
+   Gap_Row_Part    : constant Slot_Part := 0;
+   Gap_Column_Part : constant Slot_Part := 1;
+   Tracks_Part     : constant Slot_Part := 1;
+
+   --  Ordered by property and then by part, which is the order
+   --  Slots_Of writes and every walk below relies on.
+   function Precedes (A, B : Prop_Slot) return Boolean is
+     (if A.Prop /= B.Prop then A.Prop < B.Prop else A.Part < B.Part);
+
+   --  Max_Rule_Slots is the values the whole vocabulary cascades, which
+   --  is what makes the list long enough for any rule set: the arms
+   --  below emit at most one slot per key, and a merge or an
+   --  inheritance pass answers with the union of two such lists, so
+   --  nothing composes past it. A sum over a table here would not fold
+   --  at compile time, so what holds the figure is
+   --  style_property_table_test, which measures it through Slots_Of on
+   --  a rule set naming every property.
+
+   function Slot_Count (L : Rule_Slots) return Natural is (L.Count);
+
+   ---------------------------------------------------------------------
+   --  Style_Rules to slots
+   ---------------------------------------------------------------------
+
+   function Slots_Of (S : Style_Rules) return Rule_Slots is
+      L : Rule_Slots;
+
+      procedure Emit (P : CSS_Property; Part : Slot_Part; R : Value_Ref);
+      procedure Wipe (P : CSS_Property; Part : Slot_Part);
+
+      procedure Emit (P : CSS_Property; Part : Slot_Part; R : Value_Ref) is
+      begin
+         L.Count := L.Count + 1;
+         L.Items (L.Count) := (P, Part, Set_Value, R);
+      end Emit;
+
+      procedure Wipe (P : CSS_Property; Part : Slot_Part) is
+      begin
+         L.Count := L.Count + 1;
+         L.Items (L.Count) := (P, Part, Clear_Value, No_Value_Ref);
+      end Wipe;
+   begin
+      for P in CSS_Property loop
+         case P is
+            --  The six groups, each value cascading on its own.
+            when Prop_Border_Radius =>
+               for C in Corner loop
+                  if Opt_Length.Is_Set (S.Border_Radius (C)) then
+                     Emit (P, Slot_Part (Corner'Pos (C)),
+                           Intern (S.Border_Radius (C).Value));
+                  elsif Opt_Length.Is_None (S.Border_Radius (C)) then
+                     Wipe (P, Slot_Part (Corner'Pos (C)));
+                  end if;
+               end loop;
+            when Prop_Border_Width =>
+               for E in Edge loop
+                  if Opt_Length.Is_Set (S.Border_Width (E)) then
+                     Emit (P, Slot_Part (Edge'Pos (E)),
+                           Intern (S.Border_Width (E).Value));
+                  elsif Opt_Length.Is_None (S.Border_Width (E)) then
+                     Wipe (P, Slot_Part (Edge'Pos (E)));
+                  end if;
+               end loop;
+            when Prop_Padding =>
+               for E in Edge loop
+                  if Opt_Length.Is_Set (S.Padding (E)) then
+                     Emit (P, Slot_Part (Edge'Pos (E)),
+                           Intern (S.Padding (E).Value));
+                  elsif Opt_Length.Is_None (S.Padding (E)) then
+                     Wipe (P, Slot_Part (Edge'Pos (E)));
+                  end if;
+               end loop;
+            when Prop_Border_Color =>
+               for E in Edge loop
+                  if Opt_Edge_Color.Is_Set (S.Border_Color (E)) then
+                     Emit (P, Slot_Part (Edge'Pos (E)),
+                           Intern (S.Border_Color (E).Value));
+                  elsif Opt_Edge_Color.Is_None (S.Border_Color (E)) then
+                     Wipe (P, Slot_Part (Edge'Pos (E)));
+                  end if;
+               end loop;
+            when Prop_Border_Style =>
+               for E in Edge loop
+                  if Opt_Edge_Style.Is_Set (S.Border_Style (E)) then
+                     Emit (P, Slot_Part (Edge'Pos (E)),
+                           Intern_Edge_Style (S.Border_Style (E).Value));
+                  elsif Opt_Edge_Style.Is_None (S.Border_Style (E)) then
+                     Wipe (P, Slot_Part (Edge'Pos (E)));
+                  end if;
+               end loop;
+            when Prop_Margin =>
+               for E in Edge loop
+                  if Opt_Margin.Is_Set (S.Margin (E)) then
+                     Emit (P, Slot_Part (Edge'Pos (E)),
+                           Intern_Margin (S.Margin (E).Value));
+                  elsif Opt_Margin.Is_None (S.Margin (E)) then
+                     Wipe (P, Slot_Part (Edge'Pos (E)));
+                  end if;
+               end loop;
+
+            --  One field, two axes: a value naming one axis leaves the
+            --  other to the cascade, which is a slot naming one part.
+            when Prop_Gap =>
+               if Opt_Gap.Is_Set (S.Gap) then
+                  declare
+                     G : Gap_Value renames S.Gap.Value;
+                  begin
+                     if G.Kind = Gap_Uniform then
+                        Emit (P, Gap_Row_Part, Intern (G.All_Gap));
+                        Emit (P, Gap_Column_Part, Intern (G.All_Gap));
+                     else
+                        if G.Has_Row then
+                           Emit (P, Gap_Row_Part, Intern (G.Row_Gap));
+                        end if;
+                        if G.Has_Column then
+                           Emit (P, Gap_Column_Part, Intern (G.Column_Gap));
+                        end if;
+                     end if;
+                  end;
+               elsif Opt_Gap.Is_None (S.Gap) then
+                  Wipe (P, Gap_Row_Part);
+                  Wipe (P, Gap_Column_Part);
+               end if;
+
+            --  The track list has no CSS_Property literal and travels
+            --  with grid-template-columns, so it is that property's
+            --  second part and cascades beside the count.
+            when Prop_Grid_Columns =>
+               if Opt_Grid_Cols.Is_Set (S.Grid_Columns) then
+                  Emit (P, First_Part, Intern (S.Grid_Columns.Value));
+               elsif Opt_Grid_Cols.Is_None (S.Grid_Columns) then
+                  Wipe (P, First_Part);
+               end if;
+               if S.Grid_Column_Tracks.Count > 0 then
+                  Emit (P, Tracks_Part, Intern_Tracks (S.Grid_Column_Tracks));
+               end if;
+
+            --  The shorthand owns no field: a rule set holds it as its
+            --  two axes, and those are the slots it carries.
+            when Prop_Overflow =>
+               null;
+
+            when Prop_Color =>
+               if Opt_Text_Color.Is_Set (S.Color) then
+                  Emit (P, First_Part, Intern (S.Color.Value));
+               elsif Opt_Text_Color.Is_None (S.Color) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Background_Color =>
+               if Opt_Bg_Color.Is_Set (S.Background_Color) then
+                  Emit (P, First_Part, Intern (S.Background_Color.Value));
+               elsif Opt_Bg_Color.Is_None (S.Background_Color) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Background_Image =>
+               if Opt_Bg_Image.Is_Set (S.Background_Image) then
+                  Emit (P, First_Part, Intern (S.Background_Image.Value));
+               elsif Opt_Bg_Image.Is_None (S.Background_Image) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Outline_Width =>
+               if Opt_Outline_Width.Is_Set (S.Outline_Width) then
+                  Emit (P, First_Part, Intern (S.Outline_Width.Value));
+               elsif Opt_Outline_Width.Is_None (S.Outline_Width) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Outline_Color =>
+               if Opt_Outline_Color.Is_Set (S.Outline_Color) then
+                  Emit (P, First_Part, Intern (S.Outline_Color.Value));
+               elsif Opt_Outline_Color.Is_None (S.Outline_Color) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Outline_Style =>
+               if Opt_Outline_Style.Is_Set (S.Outline_Style) then
+                  Emit (P, First_Part, Intern (S.Outline_Style.Value));
+               elsif Opt_Outline_Style.Is_None (S.Outline_Style) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Outline_Offset =>
+               if Opt_Outline_Offset.Is_Set (S.Outline_Offset) then
+                  Emit (P, First_Part, Intern (S.Outline_Offset.Value));
+               elsif Opt_Outline_Offset.Is_None (S.Outline_Offset) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Width =>
+               if Opt_Size.Is_Set (S.Width) then
+                  Emit (P, First_Part, Intern (S.Width.Value));
+               elsif Opt_Size.Is_None (S.Width) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Height =>
+               if Opt_Size.Is_Set (S.Height) then
+                  Emit (P, First_Part, Intern (S.Height.Value));
+               elsif Opt_Size.Is_None (S.Height) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Min_Width =>
+               if Opt_Size.Is_Set (S.Min_Width) then
+                  Emit (P, First_Part, Intern (S.Min_Width.Value));
+               elsif Opt_Size.Is_None (S.Min_Width) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Max_Width =>
+               if Opt_Size.Is_Set (S.Max_Width) then
+                  Emit (P, First_Part, Intern (S.Max_Width.Value));
+               elsif Opt_Size.Is_None (S.Max_Width) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Min_Height =>
+               if Opt_Size.Is_Set (S.Min_Height) then
+                  Emit (P, First_Part, Intern (S.Min_Height.Value));
+               elsif Opt_Size.Is_None (S.Min_Height) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Max_Height =>
+               if Opt_Size.Is_Set (S.Max_Height) then
+                  Emit (P, First_Part, Intern (S.Max_Height.Value));
+               elsif Opt_Size.Is_None (S.Max_Height) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Font_Family =>
+               if Opt_Font.Is_Set (S.Font_Family) then
+                  Emit (P, First_Part, Intern (S.Font_Family.Value));
+               elsif Opt_Font.Is_None (S.Font_Family) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Font_Size =>
+               if Opt_Font_Size.Is_Set (S.Font_Size) then
+                  Emit (P, First_Part, Intern (S.Font_Size.Value));
+               elsif Opt_Font_Size.Is_None (S.Font_Size) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Font_Weight =>
+               if Opt_Font_Weight.Is_Set (S.Font_Weight) then
+                  Emit (P, First_Part, Intern (S.Font_Weight.Value));
+               elsif Opt_Font_Weight.Is_None (S.Font_Weight) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Font_Style =>
+               if Opt_Font_Style.Is_Set (S.Font_Style) then
+                  Emit (P, First_Part, Intern (S.Font_Style.Value));
+               elsif Opt_Font_Style.Is_None (S.Font_Style) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Text_Align =>
+               if Opt_Text_Align.Is_Set (S.Text_Align) then
+                  Emit (P, First_Part, Intern (S.Text_Align.Value));
+               elsif Opt_Text_Align.Is_None (S.Text_Align) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Vertical_Align =>
+               if Opt_Vertical_Align.Is_Set (S.Vertical_Align) then
+                  Emit (P, First_Part, Intern (S.Vertical_Align.Value));
+               elsif Opt_Vertical_Align.Is_None (S.Vertical_Align) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Text_Decoration =>
+               if Opt_Text_Decoration.Is_Set (S.Text_Decoration) then
+                  Emit (P, First_Part, Intern (S.Text_Decoration.Value));
+               elsif Opt_Text_Decoration.Is_None (S.Text_Decoration) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_List_Style_Type =>
+               if Opt_List_Style_Type.Is_Set (S.List_Style_Type) then
+                  Emit (P, First_Part, Intern (S.List_Style_Type.Value));
+               elsif Opt_List_Style_Type.Is_None (S.List_Style_Type) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_List_Style_Image =>
+               if Opt_List_Style_Image.Is_Set (S.List_Style_Image) then
+                  Emit (P, First_Part, Intern (S.List_Style_Image.Value));
+               elsif Opt_List_Style_Image.Is_None (S.List_Style_Image) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_List_Style_Position =>
+               if Opt_List_Style_Position.Is_Set (S.List_Style_Position) then
+                  Emit (P, First_Part, Intern (S.List_Style_Position.Value));
+               elsif Opt_List_Style_Position.Is_None (S.List_Style_Position)
+               then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_White_Space =>
+               if Opt_White_Space.Is_Set (S.White_Space) then
+                  Emit (P, First_Part, Intern (S.White_Space.Value));
+               elsif Opt_White_Space.Is_None (S.White_Space) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Text_Overflow =>
+               if Opt_Text_Overflow.Is_Set (S.Text_Overflow) then
+                  Emit (P, First_Part, Intern (S.Text_Overflow.Value));
+               elsif Opt_Text_Overflow.Is_None (S.Text_Overflow) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Text_Wrap_Mode =>
+               if Opt_Text_Wrap_Mode.Is_Set (S.Text_Wrap_Mode) then
+                  Emit (P, First_Part, Intern (S.Text_Wrap_Mode.Value));
+               elsif Opt_Text_Wrap_Mode.Is_None (S.Text_Wrap_Mode) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Line_Height =>
+               if Opt_Line_Height.Is_Set (S.Line_Height) then
+                  Emit (P, First_Part, Intern (S.Line_Height.Value));
+               elsif Opt_Line_Height.Is_None (S.Line_Height) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Display =>
+               if Opt_Display.Is_Set (S.Display) then
+                  Emit (P, First_Part, Intern (S.Display.Value));
+               elsif Opt_Display.Is_None (S.Display) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Position =>
+               if Opt_Position.Is_Set (S.Position) then
+                  Emit (P, First_Part, Intern (S.Position.Value));
+               elsif Opt_Position.Is_None (S.Position) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Overflow_X =>
+               if Opt_Overflow.Is_Set (S.Overflow_X) then
+                  Emit (P, First_Part, Intern (S.Overflow_X.Value));
+               elsif Opt_Overflow.Is_None (S.Overflow_X) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Overflow_Y =>
+               if Opt_Overflow.Is_Set (S.Overflow_Y) then
+                  Emit (P, First_Part, Intern (S.Overflow_Y.Value));
+               elsif Opt_Overflow.Is_None (S.Overflow_Y) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Visibility =>
+               if Opt_Visibility.Is_Set (S.Visibility) then
+                  Emit (P, First_Part, Intern (S.Visibility.Value));
+               elsif Opt_Visibility.Is_None (S.Visibility) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Top =>
+               if Opt_Top.Is_Set (S.Top) then
+                  Emit (P, First_Part, Intern (S.Top.Value));
+               elsif Opt_Top.Is_None (S.Top) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Right =>
+               if Opt_Right.Is_Set (S.Right) then
+                  Emit (P, First_Part, Intern (S.Right.Value));
+               elsif Opt_Right.Is_None (S.Right) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Bottom =>
+               if Opt_Bottom.Is_Set (S.Bottom) then
+                  Emit (P, First_Part, Intern (S.Bottom.Value));
+               elsif Opt_Bottom.Is_None (S.Bottom) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Left =>
+               if Opt_Left.Is_Set (S.Left) then
+                  Emit (P, First_Part, Intern (S.Left.Value));
+               elsif Opt_Left.Is_None (S.Left) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Opacity =>
+               if Opt_Opacity.Is_Set (S.Opacity) then
+                  Emit (P, First_Part, Intern (S.Opacity.Value));
+               elsif Opt_Opacity.Is_None (S.Opacity) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Cursor =>
+               if Opt_Cursor.Is_Set (S.Cursor) then
+                  Emit (P, First_Part, Intern (S.Cursor.Value));
+               elsif Opt_Cursor.Is_None (S.Cursor) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Box_Shadow =>
+               if Opt_Box_Shadow.Is_Set (S.Box_Shadow) then
+                  Emit (P, First_Part, Intern (S.Box_Shadow.Value));
+               elsif Opt_Box_Shadow.Is_None (S.Box_Shadow) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Object_Fit =>
+               if Opt_Object_Fit.Is_Set (S.Object_Fit) then
+                  Emit (P, First_Part, Intern (S.Object_Fit.Value));
+               elsif Opt_Object_Fit.Is_None (S.Object_Fit) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Object_Position =>
+               if Opt_Object_Pos.Is_Set (S.Object_Position) then
+                  Emit (P, First_Part, Intern (S.Object_Position.Value));
+               elsif Opt_Object_Pos.Is_None (S.Object_Position) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Flex_Direction =>
+               if Opt_Flex_Dir.Is_Set (S.Flex_Direction) then
+                  Emit (P, First_Part, Intern (S.Flex_Direction.Value));
+               elsif Opt_Flex_Dir.Is_None (S.Flex_Direction) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Flex_Wrap =>
+               if Opt_Flex_Wrap.Is_Set (S.Flex_Wrap) then
+                  Emit (P, First_Part, Intern (S.Flex_Wrap.Value));
+               elsif Opt_Flex_Wrap.Is_None (S.Flex_Wrap) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Justify_Content =>
+               if Opt_Justify.Is_Set (S.Justify_Content) then
+                  Emit (P, First_Part, Intern (S.Justify_Content.Value));
+               elsif Opt_Justify.Is_None (S.Justify_Content) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Align_Items =>
+               if Opt_Align_Items.Is_Set (S.Align_Items) then
+                  Emit (P, First_Part, Intern (S.Align_Items.Value));
+               elsif Opt_Align_Items.Is_None (S.Align_Items) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Align_Content =>
+               if Opt_Align_Content.Is_Set (S.Align_Content) then
+                  Emit (P, First_Part, Intern (S.Align_Content.Value));
+               elsif Opt_Align_Content.Is_None (S.Align_Content) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Grid_Rows =>
+               if Opt_Grid_Rows.Is_Set (S.Grid_Rows) then
+                  Emit (P, First_Part, Intern (S.Grid_Rows.Value));
+               elsif Opt_Grid_Rows.Is_None (S.Grid_Rows) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Align_Self =>
+               if Opt_Align_Self.Is_Set (S.Align_Self) then
+                  Emit (P, First_Part, Intern (S.Align_Self.Value));
+               elsif Opt_Align_Self.Is_None (S.Align_Self) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Flex_Grow =>
+               if Opt_Flex_Grow.Is_Set (S.Flex_Grow) then
+                  Emit (P, First_Part, Intern (S.Flex_Grow.Value));
+               elsif Opt_Flex_Grow.Is_None (S.Flex_Grow) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Flex_Shrink =>
+               if Opt_Flex_Shrink.Is_Set (S.Flex_Shrink) then
+                  Emit (P, First_Part, Intern (S.Flex_Shrink.Value));
+               elsif Opt_Flex_Shrink.Is_None (S.Flex_Shrink) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Flex_Basis =>
+               if Opt_Flex_Basis.Is_Set (S.Flex_Basis) then
+                  Emit (P, First_Part, Intern (S.Flex_Basis.Value));
+               elsif Opt_Flex_Basis.Is_None (S.Flex_Basis) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Order =>
+               if Opt_Order.Is_Set (S.Order) then
+                  Emit (P, First_Part, Intern (S.Order.Value));
+               elsif Opt_Order.Is_None (S.Order) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Grid_Column =>
+               if Opt_Grid_Column.Is_Set (S.Grid_Column) then
+                  Emit (P, First_Part, Intern (S.Grid_Column.Value));
+               elsif Opt_Grid_Column.Is_None (S.Grid_Column) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Grid_Row =>
+               if Opt_Grid_Row.Is_Set (S.Grid_Row) then
+                  Emit (P, First_Part, Intern (S.Grid_Row.Value));
+               elsif Opt_Grid_Row.Is_None (S.Grid_Row) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Grid_Column_Span =>
+               if Opt_Grid_Col_Span.Is_Set (S.Grid_Column_Span) then
+                  Emit (P, First_Part, Intern (S.Grid_Column_Span.Value));
+               elsif Opt_Grid_Col_Span.Is_None (S.Grid_Column_Span) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Grid_Row_Span =>
+               if Opt_Grid_Row_Span.Is_Set (S.Grid_Row_Span) then
+                  Emit (P, First_Part, Intern (S.Grid_Row_Span.Value));
+               elsif Opt_Grid_Row_Span.Is_None (S.Grid_Row_Span) then
+                  Wipe (P, First_Part);
+               end if;
+            when Prop_Transition =>
+               if Opt_Transition.Is_Set (S.Transition) then
+                  Emit (P, First_Part, Intern (S.Transition.Value));
+               elsif Opt_Transition.Is_None (S.Transition) then
+                  Wipe (P, First_Part);
+               end if;
+         end case;
+      end loop;
+      return L;
+   end Slots_Of;
+
+   ---------------------------------------------------------------------
+   --  Slots to Style_Rules
+   ---------------------------------------------------------------------
+
+   --  Apply_Property and Clear_Property answer for every property whose
+   --  slot carries the whole field, which is all but the eight that
+   --  carry a value per part.
+   function Materialise (L : Slot_List) return Style_Rules is
+      S : Style_Rules;
+   begin
+      for I in L'Range loop
+         declare
+            E   : Prop_Slot renames L (I);
+            Set : constant Boolean := E.Op = Set_Value;
+         begin
+            case E.Prop is
+               when Prop_Border_Radius =>
+                  S.Border_Radius (Corner'Val (Natural (E.Part))) :=
+                    (if Set then Opt_Length.Val (Length_Of (E.Val))
+                     else Opt_Length.Cleared);
+               when Prop_Border_Width =>
+                  S.Border_Width (Edge'Val (Natural (E.Part))) :=
+                    (if Set then Opt_Length.Val (Length_Of (E.Val))
+                     else Opt_Length.Cleared);
+               when Prop_Padding =>
+                  S.Padding (Edge'Val (Natural (E.Part))) :=
+                    (if Set then Opt_Length.Val (Length_Of (E.Val))
+                     else Opt_Length.Cleared);
+               when Prop_Border_Color =>
+                  S.Border_Color (Edge'Val (Natural (E.Part))) :=
+                    (if Set then Opt_Edge_Color.Val (Color_Of (E.Val))
+                     else Opt_Edge_Color.Cleared);
+               when Prop_Border_Style =>
+                  S.Border_Style (Edge'Val (Natural (E.Part))) :=
+                    (if Set then Opt_Edge_Style.Val (Edge_Style_Of (E.Val))
+                     else Opt_Edge_Style.Cleared);
+               when Prop_Margin =>
+                  S.Margin (Edge'Val (Natural (E.Part))) :=
+                    (if Set then Opt_Margin.Val (Margin_Of (E.Val))
+                     else Opt_Margin.Cleared);
+
+               --  Two axes over one field, and the field carries
+               --  named-or-not per axis rather than cleared per axis,
+               --  so a slot list holding one axis set and the other
+               --  cleared has no Opt_Gap to land in. An axis set folds
+               --  onto what an earlier one left, and a cleared axis
+               --  answers only where no axis is set -- so the pair
+               --  collapses to the axis that is set, and the cleared
+               --  one reads as unnamed.
+               --
+               --  Unnamed and cleared resolve alike here, both to
+               --  Default_Gap's zero, which is what makes the collapse
+               --  sound rather than merely lossless-looking. Two things
+               --  hold that: Default_Gap is zero on both axes, and
+               --  Get_Row_Gap / Get_Column_Gap read the axis rather
+               --  than Has_Row / Has_Column. style_handle_test pins the
+               --  pair, so making either of those axis-aware meets a
+               --  failing test rather than a silent wrong gap.
+               when Prop_Gap =>
+                  if Set then
+                     declare
+                        Axis : constant Gap_Value :=
+                          (if E.Part = Gap_Row_Part
+                           then Gap_Row (Length_Of (E.Val))
+                           else Gap_Column (Length_Of (E.Val)));
+                     begin
+                        S.Gap := (if Opt_Gap.Is_Set (S.Gap)
+                                  then Adi.CSS_Styles.Set
+                                         (Overlay (S.Gap.Value, Axis))
+                                  else Adi.CSS_Styles.Set (Axis));
+                     end;
+                  elsif not Opt_Gap.Is_Set (S.Gap) then
+                     S.Gap := Opt_Gap.Cleared;
+                  end if;
+
+               when Prop_Grid_Columns =>
+                  if E.Part = Tracks_Part then
+                     S.Grid_Column_Tracks := Tracks_Of (E.Val);
+                  elsif Set then
+                     S.Grid_Columns :=
+                       Adi.CSS_Styles.Set (Grid_Columns_Of (E.Val));
+                  else
+                     S.Grid_Columns := Opt_Grid_Cols.Cleared;
+                  end if;
+
+               when Prop_Overflow =>
+                  null;
+
+               when others =>
+                  if Set then
+                     Apply_Property (S, E.Prop, E.Val);
+                  else
+                     Clear_Property (S, E.Prop);
+                  end if;
+            end case;
+         end;
+      end loop;
+      return S;
+   end Materialise;
+
+   function Rules_Of (L : Rule_Slots) return Style_Rules is
+     (Materialise (L.Items (1 .. L.Count)));
+
+   function Resolve (L : Rule_Slots) return Resolved_Style is
+     (Resolve (Rules_Of (L)));
+
+   ---------------------------------------------------------------------
+   --  Merging and inheriting: two ordered lists, one walk
+   ---------------------------------------------------------------------
+
+   function Merge_Lists (Base, Override : Slot_List) return Rule_Slots is
+      L : Rule_Slots;
+      I : Natural := Base'First;
+      J : Natural := Override'First;
+
+      procedure Take (E : Prop_Slot);
+      procedure Take (E : Prop_Slot) is
+      begin
+         L.Count := L.Count + 1;
+         L.Items (L.Count) := E;
+      end Take;
+   begin
+      while I <= Base'Last and then J <= Override'Last loop
+         if Precedes (Base (I), Override (J)) then
+            Take (Base (I));
+            I := I + 1;
+         elsif Precedes (Override (J), Base (I)) then
+            Take (Override (J));
+            J := J + 1;
+         else
+            Take (Override (J));
+            I := I + 1;
+            J := J + 1;
+         end if;
+      end loop;
+
+      while I <= Base'Last loop
+         Take (Base (I));
+         I := I + 1;
+      end loop;
+
+      while J <= Override'Last loop
+         Take (Override (J));
+         J := J + 1;
+      end loop;
+
+      return L;
+   end Merge_Lists;
+
+   function Merge (Base, Override : Rule_Slots) return Rule_Slots is
+     (Merge_Lists (Base.Items (1 .. Base.Count),
+                   Override.Items (1 .. Override.Count)));
+
+   function Inherit_From (Parent, Child : Rule_Slots) return Rule_Slots is
+      L : Rule_Slots;
+      I : Natural := 1;
+      J : Natural := 1;
+
+      procedure Take (E : Prop_Slot);
+      procedure Take_Inherited (E : Prop_Slot);
+
+      procedure Take (E : Prop_Slot) is
+      begin
+         L.Count := L.Count + 1;
+         L.Items (L.Count) := E;
+      end Take;
+
+      procedure Take_Inherited (E : Prop_Slot) is
+      begin
+         if Inheritable_Properties (E.Prop) then
+            Take (E);
+         end if;
+      end Take_Inherited;
+   begin
+      while I <= Parent.Count and then J <= Child.Count loop
+         if Precedes (Parent.Items (I), Child.Items (J)) then
+            Take_Inherited (Parent.Items (I));
+            I := I + 1;
+         elsif Precedes (Child.Items (J), Parent.Items (I)) then
+            Take (Child.Items (J));
+            J := J + 1;
+         else
+            Take (Child.Items (J));
+            I := I + 1;
+            J := J + 1;
+         end if;
+      end loop;
+
+      while I <= Parent.Count loop
+         Take_Inherited (Parent.Items (I));
+         I := I + 1;
+      end loop;
+
+      while J <= Child.Count loop
+         Take (Child.Items (J));
+         J := J + 1;
+      end loop;
+
+      return L;
+   end Inherit_From;
+
+   function Set_Properties (L : Rule_Slots) return CSS_Property_Set is
+      Named : CSS_Property_Set := [others => False];
+   begin
+      for I in 1 .. L.Count loop
+         Named (L.Items (I).Prop) := True;
+      end loop;
+      return Named;
+   end Set_Properties;
+
+   function Hash (L : Rule_Slots) return Ada.Containers.Hash_Type is
+      H : Digest := Seed;
+   begin
+      for I in 1 .. L.Count loop
+         H := Mix (H, CSS_Property'Pos (L.Items (I).Prop));
+         H := Mix (H, Slot_Op'Pos (L.Items (I).Op));
+         H := Mix (H, Digest (L.Items (I).Val));
+      end loop;
+      return H;
+   end Hash;
+
+   function Hash (S : Style_Rules) return Ada.Containers.Hash_Type is
+     (Hash (Slots_Of (S)));
+
+   ---------------------------------------------------------------------
+   --  The store
+   ---------------------------------------------------------------------
+
+   type Slot_List_Access is access constant Slot_List;
+
+   package Rules_Vectors is new Ada.Containers.Vectors
+     (Positive, Slot_List_Access);
+
+   Rules_Store : Rules_Vectors.Vector;
+
+   package Rules_Handle_Vectors is new Ada.Containers.Vectors
+     (Positive, Rules_Handle);
+
+   function Same_Digest (H : Ada.Containers.Hash_Type)
+     return Ada.Containers.Hash_Type is (H);
+
+   --  Handles grouped by digest, so interning compares against a
+   --  handful of candidates rather than the whole store.
+   package Rules_Index_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Ada.Containers.Hash_Type,
+      Element_Type    => Rules_Handle_Vectors.Vector,
+      Hash            => Same_Digest,
+      Equivalent_Keys => Ada.Containers."=",
+      "="             => Rules_Handle_Vectors."=");
+
+   Rules_Index : Rules_Index_Maps.Map;
+
+   No_Slots : aliased constant Slot_List := [];
+
+   Rule_Set_Count : Natural := 0;
+   Rule_Set_Bytes : Natural := 0;
+
+   function Interned_Rule_Sets return Natural is (Rule_Set_Count);
+   function Interned_Rule_Bytes return Natural is (Rule_Set_Bytes);
+
+   --  The stored slots in place. The address stays good for the life of
+   --  the process.
+   function Slot_Ref (H : Rules_Handle) return not null Slot_List_Access;
+
+   function Slot_Ref (H : Rules_Handle) return not null Slot_List_Access is
+   begin
+      if H = Empty_Rules
+        or else Natural (H) > Natural (Rules_Store.Length)
+      then
+         return No_Slots'Access;
+      end if;
+      return Rules_Store.Element (Positive (H));
+   end Slot_Ref;
+
+   function Slots_Of (H : Rules_Handle) return Rule_Slots is
+      Stored_Slots : constant Slot_List_Access := Slot_Ref (H);
+      L            : Rule_Slots;
+   begin
+      L.Count := Stored_Slots'Length;
+      L.Items (1 .. L.Count) := Stored_Slots.all;
+      return L;
+   end Slots_Of;
+
+
+   function Merge (Base : Rule_Slots; Override : Rules_Handle)
+     return Rule_Slots is
+     (Merge_Lists (Base.Items (1 .. Base.Count), Slot_Ref (Override).all));
+
+   function Rules_Of (H : Rules_Handle) return Style_Rules is
+     (Materialise (Slot_Ref (H).all));
+
+   function Index (H : Rules_Handle) return Natural is (Natural (H));
+
+   function Intern_Rules (L : Rule_Slots) return Rules_Handle is
+   begin
+      if L.Count = 0 then
+         return Empty_Rules;
+      end if;
+
+      declare
+         Named    : constant Slot_List := L.Items (1 .. L.Count);
+         Key      : constant Ada.Containers.Hash_Type := Hash (L);
+         Bucket   : constant Rules_Index_Maps.Cursor := Rules_Index.Find (Key);
+         Interned : Rules_Handle;
+      begin
+         if Rules_Index_Maps.Has_Element (Bucket) then
+            for H of Rules_Index_Maps.Element (Bucket) loop
+               if Rules_Store.Element (Positive (H)).all = Named then
+                  return H;
+               end if;
+            end loop;
+         end if;
+
+         Rules_Store.Append (new Slot_List'(Named));
+         Interned := Rules_Handle (Rules_Store.Length);
+         Rule_Set_Count := Natural (Rules_Store.Length);
+         Rule_Set_Bytes :=
+           Rule_Set_Bytes
+           + Named'Length * Prop_Slot'Max_Size_In_Storage_Elements;
+
+         if Rules_Index_Maps.Has_Element (Bucket) then
+            Rules_Index.Reference (Bucket).Append (Interned);
+         else
+            declare
+               Fresh : Rules_Handle_Vectors.Vector;
+            begin
+               Fresh.Append (Interned);
+               Rules_Index.Insert (Key, Fresh);
+            end;
+         end if;
+
+         return Interned;
+      end;
+   end Intern_Rules;
+
+   function Intern_Rules (S : Style_Rules) return Rules_Handle is
+     (Intern_Rules (Slots_Of (S)));
+
+   function Merge (Base, Override : Rules_Handle) return Rules_Handle is
+     (Intern_Rules (Merge (Slots_Of (Base), Override)));
 
 end Adi.CSS_Styles;

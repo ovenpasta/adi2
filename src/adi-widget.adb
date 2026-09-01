@@ -917,16 +917,16 @@ package body Adi.Widget is
       Inc_Sat (Perf_Style_Computes);
 
       declare
-         Part_Rules : Style_Rules :=
-           Compute_Style_Prepared
+         Part_Rules : Rule_Slots :=
+           Compute_Rules_Prepared
              (Part_Handle, Widget_Set, Part_Set, Assigned);
       begin
          --  Sub-parts inherit text/typography properties from Main_Part.
          --  Explicit ::part rules override inherited values.
          if P /= Main_Part and then P /= Any_Part then
             declare
-               Main_Rules : constant Style_Rules :=
-                 Compute_Style_Prepared
+               Main_Rules : constant Rule_Slots :=
+                 Compute_Rules_Prepared
                    (Main_Handle, Widget_Set, Main_Set, Assigned);
             begin
                Part_Rules := Inherit_From (Main_Rules, Part_Rules);

@@ -44,6 +44,44 @@ Interning is canonical, so equal definitions share one entry and
 comparing two handles compares two styles. The store holds an entry for
 the life of the process.
 
+### 1a) A rule set is its slots
+
+`Adi.CSS_Styles.Rules_Handle` is a private four-byte handle into a store
+of rule sets. What the store holds is a `Rule_Slots` value: the
+properties the rule set names and nothing else, one eight-byte slot each,
+in property order. A rule naming three properties is 24 bytes where the
+`Style_Rules` record is 1,072.
+
+A slot is a `CSS_Property`, the part of it the slot carries, whether the
+slot sets or clears, and a `Value_Ref`. A property whose values cascade
+one at a time carries a slot per value: the four edges of `border-width`,
+`border-color`, `border-style`, `padding` and `margin`, the four corners
+of `border-radius`, the two axes of `gap`, and the track list travelling
+with `grid-template-columns` as the second part of `Prop_Grid_Columns`.
+`overflow` carries none — a rule set holds it as its two axes.
+`Max_Rule_Slots` is the sum, 85, so a rule set naming the whole
+vocabulary fills the list exactly and no merge or inheritance pass
+composes past it. The sum does not fold at compile time, so
+`tests/src/style_property_table_test.adb` measures it through `Slots_Of`
+on a rule set naming every property.
+
+Three operations walk the list rather than the record, at the three
+properties a rule carries rather than sixty-six fields:
+
+| | |
+|---|---|
+| `Merge` | two ordered lists, override winning every key it names |
+| `Set_Properties` | the properties the slots name |
+| `Inherit_From` | each key the parent names that the child does not, where `Inheritable_Properties` says the property inherits |
+
+None of them names a property, so the per-property statements are
+`Slots_Of` and `Rules_Of`, which convert. `Resolve` reads the record, so
+the runtime path converts once per cascade result.
+
+`Style_Rules` stays as the aggregate an author writes and
+`Adi.CSS_Parser` fills; `Slots_Of` and `Rules_Of` are what carry it in
+and out of the store.
+
 ### 2) Prepared Rule Order
 
 Interned style entries carry precomputed metadata:
@@ -159,7 +197,8 @@ reports and `tests/src/style_handle_test.adb` pins:
 
 | | bytes |
 |---|---|
-| `Style_Rules` | 1,072 |
+| `Style_Rules`, the aggregate | 1,072 |
+| a stored rule set, at the 3.15 properties a rule names | 25 |
 | `State_Rule` | 16 |
 | `Widget_Style` | 4 |
 | `Style_Definition` | 268 |
@@ -207,20 +246,15 @@ its base rule set, the index of each live rule's rule set, the selectors
 and the counts. A rule-set handle stands for its value, interning being
 canonical, so the digest reaches the values without reading them.
 
-`Adi.CSS_Styles.Hash` reads a `Style_Rules`, which cannot be hashed as
-bytes: its properties are discriminated `Optional` records whose inactive
-arms hold indeterminate bytes, so two equal rule sets built by separate
-calls share none of them and a byte digest would split them. It reads
-`Set_Properties` — which properties the set names — and then each
-property's value through `Resolve`, which answers the default for a
-property the set leaves alone and so never reaches an inactive arm.
-`Adi.CSS_Styles.Value_Hash` holds the per-value steps, shared with
-`Adi.Resolved_Styles`.
+`Adi.CSS_Styles.Hash` reads a `Rule_Slots`: the property each slot names,
+whether it sets or clears, and the value reference under it. A reference
+is canonical per value, so equal rule sets hash equal without the digest
+reaching a value type at all.
 
-Two rule sets can still share a digest — a single zero `padding-top` and
-a single zero `padding-left` both report `Prop_Padding` and resolve to a
-uniform zero box. That costs a bucket probe, never a wrong answer,
-because equality settles it.
+Two rule sets can still share a digest — the part a slot names stays out
+of it, so a single zero `padding-top` and a single zero `padding-left`
+digest alike. A group carries four values at most, so that costs a bucket
+probe, never a wrong answer, because equality settles it.
 `tests/src/style_handle_test.adb` drives that pair.
 
 ### Composite values are canonical

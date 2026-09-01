@@ -203,7 +203,7 @@ package body Adi.Widget_Styles is
                              := Adi.Widget_Properties.Empty_Assignment)
      return Style_Rules is
       Def    : constant Style_Definition := Definition (WS);
-      Result : Style_Rules := Rules_Of (Def.Base);
+      Result : Rule_Slots := Slots_Of (Def.Base);
 
       --  Collect matching rules with their effective priority
       type Scored_Rule is record
@@ -247,11 +247,10 @@ package body Adi.Widget_Styles is
 
       --  Apply rules in priority order (lowest first, highest wins)
       for I in 1 .. Match_Count loop
-         Result :=
-           Merge (Result, Rules_Ref (Def.Rules (Matched (I).Index).Style).all);
+         Result := Merge (Result, Def.Rules (Matched (I).Index).Style);
       end loop;
 
-      return Result;
+      return Rules_Of (Result);
    end Compute_Style;
 
    function Compute_Style (WS : Widget_Style;
@@ -492,17 +491,17 @@ package body Adi.Widget_Styles is
    function Uses_Properties (WS : Widget_Style) return Boolean is
      (Entry_From_Handle (WS).Uses_Property);
 
-   function Compute_Style_Prepared
+   function Compute_Rules_Prepared
      (WS            : Widget_Style;
       Active_Widget : Widget_States;
       Active_Part   : Widget_States;
       Assigned      : Adi.Widget_Properties.Property_Assignment
         := Adi.Widget_Properties.Empty_Assignment)
-     return Style_Rules
+     return Rule_Slots
    is
       Prepared : constant Prepared_Style_Entry_Access :=
         Entry_From_Handle (WS);
-      Result   : Style_Rules := Rules_Of (Prepared.Base);
+      Result   : Rule_Slots := Slots_Of (Prepared.Base);
    begin
       for I in 1 .. Prepared.Rule_Count loop
          declare
@@ -514,13 +513,22 @@ package body Adi.Widget_Styles is
                         Assigned)
             then
                Result :=
-                 Merge (Result,
-                        Rules_Ref (Prepared.Rules (Rule_Slot).Style).all);
+                 Merge (Result, Prepared.Rules (Rule_Slot).Style);
             end if;
          end;
       end loop;
       return Result;
-   end Compute_Style_Prepared;
+   end Compute_Rules_Prepared;
+
+   function Compute_Style_Prepared
+     (WS            : Widget_Style;
+      Active_Widget : Widget_States;
+      Active_Part   : Widget_States;
+      Assigned      : Adi.Widget_Properties.Property_Assignment
+        := Adi.Widget_Properties.Empty_Assignment)
+     return Style_Rules is
+     (Rules_Of
+        (Compute_Rules_Prepared (WS, Active_Widget, Active_Part, Assigned)));
 
    -------------------------------------------------
    -- Fluent Builder Implementation

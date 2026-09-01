@@ -1079,6 +1079,12 @@ a chain step copies that rather than the slots. Ada evaluates an argument
 before the call it belongs to, which is what the eight buffers are for: a
 chain nested inside another holds a buffer beside it.
 
+`.Build` interns, and what the store holds is a slot list of its own —
+the properties the rule set names, eight bytes each. So the eight bytes a
+chain spends per property are what the rule set costs stored, not just
+what it costs to author. `docs/style_storage_optimization.md` holds the
+stored form.
+
 A chain is linear. Every value in it names one buffer, so branching off
 an earlier step appends to the same chain rather than starting a second.
 
@@ -1241,7 +1247,7 @@ is canonical, so equal chains share one entry and comparing two handles
 compares two styles. `Adi.Widget_Styles.Definition` reads the stored form
 back as a `Style_Definition`, which is the record `.On` fills in: a base
 rule set and up to `Adi.Widget_Styles.Max_Style_Rules` (16) state rules,
-each naming its `Style_Rules` by handle too.
+each naming its rule set by handle too.
 
 `Add_Rule`, and so `.On`, raises `Too_Many_Style_Rules` past the cap,
 naming the state selector that did not fit; `tools/css_to_ada.py` refuses

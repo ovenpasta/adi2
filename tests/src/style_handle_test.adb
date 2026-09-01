@@ -276,6 +276,184 @@ procedure Style_Handle_Test is
    end Test_Styles_Elaborate_Before_Anything_Else;
 
    ---------------------------------------------------------------------
+   --  What a stored rule set costs
+   ---------------------------------------------------------------------
+
+   --  A rule set is stored as the properties it names, eight bytes each,
+   --  and a property whose values cascade one at a time names one slot
+   --  per value.
+   procedure Test_A_Rule_Set_Costs_Its_Properties is
+      One : constant Rule_Slots :=
+        Slots_Of (Style_Rules'(Order => Set (Order_Value (7)), others => <>));
+      Three : constant Rule_Slots :=
+        Slots_Of (Style_Rules'(Order       => Set (Order_Value (7)),
+                               Font_Size   => Set_Font (Px (13.0)),
+                               Flex_Grow   => Set (Flex_Grow_Value (1.0)),
+                               others      => <>));
+      Box : constant Rule_Slots :=
+        Slots_Of (Style_Rules'(Padding => Set (CSS_Box (Px (4.0))),
+                               others  => <>));
+      Before : constant Natural := Interned_Rule_Bytes;
+      Unused : constant Rules_Handle := Intern_Rules (Three);
+   begin
+      Section ("a rule set costs the properties it names");
+
+      Assert (Slot_Count (One) = 1, "one property is one slot");
+      Assert (Slot_Count (Three) = 3, "three properties are three slots");
+      Assert (Slot_Count (Box) = 4,
+              "and a padding shorthand is one slot per side");
+      Assert (Interned_Rule_Bytes = Before + 3 * 8,
+              "which is eight bytes each in the store, not"
+              & Natural'Image (Interned_Rule_Bytes - Before));
+      Assert (Unused /= Empty_Rules, "the rule set is stored");
+   end Test_A_Rule_Set_Costs_Its_Properties;
+
+   ---------------------------------------------------------------------
+   --  A cleared gap beside a single axis
+   ---------------------------------------------------------------------
+
+   --  A gap axis has no cleared state of its own -- Opt_Gap holds one
+   --  Gap_Value, whose flags say named or not -- so a fold that reaches
+   --  one axis set beside the other cleared carries the set axis and
+   --  leaves the other reading as unnamed. That resolves as the clear
+   --  would, Default_Gap being zero on both axes, and Get_Row_Gap and
+   --  Get_Column_Gap read the axis rather than the flag. This pins the
+   --  pair, so making either of those axis-aware fails here rather than
+   --  answering a silently wrong gap.
+   procedure Test_Cleared_Gap_Under_One_Axis is
+      Wiped : Style_Rules := Empty_Style;
+
+      Row : constant Style_Rules :=
+        (Gap => Set (Gap_Row (Px (4.0))), others => <>);
+      Col : constant Style_Rules :=
+        (Gap => Set (Gap_Column (Px (8.0))), others => <>);
+
+      Over_Row : Rules_Handle;
+      Over_Col : Rules_Handle;
+   begin
+      Section ("a cleared gap under a rule naming one axis");
+
+      Clear_Property (Wiped, Prop_Gap);
+      Assert (Opt_Gap.Is_None (Wiped.Gap),
+              "clearing the gap clears the one field, so both axes");
+
+      Over_Row := Merge (Intern_Rules (Wiped), Intern_Rules (Row));
+      Over_Col := Merge (Intern_Rules (Wiped), Intern_Rules (Col));
+
+      declare
+         R : constant Gap_Value := Opt_Gap.Resolve (Rules_Of (Over_Row).Gap);
+         C : constant Gap_Value := Opt_Gap.Resolve (Rules_Of (Over_Col).Gap);
+      begin
+         Assert (Opt_Gap.Is_Set (Rules_Of (Over_Row).Gap)
+                   and then R.Kind = Gap_Separate,
+                 "the axis the override names stands over the clear");
+         Assert (R.Kind = Gap_Separate
+                   and then R.Has_Row and then R.Row_Gap = Px (4.0),
+                 "carrying the row gap it named");
+         Assert (R.Kind = Gap_Separate
+                   and then not R.Has_Column
+                   and then R.Column_Gap = Zero_Length,
+                 "and the cleared column axis reading as unnamed and zero, "
+                 & "which is what the clear resolves to");
+
+         Assert (C.Kind = Gap_Separate
+                   and then C.Has_Column and then C.Column_Gap = Px (8.0),
+                 "and the same the other way round for the column axis");
+         Assert (C.Kind = Gap_Separate
+                   and then not C.Has_Row
+                   and then C.Row_Gap = Zero_Length,
+                 "with the cleared row axis unnamed and zero");
+      end;
+
+      Assert (Merge (Intern_Rules (Wiped), Empty_Rules)
+                = Intern_Rules (Wiped),
+              "and a clear with nothing over it stays a clear on both axes");
+   end Test_Cleared_Gap_Under_One_Axis;
+
+   ---------------------------------------------------------------------
+   --  Order is not part of a rule set
+   ---------------------------------------------------------------------
+
+   --  The store holds a rule set as a slot list in property order, and
+   --  a group's parts in part order, so the order the properties were
+   --  named in cannot reach it. Two chains, two sheets and one of each
+   --  answer one handle.
+   procedure Test_Naming_Order_Interns_Once is
+      By_One : constant Widget_Style :=
+        Style_Of
+          .Text_Color (C (White))
+          .Font_Size (Px (13.0))
+          .Padding (CSS_Box (Px (4.0)))
+        .Build;
+      By_Other : constant Widget_Style :=
+        Style_Of
+          .Padding (CSS_Box (Px (4.0)))
+          .Text_Color (C (White))
+          .Font_Size (Px (13.0))
+        .Build;
+
+      --  The two edges apart, and together, so a fold in either
+      --  direction is checked against the value it stands for.
+      Left_Edge : constant Rules_Handle :=
+        Intern_Rules ((Border_Width => [Left   => Opt_Length.Val (Px (2.0)),
+                                        others => Opt_Length.Unset],
+                       others       => <>));
+      Top_Edge  : constant Rules_Handle :=
+        Intern_Rules ((Border_Width => [Top    => Opt_Length.Val (Px (1.0)),
+                                        others => Opt_Length.Unset],
+                       others       => <>));
+      Both_Edges : constant Rules_Handle :=
+        Intern_Rules ((Border_Width => [Top    => Opt_Length.Val (Px (1.0)),
+                                        Left   => Opt_Length.Val (Px (2.0)),
+                                        others => Opt_Length.Unset],
+                       others       => <>));
+
+      Sheet : Adi.CSS_Parser.Stylesheet;
+      OK    : Boolean := False;
+   begin
+      Section ("the order a rule set was named in does not reach the store");
+
+      Assert (By_One = By_Other,
+              "two chains naming three properties in two orders are one "
+              & "handle");
+
+      Assert (Merge (Left_Edge, Top_Edge) = Both_Edges,
+              "folding two border edges answers the rule set naming both");
+      Assert (Merge (Top_Edge, Left_Edge) = Both_Edges,
+              "and folding them the other way answers the same handle");
+
+      Adi.CSS_Parser.Load_String
+        (Sheet,
+         ".sides1 { border-top-width: 1px; border-left-width: 2px;"
+         & " row-gap: 4px; column-gap: 8px; }"
+         & ".sides2 { column-gap: 8px; border-left-width: 2px;"
+         & " row-gap: 4px; border-top-width: 1px; }"
+         & ".mix { font-size: 13px; padding: 4px; color: white; }",
+         OK);
+      Assert (OK, "the probe stylesheet parses");
+      if not OK then
+         return;
+      end if;
+
+      declare
+         Sides1 : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Sheet, "sides1");
+         Sides2 : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Sheet, "sides2");
+         Mix    : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Sheet, "mix");
+      begin
+         Assert (Sides1 (Main_Part).Style = Sides2 (Main_Part).Style,
+                 "and so are two sheets naming the same border edges and "
+                 & "gap axes in two orders");
+         Assert (Mix (Main_Part).Style = By_One,
+                 "and a sheet against the chain that spells it");
+      end;
+
+      Adi.CSS_Parser.Destroy (Sheet);
+   end Test_Naming_Order_Interns_Once;
+
+   ---------------------------------------------------------------------
    --  The parser reaches the same store
    ---------------------------------------------------------------------
 
@@ -317,6 +495,9 @@ begin
    Test_Definition_Round_Trips;
    Test_Merge_Re_Interns;
    Test_One_Contributor_Passes_Through;
+   Test_A_Rule_Set_Costs_Its_Properties;
+   Test_Cleared_Gap_Under_One_Axis;
+   Test_Naming_Order_Interns_Once;
    Test_Parsed_Sheet_Shares_The_Store;
 
    Finish;

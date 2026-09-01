@@ -243,6 +243,18 @@ package Adi.Widget_Styles is
    --  order: priority ascending, source order ascending within a
    --  priority. This is the runtime path; Compute_Style below is what
    --  the tests drive.
+   --
+   --  The slot form is what the cascade folds and what Resolve reads,
+   --  so the runtime path never builds a Style_Rules; the second
+   --  answers one for a caller that wants the record.
+   function Compute_Rules_Prepared
+     (WS            : Widget_Style;
+      Active_Widget : Widget_States;
+      Active_Part   : Widget_States;
+      Assigned      : Adi.Widget_Properties.Property_Assignment
+        := Adi.Widget_Properties.Empty_Assignment)
+     return Rule_Slots;
+
    function Compute_Style_Prepared
      (WS            : Widget_Style;
       Active_Widget : Widget_States;

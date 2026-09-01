@@ -2,6 +2,7 @@ pragma Ada_2022;
 
 with Ada.Exceptions;    use Ada.Exceptions;
 with Ada.Strings.Fixed;
+with Adi.CSS_Parser;
 with Adi.CSS_Source;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Adi.Style_Merge_Testing;
@@ -11,9 +12,10 @@ with Adi.Widget_Styles.Testing;
 with Test_Support;      use Test_Support;
 
 --  Past Max_Style_Rules a rule has nowhere to go. Every path that can
---  reach that point says so: Add_Rule and the fluent builder raise
---  Too_Many_Style_Rules, and a merge, which has no channel to report
---  through, drops the rule and counts it.
+--  reach that point says so, and every drop is counted the same way:
+--  Add_Rule and the fluent builder raise Too_Many_Style_Rules; a merge
+--  and a composer chain, which have no channel to report through, drop
+--  the rule and count it.
 
 procedure Style_Rule_Cap_Test is
 
@@ -102,6 +104,66 @@ procedure Style_Rule_Cap_Test is
                  & " rather than Too_Many_Style_Rules");
    end Test_Builder_Chain_Raises;
 
+   --  A chain has no channel to report through either, so it drops the
+   --  rule the way a merge does. What the setters after the drop must
+   --  not do is land on the rule the chain last stood on.
+   procedure Test_Chain_Past_The_Cap is
+      Ceiling  : Composer := Style_Of;
+      Chain    : Composer := Style_Of;
+      Expected : Widget_Style;
+      Built    : Widget_Style;
+      Before   : Natural;
+   begin
+      Section ("A chain naming more selectors than a style holds");
+
+      for I in 1 .. Max_Style_Rules loop
+         Ceiling := Ceiling.On (Selectors (I)).Opacity (0.5);
+      end loop;
+      Expected := Ceiling.Build;
+
+      Before := Adi.Widget_Styles.Testing.Dropped_Rules;
+
+      for I in 1 .. Max_Style_Rules loop
+         Chain := Chain.On (Selectors (I)).Opacity (0.5);
+      end loop;
+      Chain := Chain.On (Selectors (Max_Style_Rules + 1)).Opacity (0.125);
+      Built := Chain.Build;
+
+      Assert (Adi.Widget_Styles.Testing.Dropped_Rules = Before + 1,
+              "the rule past the cap is counted, as a merge's is");
+      Assert (Definition (Built).Rule_Count = Max_Style_Rules,
+              "the style holds the rules that fit");
+      Assert (Built = Expected,
+              "and the properties named after the drop go nowhere rather "
+              & "than onto the rule the chain last stood on");
+      Assert (Open_Chains = 0, "the chain returns its buffer");
+   end Test_Chain_Past_The_Cap;
+
+   --  A chain that has dropped a rule keeps going: naming a rule it
+   --  already holds, or the base, is where the setters land again.
+   procedure Test_Chain_Recovers_From_The_Drop is
+      Chain    : Composer := Style_Of;
+      Expected : Composer := Style_Of;
+   begin
+      Section ("A chain names a rule again after a drop");
+
+      for I in 1 .. Max_Style_Rules loop
+         Chain := Chain.On (Selectors (I)).Opacity (0.5);
+         Expected := Expected.On (Selectors (I)).Opacity (0.5);
+      end loop;
+
+      Chain := Chain.On (Selectors (Max_Style_Rules + 1)).Opacity (0.125);
+      Chain := Chain.On_Base.Opacity (0.75);
+      Chain := Chain.On (Selectors (1)).Opacity (0.25);
+
+      Expected := Expected.On_Base.Opacity (0.75);
+      Expected := Expected.On (Selectors (1)).Opacity (0.25);
+
+      Assert (Chain.Build = Expected.Build,
+              "the base and a rule the chain holds take their setters "
+              & "again");
+   end Test_Chain_Recovers_From_The_Drop;
+
    procedure Test_Try_Add_Rule_Reports is
       WS    : Style_Definition := Full_Definition;
       Added : Boolean;
@@ -120,6 +182,57 @@ procedure Style_Rule_Cap_Test is
    --  call it; Adi.CSS_Parser folds a sheet the same way. One fold, in
    --  Adi.Widget where Part_Style_Array is declared, keeps the two from
    --  drifting -- and keeps the cap reported rather than silent.
+   --  The runtime parser has a channel to report through, so it refuses
+   --  the whole sheet the way tools/css_to_ada.py refuses to generate
+   --  one, and the sheet already in force is what stands.
+   Kept_Sheet : constant String :=
+     ".kept { opacity: 0.5; }";
+
+   --  Max_Style_Rules + 1 distinct state selectors on one selector.
+   Overflowing_Sheet : constant String :=
+     ""
+        & ".capped:hover { opacity: 0.01; }"
+        & ".capped:active { opacity: 0.02; }"
+        & ".capped:focus { opacity: 0.03; }"
+        & ".capped:disabled { opacity: 0.04; }"
+        & ".capped:checked { opacity: 0.05; }"
+        & ".capped:not(:hover) { opacity: 0.06; }"
+        & ".capped:not(:active) { opacity: 0.07; }"
+        & ".capped:not(:focus) { opacity: 0.08; }"
+        & ".capped:not(:disabled) { opacity: 0.09; }"
+        & ".capped:not(:checked) { opacity: 0.10; }"
+        & ".capped:hover:focus { opacity: 0.11; }"
+        & ".capped:hover:active { opacity: 0.12; }"
+        & ".capped:hover:disabled { opacity: 0.13; }"
+        & ".capped:hover:checked { opacity: 0.14; }"
+        & ".capped:focus:active { opacity: 0.15; }"
+        & ".capped:focus:disabled { opacity: 0.16; }"
+        & ".capped:focus:checked { opacity: 0.17; }";
+
+   procedure Test_Parser_Refuses_The_Sheet is
+      Sheet   : Adi.CSS_Parser.Stylesheet;
+      Success : Boolean;
+   begin
+      Section ("The runtime parser refuses a sheet past the cap");
+
+      Adi.CSS_Parser.Load_String (Sheet, Kept_Sheet, Success);
+      Assert (Success, "a sheet under the cap loads");
+
+      Adi.CSS_Parser.Load_String (Sheet, Overflowing_Sheet, Success);
+      Assert (not Success, "a sheet past the cap does not load");
+      Assert (Contains (Adi.CSS_Parser.Get_Last_Error (Sheet), "'capped'"),
+              "the error names the CSS selector");
+      Assert (Contains (Adi.CSS_Parser.Get_Last_Error (Sheet),
+                        ":focused:selected"),
+              "and the state selector that did not fit");
+      Assert (Adi.CSS_Parser.Has_Class (Sheet, "kept"),
+              "and the sheet in force is the one that stands");
+      Assert (not Adi.CSS_Parser.Has_Class (Sheet, "capped"),
+              "nothing of the refused sheet is kept");
+
+      Adi.CSS_Parser.Destroy (Sheet);
+   end Test_Parser_Refuses_The_Sheet;
+
    procedure Test_One_Fold_Behind_Both_Entries is
       Base : Part_Style_Array := Empty_Part_Styles;
       Over : Part_Style_Array := Empty_Part_Styles;
@@ -201,7 +314,10 @@ begin
    Test_Cap_Is_Reachable;
    Test_Add_Rule_Raises;
    Test_Builder_Chain_Raises;
+   Test_Chain_Past_The_Cap;
+   Test_Chain_Recovers_From_The_Drop;
    Test_Try_Add_Rule_Reports;
+   Test_Parser_Refuses_The_Sheet;
    Test_One_Fold_Behind_Both_Entries;
    Test_Merge_Reports_The_Drop;
 

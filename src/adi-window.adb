@@ -1198,10 +1198,6 @@ package body Adi.Window is
           SDL_Assert (SDL_SetRenderDrawColor (W.Internal.ren, 255, 255, 255, 255), "SDL_SetRenderDrawColor");
           SDL_Assert (SDL_RenderClear (W.Internal.ren), "SDL_RenderClear");
 
-          --  Reset perf counters before Update so that style/pref-size
-          --  work during Build_Items is included in the per-frame stats.
-          Adi.Widget.Reset_Perf_Counters;
-
           --  Rebuild dirty items first.
           Stage_Start := Now;
           Update (W);
@@ -1264,8 +1260,8 @@ package body Adi.Window is
           W.Stats_Draw_Us := Natural
             (To_Duration (Now - Stage_Start) * 1_000_000.0);
 
-          --  After the draw, so the counters cover the whole frame the
-          --  reset above opened: drawing resolves styles too.
+          --  After the draw, which resolves styles too, so the snapshot
+          --  is the whole frame.
           W.Stats_Style_Resolves  := Adi.Widget.Get_Perf_Style_Resolves;
           W.Stats_Style_Hits      := Adi.Widget.Get_Perf_Style_Hits;
           W.Stats_Style_Memo_Hits := Adi.Widget.Get_Perf_Style_Memo_Hits;
@@ -1277,6 +1273,25 @@ package body Adi.Window is
           W.Stats_Sel_Memo_Hits   := Adi.Widget.Get_Perf_Selector_Memo_Hits;
           W.Stats_Sel_Memo_Misses :=
             Adi.Widget.Get_Perf_Selector_Memo_Misses;
+
+          --  The counter fields stand and the counters still hold the
+          --  same numbers, which is the pair Frame_Close_Hook exists to
+          --  be read at.
+          if Frame_Closed /= null then
+             Frame_Closed.all;
+          end if;
+
+          --  The snapshot closes this frame and opens the next one's
+          --  window here, so a frame's counters run from the end of the
+          --  frame before it: its post-render callbacks, the events
+          --  dispatched after them, the animation tick, and then this
+          --  frame's own Update, layout and draw. A state change made
+          --  from an event handler resolves two styles per part it
+          --  touches, which is the most expensive style work the library
+          --  does, and it belongs to the frame that draws its result.
+          --  Update still runs inside the window, so Build_Items keeps
+          --  the place the counters were reset for.
+          Adi.Widget.Reset_Perf_Counters;
 
           --  Compute total render time (before present)
           W.Stats_Render_Us := Natural
@@ -1303,6 +1318,12 @@ package body Adi.Window is
           SDL_Assert (SDL_RenderPresent (W.Internal.ren), "SDL_RenderPresent");
           W.Stats_Present_Us := Natural
             (To_Duration (Now - Stage_Start) * 1_000_000.0);
+       else
+          --  A tick that drew nothing has no frame to charge its work
+          --  to, so it closes the window here. Otherwise an application
+          --  that redraws on demand would hand the next frame it draws
+          --  every animation tick it spent idle.
+          Adi.Widget.Reset_Perf_Counters;
        end if;
 
        --  Per-frame callback (runs unconditionally, even when idle)

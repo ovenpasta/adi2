@@ -9,6 +9,8 @@ with Adi.Widget.Label;  use type Adi.Widget.Label.Label_Handle;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Adi.Widget_Styles; use Adi.Widget_Styles;
 with Adi.Widget.Testing;
+with Adi.Resolved_Styles;
+use type Adi.Resolved_Styles.Resolved_Handle;
 with Ada.Containers;    use type Ada.Containers.Hash_Type;
 with Interfaces;        use type Interfaces.Unsigned_16;
 
@@ -249,6 +251,12 @@ procedure Layout_Perf_Test is
       Set_State (+W, State_Hovered, True);
       Set_State (+W, State_Hovered, False);
 
+      Put_Line ("  two hover transitions:"
+                & Get_Perf_Style_Resolves'Image & " resolves,"
+                & Get_Perf_Style_Hits'Image & " per-widget,"
+                & Get_Perf_Style_Memo_Hits'Image & " memo,"
+                & Get_Perf_Style_Computes'Image & " cascade");
+
       Assert (Get_Perf_Style_Resolves > 0,
               "the state change resolves styles under the counters");
       Assert (Get_Perf_Style_Computes = 0,
@@ -296,6 +304,105 @@ procedure Layout_Perf_Test is
       Assert (Get_Perf_Style_Memo_Hits > 0,
               "because the memo answers");
    end Test_Part_State_Change_Uses_The_Memo;
+
+   ---------------------------------------------------------------------------
+   --  Test: a sub-part's diff reads the style Get_Resolved_Part_Style
+   --  answers with. A sub-part inherits the main part's typography, so
+   --  the diff has to resolve it the same way -- through the memo, under
+   --  the same key -- or it compares a style nothing else ever sees.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Subpart_Diff_Reads_The_Inherited_Style is
+      --  Colours no other test uses, so the memo cannot already hold
+      --  these keys. The label part names hover, so the diff looks at
+      --  it; the colour that moves is the main part's, which only
+      --  inheritance carries down.
+      Main_WS : constant Widget_Style :=
+        From ((Color => Set (RGB (17, 19, 23)), others => <>))
+          .On_Hover ((Color => Set (RGB (29, 31, 37)), others => <>))
+          .Build;
+      Label_WS : constant Widget_Style :=
+        From ((Opacity => Set (0.9), others => <>))
+          .On_Hover ((Opacity => Set (0.8), others => <>))
+          .Build;
+      W : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("subpart-diff");
+   begin
+      Put_Line ("Test: a sub-part diff reads the inherited style");
+
+      Set_Geometry (+W, (0.0, 0.0, 200.0, 40.0));
+      Set_Part_Style (+W, Main_Part, Main_WS);
+      Set_Part_Style (+W, Label_Part, Label_WS);
+
+      declare
+         Before : constant Resolved_Style :=
+           Get_Resolved_Part_Style (+W, Label_Part);
+      begin
+         Assert (Before.Color.Kind = RGB and then Before.Color.R = 17,
+                 "the label inherits the main part's colour");
+
+         Set_State (+W, State_Hovered, True);
+         Reset_Perf_Counters;
+
+         declare
+            After : constant Resolved_Style :=
+              Get_Resolved_Part_Style (+W, Label_Part);
+         begin
+            Assert (After.Color.Kind = RGB and then After.Color.R = 29,
+                    "and the colour the main part's hover rule names");
+            Assert (Float (After.Opacity) = 0.8,
+                    "over its own hover rule");
+            Assert (Get_Perf_Style_Computes = 0,
+                    "and the diff had already resolved that very key, so "
+                    & "the cascade does not run again");
+            Assert (Get_Perf_Style_Memo_Hits = 1,
+                    "the memo answers the one call");
+         end;
+      end;
+   end Test_Subpart_Diff_Reads_The_Inherited_Style;
+
+   ---------------------------------------------------------------------------
+   --  Test: the diff reads the states the widget was in, effective ones
+   --  included. A widget its parent disables is disabled before and
+   --  after a hover, so hovering it moves nothing.
+   ---------------------------------------------------------------------------
+
+   procedure Test_Ancestor_Disabled_States_Diff is
+      Styled : constant Widget_Style :=
+        From ((Padding => Set (CSS_Box (Dip (4))), others => <>))
+          .On_Disabled ((Padding => Set (CSS_Box (Dip (40))), others => <>))
+          .On (When_State (State_Hovered) and When_Not (State_Disabled),
+               (Padding => Set (CSS_Box (Dip (8))), others => <>))
+          .Build;
+      Parent : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Child  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+   begin
+      Put_Line ("Test: a widget its parent disables diffs from its "
+                & "effective states");
+
+      Add_Child (+Parent, +Child);
+      Set_Part_Style (+Child, Main_Part, Styled);
+      Set_State (+Parent, State_Disabled, True);
+      Set_Geometry (+Parent, (0.0, 0.0, 200.0, 100.0));
+      Layout_Tree (+Parent);
+
+      Assert (not Is_Layout_Dirty (+Child), "the tree is laid out");
+
+      declare
+         Before : constant Adi.Resolved_Styles.Resolved_Handle :=
+           Get_Resolved_Part_Handle (+Child, Main_Part);
+      begin
+         Set_State (+Child, State_Hovered, True);
+
+         Assert (Get_Resolved_Part_Handle (+Child, Main_Part) = Before,
+                 "hovering a widget its parent disables resolves the same "
+                 & "style");
+         Assert (not Is_Layout_Dirty (+Child),
+                 "so the diff asks for no layout");
+      end;
+   end Test_Ancestor_Disabled_States_Diff;
 
    ---------------------------------------------------------------------------
    --  Test: every field of a memo key reaches the key hash, and a style
@@ -615,6 +722,8 @@ begin
    Test_Resolved_Cache_Hash;
    Test_State_Change_Uses_The_Memo;
    Test_Part_State_Change_Uses_The_Memo;
+   Test_Subpart_Diff_Reads_The_Inherited_Style;
+   Test_Ancestor_Disabled_States_Diff;
    Test_Style_Cache_Invalidation;
    Test_Subpart_Cache_Invalidation;
    Test_Multiple_Layout_Passes;

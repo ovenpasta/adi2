@@ -188,13 +188,19 @@ package Adi.Widget_Styles is
    --  A style has room for Max_Style_Rules state rules and no more.
    Too_Many_Style_Rules : exception;
 
+   --  A state selector as CSS writes it -- ":hover:not(:disabled)", or
+   --  "any state" for one naming none. Every diagnostic about a rule
+   --  that did not fit names the selector this way.
+   function Selector_Image (Selector : State_Selector) return String;
+
    --  Add a rule to a definition. Past the cap this raises
    --  Too_Many_Style_Rules, naming the state selector that did not fit.
    procedure Add_Rule (WS : in out Style_Definition; Rule : State_Rule);
 
    --  Add a rule where the caller has nowhere to report a failure to:
-   --  past the cap the rule is dropped and reported through Adi.Log,
-   --  and Added comes back False.
+   --  past the cap the rule is dropped, reported through Adi.Log and
+   --  counted, and Added comes back False. A composer chain drops a
+   --  rule the same way.
    procedure Try_Add_Rule
      (WS : in out Style_Definition; Rule : State_Rule; Added : out Boolean);
 
@@ -241,8 +247,7 @@ package Adi.Widget_Styles is
 
    --  The rules a style takes in the states given, folded in cascade
    --  order: priority ascending, source order ascending within a
-   --  priority. This is the runtime path; Compute_Style below is what
-   --  the tests drive.
+   --  priority. One cascade, which Compute_Resolved below reads too.
    --
    --  The slot form is what the cascade folds and what Resolve reads,
    --  so the runtime path never builds a Style_Rules; the second
@@ -268,20 +273,8 @@ package Adi.Widget_Styles is
    function Interned_Styles return Natural;
    function Interned_Style_Bytes return Natural;
 
-   --  Compute effective style given active states
-   function Compute_Style (WS : Widget_Style;
-                           Active : Widget_States;
-                           Assigned : Adi.Widget_Properties.Property_Assignment
-                             := Adi.Widget_Properties.Empty_Assignment)
-     return Style_Rules;
-   function Compute_Style (WS : Widget_Style;
-                           Active_Widget : Widget_States;
-                           Active_Part   : Widget_States;
-                           Assigned : Adi.Widget_Properties.Property_Assignment
-                             := Adi.Widget_Properties.Empty_Assignment)
-     return Style_Rules;
-
-   --  Compute and resolve in one step
+   --  The cascade above, resolved. Every optional value stands
+   --  concrete, so this is what a caller reads a property out of.
    function Compute_Resolved (WS : Widget_Style;
                               Active : Widget_States;
                               Assigned : Adi.Widget_Properties.Property_Assignment
@@ -417,6 +410,11 @@ package Adi.Widget_Styles is
    --  The rule the setters after it name. A selector already carried --
    --  by the chain or by the style it opened on -- is that rule again
    --  rather than a second one, so .On_Hover twice names one rule.
+   --
+   --  Past Max_Style_Rules distinct selectors the rule is dropped and
+   --  reported, as a merge's is, and the setters after it name no rule
+   --  rather than the one before. A later .On naming a selector the
+   --  chain already holds, or .On_Base, takes it out of the drop.
    function On (C : Composer; Sel : State_Selector) return Composer;
    function On_Base (C : Composer) return Composer;
    function On_Normal (C : Composer) return Composer;
@@ -661,7 +659,8 @@ private
    end record;
 
    --  Instrumentation the tests need and applications do not: rules
-   --  Try_Add_Rule has dropped, over the life of the process.
+   --  that did not fit -- Try_Add_Rule's and a chain's alike -- over
+   --  the life of the process.
    Dropped_Rule_Count : Natural := 0;
 
    --  A chain step. Prop says how Val reads, and a slot is read only by
@@ -671,8 +670,12 @@ private
    type Slot_Op is (Set_Value, Clear_Value);
 
    --  0 is the base rule; 1 .. Max_Style_Rules are the state rules the
-   --  chain named, in the order it named them.
-   type Rule_Slot is range 0 .. Max_Style_Rules;
+   --  chain named, in the order it named them. One past them is where
+   --  a step goes once the chain has named more selectors than a style
+   --  holds: nowhere.
+   type Rule_Slot is range 0 .. Max_Style_Rules + 1;
+
+   Discarded_Rule : constant Rule_Slot := Rule_Slot'Last;
 
    --  Which of the property's values the step names: Whole_Part for the
    --  property's own, and 0 .. 3 for the edge, corner, gap axis or

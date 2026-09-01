@@ -23,4 +23,20 @@ private package Adi.Style_Merge is
    function Merge (Base, Override : Adi.Widget.Part_Style_Array)
      return Adi.Widget.Part_Style_Array;
 
+   --  Styles as one widget takes them from a sheet: the sheet's :root
+   --  block folded on when the widget is the one the sheet holds as its
+   --  root, and Styles alone when it is not. Answering both cases is
+   --  what lets one call grant the :root styles and withdraw them, so a
+   --  root handover restyles the widget losing the role by the same
+   --  route as the one taking it. Has_Root_Style and Root_Styles are
+   --  the two fields a stylesheet's metadata carries for this; each
+   --  caller reads them from the metadata its own mode puts in force.
+   function Root_Merged_Styles
+     (Has_Root_Style : Boolean;
+      Root_Styles    : Adi.Widget.Part_Style_Array;
+      Root_Target    : Adi.Widget.Widget_Handle;
+      Target         : Adi.Widget.Widget_Handle;
+      Styles         : Adi.Widget.Part_Style_Array)
+     return Adi.Widget.Part_Style_Array;
+
 end Adi.Style_Merge;

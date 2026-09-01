@@ -485,13 +485,17 @@ package Adi.Window is
     function Handle_Close_Request (W : in out Window) return Boolean;
 
     --  Read-only snapshot of per-frame performance stats. The counters
-    --  are those of Adi.Widget over the whole frame, drawing included:
-    --  Style_Hits, Style_Memo_Hits and Style_Computes partition
-    --  Style_Resolves between the per-widget cache, the global memo and
-    --  the cascade. Selector_Memo_Hits and Selector_Memo_Misses count a
-    --  layer above them: the styles Adi.CSS_Source folds for a (tag,
-    --  classes, id) triple, which a frame touches only where something
-    --  binds or applies.
+    --  are those of Adi.Widget, over a frame that runs from the end of
+    --  the frame before it: the events dispatched between the two
+    --  draws, the animation tick, and this frame's own update, layout
+    --  and draw. A state change made from an event handler therefore
+    --  lands in the frame that draws its result. Style_Hits,
+    --  Style_Memo_Hits and Style_Computes partition Style_Resolves
+    --  between the per-widget cache, the global memo and the cascade.
+    --  Selector_Memo_Hits and Selector_Memo_Misses count a layer above
+    --  them: the styles Adi.CSS_Source folds for a (tag, classes, id)
+    --  triple, which a frame touches only where something binds or
+    --  applies.
     type Frame_Stats is record
        Frame_No             : Natural := 0;
        Render_Us            : Natural := 0;
@@ -577,6 +581,17 @@ private
         Stats_Sel_Memo_Hits    : Natural := 0;
         Stats_Sel_Memo_Misses  : Natural := 0;
     end record;
+
+    --  Run where a frame closes: after the counter fields of
+    --  Frame_Stats are taken and before the frame's counters reset.
+    --  That instant is the only one at which those fields and
+    --  Adi.Widget's counters hold the same numbers, so it is where a
+    --  test can hold each of them to the counter it is fed from.
+    --  Render_Us and Present_Us are computed past it and still read the
+    --  frame before; every other field stands. Adi.Window.Testing
+    --  installs one; an application leaves it null.
+    type Frame_Close_Hook is access procedure;
+    Frame_Closed : Frame_Close_Hook := null;
 
     overriding procedure Initialize (w : in out Window);
     overriding procedure Finalize (W : in out Window);

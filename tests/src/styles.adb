@@ -193,6 +193,21 @@ procedure Styles is
           Priority => 100)
      .Build;
 
+   --  Two rules of equal specificity and one of lower, in that source
+   --  order. Every matching rule applies, lowest priority first, and
+   --  source order settles a tie -- so the Focused rule, named after
+   --  the Hovered one, is what stands when both states are active.
+   Tie_Break_Widget : constant Widget_Style :=
+     Create
+     .Base ((Background_Color => Set_Bg (C (Black)), others => <>))
+     .On (When_State (State_Hovered),
+          (Background_Color => Set_Bg (RGB (10, 0, 0)), others => <>))
+     .On (When_State (State_Focused),
+          (Background_Color => Set_Bg (RGB (20, 0, 0)), others => <>))
+     .On (Any_State,
+          (Background_Color => Set_Bg (RGB (30, 0, 0)), others => <>))
+     .Build;
+
    Typography_Widget : constant Widget_Style :=
      Create
      .Base ((Font_Weight => Set (Weight_Semi_Bold),
@@ -235,6 +250,21 @@ procedure Styles is
                          (Opt_Gap.Resolve (Uniform_Last.Gap)) = 10.0,
               "a uniform gap on top replaces both axes");
    end Test_Gap_Merges_Per_Axis;
+
+   procedure Test_Equal_Specificity_Source_Order is
+      Both : constant Widget_States :=
+        (State_Hovered => True, State_Focused => True, others => False);
+      R : constant Resolved_Style := Compute_Resolved (Tie_Break_Widget, Both);
+      Runtime : constant Resolved_Style :=
+        Resolve (Compute_Style_Prepared (Tie_Break_Widget, Both, No_States));
+   begin
+      Section ("equal specificity settles on source order");
+
+      Assert (Is_RGB_Color (R.Background_Color, 20, 0, 0),
+              "the later of two equally specific matching rules wins");
+      Assert (Colors_Equal (R.Background_Color, Runtime.Background_Color),
+              "and Compute_Resolved answers what the runtime cascade does");
+   end Test_Equal_Specificity_Source_Order;
 
    procedure Test_Button_Normal is
       R : constant Resolved_Style := Compute_Resolved (My_Button, (others => False));
@@ -591,6 +621,7 @@ begin
    --  Button tests
    Put_Line ("*** BUTTON TESTS ***");
    New_Line;
+   Test_Equal_Specificity_Source_Order;
    Test_Button_Normal;
    Test_Button_Hovered;
    Test_Button_Pressed;

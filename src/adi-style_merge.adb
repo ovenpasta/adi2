@@ -65,4 +65,24 @@ package body Adi.Style_Merge is
       return Result;
    end Merge;
 
+   function Root_Merged_Styles
+     (Has_Root_Style : Boolean;
+      Root_Styles    : Adi.Widget.Part_Style_Array;
+      Root_Target    : Adi.Widget.Widget_Handle;
+      Target         : Adi.Widget.Widget_Handle;
+      Styles         : Adi.Widget.Part_Style_Array)
+     return Adi.Widget.Part_Style_Array
+   is
+      use type Adi.Widget.Widget_Handle;
+   begin
+      if Has_Root_Style
+        and then Adi.Widget.Is_Valid (Target)
+        and then Root_Target = Target
+      then
+         return Merge (Root_Styles, Styles);
+      end if;
+
+      return Styles;
+   end Root_Merged_Styles;
+
 end Adi.Style_Merge;

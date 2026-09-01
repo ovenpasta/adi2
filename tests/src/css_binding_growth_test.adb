@@ -1,6 +1,7 @@
 pragma Ada_2022;
 
 with Ada.Directories;
+with Ada.Exceptions;  use Ada.Exceptions;
 with Ada.Real_Time;
 with Ada.Text_IO;  use Ada.Text_IO;
 with Test_Support; use Test_Support;
@@ -1496,6 +1497,113 @@ begin
               "each call reparses everything installed so far");
       Assert (Adi.CSS_Source.Testing.File_Read_Count = 6,
               "and rereads every file it already read");
+   end;
+
+   ---------------------------------------------------------------------
+   --  One root fold, reached two ways
+   ---------------------------------------------------------------------
+
+   --  Adi.CSS_Source and Adi.CSS_Parser both answer a binding by folding
+   --  the sheet's :root styles onto the selector's, for the one widget
+   --  the sheet holds as its root. One fold behind both, so the two
+   --  cannot drift over which widget takes :root or what folding it on
+   --  means.
+
+   Section ("One root fold behind the source and the parser");
+
+   declare
+      Text : constant String :=
+        ":root { background-color: rgb(10, 20, 30); }"
+        & " .cell { opacity: 0.25; }";
+
+      Sheet : Adi.CSS_Parser.Stylesheet;
+      Src   : Adi.CSS_Source.Style_Source;
+      Ok    : Boolean := False;
+
+      Parsed_Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Parsed_Leaf : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Source_Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Source_Leaf : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+
+      function Style_Of (H : Adi.Widget.Box.Box_Handle) return Resolved_Style
+        is (Get_Resolved_Part_Style (+H, Main_Part));
+
+      function Has_Root_Background (H : Adi.Widget.Box.Box_Handle)
+        return Boolean
+      is
+         R : constant Resolved_Style := Style_Of (H);
+      begin
+         return R.Background_Color.Kind = RGB
+           and then R.Background_Color.R = 10;
+      end Has_Root_Background;
+   begin
+      Adi.CSS_Parser.Load_String (Sheet, Text, Ok);
+      Assert (Ok, "the sheet parses");
+      Adi.CSS_Parser.Bind_Root_Metadata (Sheet, +Parsed_Root);
+      Adi.CSS_Parser.Bind_Class (Sheet, "cell", +Parsed_Root);
+      Adi.CSS_Parser.Bind_Class (Sheet, "cell", +Parsed_Leaf);
+
+      Adi.CSS_Source.Add_Dynamic_String (Src, Text, Ok);
+      Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
+      Assert (Ok, "and the same text loads into a source");
+      Adi.CSS_Source.Bind_Root_Metadata (Src, +Source_Root);
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +Source_Root, Class_Name => "cell");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source => Src, W => +Source_Leaf, Class_Name => "cell");
+
+      --  Not vacuous: the fold has something to do, and does it for the
+      --  root alone.
+      Assert (Has_Root_Background (Parsed_Root)
+                and then Float (Style_Of (Parsed_Root).Opacity) = 0.25,
+              "the root carries :root and the class it is bound under");
+      Assert (not Has_Root_Background (Parsed_Leaf)
+                and then Float (Style_Of (Parsed_Leaf).Opacity) = 0.25,
+              "a widget that is not the root carries the class alone");
+
+      Assert (Style_Of (Parsed_Root) = Style_Of (Source_Root),
+              "the source and the parser fold :root onto the root alike");
+      Assert (Style_Of (Parsed_Leaf) = Style_Of (Source_Leaf),
+              "and leave a widget that is not the root alike");
+
+      Adi.CSS_Parser.Destroy (Sheet);
+   end;
+
+   --  A sheet that holds nothing has no root and no :root block, so the
+   --  fold answers the styles it was given -- which is what a source
+   --  that holds nothing answers too.
+   Section ("A sheet holding nothing folds nothing");
+
+   declare
+      Empty_Sheet : Adi.CSS_Parser.Stylesheet;
+      Empty_Src   : Adi.CSS_Source.Style_Source;
+      Target      : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      R : constant Adi.Widget.Widget_Ref := Adi.Widget.Borrow (+Target);
+   begin
+      begin
+         Adi.CSS_Parser.Apply_Class (Empty_Sheet, "cell", R.Ptr.all);
+         Assert (True, "the parser applies a sheet that holds nothing");
+      exception
+         when E : others =>
+            Assert (False,
+                    "the parser raised " & Exception_Name (E)
+                    & " applying a sheet that holds nothing");
+      end;
+
+      begin
+         Adi.CSS_Source.Apply_Class (Empty_Src, "cell", R.Ptr.all);
+         Assert (True, "the source applies a source that holds nothing");
+      exception
+         when E : others =>
+            Assert (False,
+                    "the source raised " & Exception_Name (E)
+                    & " applying a source that holds nothing");
+      end;
    end;
 
    Test_Support.Finish;

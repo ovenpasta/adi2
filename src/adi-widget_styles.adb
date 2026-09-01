@@ -112,9 +112,6 @@ package body Adi.Widget_Styles is
       return True;
    end Same_Style;
 
-   --  How a state selector reads in a diagnostic.
-   function Selector_Image (Selector : State_Selector) return String;
-
    function Selector_Image (Selector : State_Selector) return String is
       Result : Unbounded_String;
 
@@ -196,91 +193,21 @@ package body Adi.Widget_Styles is
       end if;
    end Try_Add_Rule;
 
-   function Compute_Style (WS : Widget_Style;
-                           Active_Widget : Widget_States;
-                           Active_Part   : Widget_States;
-                           Assigned : Adi.Widget_Properties.Property_Assignment
-                             := Adi.Widget_Properties.Empty_Assignment)
-     return Style_Rules is
-      Def    : constant Style_Definition := Definition (WS);
-      Result : Rule_Slots := Slots_Of (Def.Base);
-
-      --  Collect matching rules with their effective priority
-      type Scored_Rule is record
-         Index    : Positive;
-         Priority : Natural;
-      end record;
-
-      type Scored_Array is array (1 .. Max_Style_Rules) of Scored_Rule;
-
-      Matched : Scored_Array;
-      Match_Count : Natural := 0;
-   begin
-      --  Find all matching rules
-      for I in 1 .. Def.Rule_Count loop
-         if Matches (Def.Rules (I).Selector, Active_Widget, Active_Part,
-                     Assigned)
-         then
-            Match_Count := Match_Count + 1;
-            Matched (Match_Count) := (
-               Index    => I,
-               Priority => (if Def.Rules (I).Priority > 0
-                           then Def.Rules (I).Priority
-                           else Specificity (Def.Rules (I).Selector))
-            );
-         end if;
-      end loop;
-
-      --  Sort by priority (simple bubble sort, fine for small N)
-      for I in 1 .. Match_Count - 1 loop
-         for J in I + 1 .. Match_Count loop
-            if Matched (J).Priority < Matched (I).Priority then
-               declare
-                  Tmp : constant Scored_Rule := Matched (I);
-               begin
-                  Matched (I) := Matched (J);
-                  Matched (J) := Tmp;
-               end;
-            end if;
-         end loop;
-      end loop;
-
-      --  Apply rules in priority order (lowest first, highest wins)
-      for I in 1 .. Match_Count loop
-         Result := Merge (Result, Def.Rules (Matched (I).Index).Style);
-      end loop;
-
-      return Rules_Of (Result);
-   end Compute_Style;
-
-   function Compute_Style (WS : Widget_Style;
-                           Active : Widget_States;
-                           Assigned : Adi.Widget_Properties.Property_Assignment
-                             := Adi.Widget_Properties.Empty_Assignment)
-     return Style_Rules is
-   begin
-      return Compute_Style (WS, Active, No_States, Assigned);
-   end Compute_Style;
-
    function Compute_Resolved (WS : Widget_Style;
                               Active_Widget : Widget_States;
                               Active_Part   : Widget_States;
                               Assigned : Adi.Widget_Properties.Property_Assignment
                                 := Adi.Widget_Properties.Empty_Assignment)
      return Resolved_Style is
-   begin
-      return Resolve
-        (Compute_Style (WS, Active_Widget, Active_Part, Assigned));
-   end Compute_Resolved;
+     (Resolve
+        (Compute_Rules_Prepared (WS, Active_Widget, Active_Part, Assigned)));
 
    function Compute_Resolved (WS : Widget_Style;
                               Active : Widget_States;
                               Assigned : Adi.Widget_Properties.Property_Assignment
                                 := Adi.Widget_Properties.Empty_Assignment)
      return Resolved_Style is
-   begin
-      return Resolve (Compute_Style (WS, Active, Assigned));
-   end Compute_Resolved;
+     (Compute_Resolved (WS, Active, No_States, Assigned));
 
    -------------------------------------------------
    -- The Style Store
@@ -685,11 +612,11 @@ package body Adi.Widget_Styles is
          & " properties, no room for " & CSS_Property'Image (P));
    end Report_Full_Buffer;
 
-   procedure Report_Full_Rules is
+   procedure Report_Full_Rules (Sel : State_Selector) is
    begin
       Adi.Log.Error
         ("style chain already holds" & Max_Style_Rules'Image
-         & " state rules, no room for another");
+         & " state rules, no room for " & Selector_Image (Sel));
    end Report_Full_Rules;
 
    -------------------------------------------------
@@ -952,7 +879,7 @@ package body Adi.Widget_Styles is
    --  too, which is why the two are separate subprograms rather than one
    --  with an if.
    type Step_Outcome is
-     (Stored, No_Buffer, Buffer_Full, Dropped_Quietly);
+     (Stored, No_Buffer, No_Rule, Buffer_Full, Dropped_Quietly);
 
    function Append_Step (C       : Composer;
                          P       : CSS_Property;
@@ -973,6 +900,14 @@ package body Adi.Widget_Styles is
    begin
       if B = null then
          Outcome := No_Buffer;
+         return C;
+      end if;
+
+      --  The chain named more selectors than a style holds, and .On
+      --  reported the one it could not take. A step after it names no
+      --  rule, so it neither lands anywhere nor spends a slot.
+      if C.Active = Discarded_Rule then
+         Outcome := No_Rule;
          return C;
       end if;
 
@@ -1000,7 +935,7 @@ package body Adi.Widget_Styles is
       Result  : constant Composer := Append_Step (C, P, Part, Op, Val, Outcome);
    begin
       case Outcome is
-         when Stored | No_Buffer | Dropped_Quietly => null;
+         when Stored | No_Buffer | No_Rule | Dropped_Quietly => null;
          when Buffer_Full => Report_Full_Buffer (P);
       end case;
       return Result;
@@ -1040,8 +975,9 @@ package body Adi.Widget_Styles is
       end loop;
 
       if B.Rule_Count >= Max_Style_Rules then
-         Report_Full_Rules;
-         return C;
+         Dropped_Rule_Count := Dropped_Rule_Count + 1;
+         Report_Full_Rules (Sel);
+         return (C with delta Active => Discarded_Rule);
       end if;
 
       B.Rule_Count := B.Rule_Count + 1;
@@ -1444,7 +1380,7 @@ package body Adi.Widget_Styles is
             then Empty_Style_Definition
             else Definition (C.Seed));
       begin
-         for K in Rule_Slot'Range loop
+         for K in Rule_Slot'First .. Discarded_Rule - 1 loop
             declare
                Named : Boolean := False;
             begin

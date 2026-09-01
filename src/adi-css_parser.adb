@@ -289,21 +289,19 @@ package body Adi.CSS_Parser is
       end if;
    end Apply_Metadata_To_Widget;
 
+   --  The sheet's side of the fold: which metadata it carries and which
+   --  widget it holds as its root. Adi.Style_Merge carries the fold
+   --  itself, which Adi.CSS_Source answers a binding with too.
    function Root_Merged_Styles
      (Impl   : Stylesheet_Impl;
       Target : Adi.Widget.Widget_Handle;
       Styles : Part_Style_Array) return Part_Style_Array
-   is
-   begin
-      if Adi.Widget.Is_Valid (Target)
-        and then Impl.Root_Target = Target
-        and then Impl.Metadata.Has_Root_Style
-      then
-         return Adi.Style_Merge.Merge (Impl.Metadata.Root_Styles, Styles);
-      end if;
-
-      return Styles;
-   end Root_Merged_Styles;
+   is (Adi.Style_Merge.Root_Merged_Styles
+         (Has_Root_Style => Impl.Metadata.Has_Root_Style,
+          Root_Styles    => Impl.Metadata.Root_Styles,
+          Root_Target    => Impl.Root_Target,
+          Target         => Target,
+          Styles         => Styles));
 
    function Lower (S : String) return String is (Char.To_Lower (S));
 
@@ -4116,7 +4114,10 @@ package body Adi.CSS_Parser is
                if Rule_Index = 0 then
                   if W.Rule_Count >= Max_Style_Rules then
                      Impl.Last_Error := To_Unbounded_String
-                       ("Too many state rules for selector '" & To_String (R.Sel.Name) & "'");
+                       ("selector '" & To_String (R.Sel.Name)
+                        & "' already holds" & Max_Style_Rules'Image
+                        & " state rules, no room for "
+                        & Selector_Image (R.Sel.Selector));
                      Success := False;
                      exit Build_Loop;
                   end if;
@@ -4178,8 +4179,7 @@ package body Adi.CSS_Parser is
             begin
                Set_Part_Styles
                  (R.Ptr.all,
-                  Root_Merged_Styles
-                    (Impl, B.Target, Sel.Styles));
+                  Root_Merged_Styles (Impl, B.Target, Sel.Styles));
             end;
          end if;
       end;
@@ -4500,14 +4500,20 @@ package body Adi.CSS_Parser is
                     W     : in out Adi.Widget.Widget'Class) is
       Idx : Natural := 0;
    begin
-      if Impl_Of (Sheet) /= null then
-         Idx := Find_Selector_Index (Impl_Of (Sheet).all, Kind, Name);
+      --  A sheet that holds nothing -- never loaded, or destroyed --
+      --  names no selector and no root, so it styles nothing.
+      if Impl_Of (Sheet) = null then
+         return;
       end if;
+
+      Idx := Find_Selector_Index (Impl_Of (Sheet).all, Kind, Name);
 
       if Idx = 0 then
          Set_Part_Styles
            (W,
-            Root_Merged_Styles (Impl_Of (Sheet).all, Adi.Widget.Get_Handle (W), Empty_Part_Styles));
+            Root_Merged_Styles
+              (Impl_Of (Sheet).all, Adi.Widget.Get_Handle (W),
+               Empty_Part_Styles));
       else
          declare
             Sel : Selector_Style renames
@@ -4515,8 +4521,9 @@ package body Adi.CSS_Parser is
          begin
             Set_Part_Styles
               (W,
-               Root_Merged_Styles (Impl_Of (Sheet).all, Adi.Widget.Get_Handle (W),
-                                   Sel.Styles));
+               Root_Merged_Styles
+                 (Impl_Of (Sheet).all, Adi.Widget.Get_Handle (W),
+                  Sel.Styles));
          end;
       end if;
    end Apply;

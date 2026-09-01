@@ -963,6 +963,22 @@ package body Adi.Widget is
                                  --  metrics or layout participation —
                                  --  must re-layout
 
+   --  Whether an ancestor disables this widget. Get_States folds that
+   --  onto the widget's own states, and a change to one of its own
+   --  leaves it standing, so this is what puts the effective set back
+   --  together for the states the widget was in.
+   function Disabled_By_Ancestor (W : Widget'Class) return Boolean is
+      P : access constant Widget'Class := W.Parent;
+   begin
+      while P /= null loop
+         if P.States (State_Disabled) then
+            return True;
+         end if;
+         P := P.Parent;
+      end loop;
+      return False;
+   end Disabled_By_Ancestor;
+
    function Widget_State_Style_Effect
      (W          : Widget'Class;
       Old_States : Widget_States) return Style_Diff_Kind
@@ -970,6 +986,14 @@ package body Adi.Widget is
       Changed : Widget_State;
       Found   : Boolean := False;
       Eff_States : constant Widget_States := Get_States (W);
+      --  Both resolves read effective states, or the widget's own
+      --  disabled bit would read as having changed on every state
+      --  change made under a disabled ancestor.
+      Old_Eff    : constant Widget_States :=
+        (if Old_States (State_Disabled)
+           or else not Disabled_By_Ancestor (W)
+         then Old_States
+         else [Old_States with delta State_Disabled => True]);
       Worst   : Style_Diff_Kind := Diff_None;
    begin
       --  Identify which state changed
@@ -998,7 +1022,7 @@ package body Adi.Widget is
                   declare
                      Old_Resolved : constant Resolved_Handle :=
                        Memo_Resolved_Style
-                         (W, P, Old_States, W.Part_States (P), W.Properties);
+                         (W, P, Old_Eff, W.Part_States (P), W.Properties);
                      New_Resolved : constant Resolved_Handle :=
                        Memo_Resolved_Style
                          (W, P, Eff_States, W.Part_States (P), W.Properties);
@@ -1368,16 +1392,7 @@ package body Adi.Widget is
    end Set_Disabled;
 
    function Is_Disabled (W : Widget'Class) return Boolean is
-      P : access constant Widget'Class := W'Access;
-   begin
-      while P /= null loop
-         if P.States (State_Disabled) then
-            return True;
-         end if;
-         P := P.Parent;
-      end loop;
-      return False;
-   end Is_Disabled;
+     (W.States (State_Disabled) or else Disabled_By_Ancestor (W));
 
    procedure Set_Selected (W : in out Widget'Class; Value : Boolean := True) is
    begin
@@ -1596,7 +1611,7 @@ package body Adi.Widget is
                                       P : Part_Kind) return Resolved_Handle is
       --  NOTE: This function is nominally read-only (in-mode Widget'Class),
       --  but we cache the resolved result in the Widget record to avoid
-      --  recomputing Compute_Style + Resolve (~60 fields each) on every
+      --  recomputing the cascade and Resolve (~60 fields each) on every
       --  call.  The cache is keyed on (Style_Version, effective states,
       --  Part_States) so staleness is impossible.  'Unrestricted_Access is
       --  safe here because the cache is a pure memo — same inputs always

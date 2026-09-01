@@ -1289,11 +1289,16 @@ back as a `Style_Definition`, which is the record `.On` fills in: a base
 rule set and up to `Adi.Widget_Styles.Max_Style_Rules` (16) state rules,
 each naming its rule set by handle too.
 
-`Add_Rule`, and so `.On`, raises `Too_Many_Style_Rules` past the cap,
-naming the state selector that did not fit; `tools/css_to_ada.py` refuses
-to generate a longer chain, naming the CSS selector; the runtime parser
-rejects the sheet and keeps the last good one; and a merge of two styles,
-which has nowhere to report to, drops the rule and logs it.
+Past the cap every path names the state selector that did not fit, and
+what it then does follows from what it has to report to. A whole sheet is
+refused: `tools/css_to_ada.py` declines to generate one, naming the CSS
+selector as well, and the runtime parser declines to load one, keeping
+the sheet already in force. A style being authored raises: `Add_Rule`,
+and the `Style_Builder` `.On` behind it, raise `Too_Many_Style_Rules`. A
+style being folded or chained drops the rule, logs it and counts it,
+having nowhere to raise to: a merge of two styles, and a composer chain's
+`.On`. Setters after a chain's dropped `.On` name no rule at all, until
+the chain names one it holds or returns to the base with `.On_Base`.
 
 **2. Part_Style_Array** — Bundle of all parts for a selector:
 

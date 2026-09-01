@@ -458,23 +458,31 @@ package body Adi.CSS_Source is
       end;
    end Combined_Styles;
 
+   --  The source's side of the fold: which metadata is in force and
+   --  which widget the source holds as its root. Adi.Style_Merge carries
+   --  the fold itself, which Adi.CSS_Parser answers a binding with too.
    function Root_Merged_Styles
      (Source : Style_Source;
       Target : Adi.Widget.Widget_Handle;
       Styles : Part_Style_Array) return Part_Style_Array
    is
-      Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
-        Active_Metadata (Source);
+      Impl : constant Style_Source_Impl_Ptr := Impl_Of (Source);
    begin
-      if Impl_Of (Source) /= null
-        and then Adi.Widget.Is_Valid (Target)
-        and then Impl_Of (Source).Root_Target = Target
-        and then Metadata.Has_Root_Style
-      then
-         return Merge_Part_Styles (Metadata.Root_Styles, Styles);
+      if Impl = null then
+         return Styles;
       end if;
 
-      return Styles;
+      declare
+         Metadata : constant Adi.CSS_Parser.Stylesheet_Metadata :=
+           Active_Metadata (Source);
+      begin
+         return Adi.Style_Merge.Root_Merged_Styles
+           (Has_Root_Style => Metadata.Has_Root_Style,
+            Root_Styles    => Metadata.Root_Styles,
+            Root_Target    => Impl.Root_Target,
+            Target         => Target,
+            Styles         => Styles);
+      end;
    end Root_Merged_Styles;
 
    procedure Apply_To_Widget (Source : Style_Source;

@@ -149,8 +149,9 @@ procedure Style_Flat_Values_Test is
               "a path past the limit names no list marker image");
       Assert (List_String (Over_Long) = List_String (""),
               "a marker string past the limit reads as the empty one");
-      Assert (Set_Font_Family (Over_Long) = Set_Font_Family (""),
-              "a family list past the limit reads as the empty one");
+      Assert (not Opt_Font.Is_Specified (Set_Font_Family (Over_Long)),
+              "a family list past the limit leaves font-family unset, as "
+              & "the parser leaves the declaration out");
 
       Assert (Background_Image_URL ("").Kind = No_Image,
               "an empty path names no image");
@@ -171,8 +172,28 @@ procedure Style_Flat_Values_Test is
               "a marker one character past the limit reads as the empty one");
       Assert (Set_Font_Family (At_Limit) /= Set_Font_Family (""),
               "a family list of exactly the limit reads as itself");
-      Assert (Set_Font_Family (Past_Limit) = Set_Font_Family (""),
-              "a family list one character past the limit reads as empty");
+      Assert (not Opt_Font.Is_Specified (Set_Font_Family (Past_Limit)),
+              "a family list one character past the limit leaves "
+              & "font-family unset");
+
+      --  The Optional-returning helpers for the other three carry the
+      --  same rule, which the bare value constructors above cannot
+      --  express.
+      Assert (Opt_Bg_Image.Is_Specified (Set_Bg_Image (At_Limit))
+                and then not Opt_Bg_Image.Is_Specified
+                               (Set_Bg_Image (Past_Limit)),
+              "background-image is set at the limit and unset past it");
+      Assert (Opt_List_Style_Image.Is_Specified (Set_List_Image (At_Limit))
+                and then not Opt_List_Style_Image.Is_Specified
+                               (Set_List_Image (Past_Limit)),
+              "list-style-image is set at the limit and unset past it");
+      Assert (Opt_List_Style_Type.Is_Specified (Set_List_Type (At_Limit))
+                and then not Opt_List_Style_Type.Is_Specified
+                               (Set_List_Type (Past_Limit)),
+              "list-style-type is set at the limit and unset past it");
+      Assert (not Opt_Bg_Image.Is_Specified (Set_Bg_Image ("")),
+              "and an empty URL leaves background-image unset, as an "
+              & "empty url() does");
    end Test_Text_Bounds;
 
    procedure Test_Parser_Drops_Over_Long is

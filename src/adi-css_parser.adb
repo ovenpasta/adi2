@@ -2353,15 +2353,6 @@ package body Adi.CSS_Parser is
       return True;
    end Parse_Overflow_Value;
 
-   procedure Set_Overflow_Shorthand
-     (Rules : in out Style_Rules;
-      Value : Overflow_Value)
-   is
-   begin
-      Rules.Overflow_X := Set_Overflow_X (Value);
-      Rules.Overflow_Y := Set_Overflow_Y (Value);
-   end Set_Overflow_Shorthand;
-
    --  Declaration names Apply_Property recognises. The chain below
    --  tests one of these rather than the name text.
    type Decl_Name is

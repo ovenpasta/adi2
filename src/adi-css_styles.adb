@@ -137,8 +137,49 @@ package body Adi.CSS_Styles is
    function List_String (Text : String) return List_Style_Type_Value is
      ((Kind => List_Style_Custom_String, Marker => Intern_Text (Text)));
 
+   --  Whether text a style is asked to carry fits, said once for the
+   --  four helpers below and for the composer's text setters. An empty
+   --  URL is refused by the callers rather than here, and silently, as
+   --  Adi.CSS_Parser refuses it.
+   function Text_Fits_Style (Text : String; Property : String)
+     return Boolean is
+   begin
+      if Text'Length <= Max_CSS_Text_Length then
+         return True;
+      end if;
+
+      Adi.Log.Warning
+        ("CSS " & Property & " text of" & Natural'Image (Text'Length)
+         & " characters exceeds the" & Natural'Image (Max_CSS_Text_Length)
+         & " a style value carries; the property is left unset");
+      return False;
+   end Text_Fits_Style;
+
+   --  The four helpers a style is written with. Each leaves the
+   --  property unset where Adi.CSS_Parser leaves the declaration out,
+   --  so the chain, the aggregate and a parsed sheet carry the same
+   --  thing for the same text.
    function Set_Font_Family (Name : String) return Opt_Font.Optional is
-     (Opt_Font.Val ((Kind => By_Name, Name => Intern_Text (Name))));
+     (if Text_Fits_Style (Name, "font-family")
+      then Opt_Font.Val ((Kind => By_Name, Name => Intern_Text (Name)))
+      else Opt_Font.Unset);
+
+   function Set_Bg_Image (URI : String) return Opt_Bg_Image.Optional is
+     (if URI'Length > 0 and then Text_Fits_Style (URI, "background-image")
+      then Opt_Bg_Image.Val (Background_Image_URL (URI))
+      else Opt_Bg_Image.Unset);
+
+   function Set_List_Type (Marker : String)
+     return Opt_List_Style_Type.Optional is
+     (if Text_Fits_Style (Marker, "list-style-type")
+      then Opt_List_Style_Type.Val (List_String (Marker))
+      else Opt_List_Style_Type.Unset);
+
+   function Set_List_Image (URI : String)
+     return Opt_List_Style_Image.Optional is
+     (if URI'Length > 0 and then Text_Fits_Style (URI, "list-style-image")
+      then Opt_List_Style_Image.Val (List_Image (URI))
+      else Opt_List_Style_Image.Unset);
 
    -------------------------------------------------
    -- Linear_Gradient
@@ -2119,13 +2160,42 @@ package body Adi.CSS_Styles is
      new Value_Store (Transition_Spec, Value_Hash.Add);
    package Float_Values is new Value_Store (Float, Float_Digest);
 
+   package Inset_Values is new Value_Store (Inset_Value, Value_Hash.Add);
+   package Line_Height_Values is
+     new Value_Store (Line_Height_Value, Value_Hash.Add);
+   package Flex_Basis_Values is
+     new Value_Store (Flex_Basis_Value, Value_Hash.Add);
+   package Object_Position_Values is
+     new Value_Store (Object_Position_Value, Value_Hash.Add);
+   package Bg_Image_Values is
+     new Value_Store (Background_Image_Value, Value_Hash.Add);
+   package Font_Family_Values is
+     new Value_Store (Font_Family_Value, Value_Hash.Add);
+   package List_Type_Values is
+     new Value_Store (List_Style_Type_Value, Value_Hash.Add);
+   package List_Image_Values is
+     new Value_Store (List_Style_Image_Value, Value_Hash.Add);
+
+   --  An order is the one signed value a rule holds, so the reference
+   --  carries the non-negative ones outright and the store answers for
+   --  the rest.
+   function Order_Digest (H : Value_Hash.Digest; V : Order_Value)
+     return Value_Hash.Digest is
+     (Value_Hash.Mix (H, Value_Hash.Digest (Integer (V) mod 2 ** 24)));
+
+   package Order_Values is new Value_Store (Order_Value, Order_Digest);
+
    function Interned_Values return Natural is
      (Color_Values.Count + Length_Values.Count + Size_Values.Count
       + Box_Values.Count + Border_Width_Values.Count
       + Border_Color_Values.Count + Border_Style_Values.Count
       + Border_Radius_Values.Count + Gap_Values.Count
       + Shadow_Values.Count + Transition_Values.Count
-      + Float_Values.Count);
+      + Float_Values.Count + Inset_Values.Count
+      + Line_Height_Values.Count + Flex_Basis_Values.Count
+      + Object_Position_Values.Count + Bg_Image_Values.Count
+      + Font_Family_Values.Count + List_Type_Values.Count
+      + List_Image_Values.Count + Order_Values.Count);
 
    function Interned_Value_Bytes return Natural is
      (Color_Values.Bytes + Length_Values.Bytes + Size_Values.Bytes
@@ -2133,7 +2203,11 @@ package body Adi.CSS_Styles is
       + Border_Color_Values.Bytes + Border_Style_Values.Bytes
       + Border_Radius_Values.Bytes + Gap_Values.Bytes
       + Shadow_Values.Bytes + Transition_Values.Bytes
-      + Float_Values.Bytes);
+      + Float_Values.Bytes + Inset_Values.Bytes
+      + Line_Height_Values.Bytes + Flex_Basis_Values.Bytes
+      + Object_Position_Values.Bytes + Bg_Image_Values.Bytes
+      + Font_Family_Values.Bytes + List_Type_Values.Bytes
+      + List_Image_Values.Bytes + Order_Values.Bytes);
 
    -------------------------------------------------
    -- Value references
@@ -2304,6 +2378,61 @@ package body Adi.CSS_Styles is
    function Transition_Of (R : Value_Ref) return Transition_Spec is
      (Transition_Values.Get (Stored_Index (R)));
 
+   function Intern (V : Inset_Value) return Value_Ref is
+     (Stored (Inset_Values.Intern (V)));
+   function Inset_Of (R : Value_Ref) return Inset_Value is
+     (Inset_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Line_Height_Value) return Value_Ref is
+     (Stored (Line_Height_Values.Intern (V)));
+   function Line_Height_Of (R : Value_Ref) return Line_Height_Value is
+     (Line_Height_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Flex_Basis_Value) return Value_Ref is
+     (Stored (Flex_Basis_Values.Intern (V)));
+   function Flex_Basis_Of (R : Value_Ref) return Flex_Basis_Value is
+     (Flex_Basis_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Object_Position_Value) return Value_Ref is
+     (Stored (Object_Position_Values.Intern (V)));
+   function Object_Position_Of (R : Value_Ref) return Object_Position_Value is
+     (Object_Position_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Background_Image_Value) return Value_Ref is
+     (Stored (Bg_Image_Values.Intern (V)));
+   function Background_Image_Of (R : Value_Ref)
+     return Background_Image_Value is
+     (Bg_Image_Values.Get (Stored_Index (R)));
+
+   function Intern (V : Font_Family_Value) return Value_Ref is
+     (Stored (Font_Family_Values.Intern (V)));
+   function Font_Family_Of (R : Value_Ref) return Font_Family_Value is
+     (Font_Family_Values.Get (Stored_Index (R)));
+
+   function Intern (V : List_Style_Type_Value) return Value_Ref is
+     (Stored (List_Type_Values.Intern (V)));
+   function List_Style_Type_Of (R : Value_Ref) return List_Style_Type_Value is
+     (List_Type_Values.Get (Stored_Index (R)));
+
+   function Intern (V : List_Style_Image_Value) return Value_Ref is
+     (Stored (List_Image_Values.Intern (V)));
+   function List_Style_Image_Of (R : Value_Ref)
+     return List_Style_Image_Value is
+     (List_Image_Values.Get (Stored_Index (R)));
+
+   ---------------------------------------------------------------------
+   --  The one signed value: non-negative in the reference, the rest in
+   --  a store.
+   ---------------------------------------------------------------------
+
+   function Intern (V : Order_Value) return Value_Ref is
+     (if V >= 0 then Immediate (Natural (V))
+      else Stored (Order_Values.Intern (V)));
+
+   function Order_Of (R : Value_Ref) return Order_Value is
+     (if Is_Stored (R) then Order_Values.Get (Stored_Index (R))
+      else Order_Value (Payload (R)));
+
    ---------------------------------------------------------------------
    --  The enumerations, which are their own reference.
    ---------------------------------------------------------------------
@@ -2353,9 +2482,118 @@ package body Adi.CSS_Styles is
    function Align_Items_Of (R : Value_Ref) return Align_Items_Value is
      (Align_Items_Value'Val (Payload (R)));
 
+   function Intern (V : Position_Value) return Value_Ref is
+     (Immediate (Position_Value'Pos (V)));
+   function Position_Of (R : Value_Ref) return Position_Value is
+     (Position_Value'Val (Payload (R)));
+
+   function Intern (V : Visibility_Value) return Value_Ref is
+     (Immediate (Visibility_Value'Pos (V)));
+   function Visibility_Of (R : Value_Ref) return Visibility_Value is
+     (Visibility_Value'Val (Payload (R)));
+
+   function Intern (V : Outline_Style_Kind) return Value_Ref is
+     (Immediate (Outline_Style_Kind'Pos (V)));
+   function Outline_Style_Of (R : Value_Ref) return Outline_Style_Kind is
+     (Outline_Style_Kind'Val (Payload (R)));
+
+   function Intern (V : Font_Style_Value) return Value_Ref is
+     (Immediate (Font_Style_Value'Pos (V)));
+   function Font_Style_Of (R : Value_Ref) return Font_Style_Value is
+     (Font_Style_Value'Val (Payload (R)));
+
+   function Intern (V : Vertical_Align_Value) return Value_Ref is
+     (Immediate (Vertical_Align_Value'Pos (V)));
+   function Vertical_Align_Of (R : Value_Ref) return Vertical_Align_Value is
+     (Vertical_Align_Value'Val (Payload (R)));
+
+   function Intern (V : Text_Decoration_Value) return Value_Ref is
+     (Immediate (Text_Decoration_Value'Pos (V)));
+   function Text_Decoration_Of (R : Value_Ref) return Text_Decoration_Value is
+     (Text_Decoration_Value'Val (Payload (R)));
+
+   function Intern (V : List_Style_Position_Value) return Value_Ref is
+     (Immediate (List_Style_Position_Value'Pos (V)));
+   function List_Style_Position_Of (R : Value_Ref)
+     return List_Style_Position_Value is
+     (List_Style_Position_Value'Val (Payload (R)));
+
+   function Intern (V : White_Space_Value) return Value_Ref is
+     (Immediate (White_Space_Value'Pos (V)));
+   function White_Space_Of (R : Value_Ref) return White_Space_Value is
+     (White_Space_Value'Val (Payload (R)));
+
+   function Intern (V : Text_Overflow_Value) return Value_Ref is
+     (Immediate (Text_Overflow_Value'Pos (V)));
+   function Text_Overflow_Of (R : Value_Ref) return Text_Overflow_Value is
+     (Text_Overflow_Value'Val (Payload (R)));
+
+   function Intern (V : Object_Fit_Value) return Value_Ref is
+     (Immediate (Object_Fit_Value'Pos (V)));
+   function Object_Fit_Of (R : Value_Ref) return Object_Fit_Value is
+     (Object_Fit_Value'Val (Payload (R)));
+
+   function Intern (V : Flex_Wrap_Value) return Value_Ref is
+     (Immediate (Flex_Wrap_Value'Pos (V)));
+   function Flex_Wrap_Of (R : Value_Ref) return Flex_Wrap_Value is
+     (Flex_Wrap_Value'Val (Payload (R)));
+
+   function Intern (V : Align_Self_Value) return Value_Ref is
+     (Immediate (Align_Self_Value'Pos (V)));
+   function Align_Self_Of (R : Value_Ref) return Align_Self_Value is
+     (Align_Self_Value'Val (Payload (R)));
+
+   function Intern (V : Align_Content_Value) return Value_Ref is
+     (Immediate (Align_Content_Value'Pos (V)));
+   function Align_Content_Of (R : Value_Ref) return Align_Content_Value is
+     (Align_Content_Value'Val (Payload (R)));
+
+   ---------------------------------------------------------------------
+   --  The grid counts and lines, each a Natural, which is exactly what
+   --  a reference's payload holds.
+   ---------------------------------------------------------------------
+
+   function Intern (V : Grid_Columns_Value) return Value_Ref is
+     (Immediate (Natural (V)));
+   function Grid_Columns_Of (R : Value_Ref) return Grid_Columns_Value is
+     (Grid_Columns_Value (Payload (R)));
+
+   function Intern (V : Grid_Rows_Value) return Value_Ref is
+     (Immediate (Natural (V)));
+   function Grid_Rows_Of (R : Value_Ref) return Grid_Rows_Value is
+     (Grid_Rows_Value (Payload (R)));
+
+   function Intern (V : Grid_Column_Value) return Value_Ref is
+     (Immediate (Natural (V)));
+   function Grid_Column_Of (R : Value_Ref) return Grid_Column_Value is
+     (Grid_Column_Value (Payload (R)));
+
+   function Intern (V : Grid_Row_Value) return Value_Ref is
+     (Immediate (Natural (V)));
+   function Grid_Row_Of (R : Value_Ref) return Grid_Row_Value is
+     (Grid_Row_Value (Payload (R)));
+
+   function Intern (V : Grid_Column_Span_Value) return Value_Ref is
+     (Immediate (Natural (V)));
+   function Grid_Column_Span_Of (R : Value_Ref)
+     return Grid_Column_Span_Value is
+     (Grid_Column_Span_Value (Payload (R)));
+
+   function Intern (V : Grid_Row_Span_Value) return Value_Ref is
+     (Immediate (Natural (V)));
+   function Grid_Row_Span_Of (R : Value_Ref) return Grid_Row_Span_Value is
+     (Grid_Row_Span_Value (Payload (R)));
+
    -------------------------------------------------
    -- Folding a named property into a rule set
    -------------------------------------------------
+
+   procedure Set_Overflow_Shorthand
+     (S : in out Style_Rules; V : Overflow_Value) is
+   begin
+      S.Overflow_X := Set_Overflow_X (V);
+      S.Overflow_Y := Set_Overflow_Y (V);
+   end Set_Overflow_Shorthand;
 
    procedure Apply_Property
      (S : in out Style_Rules; P : CSS_Property; R : Value_Ref) is
@@ -2436,9 +2674,72 @@ package body Adi.CSS_Styles is
             S.Flex_Shrink := Set (Flex_Shrink_Of (R));
          when Prop_Transition =>
             S.Transition := Set (Transition_Of (R));
-         when others =>
-            Adi.Log.Error
-              ("no composed form for CSS property " & CSS_Property'Image (P));
+         when Prop_Background_Image =>
+            S.Background_Image := Set_Bg_Image (Background_Image_Of (R));
+         when Prop_Outline_Style =>
+            S.Outline_Style := Set (Outline_Style_Of (R));
+         when Prop_Font_Family =>
+            S.Font_Family := Opt_Font.Val (Font_Family_Of (R));
+         when Prop_Font_Style =>
+            S.Font_Style := Set (Font_Style_Of (R));
+         when Prop_Vertical_Align =>
+            S.Vertical_Align := Set (Vertical_Align_Of (R));
+         when Prop_Text_Decoration =>
+            S.Text_Decoration := Set (Text_Decoration_Of (R));
+         when Prop_List_Style_Type =>
+            S.List_Style_Type := Set (List_Style_Type_Of (R));
+         when Prop_List_Style_Image =>
+            S.List_Style_Image := Set (List_Style_Image_Of (R));
+         when Prop_List_Style_Position =>
+            S.List_Style_Position := Set (List_Style_Position_Of (R));
+         when Prop_White_Space =>
+            S.White_Space := Set (White_Space_Of (R));
+         when Prop_Text_Overflow =>
+            S.Text_Overflow := Set (Text_Overflow_Of (R));
+         when Prop_Line_Height =>
+            S.Line_Height := Set (Line_Height_Of (R));
+         when Prop_Position =>
+            S.Position := Set (Position_Of (R));
+         when Prop_Visibility =>
+            S.Visibility := Set (Visibility_Of (R));
+         when Prop_Top =>
+            S.Top := Set_Top (Inset_Of (R));
+         when Prop_Right =>
+            S.Right := Set_Right (Inset_Of (R));
+         when Prop_Bottom =>
+            S.Bottom := Set_Bottom (Inset_Of (R));
+         when Prop_Left =>
+            S.Left := Set_Left (Inset_Of (R));
+         when Prop_Object_Fit =>
+            S.Object_Fit := Set (Object_Fit_Of (R));
+         when Prop_Object_Position =>
+            S.Object_Position := Set (Object_Position_Of (R));
+         when Prop_Flex_Wrap =>
+            S.Flex_Wrap := Set (Flex_Wrap_Of (R));
+         when Prop_Align_Content =>
+            S.Align_Content := Set (Align_Content_Of (R));
+         when Prop_Align_Self =>
+            S.Align_Self := Set (Align_Self_Of (R));
+         when Prop_Flex_Basis =>
+            S.Flex_Basis := Set (Flex_Basis_Of (R));
+         when Prop_Order =>
+            S.Order := Set (Order_Of (R));
+         when Prop_Grid_Columns =>
+            S.Grid_Columns := Set (Grid_Columns_Of (R));
+         when Prop_Grid_Rows =>
+            S.Grid_Rows := Set (Grid_Rows_Of (R));
+         when Prop_Grid_Column =>
+            S.Grid_Column := Set (Grid_Column_Of (R));
+         when Prop_Grid_Row =>
+            S.Grid_Row := Set (Grid_Row_Of (R));
+         when Prop_Grid_Column_Span =>
+            S.Grid_Column_Span := Set (Grid_Column_Span_Of (R));
+         when Prop_Grid_Row_Span =>
+            S.Grid_Row_Span := Set (Grid_Row_Span_Of (R));
+         when Prop_Overflow =>
+            --  The shorthand owns no field and is both axes, so one
+            --  slot naming it moves both together.
+            Set_Overflow_Shorthand (S, Overflow_Of (R));
       end case;
    end Apply_Property;
 
@@ -2481,9 +2782,53 @@ package body Adi.CSS_Styles is
          when Prop_Flex_Grow        => S.Flex_Grow := Opt_Flex_Grow.Cleared;
          when Prop_Flex_Shrink      => S.Flex_Shrink := Opt_Flex_Shrink.Cleared;
          when Prop_Transition       => S.Transition := Opt_Transition.Cleared;
-         when others =>
-            Adi.Log.Error
-              ("no composed form for CSS property " & CSS_Property'Image (P));
+         when Prop_Background_Image => S.Background_Image := No_Bg_Image;
+         when Prop_Outline_Style =>
+            S.Outline_Style := Opt_Outline_Style.Cleared;
+         when Prop_Font_Family      => S.Font_Family := Opt_Font.Cleared;
+         when Prop_Font_Style       => S.Font_Style := Opt_Font_Style.Cleared;
+         when Prop_Vertical_Align =>
+            S.Vertical_Align := Opt_Vertical_Align.Cleared;
+         when Prop_Text_Decoration =>
+            S.Text_Decoration := Opt_Text_Decoration.Cleared;
+         when Prop_List_Style_Type =>
+            S.List_Style_Type := Opt_List_Style_Type.Cleared;
+         when Prop_List_Style_Image =>
+            S.List_Style_Image := Opt_List_Style_Image.Cleared;
+         when Prop_List_Style_Position =>
+            S.List_Style_Position := Opt_List_Style_Position.Cleared;
+         when Prop_White_Space =>
+            S.White_Space := Opt_White_Space.Cleared;
+         when Prop_Text_Overflow =>
+            S.Text_Overflow := Opt_Text_Overflow.Cleared;
+         when Prop_Line_Height =>
+            S.Line_Height := Opt_Line_Height.Cleared;
+         when Prop_Position         => S.Position := Opt_Position.Cleared;
+         when Prop_Visibility       => S.Visibility := Opt_Visibility.Cleared;
+         when Prop_Top              => S.Top := Opt_Top.Cleared;
+         when Prop_Right            => S.Right := Opt_Right.Cleared;
+         when Prop_Bottom           => S.Bottom := Opt_Bottom.Cleared;
+         when Prop_Left             => S.Left := Opt_Left.Cleared;
+         when Prop_Object_Fit       => S.Object_Fit := Opt_Object_Fit.Cleared;
+         when Prop_Object_Position =>
+            S.Object_Position := Opt_Object_Pos.Cleared;
+         when Prop_Flex_Wrap        => S.Flex_Wrap := Opt_Flex_Wrap.Cleared;
+         when Prop_Align_Content =>
+            S.Align_Content := Opt_Align_Content.Cleared;
+         when Prop_Align_Self       => S.Align_Self := Opt_Align_Self.Cleared;
+         when Prop_Flex_Basis       => S.Flex_Basis := Opt_Flex_Basis.Cleared;
+         when Prop_Order            => S.Order := Opt_Order.Cleared;
+         when Prop_Grid_Columns     => S.Grid_Columns := Opt_Grid_Cols.Cleared;
+         when Prop_Grid_Rows        => S.Grid_Rows := Opt_Grid_Rows.Cleared;
+         when Prop_Grid_Column   => S.Grid_Column := Opt_Grid_Column.Cleared;
+         when Prop_Grid_Row      => S.Grid_Row := Opt_Grid_Row.Cleared;
+         when Prop_Grid_Column_Span =>
+            S.Grid_Column_Span := Opt_Grid_Col_Span.Cleared;
+         when Prop_Grid_Row_Span =>
+            S.Grid_Row_Span := Opt_Grid_Row_Span.Cleared;
+         when Prop_Overflow =>
+            S.Overflow_X := Opt_Overflow.Cleared;
+            S.Overflow_Y := Opt_Overflow.Cleared;
       end case;
    end Clear_Property;
 

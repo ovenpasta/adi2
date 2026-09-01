@@ -198,6 +198,55 @@ appended past `Prop_Transition` is a compile error naming the tables.
 `tests/src/style_property_table_test.adb` walks all 66 properties against
 the field lists these tables replaced.
 
+### 2e. The composer
+
+Three more places carry the property, so a chain can name it:
+
+| Where | What to add |
+|---|---|
+| `Intern` / `<Type>_Of` (`src/adi-css_styles`) | a `Value_Ref` encoding for the value type, if it is new |
+| `Apply_Property` and `Clear_Property` (`src/adi-css_styles.adb`) | the branch that writes the field, and the one that clears it |
+| a setter on `Composer` (`src/adi-widget_styles`) | `function <Property> (C : Composer; V : <Type>) return Composer` |
+
+`Composable_Properties` is `[others => True]`, so a new literal is
+composable by declaration; the two `case` statements have no `others`,
+which is what makes the branches compulsory. A property owning no field
+of its own is still composable if its expansion is defined —
+`Prop_Overflow` writes both overflow axes through
+`Set_Overflow_Shorthand`, the one definition `Adi.CSS_Parser` also reads.
+
+A property carrying text answers the parser: past
+`Max_CSS_Text_Length` the property is left **unset** and the drop
+reported, never set to an empty or degenerate value. State that once, in
+an `Optional`-returning helper beside `Set_Font_Family`, `Set_Bg_Image`,
+`Set_List_Image` and `Set_List_Type`, and have the composer's text setter
+call it and name no slot when it answers unset.
+
+A value type narrow enough to fit a reference exactly — an enumeration, a
+`Natural` — sits in the reference; anything else gets a `Value_Store`
+instantiation and `Intern` answers an index. `Value_Hash.Add` already
+carries a digest for every value type `Style_Rules` holds.
+
+The setter takes the property's own value type, and its name is the CSS
+property's unless a *type* of that name can be use-visible beside it, in
+which case it is suffixed — `Text_Color`, `Cursor_Style`,
+`Position_Mode`. Enumeration literals and record components overload
+rather than hide, so they are no reason to rename.
+
+Add three entries to `tests/src/style_composer_test.adb`, all of which a
+label swap between neighbouring branches would otherwise survive — every
+`Opt_*` is a distinct instantiation, so a wrong *type* fails to compile
+but a wrong *field of the same type* does not:
+
+| Test | What to add |
+|---|---|
+| `Test_Every_Setter` | the chain naming the property alone against the aggregate naming that field |
+| `Test_Every_Clear` | `.Clear (Prop_X)` against the aggregate naming that field `Cleared` |
+| `Sample_Ref` | a value of the property's own type, which `Test_Residue` drives through both procedures |
+
+`Sample_Ref` is a `case` with no `others`, so a new literal stops the test
+compiling until it is sampled.
+
 ---
 
 ## Step 3 — Runtime CSS Parser (`src/adi-css_parser.adb`)
@@ -454,11 +503,13 @@ When adding a new CSS property, touch these files:
 | 2 | `src/adi-css_styles.adb` | `Merge` line, `Resolve` line, `Set_Properties` line, `Copy_Property` and `Property_Differs` branches |
 | 2b | `src/adi-css_styles.ads` + `src/adi-animation.adb` | `Layout_Affecting_Properties` and `Snaps_At_Midpoint` entries |
 | 2c | `src/adi-resolved_styles.adb` | `Hash` line, for the store to tell two styles apart on it |
+| 2d | `src/adi-css_styles` + `src/adi-widget_styles` | `Intern`/`_Of` pair, `Apply_Property` and `Clear_Property` branches, `Composer` setter |
 | 3 | `src/adi-css_parser.adb` | `elsif P = "..."` branch in `Apply_Property` |
 | 4 | `tools/css_spec.py` + `tools/css_to_ada.py` | Spec entry (`SUPPORTED_PROPERTIES`) + enum map/`elif prop == "..."` generation |
 | 5 | `src/adi-widget.adb` | Rendering code (if visual), or layout code (if layout-affecting) |
 | 6 | `tests/src/css_parser_test.adb` | CSS test input + assertions |
 | 7 | `tools/test_css_to_ada.py` | Python unit tests for code generation |
+| 7b | `tests/src/style_composer_test.adb` | `Test_Every_Setter` and `Test_Every_Clear` assertions, and a `Sample_Ref` value |
 | 8 | `docs/css_styling.md` | Property table entry |
 
 ### Common pitfalls

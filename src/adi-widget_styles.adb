@@ -670,12 +670,6 @@ package body Adi.Widget_Styles is
          & "it answered the style it opened on");
    end Report_Built_After_Reclaim;
 
-   procedure Report_Uncomposable (P : CSS_Property) is
-   begin
-      Adi.Log.Error
-        ("no composed form for CSS property " & CSS_Property'Image (P));
-   end Report_Uncomposable;
-
    procedure Report_Full_Buffer (P : CSS_Property) is
    begin
       Adi.Log.Error
@@ -950,7 +944,7 @@ package body Adi.Widget_Styles is
    --  too, which is why the two are separate subprograms rather than one
    --  with an if.
    type Step_Outcome is
-     (Stored, No_Buffer, Not_Composable, Buffer_Full, Dropped_Quietly);
+     (Stored, No_Buffer, Buffer_Full, Dropped_Quietly);
 
    function Append_Step (C       : Composer;
                          P       : CSS_Property;
@@ -969,11 +963,6 @@ package body Adi.Widget_Styles is
    begin
       if B = null then
          Outcome := No_Buffer;
-         return C;
-      end if;
-
-      if not Composable_Properties (P) then
-         Outcome := Not_Composable;
          return C;
       end if;
 
@@ -1001,11 +990,11 @@ package body Adi.Widget_Styles is
    begin
       case Outcome is
          when Stored | No_Buffer | Dropped_Quietly => null;
-         when Not_Composable => Report_Uncomposable (P);
-         when Buffer_Full    => Report_Full_Buffer (P);
+         when Buffer_Full => Report_Full_Buffer (P);
       end case;
       return Result;
    end Append;
+
 
    function Set_Slot (C : Composer; P : CSS_Property; Val : Value_Ref)
      return Composer is (Append (C, P, Set_Value, Val));
@@ -1158,6 +1147,154 @@ package body Adi.Widget_Styles is
 
    function Transition (C : Composer; V : Transition_Spec) return Composer is
      (Set_Slot (C, Prop_Transition, Intern (V)));
+
+   function Background_Image
+     (C : Composer; V : Background_Image_Value) return Composer is
+     (Set_Slot (C, Prop_Background_Image, Intern (V)));
+
+   --  The four text setters read the same Adi.CSS_Styles helpers the
+   --  aggregate path reads, so a value the helper refuses names no slot
+   --  and the property stays unset, which is what a parsed sheet
+   --  carries for the same text. The helper does the reporting.
+   function Background_Image (C : Composer; URL : String) return Composer is
+      V : constant Opt_Bg_Image.Optional := Set_Bg_Image (URL);
+   begin
+      if Opt_Bg_Image.Is_Set (V) then
+         return Set_Slot (C, Prop_Background_Image, Intern (V.Value));
+      end if;
+      return C;
+   end Background_Image;
+
+   function Outline_Style
+     (C : Composer; V : Outline_Style_Kind) return Composer is
+     (Set_Slot (C, Prop_Outline_Style, Intern (V)));
+
+   function Font_Family (C : Composer; V : Font_Handle) return Composer is
+     (Set_Slot (C, Prop_Font_Family,
+                Intern (Font_Family_Value'(Kind => By_Handle, Handle => V))));
+
+   --  Interns the name, so this setter allocates the first time it sees
+   --  one, as every store-backed setter does. The restrictions are on
+   --  the buffer mechanics below Set_Slot, which interning stands
+   --  outside.
+   function Font_Family (C : Composer; Name : String) return Composer is
+      V : constant Opt_Font.Optional := Set_Font_Family (Name);
+   begin
+      if Opt_Font.Is_Set (V) then
+         return Set_Slot (C, Prop_Font_Family, Intern (V.Value));
+      end if;
+      return C;
+   end Font_Family;
+
+   function Font_Style (C : Composer; V : Font_Style_Value) return Composer is
+     (Set_Slot (C, Prop_Font_Style, Intern (V)));
+
+   function Vertical_Align
+     (C : Composer; V : Vertical_Align_Value) return Composer is
+     (Set_Slot (C, Prop_Vertical_Align, Intern (V)));
+
+   function Text_Decoration
+     (C : Composer; V : Text_Decoration_Value) return Composer is
+     (Set_Slot (C, Prop_Text_Decoration, Intern (V)));
+
+   function List_Style_Type
+     (C : Composer; V : List_Style_Type_Value) return Composer is
+     (Set_Slot (C, Prop_List_Style_Type, Intern (V)));
+
+   function List_Style_Type (C : Composer; Marker : String) return Composer is
+      V : constant Opt_List_Style_Type.Optional := Set_List_Type (Marker);
+   begin
+      if Opt_List_Style_Type.Is_Set (V) then
+         return Set_Slot (C, Prop_List_Style_Type, Intern (V.Value));
+      end if;
+      return C;
+   end List_Style_Type;
+
+   function List_Style_Image
+     (C : Composer; V : List_Style_Image_Value) return Composer is
+     (Set_Slot (C, Prop_List_Style_Image, Intern (V)));
+
+   function List_Style_Image (C : Composer; URI : String) return Composer is
+      V : constant Opt_List_Style_Image.Optional := Set_List_Image (URI);
+   begin
+      if Opt_List_Style_Image.Is_Set (V) then
+         return Set_Slot (C, Prop_List_Style_Image, Intern (V.Value));
+      end if;
+      return C;
+   end List_Style_Image;
+
+   function List_Style_Position
+     (C : Composer; V : List_Style_Position_Value) return Composer is
+     (Set_Slot (C, Prop_List_Style_Position, Intern (V)));
+
+   function White_Space (C : Composer; V : White_Space_Value)
+     return Composer is (Set_Slot (C, Prop_White_Space, Intern (V)));
+
+   function Text_Overflow (C : Composer; V : Text_Overflow_Value)
+     return Composer is (Set_Slot (C, Prop_Text_Overflow, Intern (V)));
+
+   function Line_Height (C : Composer; V : Line_Height_Value)
+     return Composer is (Set_Slot (C, Prop_Line_Height, Intern (V)));
+
+   function Position_Mode (C : Composer; V : Position_Value)
+     return Composer is (Set_Slot (C, Prop_Position, Intern (V)));
+
+   function Top (C : Composer; V : Inset_Value) return Composer is
+     (Set_Slot (C, Prop_Top, Intern (V)));
+
+   function Right (C : Composer; V : Inset_Value) return Composer is
+     (Set_Slot (C, Prop_Right, Intern (V)));
+
+   function Bottom (C : Composer; V : Inset_Value) return Composer is
+     (Set_Slot (C, Prop_Bottom, Intern (V)));
+
+   function Left (C : Composer; V : Inset_Value) return Composer is
+     (Set_Slot (C, Prop_Left, Intern (V)));
+
+   function Overflow (C : Composer; V : Overflow_Value) return Composer is
+     (Set_Slot (C, Prop_Overflow, Intern (V)));
+
+   function Visibility (C : Composer; V : Visibility_Value)
+     return Composer is (Set_Slot (C, Prop_Visibility, Intern (V)));
+
+   function Object_Fit (C : Composer; V : Object_Fit_Value)
+     return Composer is (Set_Slot (C, Prop_Object_Fit, Intern (V)));
+
+   function Object_Position (C : Composer; V : Object_Position_Value)
+     return Composer is (Set_Slot (C, Prop_Object_Position, Intern (V)));
+
+   function Flex_Wrap (C : Composer; V : Flex_Wrap_Value) return Composer is
+     (Set_Slot (C, Prop_Flex_Wrap, Intern (V)));
+
+   function Align_Content (C : Composer; V : Align_Content_Value)
+     return Composer is (Set_Slot (C, Prop_Align_Content, Intern (V)));
+
+   function Grid_Columns (C : Composer; V : Grid_Columns_Value)
+     return Composer is (Set_Slot (C, Prop_Grid_Columns, Intern (V)));
+
+   function Grid_Rows (C : Composer; V : Grid_Rows_Value) return Composer is
+     (Set_Slot (C, Prop_Grid_Rows, Intern (V)));
+
+   function Align_Self (C : Composer; V : Align_Self_Value) return Composer is
+     (Set_Slot (C, Prop_Align_Self, Intern (V)));
+
+   function Flex_Basis (C : Composer; V : Flex_Basis_Value) return Composer is
+     (Set_Slot (C, Prop_Flex_Basis, Intern (V)));
+
+   function Order (C : Composer; V : Order_Value) return Composer is
+     (Set_Slot (C, Prop_Order, Intern (V)));
+
+   function Grid_Column (C : Composer; V : Grid_Column_Value)
+     return Composer is (Set_Slot (C, Prop_Grid_Column, Intern (V)));
+
+   function Grid_Row (C : Composer; V : Grid_Row_Value) return Composer is
+     (Set_Slot (C, Prop_Grid_Row, Intern (V)));
+
+   function Grid_Column_Span (C : Composer; V : Grid_Column_Span_Value)
+     return Composer is (Set_Slot (C, Prop_Grid_Column_Span, Intern (V)));
+
+   function Grid_Row_Span (C : Composer; V : Grid_Row_Span_Value)
+     return Composer is (Set_Slot (C, Prop_Grid_Row_Span, Intern (V)));
 
    -------------------------------------------------
    -- Building

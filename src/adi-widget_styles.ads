@@ -418,8 +418,25 @@ package Adi.Widget_Styles is
    -- Setters
    -------------------------------------------------
 
+   --  One setter per CSS_Property, the shorthand included: `overflow`
+   --  owns no field of its own and is one step all the same, since the
+   --  slot names the shorthand and Apply_Property is what moves the two
+   --  axes.
+
    function Text_Color (C : Composer; V : Color_Value) return Composer;
    function Background (C : Composer; V : Color_Value) return Composer;
+
+   --  A picture or a gradient, whichever Background_Image_Value the
+   --  caller built -- Background_Image (Img), Linear_Gradient (Angle,
+   --  Stops, Count), No_Background_Image -- and a URL from its path
+   --  text. An empty path, and one past Max_CSS_Text_Length, name
+   --  nothing and report, leaving the property unset as
+   --  Adi.CSS_Parser leaves the declaration out. The text setters here
+   --  go through the same Adi.CSS_Styles helpers the aggregate path
+   --  uses, so the two cannot drift.
+   function Background_Image
+     (C : Composer; V : Background_Image_Value) return Composer;
+   function Background_Image (C : Composer; URL : String) return Composer;
 
    function Radius (C : Composer; V : Border_Radius_Value) return Composer;
    function Border_Width (C : Composer; V : Border_Width_Value) return Composer;
@@ -428,6 +445,8 @@ package Adi.Widget_Styles is
 
    function Outline_Width (C : Composer; V : Length_Value) return Composer;
    function Outline_Color (C : Composer; V : Color_Value) return Composer;
+   function Outline_Style
+     (C : Composer; V : Outline_Style_Kind) return Composer;
    function Outline_Offset (C : Composer; V : Length_Value) return Composer;
 
    function Padding (C : Composer; V : CSS_Box_Value) return Composer;
@@ -440,34 +459,103 @@ package Adi.Widget_Styles is
    function Min_Height (C : Composer; V : Size_Value) return Composer;
    function Max_Height (C : Composer; V : Size_Value) return Composer;
 
+   --  A family the application has already loaded, and one named in
+   --  text for Font_Name_Resolver to answer at Resolve time. A name
+   --  past Max_CSS_Text_Length names nothing and reports.
+   function Font_Family (C : Composer; V : Font_Handle) return Composer;
+   function Font_Family (C : Composer; Name : String) return Composer;
+
    function Font_Size (C : Composer; V : Length_Value) return Composer;
    function Font_Weight (C : Composer; V : Font_Weight_Value) return Composer;
+   function Font_Style (C : Composer; V : Font_Style_Value) return Composer;
    function Text_Align (C : Composer; V : Text_Align_Value) return Composer;
+   function Vertical_Align
+     (C : Composer; V : Vertical_Align_Value) return Composer;
+   function Text_Decoration
+     (C : Composer; V : Text_Decoration_Value) return Composer;
+   --  A marker keyword, and a custom marker string. Marker text past
+   --  Max_CSS_Text_Length names nothing and reports; an empty marker is
+   --  a marker.
+   function List_Style_Type
+     (C : Composer; V : List_Style_Type_Value) return Composer;
+   function List_Style_Type (C : Composer; Marker : String) return Composer;
+
+   --  A value the caller built, and a URL from its path text, on the
+   --  same terms as Background_Image above.
+   function List_Style_Image
+     (C : Composer; V : List_Style_Image_Value) return Composer;
+   function List_Style_Image (C : Composer; URI : String) return Composer;
+   function List_Style_Position
+     (C : Composer; V : List_Style_Position_Value) return Composer;
+   function White_Space (C : Composer; V : White_Space_Value) return Composer;
+   function Text_Overflow
+     (C : Composer; V : Text_Overflow_Value) return Composer;
    function Text_Wrap_Mode
      (C : Composer; V : Text_Wrap_Mode_Value) return Composer;
+   function Line_Height (C : Composer; V : Line_Height_Value) return Composer;
 
    function Display (C : Composer; V : Display_Value) return Composer;
+
+   --  Adi.Text_Buffer.Position and GNAT.Array_Split.Position are types
+   --  a unit can have use-visible beside this one, and a subprogram
+   --  hides a type of its own name, so the setter for `position` is
+   --  Position_Mode.
+   function Position_Mode (C : Composer; V : Position_Value) return Composer;
+
+   function Top (C : Composer; V : Inset_Value) return Composer;
+   function Right (C : Composer; V : Inset_Value) return Composer;
+   function Bottom (C : Composer; V : Inset_Value) return Composer;
+   function Left (C : Composer; V : Inset_Value) return Composer;
+
+   --  The shorthand and its two axes. One step names Prop_Overflow and
+   --  moves both axes, which is what Adi.CSS_Parser does with
+   --  `overflow:` and what Clear (Prop_Overflow) undoes. CSS's
+   --  two-value form is the two longhands, so a step that is dropped is
+   --  attributable to the call that named it.
+   function Overflow (C : Composer; V : Overflow_Value) return Composer;
    function Overflow_X (C : Composer; V : Overflow_Value) return Composer;
    function Overflow_Y (C : Composer; V : Overflow_Value) return Composer;
+
+   function Visibility (C : Composer; V : Visibility_Value) return Composer;
 
    function Opacity (C : Composer; V : Opacity_Value) return Composer;
    function Cursor_Style (C : Composer; V : Cursor_Value) return Composer;
    function Box_Shadow (C : Composer; V : Box_Shadow_Value) return Composer;
 
+   function Object_Fit (C : Composer; V : Object_Fit_Value) return Composer;
+   function Object_Position
+     (C : Composer; V : Object_Position_Value) return Composer;
+
    function Flex_Direction
      (C : Composer; V : Flex_Direction_Value) return Composer;
+   function Flex_Wrap (C : Composer; V : Flex_Wrap_Value) return Composer;
    function Justify_Content
      (C : Composer; V : Justify_Content_Value) return Composer;
    function Align_Items (C : Composer; V : Align_Items_Value) return Composer;
+   function Align_Content
+     (C : Composer; V : Align_Content_Value) return Composer;
    function Gap (C : Composer; V : Gap_Value) return Composer;
+   function Grid_Columns
+     (C : Composer; V : Grid_Columns_Value) return Composer;
+   function Grid_Rows (C : Composer; V : Grid_Rows_Value) return Composer;
+
+   function Align_Self (C : Composer; V : Align_Self_Value) return Composer;
    function Flex_Grow (C : Composer; V : Flex_Grow_Value) return Composer;
    function Flex_Shrink (C : Composer; V : Flex_Shrink_Value) return Composer;
+   function Flex_Basis (C : Composer; V : Flex_Basis_Value) return Composer;
+   function Order (C : Composer; V : Order_Value) return Composer;
+   function Grid_Column (C : Composer; V : Grid_Column_Value) return Composer;
+   function Grid_Row (C : Composer; V : Grid_Row_Value) return Composer;
+   function Grid_Column_Span
+     (C : Composer; V : Grid_Column_Span_Value) return Composer;
+   function Grid_Row_Span
+     (C : Composer; V : Grid_Row_Span_Value) return Composer;
 
    function Transition (C : Composer; V : Transition_Spec) return Composer;
 
    --  Names the property as holding no value, which is what stops a
-   --  rule earlier in the cascade showing through. A property outside
-   --  Composable_Properties is reported and leaves the chain alone.
+   --  rule earlier in the cascade showing through. Prop_Overflow clears
+   --  its two axes.
    function Clear (C : Composer; P : CSS_Property) return Composer;
 
    -------------------------------------------------

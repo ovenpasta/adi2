@@ -1468,6 +1468,24 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Intern (V : Flex_Grow_Value)     return Value_Ref;
    function Intern (V : Flex_Shrink_Value)   return Value_Ref;
 
+   function Intern (V : Inset_Value)            return Value_Ref;
+   function Intern (V : Line_Height_Value)      return Value_Ref;
+   function Intern (V : Flex_Basis_Value)       return Value_Ref;
+   function Intern (V : Object_Position_Value)  return Value_Ref;
+   function Intern (V : Order_Value)            return Value_Ref;
+
+   --  The four values that carry a CSS_Text_Id. A kind tag beside a
+   --  Natural-ranged id does not fit the 31 bits a reference spends on
+   --  a value, so these reach a store and the id rides in the stored
+   --  value. A gradient background rides there too, as the
+   --  Linear_Gradient_Ref it holds: Linear_Gradient hands out one
+   --  pointer per distinct gradient, so equal gradients are one
+   --  reference here as they are one value everywhere else.
+   function Intern (V : Background_Image_Value)  return Value_Ref;
+   function Intern (V : Font_Family_Value)       return Value_Ref;
+   function Intern (V : List_Style_Type_Value)   return Value_Ref;
+   function Intern (V : List_Style_Image_Value)  return Value_Ref;
+
    function Intern (V : Display_Value)         return Value_Ref;
    function Intern (V : Overflow_Value)        return Value_Ref;
    function Intern (V : Cursor_Value)          return Value_Ref;
@@ -1477,6 +1495,27 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Intern (V : Flex_Direction_Value)  return Value_Ref;
    function Intern (V : Justify_Content_Value) return Value_Ref;
    function Intern (V : Align_Items_Value)     return Value_Ref;
+
+   function Intern (V : Position_Value)            return Value_Ref;
+   function Intern (V : Visibility_Value)          return Value_Ref;
+   function Intern (V : Outline_Style_Kind)        return Value_Ref;
+   function Intern (V : Font_Style_Value)          return Value_Ref;
+   function Intern (V : Vertical_Align_Value)      return Value_Ref;
+   function Intern (V : Text_Decoration_Value)     return Value_Ref;
+   function Intern (V : List_Style_Position_Value) return Value_Ref;
+   function Intern (V : White_Space_Value)         return Value_Ref;
+   function Intern (V : Text_Overflow_Value)       return Value_Ref;
+   function Intern (V : Object_Fit_Value)          return Value_Ref;
+   function Intern (V : Flex_Wrap_Value)           return Value_Ref;
+   function Intern (V : Align_Self_Value)          return Value_Ref;
+   function Intern (V : Align_Content_Value)       return Value_Ref;
+
+   function Intern (V : Grid_Columns_Value)     return Value_Ref;
+   function Intern (V : Grid_Rows_Value)        return Value_Ref;
+   function Intern (V : Grid_Column_Value)      return Value_Ref;
+   function Intern (V : Grid_Row_Value)         return Value_Ref;
+   function Intern (V : Grid_Column_Span_Value) return Value_Ref;
+   function Intern (V : Grid_Row_Span_Value)    return Value_Ref;
 
    --  The value a reference names. Reading one as the wrong type
    --  answers a value rather than an error, so a caller pairs every
@@ -1496,6 +1535,17 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Flex_Grow_Of     (R : Value_Ref) return Flex_Grow_Value;
    function Flex_Shrink_Of   (R : Value_Ref) return Flex_Shrink_Value;
 
+   function Inset_Of           (R : Value_Ref) return Inset_Value;
+   function Line_Height_Of     (R : Value_Ref) return Line_Height_Value;
+   function Flex_Basis_Of      (R : Value_Ref) return Flex_Basis_Value;
+   function Object_Position_Of (R : Value_Ref) return Object_Position_Value;
+   function Order_Of           (R : Value_Ref) return Order_Value;
+
+   function Background_Image_Of (R : Value_Ref) return Background_Image_Value;
+   function Font_Family_Of      (R : Value_Ref) return Font_Family_Value;
+   function List_Style_Type_Of  (R : Value_Ref) return List_Style_Type_Value;
+   function List_Style_Image_Of (R : Value_Ref) return List_Style_Image_Value;
+
    function Display_Of         (R : Value_Ref) return Display_Value;
    function Overflow_Of        (R : Value_Ref) return Overflow_Value;
    function Cursor_Of          (R : Value_Ref) return Cursor_Value;
@@ -1506,47 +1556,56 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Justify_Content_Of (R : Value_Ref) return Justify_Content_Value;
    function Align_Items_Of     (R : Value_Ref) return Align_Items_Value;
 
+   function Position_Of            (R : Value_Ref) return Position_Value;
+   function Visibility_Of          (R : Value_Ref) return Visibility_Value;
+   function Outline_Style_Of       (R : Value_Ref) return Outline_Style_Kind;
+   function Font_Style_Of          (R : Value_Ref) return Font_Style_Value;
+   function Vertical_Align_Of      (R : Value_Ref) return Vertical_Align_Value;
+   function Text_Decoration_Of     (R : Value_Ref)
+     return Text_Decoration_Value;
+   function List_Style_Position_Of (R : Value_Ref)
+     return List_Style_Position_Value;
+   function White_Space_Of         (R : Value_Ref) return White_Space_Value;
+   function Text_Overflow_Of       (R : Value_Ref) return Text_Overflow_Value;
+   function Object_Fit_Of          (R : Value_Ref) return Object_Fit_Value;
+   function Flex_Wrap_Of           (R : Value_Ref) return Flex_Wrap_Value;
+   function Align_Self_Of          (R : Value_Ref) return Align_Self_Value;
+   function Align_Content_Of       (R : Value_Ref) return Align_Content_Value;
+
+   function Grid_Columns_Of     (R : Value_Ref) return Grid_Columns_Value;
+   function Grid_Rows_Of        (R : Value_Ref) return Grid_Rows_Value;
+   function Grid_Column_Of      (R : Value_Ref) return Grid_Column_Value;
+   function Grid_Row_Of         (R : Value_Ref) return Grid_Row_Value;
+   function Grid_Column_Span_Of (R : Value_Ref) return Grid_Column_Span_Value;
+   function Grid_Row_Span_Of    (R : Value_Ref) return Grid_Row_Span_Value;
+
    --  Whether the reference reached a store rather than holding its
    --  value outright. Instrumentation a test reads.
    function Is_Stored (R : Value_Ref) return Boolean;
 
    --  The properties Apply_Property and Clear_Property carry, and so
-   --  the ones Adi.Widget_Styles' composer offers a setter for. Chosen
-   --  by use: the 30 most named across the 32 stylesheets in this
-   --  repository, less `outline`, a shorthand owning no field, and
-   --  `background-image`, whose value is text or a gradient; plus the
-   --  six that complete a group already here.
-   Composable_Properties : constant CSS_Property_Set :=
-     [Prop_Color             | Prop_Background_Color  |
-      Prop_Border_Radius     | Prop_Border_Width      |
-      Prop_Border_Color      | Prop_Border_Style      |
-      Prop_Outline_Width     | Prop_Outline_Color     |
-      Prop_Outline_Offset    |
-      Prop_Padding           | Prop_Margin            |
-      Prop_Width             | Prop_Height            |
-      Prop_Min_Width         | Prop_Max_Width         |
-      Prop_Min_Height        | Prop_Max_Height        |
-      Prop_Font_Size         | Prop_Font_Weight       |
-      Prop_Text_Align        | Prop_Text_Wrap_Mode    |
-      Prop_Display           | Prop_Overflow_X        |
-      Prop_Overflow_Y        | Prop_Opacity           |
-      Prop_Cursor            | Prop_Box_Shadow        |
-      Prop_Flex_Direction    | Prop_Justify_Content   |
-      Prop_Align_Items       | Prop_Gap               |
-      Prop_Flex_Grow         | Prop_Flex_Shrink       |
-      Prop_Transition        => True,
-      others => False];
+   --  the ones Adi.Widget_Styles' composer offers a setter for: every
+   --  CSS_Property, with no exception. Composing does not ask for a
+   --  field of one's own -- Prop_Overflow owns none and names both
+   --  axes through Set_Overflow_Shorthand above, which is the same
+   --  expansion Adi.CSS_Parser gives the declaration.
+   --
+   --  Style_Rules carries one thing no chain can name:
+   --  Grid_Column_Tracks, which has no CSS_Property literal and
+   --  travels with grid-template-columns.
+   --  The chain asks nothing of this at run time: it carries a setter
+   --  per property, and the two case statements above have no `others`.
+   --  It stands as the answer a caller deciding whether to emit a chain
+   --  step reads, and as what the composer's tests hold the set to.
+   Composable_Properties : constant CSS_Property_Set := [others => True];
 
    --  Sets P in S to the value R names, reading R as the type P holds.
-   --  A property outside Composable_Properties leaves S alone and
-   --  reports through Adi.Log.
+   --  The case has no `others`, so every property is answered for.
    procedure Apply_Property
      (S : in out Style_Rules; P : CSS_Property; R : Value_Ref);
 
    --  Takes P in S to cleared: named, and holding no value, which is
-   --  what stops an earlier rule in the cascade showing through. A
-   --  property outside Composable_Properties leaves S alone and
-   --  reports.
+   --  what stops an earlier rule in the cascade showing through.
    procedure Clear_Property (S : in out Style_Rules; P : CSS_Property);
 
    --  Distinct values the per-type stores hold, and the storage
@@ -1757,6 +1816,12 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Set (V : Color_Value) return Opt_Text_Color.Optional renames Opt_Text_Color.Val;
    function Set_Bg (V : Color_Value) return Opt_Bg_Color.Optional renames Opt_Bg_Color.Val;
    function Set_Bg_Image (V : Background_Image_Value) return Opt_Bg_Image.Optional renames Opt_Bg_Image.Val;
+
+   --  background-image: url(...), from the path text. An empty path,
+   --  and one past Max_CSS_Text_Length, leave the property unset and
+   --  report -- which is what Adi.CSS_Parser does with the declaration,
+   --  so a style written either way carries the same thing.
+   function Set_Bg_Image (URI : String) return Opt_Bg_Image.Optional;
    No_Text_Color : constant Opt_Text_Color.Optional := Opt_Text_Color.Cleared;
    No_Bg_Color   : constant Opt_Bg_Color.Optional   := Opt_Bg_Color.Cleared;
    No_Bg_Image   : constant Opt_Bg_Image.Optional   := Opt_Bg_Image.Cleared;
@@ -1815,13 +1880,24 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
      function Set (V : Font_Handle) return Opt_Font.Optional is
        (Opt_Font.Val ((Kind => By_Handle, Handle => V)));
      --  The whole font-family list, resolved at Resolve time. A list
-     --  past Max_CSS_Text_Length reads as the empty one.
+     --  past Max_CSS_Text_Length leaves the property unset and reports,
+     --  as Adi.CSS_Parser leaves the declaration out.
      function Set_Font_Family (Name : String) return Opt_Font.Optional;
      function Set (V : Font_Weight_Value) return Opt_Font_Weight.Optional renames Opt_Font_Weight.Val;
      function Set (V : Font_Style_Value) return Opt_Font_Style.Optional renames Opt_Font_Style.Val;
      function Set (V : Text_Decoration_Value) return Opt_Text_Decoration.Optional renames Opt_Text_Decoration.Val;
      function Set (V : List_Style_Type_Value) return Opt_List_Style_Type.Optional renames Opt_List_Style_Type.Val;
      function Set (V : List_Style_Image_Value) return Opt_List_Style_Image.Optional renames Opt_List_Style_Image.Val;
+
+     --  list-style-type as a custom marker string, and
+     --  list-style-image: url(...) from its path text. Text past
+     --  Max_CSS_Text_Length leaves the property unset and reports, and
+     --  so does an empty path -- what Adi.CSS_Parser does with either
+     --  declaration. An empty marker is a marker, and stays set.
+     function Set_List_Type (Marker : String)
+       return Opt_List_Style_Type.Optional;
+     function Set_List_Image (URI : String)
+       return Opt_List_Style_Image.Optional;
      function Set (V : List_Style_Position_Value) return Opt_List_Style_Position.Optional renames Opt_List_Style_Position.Val;
      function Set (V : White_Space_Value) return Opt_White_Space.Optional renames Opt_White_Space.Val;
      function Set (V : Text_Overflow_Value) return Opt_Text_Overflow.Optional renames Opt_Text_Overflow.Val;
@@ -1838,6 +1914,12 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    --  Convenience helper for axis assignments.
    --  Style_Rules/Resolved_Style do not store a standalone `Overflow` field.
    function Set (V : Overflow_Value) return Opt_Overflow.Optional renames Opt_Overflow.Val;
+
+   --  `overflow: V`, which is both axes and nothing else. The one
+   --  definition of the shorthand: Adi.CSS_Parser reads it for the
+   --  declaration and Apply_Property reads it for Prop_Overflow.
+   procedure Set_Overflow_Shorthand
+     (S : in out Style_Rules; V : Overflow_Value);
    function Set_Overflow_X (V : Overflow_Value) return Opt_Overflow.Optional renames Opt_Overflow.Val;
    function Set_Overflow_Y (V : Overflow_Value) return Opt_Overflow.Optional renames Opt_Overflow.Val;
    function Set (V : Visibility_Value) return Opt_Visibility.Optional renames Opt_Visibility.Val;

@@ -952,17 +952,22 @@ is a compile error where `Background (RGB (37, 99, 235))` is not — more
 checking than an aggregate gives, since `others => <>` has nothing to say
 here.
 
-Setters are named for their properties, with two exceptions: `color` is
-spelled `.Text_Color` and `cursor` is spelled `.Cursor_Style`. Both plain
-names are taken by a *type* elsewhere — `Adi.Core.Color`, and the `Cursor`
-every `Ada.Containers` instantiation declares — and where a type and a
-subprogram of one name are both use-visible, neither is, so the
-application's own use of the name stops compiling. The chain itself is
-immune either way, since a prefixed call resolves against the type's
-primitive operations rather than through use-visibility; it is the
-surrounding code that pays. `.Text_Color` also matches what the library
-calls the field internally and sits beside `.Border_Color` and
-`.Outline_Color`.
+Setters are named for their properties, with three exceptions: `color` is
+spelled `.Text_Color`, `cursor` is spelled `.Cursor_Style` and `position`
+is spelled `.Position_Mode`. Each plain name is taken by a *type*
+elsewhere — `Adi.Core.Color`, the `Cursor` every `Ada.Containers`
+instantiation declares, and `Adi.Text_Buffer.Position` beside
+`GNAT.Array_Split.Position` — and where a type and a subprogram of one
+name are both use-visible, neither is, so the application's own use of
+the name stops compiling. The chain itself is immune either way, since a
+prefixed call resolves against the type's primitive operations rather
+than through use-visibility; it is the surrounding code that pays.
+`.Text_Color` also matches what the library calls the field internally
+and sits beside `.Border_Color` and `.Outline_Color`.
+
+`.Top`, `.Right`, `.Bottom`, `.Left`, `.Order` and `.Visibility` keep
+their plain names: the homographs those have are enumeration literals and
+record components, which overload rather than hide.
 
 `Style_Of` opens a chain, `.On (Selector)` and the `.On_Hover`,
 `.On_Press`, `.On_Focus`, `.On_Disabled`, `.On_Selected` and `.On_Normal`
@@ -986,6 +991,54 @@ field carries both axes, so `.Gap (Gap_Row (…))` overlays its own axis
 and leaves the other as it was, while `.Gap (Gap (…))` names both and
 replaces them — the same reading `Adi.CSS_Parser` gives `row-gap`,
 `column-gap` and `gap`.
+
+`overflow` owns no field of its own and is a setter all the same.
+`.Overflow (Overflow_Hidden)` is one step naming `Prop_Overflow`, and
+`Apply_Property` is what writes `overflow-x` and `overflow-y` from it,
+through the same `Set_Overflow_Shorthand` that `Adi.CSS_Parser` reads for
+the declaration. `.Clear (Prop_Overflow)` clears both. Composing does not
+ask for a one-to-one field, only for a defined expansion.
+
+CSS's two-value `overflow` is the two longhands, `.Overflow_X (A)
+.Overflow_Y (B)`. Keeping it that way is deliberate: every composer
+operation emits exactly one slot, so a step lost to a full buffer is
+attributable to the call that named it and no operation can be left half
+applied.
+
+Setters that carry text take the text. `.Font_Family` has two argument
+types, since the property's value is either a family the application has
+loaded or a name resolved at `Resolve` time: `.Font_Family (H :
+Font_Handle)` and `.Font_Family (Name : String)`. `.Background_Image`,
+`.List_Style_Image` and `.List_Style_Type` each take a value the
+constructors build — `Background_Image (Img)`, `Linear_Gradient`,
+`List_String` — or the text directly.
+
+### Text a style cannot carry
+
+`Max_CSS_Text_Length` is 4,096 characters, and the four text-carrying
+properties — `font-family`, `background-image`'s URL, `list-style-image`,
+`list-style-type`'s custom string — all answer the same way past it:
+**the property is left unset and the drop is reported**, so the cascade
+shows through, which is what `Adi.CSS_Parser` does by dropping the
+declaration. An empty `url()` is refused the same way, silently, as the
+parser refuses it.
+
+One set of helpers states that, and all three paths read them:
+
+| Helper | Property |
+|---|---|
+| `Set_Font_Family (Name : String)` | `font-family` |
+| `Set_Bg_Image (URI : String)` | `background-image` |
+| `Set_List_Image (URI : String)` | `list-style-image` |
+| `Set_List_Type (Marker : String)` | `list-style-type` |
+
+The composer's text setters call these and name no slot when the helper
+answers unset, so a chain, an aggregate and a parsed sheet carry the same
+thing for the same text.
+
+`Background_Image_URL`, `List_Image` and `List_String` still answer a
+bare value, which cannot express "unset" — they are what the helpers
+above are built from, and a style is written with the helpers.
 
 ### Clearing, and deriving
 
@@ -1094,22 +1147,41 @@ per value type, so the argument picks the store.
 A value narrow enough sits in the reference itself and reaches no store:
 an enumeration, a named colour, an `rgb()` triple in eight bits a
 channel, a length or a flex factor whose magnitude is a whole number
-below 65,536. Everything else — an alpha, a fraction, a negative, a
-`CSS_Box_Value`, a `Border_Color_Value`, a `Box_Shadow_Value` — is an
-index into a per-type store, where equal values share one entry, so
-`RGBA (0, 0, 0, 0.25)` named in six rules is one. `Is_Stored` says which
-a reference is, and `Interned_Values` and `Interned_Value_Bytes` report
-what the stores hold.
+below 65,536, a grid count or line, an `order` at or above zero.
+Everything else — an alpha, a fraction, a negative, a `CSS_Box_Value`, a
+`Border_Color_Value`, a `Box_Shadow_Value` — is an index into a per-type
+store, where equal values share one entry, so `RGBA (0, 0, 0, 0.25)`
+named in six rules is one. `Is_Stored` says which a reference is, and
+`Interned_Values` and `Interned_Value_Bytes` report what the stores hold.
+
+The four values that carry a `CSS_Text_Id` — `font-family`'s name arm,
+`list-style-type`'s custom string, `list-style-image` and
+`background-image`'s URL — reach a store, and the id rides in the stored
+value rather than in the reference. A kind tag beside a `Natural`-ranged
+id is wider than the 31 bits a reference spends on a value, so no exact
+immediate encoding exists for them. `background-image`'s gradient arm
+reaches the same store as the `Linear_Gradient_Ref` it holds:
+`Linear_Gradient` hands out one pointer per distinct gradient, so equal
+gradients are one entry here as they are one value everywhere else.
 
 ### Which properties compose
 
-`Adi.CSS_Styles.Composable_Properties` names the 34 properties the chain
-carries, chosen by use: the 30 most named across the 32 stylesheets in
-this repository, less `outline` — a shorthand owning no field — and
-`background-image`, whose value is text or a gradient, plus the six that
-complete a group already there. `Clear` on a property outside
-that set is reported through `Adi.Log` and leaves the chain alone; there
-is no setter for one, so the compiler answers first.
+`Adi.CSS_Styles.Composable_Properties` is `[others => True]`: all 66
+`CSS_Property` literals compose, and every one has a setter. The set has
+no exception because composing asks for a defined expansion rather than a
+field of one's own, which is what lets `Prop_Overflow` in.
+
+That the default is `True` is safe because the two `case` statements it
+serves — `Apply_Property` and `Clear_Property` — have no `when others`, so
+a new literal is a compile error until both are decided, and because
+`tests/src/style_composer_test.adb` drives every property through both and
+asserts the rule set actually moves. Membership without behaviour fails
+there.
+
+`Style_Rules` carries one thing no chain can name: `Grid_Column_Tracks`,
+which has no `CSS_Property` literal. It travels with
+`grid-template-columns`, whose composed form sets the track *count* alone,
+so a style needing the track list itself is written as an aggregate.
 
 The aggregate path stays as it is, and the generator still emits it.
 

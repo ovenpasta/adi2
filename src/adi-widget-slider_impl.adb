@@ -67,10 +67,10 @@ package body Adi.Widget.Slider_Impl is
      (W   : in out Slider_Widget;
       Pos : Pixel_Type)
    is
-      Main_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
-      Knob_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Knob_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Knob_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Knob_Part)).all;
       Content    : constant Rectangle :=
         Content_Box (Get_Geometry (W), Main_Style);
       Knob_Size  : Pixel_Type;
@@ -116,12 +116,12 @@ package body Adi.Widget.Slider_Impl is
    end Set_Value_From_Position;
 
    procedure Update_Slider_Items (W : in out Slider_Widget) is
-      Main_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
-      Track_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Scroll_Part);
-      Knob_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Knob_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Track_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Scroll_Part)).all;
+      Knob_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Knob_Part)).all;
       Widget_Geom : constant Rectangle := Get_Geometry (W);
       Content     : constant Rectangle :=
         Content_Box (Widget_Geom, Main_Style);

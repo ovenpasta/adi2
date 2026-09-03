@@ -17,7 +17,8 @@ package body Adi.Widget.List_Box is
    end To_Widget_Access;
 
    function Get_Grid_Cols (W : List_Box_Widget'Class) return Natural is
-      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
    begin
       return Natural (Style.Grid_Columns);
    end Get_Grid_Cols;
@@ -105,7 +106,8 @@ package body Adi.Widget.List_Box is
       else
          --  Vertical mode: only check Y coordinate.
          declare
-            Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+            Style   : Resolved_Style renames
+              Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
             R_Gap   : constant Pixel_Type := Get_Row_Gap (Style.Gap);
             Cursor  : Pixel_Type := 0.0;
             Local_Y : constant Pixel_Type := Y - Content.Y + Get_Scroll_Offset_Y (W);
@@ -439,7 +441,8 @@ package body Adi.Widget.List_Box is
       else
          --  Fallback: accumulate from row heights.
          declare
-            Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+            Style  : Resolved_Style renames
+              Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
             R_Gap  : constant Pixel_Type := Get_Row_Gap (Style.Gap);
             Cursor : Pixel_Type := 0.0;
          begin
@@ -651,7 +654,8 @@ package body Adi.Widget.List_Box is
 
    overriding procedure Layout (W : in out List_Box_Widget) is
       Content : constant Rectangle := Main_Content_Box (W);
-      Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Style   : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       R_Gap   : constant Pixel_Type := Get_Row_Gap (Style.Gap);
       C_Gap   : constant Pixel_Type := Get_Column_Gap (Style.Gap);
       Cols    : constant Natural := Natural (Style.Grid_Columns);

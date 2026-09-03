@@ -585,7 +585,7 @@ package body Adi.Widget.Texture_View is
          w => Float (Geom.Width),
          h => Float (Geom.Height));
       Fade   : constant Float :=
-        Float (Get_Resolved_Part_Style (W, Main_Part).Opacity);
+        Float (Ref (Get_Resolved_Part_Handle (W, Main_Part)).Opacity);
       --  Premultiplied colour carries its own alpha, so scaling the
       --  alpha alone leaves the colour above it: rgb <= a stops holding,
       --  and lowering opacity brightens the surface instead of fading

@@ -243,8 +243,8 @@ package body Adi.Widget.Context_Menu is
       if Count > 1 then
          declare
             R : constant Widget_Ref := Borrow (+Menu.Popup);
-            S : constant Resolved_Style :=
-              Get_Resolved_Part_Style (R.Ptr.all, Main_Part);
+            S : Resolved_Style renames
+              Ref (Get_Resolved_Part_Handle (R.Ptr.all, Main_Part)).all;
          begin
             Total :=
               Total + Pixel_Type (Count - 1) * Get_Row_Gap (S.Gap);

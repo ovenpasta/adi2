@@ -758,8 +758,8 @@ package body Adi.Widget.Dialog is
             Win_Size : constant Size_2D := Adi.Window.Get_Size (W.Host_Window);
             Pref     : Size_2D;
             Needed_H : Pixel_Type;
-            Panel_Style : constant Resolved_Style :=
-              Get_Resolved_Part_Style (CP, Main_Part);
+            Panel_Style : Resolved_Style renames
+              Ref (Get_Resolved_Part_Handle (CP, Main_Part)).all;
             Pad      : constant Edge_Pixels := Get_Padding_Px (Panel_Style);
             Border   : constant Edge_Pixels := Get_Border_Width_Px (Panel_Style);
             Margin   : constant Edge_Pixels := Get_Margin_Px (Panel_Style);

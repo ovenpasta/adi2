@@ -22,7 +22,8 @@ package body Adi.Widget.Box is
    begin
       return Child /= null
         and then Has_Flag (Child.all, Visible)
-        and then Get_Resolved_Part_Style (Child.all, Main_Part).Display /= Display_None;
+        and then Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).Display
+                   /= Display_None;
    end Child_Participates;
 
    ---------------------------------------------------------------------------
@@ -113,8 +114,8 @@ package body Adi.Widget.Box is
       --  Update background image from resolved style
       declare
          Bg_It : Item renames W.Items.Reference (Bg_Image_Idx).Element.all;
-         Style : constant Resolved_Style :=
-            Get_Resolved_Part_Style (W, Main_Part);
+         Style : Resolved_Style renames
+            Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
          Border_W : constant Edge_Pixels := Get_Border_Width_Px (Style);
       begin
          case Style.Background_Image.Kind is
@@ -177,8 +178,8 @@ package body Adi.Widget.Box is
    function Grid_Child_Width
      (Child : Widget'Class; Cell_Width : Pixel_Type) return Pixel_Type
    is
-      Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (Child, Main_Part);
+      Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (Child, Main_Part)).all;
    begin
       if Style.Width.Kind = Fixed then
          return Size_To_Px (Style.Width, Cell_Width);
@@ -195,7 +196,7 @@ package body Adi.Widget.Box is
    begin
       for Child of W.Children loop
          if Child_Participates (Child)
-           and then Get_Resolved_Part_Style (Child.all, Main_Part).Position
+           and then Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).Position
                       /= Absolute
          then
             Count := Count + 1;
@@ -218,9 +219,10 @@ package body Adi.Widget.Box is
       Inner_Width : Pixel_Type;
       Row_Width   : Pixel_Type := Unknown_Assigned_Width) return Pixel_Type
    is
-      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Child_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (Child, Main_Part);
+      Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Child_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (Child, Main_Part)).all;
       Margin : constant Edge_Pixels := Get_Margin_Px (Child_Style);
       Room : constant Pixel_Type :=
         Pixel_Type'Max (0.0, Inner_Width - Margin.Left - Margin.Right);
@@ -363,8 +365,8 @@ package body Adi.Widget.Box is
          for Child of W.Children loop
             if Child_Participates (Child) then
                declare
-                  Child_Style : constant Resolved_Style :=
-                    Get_Resolved_Part_Style (Child.all, Main_Part);
+                  Child_Style : Resolved_Style renames
+                    Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).all;
                begin
                   if Child_Style.Position /= Absolute then
                      declare
@@ -415,8 +417,8 @@ package body Adi.Widget.Box is
       for Child of W.Children loop
          if Child_Participates (Child) then
             declare
-               Child_Style : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (Child.all, Main_Part);
+               Child_Style : Resolved_Style renames
+                 Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).all;
             begin
                if Child_Style.Position /= Absolute then
                   Row_Index := Row_Index + 1;
@@ -485,8 +487,8 @@ package body Adi.Widget.Box is
          for Child of W.Children loop
             if Child_Participates (Child) then
                declare
-                  Child_Style : constant Resolved_Style :=
-                    Get_Resolved_Part_Style (Child.all, Main_Part);
+                  Child_Style : Resolved_Style renames
+                    Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).all;
                begin
                   --  Absolute children do not contribute to intrinsic size
                   if Child_Style.Position /= Absolute then
@@ -646,8 +648,8 @@ package body Adi.Widget.Box is
                   for Child of W.Children loop
                      if Child_Participates (Child) then
                         declare
-                           Child_Style : constant Resolved_Style :=
-                             Get_Resolved_Part_Style (Child.all, Main_Part);
+                           Child_Style : Resolved_Style renames
+                             Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).all;
                         begin
                            if Child_Style.Position /= Absolute then
                               declare
@@ -705,8 +707,8 @@ package body Adi.Widget.Box is
          for Child of W.Children loop
             if Child_Participates (Child) then
                declare
-                  Child_Style : constant Resolved_Style :=
-                    Get_Resolved_Part_Style (Child.all, Main_Part);
+                  Child_Style : Resolved_Style renames
+                    Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).all;
                begin
                   if Child_Style.Position /= Absolute then
                      declare
@@ -1136,8 +1138,8 @@ package body Adi.Widget.Box is
          for Child of W.Children loop
             if Child_Participates (Child) then
                declare
-                  Child_Style : constant Resolved_Style :=
-                    Get_Resolved_Part_Style (Child.all, Main_Part);
+                  Child_Style : Resolved_Style renames
+                    Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).all;
                begin
                   if Child_Style.Position /= Absolute then
                      declare
@@ -1363,8 +1365,8 @@ overriding procedure Layout (W : in out Box_Widget) is
                      if Child /= null and then Children_Info (Positive (I)).Active then
                         declare
                            Cell : Rectangle := Rects (Positive (I));
-                           CS   : constant Resolved_Style :=
-                             Get_Resolved_Part_Style (Child.all, Main_Part);
+                           CS   : Resolved_Style renames
+                             Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).all;
                            CW   : Pixel_Type := Cell.Width;
                            CH   : Pixel_Type := Cell.Height;
                         begin
@@ -1470,8 +1472,8 @@ overriding procedure Layout (W : in out Box_Widget) is
             for Child of W.Children loop
                if Child_Participates (Child) then
                   declare
-                     Child_Style : constant Resolved_Style :=
-                       Get_Resolved_Part_Style (Child.all, Main_Part);
+                     Child_Style : Resolved_Style renames
+                       Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).all;
                   begin
                      --  Skip absolute children from normal flow
                      if Child_Style.Position /= Absolute then

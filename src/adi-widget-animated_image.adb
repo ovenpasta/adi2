@@ -231,7 +231,8 @@ package body Adi.Widget.Animated_Image is
    end Is_Playing;
 
    overriding function Measure_Content (W : Animated_Image_Widget) return Size_2D is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Result     : Size_2D := (0.0, 0.0);
    begin
       if Is_Valid (W.Animation) then
@@ -242,7 +243,8 @@ package body Adi.Widget.Animated_Image is
    end Measure_Content;
 
    overriding procedure Build_Items (W : in out Animated_Image_Widget) is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Content    : constant Rectangle := Content_Box (W.Geometry, Main_Style);
       Current    : Image_Handle := Adi.Image.Null_Image_Handle;
    begin

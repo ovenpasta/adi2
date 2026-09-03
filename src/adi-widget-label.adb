@@ -152,8 +152,8 @@ package body Adi.Widget.Label is
    --  minimum measurement subtract the same icon column — differing
    --  here made the minimum wrap text at the wrong width.
    function Resolved_Icon_Size (W : Label_Widget) return Size_2D is
-      Icon_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Icon_Part);
+      Icon_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Icon_Part)).all;
       Result     : Size_2D := (0.0, 0.0);
    begin
       if W.Icon = Adi.Image.Null_Image_Handle or else Icon_Style.Display = Display_None then
@@ -200,9 +200,12 @@ package body Adi.Widget.Label is
    function Measure_Label
      (W : Label_Widget; Content_W : Pixel_Type) return Size_2D
    is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Label_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Label_Part);
-      Icon_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Icon_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Label_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Label_Part)).all;
+      Icon_Style  : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Icon_Part)).all;
 
       Has_Icon : constant Boolean :=
         W.Icon /= Adi.Image.Null_Image_Handle and then Icon_Style.Display /= Display_None;
@@ -311,8 +314,8 @@ package body Adi.Widget.Label is
    overriding function Measure_Content_At_Width
      (W : Label_Widget; Assigned_Width : Pixel_Type) return Size_2D
    is
-      Main_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Padding : constant Edge_Pixels := Get_Padding_Px (Main_Style);
       Border  : constant Edge_Pixels := Get_Border_Width_Px (Main_Style);
       Content_W : constant Pixel_Type :=
@@ -339,12 +342,12 @@ package body Adi.Widget.Label is
    function Content_Min_At
      (W : Label_Widget; Outer_Width : Pixel_Type) return Size_2D
    is
-      Main_Style  : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
-      Label_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Label_Part);
-      Icon_Style  : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Icon_Part);
+      Main_Style  : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Label_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Label_Part)).all;
+      Icon_Style  : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Icon_Part)).all;
 
       --  Mirror Measure_Content: a part that is display:none contributes
       --  nothing, so hidden text must not hold the label open and an
@@ -476,10 +479,12 @@ package body Adi.Widget.Label is
    ------------
 
    overriding procedure Layout (W : in out Label_Widget) is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Icon_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Icon_Part);
-      Label_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Label_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Icon_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Icon_Part)).all;
+      Label_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Label_Part)).all;
 
       Has_Icon : constant Boolean :=
         W.Icon /= Adi.Image.Null_Image_Handle and then Icon_Style.Display /= Display_None;
@@ -582,8 +587,8 @@ package body Adi.Widget.Label is
             --  Re-measure text with assigned width to get wrapped height
             if Has_Text then
                declare
-                  Label_Style : constant Resolved_Style :=
-                    Get_Resolved_Part_Style (W, Label_Part);
+                  Label_Style : Resolved_Style renames
+                    Ref (Get_Resolved_Part_Handle (W, Label_Part)).all;
                   Wrapped_Changed : Boolean := False;
                begin
                   if Label_Style.Text_Wrap_Mode = TWM_Wrap then
@@ -699,7 +704,8 @@ package body Adi.Widget.Label is
    -----------------
 
    overriding procedure Build_Items (W : in out Label_Widget) is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Content    : constant Rectangle := Content_Box (W.Geometry, Main_Style);
 
       function Clamp_Horizontal_To_Content (R : Rectangle) return Rectangle is
@@ -728,8 +734,8 @@ package body Adi.Widget.Label is
       --  Update text item
       declare
          Text_It : Item renames W.Items.Reference (Text_Idx).Element.all;
-         Label_Style : constant Resolved_Style :=
-           Get_Resolved_Part_Style (W, Label_Part);
+         Label_Style : Resolved_Style renames
+           Ref (Get_Resolved_Part_Handle (W, Label_Part)).all;
          Found : Boolean := False;
       begin
          Text_It.Text_Content := W.Text;

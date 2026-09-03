@@ -1589,7 +1589,10 @@ package body Adi.Widget.Html_View is
 
    procedure Layout_Document
      (Self : in out Html_View; Result : out Document_Layout) is
-      Main_Style       : constant Resolved_Style := Get_Resolved_Part_Style (Self, Main_Part);
+      Main_Style       : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (Self, Main_Part)).all;
+      --  Copied: read again 1400+ lines down, well past any call this
+      --  function makes in between.
       Text_Part_Style : constant Resolved_Style := Get_Resolved_Part_Style (Self, Text_Part);
       Content          : constant Rectangle := Content_Box (Self.Geometry, Main_Style);
       Root_Font_Px     : constant Pixel_Type :=
@@ -3121,8 +3124,8 @@ package body Adi.Widget.Html_View is
       Result.Sized := True;
    end Layout_Document;
    procedure Emit_Items (Self : in out Html_View; L : Document_Layout) is
-      Main_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (Self, Main_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (Self, Main_Part)).all;
       Content : constant Rectangle := Content_Box (Self.Geometry, Main_Style);
       Origin_X : constant Pixel_Type := Content.X;
       Origin_Y : constant Pixel_Type := Content.Y - Get_Scroll_Offset_Y (Self);
@@ -3166,7 +3169,8 @@ package body Adi.Widget.Html_View is
       function Paint_Bounds (It : Item; R : Rectangle) return Rectangle is
         (if It.Has_Style_Override
          then Item_Paint_Bounds (Ref (It.Style_Override).all, R)
-         else Item_Paint_Bounds (Get_Resolved_Part_Style (Self, It.Part), R));
+         else Item_Paint_Bounds
+                (Ref (Get_Resolved_Part_Handle (Self, It.Part)).all, R));
 
       function Overlaps_Band (R : Rectangle) return Boolean is
         (R.Y + R.Height >= Band.Y and then R.Y <= Band.Y + Band.Height);
@@ -3611,8 +3615,8 @@ package body Adi.Widget.Html_View is
    end Layout;
 
    overriding function Measure_Content (Self : Html_View) return Size_2D is
-      Main_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (Self, Main_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (Self, Main_Part)).all;
       --  Once Layout_And_Build has run we know the real document size;
       --  before that we report a small stub so the parent flex has
       --  something to assign on the first pass.  When the parent gives

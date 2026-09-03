@@ -107,8 +107,10 @@ package body Adi.Widget.Image is
    ---------------------
 
    function Measure_Content (W : Image_Widget) return Size_2D is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Icon_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Icon_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Icon_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Icon_Part)).all;
 
       Img_Size : Size_2D := (0.0, 0.0);
 
@@ -172,8 +174,8 @@ package body Adi.Widget.Image is
    -----------------
 
    overriding procedure Build_Items (W : in out Image_Widget) is
-      Main_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Content    : constant Rectangle := Content_Box (W.Geometry, Main_Style);
    begin
       if Item_Count (W) = 0 then

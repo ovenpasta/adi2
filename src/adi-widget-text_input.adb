@@ -265,8 +265,10 @@ package body Adi.Widget.Text_Input is
      (W : Text_Input_Widget;
       X : Pixel_Type) return Natural
    is
-      Main_Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Label_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Text_Part);
+      Main_Style   : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Label_Style  : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
       Content      : constant Rectangle := Content_Box (W.Geometry, Main_Style);
       Source_Line  : constant String := Get_Line (W.Buffer, 1);
       Mask         : constant String := To_String (W.Password_Character);
@@ -323,7 +325,8 @@ package body Adi.Widget.Text_Input is
       X                : Pixel_Type;
       Extend_Selection : Boolean)
    is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Content    : constant Rectangle := Content_Box (W.Geometry, Main_Style);
       Line : constant String := Get_Line (W.Buffer, 1);
       Col  : Natural;
@@ -732,8 +735,10 @@ package body Adi.Widget.Text_Input is
    end Disconnect_Changed;
 
    overriding function Measure_Content (W : Text_Input_Widget) return Size_2D is
-      Main_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Label_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Text_Part);
+      Main_Style  : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Label_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
       Font_Attrs  : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Label_Style.Font_Family,
@@ -758,10 +763,10 @@ package body Adi.Widget.Text_Input is
    overriding function Get_Content_Min_Size
      (W : Text_Input_Widget) return Size_2D
    is
-      Main_Style  : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
-      Label_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Text_Part);
+      Main_Style  : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Label_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
       Font_Attrs  : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Label_Style.Font_Family,
@@ -784,8 +789,10 @@ package body Adi.Widget.Text_Input is
    end Layout;
 
    overriding procedure Build_Items (W : in out Text_Input_Widget) is
-      Main_Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Label_Style  : constant Resolved_Style := Get_Resolved_Part_Style (W, Text_Part);
+      Main_Style   : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Label_Style  : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
       Content      : constant Rectangle := Content_Box (W.Geometry, Main_Style);
       Full_Text    : constant String := Get_Text (W.Buffer);
       Source_Line  : constant String := Get_Line (W.Buffer, 1);

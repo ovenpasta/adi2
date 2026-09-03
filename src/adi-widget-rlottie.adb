@@ -261,7 +261,8 @@ package body Adi.Widget.RLottie is
    end Set_Max_Size;
 
    overriding function Measure_Content (W : RLottie_Widget) return Size_2D is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Result     : Size_2D := (0.0, 0.0);
       Scale      : Pixel_Type := 1.0;
    begin
@@ -284,7 +285,8 @@ package body Adi.Widget.RLottie is
    end Measure_Content;
 
    overriding procedure Build_Items (W : in out RLottie_Widget) is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Content    : constant Rectangle := Content_Box (W.Geometry, Main_Style);
       Current    : Image_Handle := Adi.Image.Null_Image_Handle;
    begin

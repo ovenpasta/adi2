@@ -13,7 +13,8 @@ package body Adi.Widget.Stack is
    begin
       return Child /= null
         and then Has_Flag (Child.all, Visible)
-        and then Get_Resolved_Part_Style (Child.all, Main_Part).Display /= Display_None;
+        and then Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).Display
+                   /= Display_None;
    end Child_Participates;
 
    ---------------------------------------------------------------------------
@@ -167,7 +168,8 @@ package body Adi.Widget.Stack is
    overriding function Measure_Content_At_Width
      (W : Stack_Widget; Assigned_Width : Pixel_Type) return Size_2D
    is
-      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Padding : constant Edge_Pixels := Get_Padding_Px (Style);
       Border  : constant Edge_Pixels := Get_Border_Width_Px (Style);
       Content_W : constant Pixel_Type :=
@@ -326,7 +328,8 @@ package body Adi.Widget.Stack is
    ---------------------------------------------------------------------------
 
    overriding procedure Layout (W : in out Stack_Widget) is
-      Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Style   : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Pad     : constant Edge_Pixels := Get_Padding_Px (Style);
       Border  : constant Edge_Pixels := Get_Border_Width_Px (Style);
 
@@ -365,7 +368,8 @@ package body Adi.Widget.Stack is
          begin
             if Child /= null
               and then Has_Flag (Child.all, Visible)
-              and then Get_Resolved_Part_Style (Child.all, Main_Part).Display /= Display_None
+              and then Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).Display
+                         /= Display_None
             then
                Set_Geometry (Child.all, Child_Geom);
                Layout_Child (Child.all);

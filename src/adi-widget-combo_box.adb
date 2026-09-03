@@ -181,8 +181,8 @@ package body Adi.Widget.Combo_Box is
       if Count > 1 then
          declare
             R : constant Widget_Ref := Borrow (+W.Popup);
-            S : constant Resolved_Style :=
-              Get_Resolved_Part_Style (R.Ptr.all, Main_Part);
+            S : Resolved_Style renames
+              Ref (Get_Resolved_Part_Handle (R.Ptr.all, Main_Part)).all;
          begin
             Total :=
               Total + Pixel_Type (Count - 1) * Get_Row_Gap (S.Gap);
@@ -832,12 +832,12 @@ package body Adi.Widget.Combo_Box is
    overriding function Get_Content_Min_Size
      (W : Combo_Box_Widget) return Size_2D
    is
-      Main_Style  : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
-      Label_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Text_Part);
-      Ind_Style   : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Indicator_Part);
+      Main_Style  : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Label_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
+      Ind_Style   : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Indicator_Part)).all;
       Label_Attrs : constant Adi.Font.Font_Attributes :=
         Adi.Font.Make_Attributes
           (Family     => Label_Style.Font_Family,
@@ -862,14 +862,14 @@ package body Adi.Widget.Combo_Box is
       Default_Icon_Size : constant Size_2D := (16.0, 16.0);
       Default_Indicator_Size : constant Size_2D := (16.0, 16.0);
 
-      Main_Style  : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
-      Label_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Text_Part);
-      Ind_Style   : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Indicator_Part);
-      Icon_Style  : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Icon_Part);
+      Main_Style  : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Label_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
+      Ind_Style   : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Indicator_Part)).all;
+      Icon_Style  : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Icon_Part)).all;
       Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
 
       Label_Text : constant String := Get_Selected_Text (W);

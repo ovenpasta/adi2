@@ -11,6 +11,7 @@ with Adi.Log;
 with Adi.SDL; use Adi.SDL;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
+with Adi.Resolved_Styles;
 with Adi.Widget.Window_Bridge;
 with Adi.Widget_Styles;
 
@@ -387,11 +388,12 @@ package body Adi.Window is
    end Normalize_Visibility;
 
    function Widget_Participates (H : Widget_Handle) return Boolean is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (H, Main_Part);
    begin
       return Is_Valid (H)
         and then Has_Flag (H, Visible)
-        and then Main_Style.Display /= Display_None;
+        and then Adi.Resolved_Styles.Ref
+                   (Get_Resolved_Part_Handle (H, Main_Part)).Display
+                     /= Display_None;
    end Widget_Participates;
 
    function Main_Visibility_Explicit (H : Widget_Handle) return Boolean is
@@ -404,10 +406,11 @@ package body Adi.Window is
      (H : Widget_Handle;
       Parent_Visibility : Visibility_Value) return Visibility_Value
    is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (H, Main_Part);
    begin
       if Main_Visibility_Explicit (H) then
-         return Normalize_Visibility (Main_Style.Visibility);
+         return Normalize_Visibility
+           (Adi.Resolved_Styles.Ref
+              (Get_Resolved_Part_Handle (H, Main_Part)).Visibility);
       end if;
       return Parent_Visibility;
    end Resolve_Effective_Visibility;

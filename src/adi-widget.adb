@@ -1785,8 +1785,8 @@ package body Adi.Widget is
       begin
          if Lbl_Text'Length > 0 then
             declare
-               Lbl_Style : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Label_Part);
+               Lbl_Style : Resolved_Style renames
+                 Ref (Get_Resolved_Part_Handle (W, Label_Part)).all;
                Lbl_Attrs : constant Adi.Font.Font_Attributes :=
                  Adi.Font.Make_Attributes
                    (Family     => Lbl_Style.Font_Family,
@@ -2288,19 +2288,19 @@ package body Adi.Widget is
      (W : Widget'Class;
       Parent_Effective : Visibility_Value) return Visibility_Value
    is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
    begin
       if Main_Visibility_Explicit (W) then
-         return Normalize_Visibility (Main_Style.Visibility);
+         return Normalize_Visibility
+           (Ref (Get_Resolved_Part_Handle (W, Main_Part)).Visibility);
       end if;
       return Parent_Effective;
    end Resolve_Effective_Visibility;
 
    function Widget_Participates (W : Widget'Class) return Boolean is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
    begin
       return Has_Flag (W, Visible)
-        and then Main_Style.Display /= Display_None;
+        and then Ref (Get_Resolved_Part_Handle (W, Main_Part)).Display
+                   /= Display_None;
    end Widget_Participates;
 
    function Item_Is_Rendered (Style : Resolved_Style) return Boolean is
@@ -2410,10 +2410,8 @@ package body Adi.Widget is
    end Build_Content_Clip_Rect;
 
    function Get_Content_Box (W : Widget'Class) return Rectangle is
-      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-   begin
-      return Content_Box (W.Geometry, Style);
-   end Get_Content_Box;
+     (Content_Box (W.Geometry,
+                    Ref (Get_Resolved_Part_Handle (W, Main_Part)).all));
 
    function Supports_Scrollbar (W : Widget'Class) return Boolean is
      (Overflow_Is_Scrollable
@@ -2527,8 +2525,10 @@ package body Adi.Widget is
 
    function Resolve_Scrollbar_Metrics (W : Widget'Class) return Scrollbar_Metrics is
       Content        : constant Rectangle := Get_Content_Box (W);
-      Scroll_Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Scroll_Part);
-      Knob_Style     : constant Resolved_Style := Get_Resolved_Part_Style (W, Knob_Part);
+      Scroll_Style   : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Scroll_Part)).all;
+      Knob_Style     : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Knob_Part)).all;
       Scroll_Margin  : constant Edge_Pixels := Get_Margin_Px (Scroll_Style);
       Scroll_Padding : constant Edge_Pixels := Get_Padding_Px (Scroll_Style);
       Result         : Scrollbar_Metrics;
@@ -2573,7 +2573,6 @@ package body Adi.Widget is
 
    procedure Update_Scrollbar_Geometry (W : in out Widget'Class) is
       Content    : constant Rectangle := Get_Content_Box (W);
-      Style      : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
       Max_Offset : constant Pixel_Type := Get_Scroll_Max_Offset_Y (W);
       Metrics    : constant Scrollbar_Metrics := Resolve_Scrollbar_Metrics (W);
       Ratio      : Float;
@@ -2591,7 +2590,7 @@ package body Adi.Widget is
       end if;
 
       if Supports_Scrollbar (W) then
-         case Style.Overflow_Y is
+         case Ref (Get_Resolved_Part_Handle (W, Main_Part)).Overflow_Y is
             when Overflow_Scroll =>
                Want_Bar := True;
             when Overflow_Auto =>
@@ -6484,7 +6483,8 @@ package body Adi.Widget is
 
    procedure Render_Items (W : in out Widget'Class; Ctx : in out Render_Context) is
       Renderer : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
 
       --  The clip has to sit where the items are actually drawn.
       Scroll_Shift : constant Pixel_Type := Pixel_Type (Get_Scroll_Y (Ctx));
@@ -6663,8 +6663,10 @@ package body Adi.Widget is
       Ctx : in out Render_Context)
    is
       Renderer     : constant SDL_Renderer_Ptr := Get_Renderer (Ctx);
-      Scroll_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Scroll_Part);
-      Knob_Style   : constant Resolved_Style := Get_Resolved_Part_Style (W, Knob_Part);
+      Scroll_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Scroll_Part)).all;
+      Knob_Style   : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Knob_Part)).all;
    begin
       if Renderer = null or else not W.Scroll_Show_Bar then
          return;
@@ -6716,8 +6718,8 @@ package body Adi.Widget is
 
       if Widget_Is_Visible and then Debug_Layout_Overlay_Enabled and then Renderer /= null then
          declare
-            Main_Style : constant Resolved_Style :=
-              Get_Resolved_Part_Style (W, Main_Part);
+            Main_Style : Resolved_Style renames
+              Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
             --  Outlines are compared against drawn pixels by eye, so
             --  they belong where the widget is drawn.
             Geom : constant Rectangle :=
@@ -6744,8 +6746,8 @@ package body Adi.Widget is
 
       if Renderer /= null then
          declare
-            Main_Style : constant Resolved_Style :=
-              Get_Resolved_Part_Style (W, Main_Part);
+            Main_Style : Resolved_Style renames
+              Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
             Clip_X : constant Boolean := Overflow_Clips (Main_Style.Overflow_X);
             Clip_Y : constant Boolean := Overflow_Clips (Main_Style.Overflow_Y);
             --  Not Clips_Own_Content: that one clips the widget's own
@@ -6924,7 +6926,8 @@ package body Adi.Widget is
      renames Measure_Content_W;
 
    function Get_Min_Size(W : Widget) return Size_2D is
-      Style : constant Resolved_Style := Get_Resolved_Part_Style(W, Main_Part);
+      Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Min_W, Min_H : Pixel_Type := 0.0;
    begin
       --  Check explicit min-width/min-height
@@ -7390,9 +7393,9 @@ package body Adi.Widget is
       function Counts (Child : Widget_Access) return Boolean is
         (Child /= null
          and then Has_Flag (Child.all, Visible)
-         and then Get_Resolved_Part_Style (Child.all, Main_Part).Display
+         and then Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).Display
                     /= Display_None
-         and then Get_Resolved_Part_Style (Child.all, Main_Part).Position
+         and then Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).Position
                     /= Absolute);
 
       N : Natural := 0;
@@ -7534,8 +7537,8 @@ package body Adi.Widget is
       Assigned_Width : Pixel_Type;
       Container_Main : Pixel_Type) return Pixel_Type
    is
-      Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (Child, Main_Part);
+      Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (Child, Main_Part)).all;
    begin
       case Style.Flex_Basis.Kind is
          when Fixed =>
@@ -7636,7 +7639,8 @@ package body Adi.Widget is
    ---------------------------------------------------------------------------
 
    function Is_Flex_Container(W : Widget'Class) return Boolean is
-      Style : constant Resolved_Style := Get_Resolved_Part_Style(W, Main_Part);
+      Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
    begin
       return Style.Display = Flex or Style.Display = Inline_Flex;
    end Is_Flex_Container;
@@ -7710,7 +7714,8 @@ package body Adi.Widget is
      (Child     : in out Widget'Class;
       Container : Rectangle)
    is
-      CS : constant Resolved_Style := Get_Resolved_Part_Style (Child, Main_Part);
+      CS : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (Child, Main_Part)).all;
    begin
       if CS.Position /= Relative then
          return;
@@ -7750,16 +7755,13 @@ package body Adi.Widget is
       --  Count flow vs absolute children
       for Child of W.Children loop
          if Child /= null and then Widget_Participates (Child.all) then
-            declare
-               CS : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (Child.all, Main_Part);
-            begin
-               if CS.Position = Absolute then
-                  Num_Absolute := Num_Absolute + 1;
-               else
-                  Num_Children := Num_Children + 1;
-               end if;
-            end;
+            if Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).Position
+                 = Absolute
+            then
+               Num_Absolute := Num_Absolute + 1;
+            else
+               Num_Children := Num_Children + 1;
+            end if;
          end if;
       end loop;
 
@@ -7793,8 +7795,8 @@ package body Adi.Widget is
          for Child of W.Children loop
             if Child /= null and then Widget_Participates (Child.all) then
                declare
-                  Child_Style : constant Resolved_Style :=
-                     Get_Resolved_Part_Style(Child.all, Main_Part);
+                  Child_Style : Resolved_Style renames
+                     Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).all;
                begin
                   if Child_Style.Position = Absolute then
                      Abs_Index := Abs_Index + 1;
@@ -7983,6 +7985,9 @@ package body Adi.Widget is
          --  Position absolute children against the content box
          for I in 1 .. Abs_Index loop
             declare
+               --  Copied, because Position_Absolute_Child reads this
+               --  on both sides of the Get_Preferred_Size its own
+               --  declarations make, and that dispatches.
                CS : constant Resolved_Style :=
                  Get_Resolved_Part_Style (Abs_Children (I).all, Main_Part);
             begin

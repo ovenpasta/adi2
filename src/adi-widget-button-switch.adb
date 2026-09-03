@@ -12,8 +12,10 @@ package body Adi.Widget.Button.Switch is
    Knob_Idx  : constant Positive := 2;
 
    procedure Update_Switch_Items (W : in out Switch_Widget) is
-      Main_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-      Knob_Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Knob_Part);
+      Main_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+      Knob_Style : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Knob_Part)).all;
       Widget_Geom : constant Rectangle := Get_Geometry (W);
       Content    : constant Rectangle := Content_Box (Widget_Geom, Main_Style);
       Margin     : constant Edge_Pixels := Get_Margin_Px (Knob_Style);

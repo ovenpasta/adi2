@@ -656,8 +656,8 @@ package body Adi.Widget.Text_Editor is
    ---------------------------------------------------------------------------
 
    overriding procedure Build_Items (W : in out Text_Editor_Widget) is
-      Main_Style   : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
+      Main_Style   : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Label_Style  : constant Resolved_Style :=
         Get_Resolved_Part_Style (W, Text_Part);
       Content      : constant Rectangle := Content_Box (W.Geometry, Main_Style);
@@ -898,8 +898,8 @@ package body Adi.Widget.Text_Editor is
    overriding function Measure_Content
      (W : Text_Editor_Widget) return Size_2D
    is
-      Main_Style  : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
+      Main_Style  : Resolved_Style renames
+        Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
    begin
       --  Scrollable widget: return a modest preferred viewport size rather
       --  than the full text content height, so flex layout can shrink it.
@@ -1032,10 +1032,10 @@ package body Adi.Widget.Text_Editor is
 
          when SDL_SCANCODE_UP =>
             declare
-               Main_Style  : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Main_Part);
-               Label_Style : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Text_Part);
+               Main_Style  : Resolved_Style renames
+                 Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+               Label_Style : Resolved_Style renames
+                 Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
                Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
             begin
                if Wrap_Enabled (Label_Style) then
@@ -1054,10 +1054,10 @@ package body Adi.Widget.Text_Editor is
 
          when SDL_SCANCODE_DOWN =>
             declare
-               Main_Style  : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Main_Part);
-               Label_Style : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Text_Part);
+               Main_Style  : Resolved_Style renames
+                 Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+               Label_Style : Resolved_Style renames
+                 Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
                Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
             begin
                if Wrap_Enabled (Label_Style) then
@@ -1096,10 +1096,10 @@ package body Adi.Widget.Text_Editor is
             Lines_Per_Page :=
               Lines_Per_Page_From_Viewport (W.Scroll_Viewport_H, W.Line_Skip);
             declare
-               Main_Style  : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Main_Part);
-               Label_Style : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Text_Part);
+               Main_Style  : Resolved_Style renames
+                 Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+               Label_Style : Resolved_Style renames
+                 Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
                Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
             begin
                if Wrap_Enabled (Label_Style) then
@@ -1121,10 +1121,10 @@ package body Adi.Widget.Text_Editor is
             Lines_Per_Page :=
               Lines_Per_Page_From_Viewport (W.Scroll_Viewport_H, W.Line_Skip);
             declare
-               Main_Style  : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Main_Part);
-               Label_Style : constant Resolved_Style :=
-                 Get_Resolved_Part_Style (W, Text_Part);
+               Main_Style  : Resolved_Style renames
+                 Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
+               Label_Style : Resolved_Style renames
+                 Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
                Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
             begin
                if Wrap_Enabled (Label_Style) then
@@ -1183,19 +1183,18 @@ package body Adi.Widget.Text_Editor is
       Button : Adi.Core.Mouse_Button;
       Clicks : Natural := 1)
    is
-      Main_Style  : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
-      Label_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Text_Part);
-      Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+      Content     : Rectangle;
       P           : Position;
    begin
       if Button /= Left_Button then
          return;
       end if;
 
-      --  Try scrollbar first
+      --  The bar takes the press before the text does, and holding it
+      --  is not selecting.
       if Handle_Scroll_Mouse_Down (W, X, Y, Button) then
+         W.Pending_Word_Select := False;
+         W.Drag_Selecting := False;
          return;
       end if;
 
@@ -1203,17 +1202,25 @@ package body Adi.Widget.Text_Editor is
       W.Press_Y := Y;
       W.Has_Preferred_X := False;
 
-      Refresh_Layout (W, Label_Style, Content);
-      P :=
-        Position_At_Point
-          (L               => W.Layout,
-           B               => W.Buffer,
-           Label_Style     => Label_Style,
-           Content_X       => Content.X,
-           X               => X,
-           Y               => Y - Content.Y,
-           Scroll_Offset_Y => Get_Scroll_Offset_Y (W),
-           Line_Skip       => W.Line_Skip);
+      Content :=
+        Content_Box (W.Geometry,
+                     Ref (Get_Resolved_Part_Handle (W, Main_Part)).all);
+      declare
+         Label_Style : Resolved_Style renames
+           Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
+      begin
+         Refresh_Layout (W, Label_Style, Content);
+         P :=
+           Position_At_Point
+             (L               => W.Layout,
+              B               => W.Buffer,
+              Label_Style     => Label_Style,
+              Content_X       => Content.X,
+              X               => X,
+              Y               => Y - Content.Y,
+              Scroll_Offset_Y => Get_Scroll_Offset_Y (W),
+              Line_Skip       => W.Line_Skip);
+      end;
 
       if Clicks >= 3 then
          declare
@@ -1241,11 +1248,9 @@ package body Adi.Widget.Text_Editor is
      (W    : in out Text_Editor_Widget;
       X, Y : Pixel_Type)
    is
-      Main_Style  : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Main_Part);
-      Label_Style : constant Resolved_Style :=
-        Get_Resolved_Part_Style (W, Text_Part);
-      Content     : constant Rectangle := Content_Box (W.Geometry, Main_Style);
+      Content     : constant Rectangle :=
+        Content_Box (W.Geometry,
+                     Ref (Get_Resolved_Part_Handle (W, Main_Part)).all);
    begin
       Handle_Scroll_Mouse_Move (W, X, Y);
 
@@ -1264,18 +1269,26 @@ package body Adi.Widget.Text_Editor is
          return;
       end if;
 
-      Set_Caret
-        (W.Buffer,
-         Position_At_Point
-           (L               => W.Layout,
-            B               => W.Buffer,
-            Label_Style     => Label_Style,
-            Content_X       => Content.X,
-            X               => X,
-            Y               => Y - Content.Y,
-            Scroll_Offset_Y => Get_Scroll_Offset_Y (W),
-            Line_Skip       => W.Line_Skip),
-         Extend_Selection => True);
+      declare
+         --  Taken here rather than above: Handle_Scroll_Mouse_Move
+         --  reaches the Scroll_Changed observers, which are the
+         --  application's.
+         Label_Style : Resolved_Style renames
+           Ref (Get_Resolved_Part_Handle (W, Text_Part)).all;
+      begin
+         Set_Caret
+           (W.Buffer,
+            Position_At_Point
+              (L               => W.Layout,
+               B               => W.Buffer,
+               Label_Style     => Label_Style,
+               Content_X       => Content.X,
+               X               => X,
+               Y               => Y - Content.Y,
+               Scroll_Offset_Y => Get_Scroll_Offset_Y (W),
+               Line_Skip       => W.Line_Skip),
+            Extend_Selection => True);
+      end;
       Mark_Dirty (W);
    end On_Mouse_Move;
 

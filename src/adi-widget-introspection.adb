@@ -74,7 +74,7 @@ package body Adi.Widget.Introspection is
          Flags       =>
            [Clickable  => Has_Flag (W.all, Clickable),
             Focusable  => Has_Flag (W.all, Focusable),
-            Scrollable => Has_Flag (W.all, Scrollable),
+            Scrollable => Is_Scroll_Enabled (W.all),
             Draggable  => Has_Flag (W.all, Draggable),
             Visible    => Has_Flag (W.all, Visible)],
          Child_Count => Child_Count (W.all),

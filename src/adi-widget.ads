@@ -381,6 +381,11 @@ package Adi.Widget is
    function  Get_Scroll_Max_Offset_Y (W : Widget'Class) return Pixel_Type;
    function  Get_Scroll_Max_Offset_Y (H : Widget_Handle) return Pixel_Type;
 
+   --  The Scrollable flag the widget was given, or an overflow-y its
+   --  stylesheet scrolls.
+   function  Is_Scroll_Enabled (W : Widget'Class) return Boolean;
+   function  Is_Scroll_Enabled (H : Widget_Handle) return Boolean;
+
    --  Reusable input hooks for widgets that override mouse handlers but still
    --  want the shared scrollbar behavior.
    function Handle_Scroll_Mouse_Down

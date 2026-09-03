@@ -72,6 +72,9 @@ package body Adi.Window is
    function Find_Scroll_Widget_At
      (W    : Window;
       X, Y : Pixel_Type) return Widget_Handle;
+   function Find_Scrolling_Widget_At
+     (W    : Window;
+      X, Y : Pixel_Type) return Widget_Handle;
    function Is_In_Subtree
      (Root : Widget_Handle;
       Node : Widget_Handle) return Boolean;
@@ -2121,6 +2124,25 @@ package body Adi.Window is
       return Null_Handle;
    end Find_Widget_At_With_Flag;
 
+   --  Walks ancestors for the same reason the filtered search above
+   --  does: a wheel over a label inside a scrolling panel is the
+   --  panel's.
+   function Find_Scrolling_Widget_At
+     (W    : Window;
+      X, Y : Pixel_Type) return Widget_Handle
+   is
+      Node : Widget_Handle := Find_Widget_At (W, X, Y);
+   begin
+      while Is_Valid (Node) loop
+         if Adi.Widget.Is_Scroll_Enabled (Node) then
+            return Node;
+         end if;
+         Node := Get_Parent_Handle (Node);
+      end loop;
+
+      return Null_Handle;
+   end Find_Scrolling_Widget_At;
+
    function Find_Scroll_Widget_At
      (W    : Window;
       X, Y : Pixel_Type) return Widget_Handle
@@ -2601,7 +2623,7 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
          end;
       end loop;
 
-      Target := Find_Widget_At_With_Flag (W, X, Y, Scrollable);
+      Target := Find_Scrolling_Widget_At (W, X, Y);
 
       if In_Overlay then
          --  Cursor is over an overlay: only accept a scrollable target that
@@ -2627,7 +2649,7 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
          --  scrollable widget.
          if not Is_Valid (Target) then
             if Is_Valid (W.Focused_Widget)
-              and then Has_Flag (W.Focused_Widget, Scrollable)
+              and then Adi.Widget.Is_Scroll_Enabled (W.Focused_Widget)
             then
                Target := W.Focused_Widget;
             end if;

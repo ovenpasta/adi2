@@ -3,8 +3,11 @@ pragma Ada_2022;
 with Ada.Containers.Vectors;
 with Ada.Text_IO; use Ada.Text_IO;
 
-with Adi.Core;    use Adi.Core;
-with Adi.Widget;  use Adi.Widget;
+with Adi.Core;          use Adi.Core;
+with Adi.Widget;        use Adi.Widget;
+with Adi.Widget_Styles; use Adi.Widget_Styles;
+with Adi.CSS_Styles;    use Adi.CSS_Styles;
+with Adi.Widget.Box;    use type Adi.Widget.Box.Box_Handle;
 with Test_Support;
 
 procedure Scroll_Primitives_Test is
@@ -172,6 +175,144 @@ procedure Scroll_Primitives_Test is
       Observed := null;
    end Test_Scroll_Changed_Reports_The_Widget;
 
+   -----------------------------------------------------------------
+   --  What a widget scrolls is what its stylesheet says now. A sheet
+   --  that stops scrolling it has to stop it scrolling.
+   -----------------------------------------------------------------
+   procedure Test_Overflow_Governs_Scrolling is
+      Panel_W   : constant Pixel_Type := 200.0;
+      Panel_H   : constant Pixel_Type := 200.0;
+      Content_H : constant Pixel_Type := 4_000.0;
+
+      Scrolls : constant Widget_Style :=
+        Style_Of .Display (Flex) .Flex_Direction (Adi.CSS_Styles.Column)
+                 .Overflow_Y (Overflow_Scroll) .Build;
+      Clips : constant Widget_Style :=
+        Style_Of .Display (Flex) .Flex_Direction (Adi.CSS_Styles.Column)
+                 .Overflow_Y (Overflow_Hidden) .Build;
+      Tall : constant Widget_Style :=
+        Style_Of .Height (Size (Px (Float (Content_H))))
+                 .Min_Height (Size (Px (Float (Content_H)))) .Build;
+
+      Panel   : Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Content : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+   begin
+      Test_Support.Section ("Overflow governs scrolling");
+      Set_Part_Style (Content, Main_Part, Tall);
+      Add_Child (Panel, Content);
+      Set_Geometry (Panel, (0.0, 0.0, Panel_W, Panel_H));
+
+      Set_Part_Style (Panel, Main_Part, Scrolls);
+      Layout_Tree (Panel);
+      Test_Support.Assert (Is_Scroll_Enabled (Panel),
+              "overflow-y: scroll scrolls the panel");
+      Test_Support.Assert (not Has_Flag (Panel, Scrollable),
+              "and leaves the flag to whoever set it");
+      Set_Scroll_Offset_Y (Panel, 500.0);
+      Test_Support.Assert (Get_Scroll_Offset_Y (Panel) = 500.0,
+              "so the panel takes an offset, it is"
+              & Pixel_Type'Image (Get_Scroll_Offset_Y (Panel)));
+
+      Set_Part_Style (Panel, Main_Part, Clips);
+      Layout_Tree (Panel);
+      Test_Support.Assert (not Is_Scroll_Enabled (Panel),
+              "overflow-y: hidden stops the panel scrolling");
+      Test_Support.Assert
+        (Get_Part_At (Panel, Panel_W - 6.0, 4.0) = Main_Part,
+         "and takes its scrollbar away, the right edge is "
+         & Part_Kind'Image (Get_Part_At (Panel, Panel_W - 6.0, 4.0)));
+      declare
+         Held : constant Pixel_Type := Get_Scroll_Offset_Y (Panel);
+         R    : constant Widget_Ref := Borrow (Panel);
+      begin
+         Handle_Scroll_Mouse_Wheel (R.Ptr.all, 0.0, -3.0);
+         Test_Support.Assert (Get_Scroll_Offset_Y (Panel) = Held,
+                 "and a wheel over it moves nothing, it moved"
+                 & Pixel_Type'Image (Get_Scroll_Offset_Y (Panel) - Held));
+      end;
+
+      --  Back again, so what the sheet says is read every time rather
+      --  than once.
+      Set_Part_Style (Panel, Main_Part, Scrolls);
+      Layout_Tree (Panel);
+      Test_Support.Assert (Is_Scroll_Enabled (Panel),
+              "and scrolling comes back when the sheet asks for it");
+      Destroy (Panel);
+   end Test_Overflow_Governs_Scrolling;
+
+   -----------------------------------------------------------------
+   --  A scroll container reports its floor and shows its content a
+   --  piece at a time; one that stops scrolling sizes to the whole of
+   --  it again.
+   -----------------------------------------------------------------
+   procedure Test_Sizing_Follows_Overflow is
+      Content_H : constant Pixel_Type := 4_000.0;
+
+      Scrolls : constant Widget_Style :=
+        Style_Of .Display (Flex) .Flex_Direction (Adi.CSS_Styles.Column)
+                 .Overflow_Y (Overflow_Scroll) .Build;
+      Shows : constant Widget_Style :=
+        Style_Of .Display (Flex) .Flex_Direction (Adi.CSS_Styles.Column)
+                 .Overflow_Y (Overflow_Visible) .Build;
+      Tall : constant Widget_Style :=
+        Style_Of .Height (Size (Px (Float (Content_H))))
+                 .Min_Height (Size (Px (Float (Content_H)))) .Build;
+
+      Panel   : Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Content : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Scrolling_Pref, Showing_Pref : Pixel_Type;
+   begin
+      Test_Support.Section ("Sizing follows overflow");
+      Set_Part_Style (Content, Main_Part, Tall);
+      Add_Child (Panel, Content);
+      Set_Geometry (Panel, (0.0, 0.0, 200.0, 200.0));
+
+      Set_Part_Style (Panel, Main_Part, Scrolls);
+      Layout_Tree (Panel);
+      Scrolling_Pref := Get_Preferred_Size (Panel).Height;
+      Test_Support.Assert (Scrolling_Pref < Content_H,
+              "a scrolling panel asks for its floor, it asks for"
+              & Pixel_Type'Image (Scrolling_Pref));
+
+      Set_Part_Style (Panel, Main_Part, Shows);
+      Layout_Tree (Panel);
+      Showing_Pref := Get_Preferred_Size (Panel).Height;
+      Test_Support.Assert (Showing_Pref >= Content_H,
+              "and asks for the whole of its content once it shows it,"
+              & " it asks for" & Pixel_Type'Image (Showing_Pref));
+      Destroy (Panel);
+   end Test_Sizing_Follows_Overflow;
+
+   -----------------------------------------------------------------
+   --  The flag is the other way in, and layout leaves it alone.
+   -----------------------------------------------------------------
+   procedure Test_Flag_Scrolls_Without_A_Sheet is
+      Panel   : Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Content : constant Widget_Handle := +Adi.Widget.Box.Create_Handle;
+      Tall : constant Widget_Style :=
+        Style_Of .Height (Size (Px (4_000.0)))
+                 .Min_Height (Size (Px (4_000.0))) .Build;
+   begin
+      Test_Support.Section ("The Scrollable flag");
+      Set_Part_Style (Content, Main_Part, Tall);
+      Add_Child (Panel, Content);
+      Set_Geometry (Panel, (0.0, 0.0, 200.0, 200.0));
+      Layout_Tree (Panel);
+      Test_Support.Assert (not Is_Scroll_Enabled (Panel),
+              "a panel with neither flag nor overflow does not scroll");
+
+      Set_Flag (Panel, Scrollable, True);
+      Layout_Tree (Panel);
+      Test_Support.Assert (Is_Scroll_Enabled (Panel),
+              "the flag scrolls it with no stylesheet involved");
+
+      Set_Flag (Panel, Scrollable, False);
+      Layout_Tree (Panel);
+      Test_Support.Assert (not Is_Scroll_Enabled (Panel),
+              "and taking the flag back stops it");
+      Destroy (Panel);
+   end Test_Flag_Scrolls_Without_A_Sheet;
+
 begin
    Test_Support.Start_Suite ("Scroll Primitives Test");
    New_Line;
@@ -182,6 +323,12 @@ begin
    Test_Offset_Clamps_To_Max;
    New_Line;
    Test_Scroll_Changed_Reports_The_Widget;
+   New_Line;
+   Test_Overflow_Governs_Scrolling;
+   New_Line;
+   Test_Sizing_Follows_Overflow;
+   New_Line;
+   Test_Flag_Scrolls_Without_A_Sheet;
    New_Line;
    Test_Support.Finish;
 end Scroll_Primitives_Test;

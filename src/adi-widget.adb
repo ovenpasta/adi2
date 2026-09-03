@@ -1979,10 +1979,12 @@ package body Adi.Widget is
    begin
       if W.Scroll_Show_Bar then
          declare
-            Scroll_Style : constant Resolved_Style :=
-              Get_Resolved_Part_Style (W, Scroll_Part);
-            Knob_Style   : constant Resolved_Style :=
-              Get_Resolved_Part_Style (W, Knob_Part);
+            --  A hit test runs on every pointer move over a widget
+            --  showing a bar.
+            Scroll_Style : Resolved_Style renames
+              Ref (Get_Resolved_Part_Handle (W, Scroll_Part)).all;
+            Knob_Style   : Resolved_Style renames
+              Ref (Get_Resolved_Part_Handle (W, Knob_Part)).all;
          begin
             if Item_Is_Rendered (Knob_Style)
               and then Point_In_Rect (W.Scroll_Knob_Geom, X, Y)
@@ -2414,15 +2416,18 @@ package body Adi.Widget is
    end Get_Content_Box;
 
    function Supports_Scrollbar (W : Widget'Class) return Boolean is
-      Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
-   begin
-      return Overflow_Is_Scrollable (Style.Overflow_Y);
-   end Supports_Scrollbar;
+     (Overflow_Is_Scrollable
+        (Ref (Get_Resolved_Part_Handle (W, Main_Part)).Overflow_Y));
 
+   --  The flag first: a widget given it scrolls whatever its stylesheet
+   --  says, and answering from it skips the resolve.
    function Is_Scroll_Enabled (W : Widget'Class) return Boolean is
-   begin
-      return Supports_Scrollbar (W) or else Has_Flag (W, Scrollable);
-   end Is_Scroll_Enabled;
+     (Has_Flag (W, Scrollable) or else Supports_Scrollbar (W));
+
+   function Is_Scroll_Enabled_W is
+     new Wrap_CW_Func (Boolean, False, Is_Scroll_Enabled);
+   function Is_Scroll_Enabled (H : Widget_Handle) return Boolean
+     renames Is_Scroll_Enabled_W;
 
    procedure Clamp_Scroll_Offset (W : in out Widget'Class) is
       Max_Offset : constant Pixel_Type :=
@@ -2644,9 +2649,6 @@ package body Adi.Widget is
       Max_Offset     : Pixel_Type;
    begin
       W.Scroll_Viewport_H := Pixel_Type'Max (0.0, Content.Height);
-      if Is_Scroll_Enabled (W) then
-         W.Flags (Scrollable) := True;
-      end if;
       for Child of W.Children loop
          if Widget_Participates (Child.all) then
             declare
@@ -3203,10 +3205,23 @@ package body Adi.Widget is
 
    procedure Tick_Scroll_Animations (W : in out Widget'Class; DT : Duration) is
       DT_Float   : constant Float := Float (DT);
-      Max_Offset : constant Pixel_Type := Get_Scroll_Max_Offset_Y (W);
       Old_Offset : Pixel_Type;
       Fast       : Boolean;
    begin
+      --  Every widget in the tree arrives here on every tick, and
+      --  Is_Scroll_Enabled below resolves a style. A widget with
+      --  nothing held and nothing in flight leaves both paths with
+      --  nothing to change: the disabled one guards on the same two
+      --  fields, and the enabled one computes Fast as False and sets
+      --  two part states that already hold it.
+      if not W.Scroll_Dragging
+        and then W.Scroll_Velocity_Y = 0.0
+        and then not W.Part_States (Scroll_Part) (State_Pressed)
+        and then not W.Part_States (Knob_Part) (State_Pressed)
+      then
+         return;
+      end if;
+
       if not Is_Scroll_Enabled (W) then
          if W.Scroll_Dragging or else W.Scroll_Velocity_Y /= 0.0 then
             W.Scroll_Dragging := False;
@@ -3219,22 +3234,38 @@ package body Adi.Widget is
 
       if not Scroll_Inertia_Enabled then
          W.Scroll_Velocity_Y := 0.0;
-      elsif not W.Scroll_Dragging and then abs W.Scroll_Velocity_Y > Velocity_Epsilon then
-         Old_Offset := W.Scroll_Offset_Y;
-         Set_Scroll_Offset_Y (W, W.Scroll_Offset_Y + W.Scroll_Velocity_Y * Pixel_Type (DT_Float));
+      elsif not W.Scroll_Dragging then
+         if abs W.Scroll_Velocity_Y > Velocity_Epsilon then
+            --  Captured, because Set_Scroll_Offset_Y below reaches the
+            --  Scroll_Changed observers and an observer is free to
+            --  change what the widget holds.
+            declare
+               Max_Offset : constant Pixel_Type := Get_Scroll_Max_Offset_Y (W);
+            begin
+               Old_Offset := W.Scroll_Offset_Y;
+               Set_Scroll_Offset_Y (W, W.Scroll_Offset_Y + W.Scroll_Velocity_Y * Pixel_Type (DT_Float));
 
-         if (W.Scroll_Offset_Y = 0.0 and then W.Scroll_Velocity_Y < 0.0)
-           or else (W.Scroll_Offset_Y = Max_Offset and then W.Scroll_Velocity_Y > 0.0)
-         then
-            W.Scroll_Velocity_Y := 0.0;
+               if (W.Scroll_Offset_Y = 0.0 and then W.Scroll_Velocity_Y < 0.0)
+                 or else (W.Scroll_Offset_Y = Max_Offset and then W.Scroll_Velocity_Y > 0.0)
+               then
+                  W.Scroll_Velocity_Y := 0.0;
+               else
+                  W.Scroll_Velocity_Y :=
+                    W.Scroll_Velocity_Y * Pixel_Type (Exp (-Momentum_Friction * DT_Float));
+               end if;
+
+               if abs W.Scroll_Velocity_Y < Velocity_Epsilon
+                 or else W.Scroll_Offset_Y = Old_Offset
+               then
+                  W.Scroll_Velocity_Y := 0.0;
+               end if;
+            end;
          else
-            W.Scroll_Velocity_Y :=
-              W.Scroll_Velocity_Y * Pixel_Type (Exp (-Momentum_Friction * DT_Float));
-         end if;
-
-         if abs W.Scroll_Velocity_Y < Velocity_Epsilon
-           or else W.Scroll_Offset_Y = Old_Offset
-         then
+            --  The rule the branch above ends on, applied to a
+            --  velocity that starts here: this much is at rest. A drag
+            --  whose last step is a fraction of a pixel leaves exactly
+            --  this, and the guard at the top can only answer for a
+            --  widget once something says so.
             W.Scroll_Velocity_Y := 0.0;
          end if;
       end if;

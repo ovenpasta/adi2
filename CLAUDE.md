@@ -97,6 +97,7 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/slot_pool_test
 ./tests/bin/selector_lookup_test
 ./tests/bin/list_box_visibility_test
+./tests/bin/idle_tick_test
 
 # Check every example's widget tree against tests/goldens/trees/
 # (rebuilds the examples; --update accepts what the apps report now)

@@ -4,6 +4,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Adi.Core; use Adi.Core;
 with Adi.CSS_Parser;
+with Adi.CSS_Parser.Testing;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
 with Adi.Font;
 with Adi.Layout_Util; use Adi.Layout_Util;
@@ -1968,6 +1969,206 @@ procedure Css_Parser_Test is
               "::text part font-size should parse");
    end Test_Text_Part;
 
+   --  A property name outside the parser's table costs its declaration
+   --  and is reported, which is what tools/css_to_ada.py answers with
+   --  an unsupported-property diagnostic.
+   procedure Test_Unsupported_Property_Is_Reported is
+      use type Adi.CSS_Parser.Testing.Count;
+
+      function Dropped (Text : String) return Adi.CSS_Parser.Testing.Count is
+         S    : Adi.CSS_Parser.Stylesheet;
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Testing.Reset_Unsupported;
+         Adi.CSS_Parser.Load_String (S, Text, OK_S);
+         Test_Support.Assert (OK_S, "the sheet still loads: " & Text);
+         return Adi.CSS_Parser.Testing.Unsupported_Count;
+      end Dropped;
+   begin
+      Test_Support.Assert
+        (Dropped (".u { color: red; }") = 0,
+         "a sheet the parser carries whole drops nothing");
+      Test_Support.Assert
+        (Dropped (".u { flex-flow: row wrap; }") = 1,
+         "a name outside the table is dropped and counted");
+      Test_Support.Assert
+        (Dropped (".u { -webkit-box-shadow: 0 0 2px red; }") = 1,
+         "a vendor prefix is a name of its own");
+
+      --  The :root block reaches Apply_Property through
+      --  Build_Root_Metadata, which is a second call site.
+      Test_Support.Assert
+        (Dropped (":root { flex-flow: row; }") = 1,
+         "a :root declaration is counted too");
+
+      --  Both pipelines walk a selector list rule by rule, so a
+      --  declaration under two selectors is reported under each.
+      Test_Support.Assert
+        (Dropped (".u, .v { flex-flow: row; }") = 2,
+         "a selector list reports the declaration once per selector");
+
+      --  Decl_Of copies a name into a fixed-width key, so it answers a
+      --  longer one from its length rather than from the table.
+      Test_Support.Assert
+        (Dropped (".u { a-property-name-of-thirty-two: 1; }") = 1,
+         "a name past the key width is counted, and raises nothing");
+
+      --  Apply_Property lowers a name before it looks it up.
+      Test_Support.Assert
+        (Dropped (".u { COLOR: red; }") = 0,
+         "an upper-case name the parser carries is carried");
+      Test_Support.Assert
+        (Dropped (".u { FLEX-FLOW: row; }") = 1,
+         "and one it does not is still counted");
+
+      --  Custom properties leave the declaration stream before
+      --  Apply_Property sees it, which is what keeps them out of the
+      --  count. This holds the preprocessing that does so.
+      Test_Support.Assert
+        (Dropped (".u { --brand: red; color: red; }") = 0,
+         "a custom property is a value the sheet carries, not a name");
+      Test_Support.Assert
+        (Dropped (":root { --brand: red; }") = 0,
+         "and one in :root is the same");
+
+      declare
+         S    : Adi.CSS_Parser.Stylesheet;
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Load_String
+           (S, ".u { flex-flow: row; color: rgb(1, 2, 3); }", OK_S);
+         Test_Support.Assert (OK_S, "the sheet loads");
+         declare
+            Styles : constant Part_Style_Array :=
+              Adi.CSS_Parser.Styles_For_Class (S, "u");
+            R : constant Resolved_Style :=
+              Compute_Resolved
+                (Styles (Main_Part).Style, No_States, No_States);
+         begin
+            Test_Support.Assert
+              (Is_RGB_Color (R.Color, 1, 2, 3),
+               "the declarations beside a dropped one still apply");
+         end;
+      end;
+   end Test_Unsupported_Property_Is_Reported;
+
+   --  A selector the parser passes over costs the whole rule block
+   --  behind it, so it is reported the way a dropped declaration is.
+   procedure Test_Skipped_Selector_Is_Reported is
+      use type Adi.CSS_Parser.Testing.Count;
+
+      function Skipped (Text : String) return Adi.CSS_Parser.Testing.Count is
+         S    : Adi.CSS_Parser.Stylesheet;
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Testing.Reset_Unsupported;
+         Adi.CSS_Parser.Load_String (S, Text, OK_S);
+         Test_Support.Assert (OK_S, "the sheet still loads: " & Text);
+         return Adi.CSS_Parser.Testing.Skipped_Selector_Count;
+      end Skipped;
+   begin
+      Test_Support.Assert
+        (Skipped (".a { color: red; }") = 0,
+         "a selector the parser reads costs nothing");
+      Test_Support.Assert
+        (Skipped (".a::bogus { color: red; }") = 1,
+         "a part outside Parse_Part's twelve is reported");
+      Test_Support.Assert
+        (Skipped (". { color: red; }") = 1,
+         "a class selector wants a name");
+      Test_Support.Assert
+        (Skipped ("# { color: red; }") = 1,
+         "an id selector wants a name");
+      Test_Support.Assert
+        (Skipped ("::label { color: red; }") = 1,
+         "a part selector wants a name before it");
+      Test_Support.Assert
+        (Skipped (":hover { color: red; }") = 1,
+         "a pseudo-class wants a name before it");
+      Test_Support.Assert
+        (Skipped (".a::bogus:hover { color: red; }") = 1,
+         "a pseudo-class after the part leaves the part to answer for");
+
+      --  A stray comma leaves an empty segment, which the selectors
+      --  beside it carry the block for. tools/css_to_ada.py draws the
+      --  same line.
+      Test_Support.Assert
+        (Skipped (", .a { color: red; }") = 0,
+         "a leading comma costs nothing");
+      Test_Support.Assert
+        (Skipped (".a, { color: red; }") = 0,
+         "nor does a trailing one");
+      Test_Support.Assert
+        (Skipped (".a,, .b { color: red; }") = 0,
+         "nor a doubled one");
+      Test_Support.Assert
+        (Skipped ("   { color: red; }") = 1,
+         "a block with nothing to select is reported");
+
+      --  ::any and ::custom are parts a sheet can name, which the
+      --  Part Selectors table in docs/css_styling.md lists.
+      declare
+         S    : Adi.CSS_Parser.Stylesheet;
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Load_String
+           (S, ".w::any { color: red; } .v::custom { color: blue; }", OK_S);
+         Test_Support.Assert (OK_S, "the sheet loads");
+         Test_Support.Assert
+           (Adi.CSS_Parser.Styles_For_Class (S, "w") (Any_Part).Enabled,
+            "::any names the part it says");
+         Test_Support.Assert
+           (Adi.CSS_Parser.Styles_For_Class (S, "v") (Custom_Part).Enabled,
+            "and so does ::custom");
+      end;
+
+      --  A dropped block goes whole, and the rest of the sheet
+      --  stands.
+      declare
+         S    : Adi.CSS_Parser.Stylesheet;
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Load_String
+           (S, ".good { color: rgb(4, 5, 6); } .bad::bogus { color: red; }",
+            OK_S);
+         Test_Support.Assert (OK_S, "the sheet loads");
+         Test_Support.Assert
+           (not Adi.CSS_Parser.Has_Class (S, "bad"),
+            "a dropped block takes its selector out of the sheet");
+         Test_Support.Assert
+           (Adi.CSS_Parser.Has_Class (S, "good"),
+            "and the block beside it stands");
+         declare
+            Styles : constant Part_Style_Array :=
+              Adi.CSS_Parser.Styles_For_Class (S, "good");
+            R : constant Resolved_Style :=
+              Compute_Resolved
+                (Styles (Main_Part).Style, No_States, No_States);
+         begin
+            Test_Support.Assert
+              (Is_RGB_Color (R.Color, 4, 5, 6),
+               "the block beside it resolves");
+         end;
+      end;
+
+      --  One rule, two selectors: the good one still lands.
+      declare
+         S    : Adi.CSS_Parser.Stylesheet;
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Testing.Reset_Unsupported;
+         Adi.CSS_Parser.Load_String
+           (S, ".keep, .drop::bogus { color: rgb(7, 8, 9); }", OK_S);
+         Test_Support.Assert (OK_S, "the sheet loads");
+         Test_Support.Assert
+           (Adi.CSS_Parser.Testing.Skipped_Selector_Count = 1,
+            "one selector of the list is reported");
+         Test_Support.Assert
+           (Adi.CSS_Parser.Has_Class (S, "keep"),
+            "and the other one keeps its block");
+      end;
+   end Test_Skipped_Selector_Is_Reported;
+
 begin
    Test_Support.Start_Suite ("CSS parser test");
 
@@ -2035,6 +2236,8 @@ begin
 
    Test_Out_Of_Range_Values;
    Test_No_Declaration_Rejects_The_Sheet;
+   Test_Unsupported_Property_Is_Reported;
+   Test_Skipped_Selector_Is_Reported;
    Test_Var_Resolution;
 
    Test_Font_Family;

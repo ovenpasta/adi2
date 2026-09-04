@@ -51,6 +51,20 @@ Part selectors target sub-elements of a widget using `::part` pseudo-element syn
 | `::scroll` | `Scroll_Part` | Scrollbar track, slider bar |
 | `::knob` | `Knob_Part` | Scrollbar/slider thumb |
 | `::items` | `Items_Part` | Items container |
+| `::any` | `Any_Part` | Every part, as the fallback a part with a style of its own overrides |
+| `::custom` | `Custom_Part` | One slot a widget outside the library gives its own meaning |
+
+A `::part` name outside this table costs the whole rule behind it, and
+both pipelines say so: `tools/css_to_ada.py` as an `unsupported-part`
+diagnostic, `Adi.CSS_Parser` through `Adi.Log`. A selector with nothing
+to name it goes the same way — a bare `.` or `#`, a `::part` or a
+pseudo-class standing alone, a rule whose selector is blank — which the
+generator reports as `malformed-selector`
+and the parser reports with the shape it found.
+
+A stray comma is the exception: an empty segment in a selector list
+costs nothing, since the selectors beside it carry the block. Both
+pipelines pass over one in silence.
 
 Example:
 
@@ -335,6 +349,12 @@ inline `<style>` block.
 
 ## Supported Properties
 
+The sections below cover the whole vocabulary, 98 names, and both pipelines
+carry the same list. A declaration naming anything else is dropped and
+reported: `tools/css_to_ada.py` as an `unsupported-property` diagnostic,
+`Adi.CSS_Parser` through `Adi.Log`. The sheet loads either way, and the
+declarations beside the dropped one still apply.
+
 ### Box Model
 
 | Property | Values | Example |
@@ -418,6 +438,7 @@ Corner radius longhands currently accept a single value only (elliptical two-val
 |----------|--------|---------|
 | `color` | color value | `color: white;` |
 | `background-color` | color value | `background-color: rgb(30, 41, 59);` |
+| `background` | color value; an alias for `background-color` | `background: #1e293b;` |
 | `opacity` | 0.0–1.0 | `opacity: 0.7;` |
 
 ### Typography
@@ -1242,7 +1263,7 @@ Incremental generation for all examples via `tools/generate_example_styles.sh`.
 
 ### Validation Modes
 
-- **Default mode** (no `--strict`): unsupported properties, unsupported `::part` names, and invalid values produce warnings on `stderr`; generation continues.
+- **Default mode** (no `--strict`): unsupported properties, unsupported `::part` names, malformed selectors, and invalid values produce warnings on `stderr`; generation continues.
 - **Strict mode** (`--strict`): any warning-level diagnostic fails generation (exit code `1`) and no output file is written.
 
 ### Generated Code Structure

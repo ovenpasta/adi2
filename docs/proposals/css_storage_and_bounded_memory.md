@@ -398,10 +398,11 @@ fixed width for the search, which leaves the order on the names
 themselves: no name character sorts below a space, so `border` precedes
 `border-top`.
 
-The enumeration is where the parser can answer whether it recognises a
-name at all. `tools/css_to_ada.py` reports an unsupported property and the
-runtime parser passes over one silently, which is a divergence in
-diagnostics rather than in resolution.
+The enumeration is where the parser answers whether it recognises a name
+at all: a name outside the table costs its declaration and is reported
+through `Adi.Log`, where `tools/css_to_ada.py` reports one as
+`unsupported-property`. `tools/test_css_to_ada.py` holds the two name
+lists equal, and the table sorted, since the lookup is a binary search.
 
 ---
 

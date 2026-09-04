@@ -153,6 +153,7 @@ package List_Box_Example_Styles is
      Style_Of
         .Text_Color (RGB (83, 97, 120))
         .Font_Size (Px (13.0))
+        .White_Space (WS_Normal)
         .Text_Overflow (Overflow_Clip)
         .Text_Wrap_Mode (TWM_Wrap)
      .Build;

@@ -1114,6 +1114,18 @@ def parse_selector_with_diagnostics(
             widget_pseudo_part = selector_str[first_colon:]
 
     if not name:
+        #  Adi.CSS_Parser reports the same selector through Adi.Log, and
+        #  names which of the shapes it is.
+        diagnostics.append(
+            CssDiagnostic(
+                code="malformed-selector",
+                message=(
+                    f"Malformed selector '{raw_selector}'; a selector "
+                    "wants a tag, class or id name"
+                ),
+                selector=raw_selector,
+            )
+        )
         return None, diagnostics
 
     widget_states: list[WidgetState] = []
@@ -2367,8 +2379,22 @@ def parse_stylesheet_with_diagnostics(
         properties_str = match.group(2).strip()
 
         # Handle multiple selectors separated by comma
-        for single_selector in selector_str.split(','):
-            selector_text = single_selector.strip()
+        segments = [part.strip() for part in selector_str.split(',')]
+        #  A block with nothing to select is lost whole, where a stray
+        #  comma leaves the selectors beside it carrying it.
+        #  Adi.CSS_Parser draws the same line.
+        if not any(segments):
+            diagnostics.append(
+                CssDiagnostic(
+                    code="malformed-selector",
+                    message="A rule wants a selector",
+                    selector=selector_str,
+                )
+            )
+            continue
+        for selector_text in segments:
+            if not selector_text:
+                continue
             selector, selector_diagnostics = parse_selector_with_diagnostics(selector_text)
             diagnostics.extend(selector_diagnostics)
             if selector is None:

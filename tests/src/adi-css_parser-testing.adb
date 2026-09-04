@@ -24,6 +24,18 @@ package body Adi.CSS_Parser.Testing is
       Probed_Bindings := 0;
    end Reset_Probes;
 
+   function Unsupported_Count return Count is
+     (Count (Unsupported_Declarations));
+
+   function Skipped_Selector_Count return Count is
+     (Count (Unsupported_Selectors));
+
+   procedure Reset_Unsupported is
+   begin
+      Unsupported_Declarations := 0;
+      Unsupported_Selectors := 0;
+   end Reset_Unsupported;
+
    function Selector_Count (Sheet : Stylesheet) return Natural is
      (Adi.CSS_Parser.Selector_Count (Sheet));
 

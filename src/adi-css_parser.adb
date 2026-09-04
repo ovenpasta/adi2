@@ -2226,6 +2226,19 @@ package body Adi.CSS_Parser is
       Colon : Natural;
       Part_Scope : Boolean := False;
       use type Adi.Widget_Properties.Property_Conditions;
+
+      --  A selector passed over costs its whole block, so it is
+      --  reported the way an unsupported property is. Out_Error stays
+      --  empty: it is for a selector that refuses the sheet, which is
+      --  what a property condition the application never declared does.
+      function Skip (Reason : String) return Boolean is
+      begin
+         Unsupported_Selectors := Unsupported_Selectors + 1;
+         Adi.Log.Warning
+           ("css: selector '" & Trimmed (Input) & "' " & Reason
+            & "; the rule is dropped");
+         return False;
+      end Skip;
    begin
       Out_Sel := (others => <>);
       Out_Error := Null_Unbounded_String;
@@ -2245,7 +2258,10 @@ package body Adi.CSS_Parser is
         Conditions /= Adi.Widget_Properties.No_Conditions;
 
       if Length (Raw) = 0 then
-         return False;
+         return Skip
+           (if Conditions /= Adi.Widget_Properties.No_Conditions
+            then "wants a name before its property condition"
+            else "is empty");
       end if;
 
       declare
@@ -2253,13 +2269,13 @@ package body Adi.CSS_Parser is
       begin
          if R (R'First) = '.' then
             if R'Length = 1 then
-               return False;
+               return Skip ("wants a name after '.'");
             end if;
             Out_Sel.Kind := Class_Selector;
             Raw := To_Unbounded_String (R (R'First + 1 .. R'Last));
          elsif R (R'First) = '#' then
             if R'Length = 1 then
-               return False;
+               return Skip ("wants a name after '#'");
             end if;
             Out_Sel.Kind := Id_Selector;
             Raw := To_Unbounded_String (R (R'First + 1 .. R'Last));
@@ -2281,7 +2297,7 @@ package body Adi.CSS_Parser is
       end;
 
       if To_String (Base) = "" then
-         return False;
+         return Skip ("wants a name before '::'");
       end if;
 
       Colon := Fix.Index (To_String (Base), ":");
@@ -2295,7 +2311,7 @@ package body Adi.CSS_Parser is
       end if;
 
       if To_String (Base) = "" then
-         return False;
+         return Skip ("wants a name before ':'");
       end if;
 
       Out_Sel.Name := To_Unbounded_String (Lower (To_String (Base)));
@@ -2313,7 +2329,9 @@ package body Adi.CSS_Parser is
          end if;
 
          if not Parse_Part (To_String (Part), Out_Sel.Part) then
-            return False;
+            return Skip
+              ("carries an unsupported part '"
+               & Lower (Trimmed (To_String (Part))) & "'");
          end if;
 
          Part_Scope := Out_Sel.Part /= Main_Part;
@@ -2596,9 +2614,10 @@ package body Adi.CSS_Parser is
 
       return Decl_Unknown;
    end Decl_Of;
-   procedure Apply_Property (Rules : in out Style_Rules;
-                             Name  : String;
-                             Value : String) is
+   procedure Apply_Property (Rules    : in out Style_Rules;
+                             Selector : String;
+                             Name     : String;
+                             Value    : String) is
       P : constant String := Lower (Trimmed (Name));
       Key : constant Decl_Name := Decl_Of (P);
       V : constant String := Trimmed (Value);
@@ -2631,6 +2650,21 @@ package body Adi.CSS_Parser is
       Border_Width_Val : Parsed_Length;
       Border_Color_Val : Color_Value;
    begin
+      --  Decl_Table is the whole vocabulary, and tools/css_to_ada.py
+      --  answers a name outside it with an unsupported-property
+      --  diagnostic. This is the runtime saying the same. The length
+      --  test is for a declaration that starts at its colon, where the
+      --  name to report is empty.
+      if Key = Decl_Unknown then
+         if P'Length > 0 then
+            Unsupported_Declarations := Unsupported_Declarations + 1;
+            Adi.Log.Warning
+              ("css: unsupported property '" & P & "' in '" & Selector
+               & "'; the declaration is dropped");
+         end if;
+         return;
+      end if;
+
       if Key = D_Color then
          if Parse_Color (V, CVal) then Rules.Color := Set (CVal); end if;
       elsif Key = D_Background_Color or else Key = D_Background then
@@ -3852,7 +3886,7 @@ package body Adi.CSS_Parser is
                begin
                   Metadata.Has_Root_Style := True;
                   Touched := True;
-                  Apply_Property (Base, Prop_Name, Prop_Value);
+                  Apply_Property (Base, ":root", Prop_Name, Prop_Value);
                   if Lower (Prop_Name) = "font-size"
                     and then Opt_Font_Size.Is_Set (Base.Font_Size)
                   then
@@ -3954,6 +3988,15 @@ package body Adi.CSS_Parser is
                   Props_Block : constant String := Trimmed (Clean (Open_Brace + 1 .. Close_Brace - 1));
                   Sel_Pos : Positive := Selector_Block'First;
                begin
+                  --  A block with nothing to select is lost whole, where
+                  --  an empty segment beside other selectors leaves them
+                  --  carrying it.
+                  if Selector_Block'Length = 0 then
+                     Unsupported_Selectors := Unsupported_Selectors + 1;
+                     Adi.Log.Warning
+                       ("css: a rule wants a selector; the rule is dropped");
+                  end if;
+
                   while Sel_Pos <= Selector_Block'Last loop
                      while Sel_Pos <= Selector_Block'Last and then Is_Whitespace (Selector_Block (Sel_Pos)) loop
                         Sel_Pos := Sel_Pos + 1;
@@ -3970,11 +4013,16 @@ package body Adi.CSS_Parser is
                         Sel_Error : Unbounded_String;
                         Rule : Parsed_Rule := (others => <>);
                      begin
-                        if not Parse_Selector (Sel_Text, PS, Sel_Error) then
-                           --  A selector the parser does not recognise is
-                           --  passed over; one that names a property the
-                           --  application never declared takes the sheet
-                           --  with it, so the last good one stands.
+                        if Sel_Text'Length = 0 then
+                           --  A stray comma, which the selectors beside
+                           --  it carry the block for.
+                           null;
+                        elsif not Parse_Selector (Sel_Text, PS, Sel_Error) then
+                           --  A selector the parser passes over is
+                           --  reported and dropped; one that names a
+                           --  property the application never declared
+                           --  takes the sheet with it, so the last good
+                           --  one stands.
                            if Length (Sel_Error) > 0 then
                               Out_Error := Sel_Error;
                               return False;
@@ -4004,6 +4052,7 @@ package body Adi.CSS_Parser is
                                     if Sep > 0 then
                                        Apply_Property (
                                           Rule.Style,
+                                          Sel_Text,
                                           Trimmed (Decl (Decl'First .. Sep - 1)),
                                           Trimmed (Decl (Sep + 1 .. Decl'Last)));
                                     end if;

@@ -19,6 +19,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import css_to_ada
+from css_spec import SUPPORTED_PARTS, all_supported_properties
 from css_to_ada import (
     parse_length,
     parse_color,
@@ -262,6 +263,7 @@ class TestParseSelector(unittest.TestCase):
             ("icon", "Icon_Part"), ("indicator", "Indicator_Part"),
             ("scroll", "Scroll_Part"), ("knob", "Knob_Part"),
             ("items", "Items_Part"),
+            ("any", "Any_Part"), ("custom", "Custom_Part"),
         ]:
             s = parse_selector(f".w::{css_name}")
             self.assertEqual(s.part_kind, ada_name, f"Part {css_name}")
@@ -2451,6 +2453,116 @@ class TestWidgetPropertySelectors(unittest.TestCase):
                 '.a[severity="critical"] { color: red; }',
                 properties_package=None,
             )
+
+
+class TestRuntimeParserVocabulary(unittest.TestCase):
+    """Decl_Table in src/adi-css_parser.adb, against css_spec."""
+
+    @staticmethod
+    def _table():
+        adb = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "src", "adi-css_parser.adb",
+        )
+        with open(adb, "r", encoding="utf-8") as f:
+            source = f.read()
+        table = re.findall(r'\("([a-z-]+) *", *(D_\w+)\)', source)
+        assert table, "Decl_Table not found in " + adb
+        return table
+
+    def test_the_parser_carries_what_the_generator_supports(self):
+        # Both pipelines resolve the same CSS, so both must name the
+        # same properties for a sheet to mean one thing.
+        names = [name for name, _ in self._table()]
+        self.assertEqual(sorted(names), sorted(all_supported_properties()))
+
+    def test_the_table_is_sorted(self):
+        # Decl_Of is a binary search over names padded with spaces, and
+        # no name character sorts below a space, so the padded order is
+        # the plain one. An entry out of place costs the names it hides.
+        names = [name for name, _ in self._table()]
+        self.assertEqual(names, sorted(names))
+
+    def test_each_literal_spells_its_name(self):
+        for name, literal in self._table():
+            expected = "D_" + "_".join(
+                word.capitalize() for word in name.split("-"))
+            self.assertEqual(literal, expected)
+
+    def test_the_parser_carries_the_same_parts(self):
+        # Parse_Part answers a ::part name, and a name it refuses costs
+        # the whole rule. SUPPORTED_PARTS is the generator's half.
+        adb = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "src", "adi-css_parser.adb",
+        )
+        with open(adb, "r", encoding="utf-8") as f:
+            source = f.read()
+        start = source.index("function Parse_Part")
+        body = source[start:source.index("end Parse_Part;", start)]
+        parts = dict(re.findall(r'V = "([a-z]+)" then P := (\w+);', body))
+        self.assertEqual(parts, SUPPORTED_PARTS)
+
+
+class TestMalformedSelectorDiagnostic(unittest.TestCase):
+    """A selector with nothing to name it, reported rather than dropped."""
+
+    @staticmethod
+    def _codes(css):
+        _, diagnostics = parse_stylesheet_with_diagnostics(css)
+        return [d.code for d in diagnostics]
+
+    def test_a_readable_selector_reports_nothing(self):
+        self.assertEqual(self._codes(".a { color: red; }"), [])
+
+    def test_a_bare_class_marker_is_reported(self):
+        self.assertEqual(self._codes(". { color: red; }"),
+                         ["malformed-selector"])
+
+    def test_a_bare_id_marker_is_reported(self):
+        self.assertEqual(self._codes("# { color: red; }"),
+                         ["malformed-selector"])
+
+    def test_a_part_with_no_widget_is_reported(self):
+        self.assertEqual(self._codes("::label { color: red; }"),
+                         ["malformed-selector"])
+
+    def test_a_pseudo_class_alone_is_reported(self):
+        self.assertEqual(self._codes(":hover { color: red; }"),
+                         ["malformed-selector"])
+
+    def test_an_unsupported_part_keeps_its_own_code(self):
+        self.assertEqual(self._codes(".a::bogus { color: red; }"),
+                         ["unsupported-part"])
+
+    def test_a_pseudo_class_leaves_the_part_to_answer_for(self):
+        self.assertEqual(self._codes(".a::bogus:hover { color: red; }"),
+                         ["unsupported-part"])
+
+    def test_a_stray_comma_costs_nothing(self):
+        # The selectors beside it carry the block, so nothing is lost.
+        # Adi.CSS_Parser draws the same line; see
+        # Test_Skipped_Selector_Is_Reported.
+        for css in [".a, { color: red; }",
+                    ", .a { color: red; }",
+                    ".a,, .b { color: red; }"]:
+            self.assertEqual(self._codes(css), [], css)
+
+    def test_a_block_with_nothing_to_select_is_reported(self):
+        self.assertEqual(self._codes("   { color: red; }"),
+                         ["malformed-selector"])
+
+    def test_a_trailing_comma_keeps_its_rule(self):
+        stylesheet, _ = parse_stylesheet_with_diagnostics(
+            ".a, { color: red; }")
+        self.assertEqual([r.selector.name for r in stylesheet.rules], ["a"])
+
+    def test_the_rule_beside_it_still_generates(self):
+        stylesheet, diagnostics = parse_stylesheet_with_diagnostics(
+            ".good { color: red; } . { color: blue; }")
+        self.assertEqual([d.code for d in diagnostics],
+                         ["malformed-selector"])
+        self.assertEqual([r.selector.name for r in stylesheet.rules], ["good"])
 
 
 if __name__ == "__main__":

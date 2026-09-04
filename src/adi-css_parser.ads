@@ -204,6 +204,17 @@ private
    type Binding_Counter is mod 2 ** 32;
    Probed_Bindings : Binding_Counter := 0;
 
+   --  Declarations dropped for naming a property outside the parser's
+   --  table, over every sheet parsed in the process. Each is warned
+   --  about as it goes; the count is what a test can hold. Modular for
+   --  the reason Probed_Bindings is.
+   Unsupported_Declarations : Binding_Counter := 0;
+
+   --  Selectors passed over, on the same terms. One of these costs the
+   --  whole rule block behind it, where a dropped declaration costs
+   --  just itself.
+   Unsupported_Selectors : Binding_Counter := 0;
+
    --  Impls allocated and not yet destroyed, over all sheets.
    function Live_Impl_Count return Natural;
 

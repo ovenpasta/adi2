@@ -645,6 +645,12 @@ def parse_grid_track_count(value: str) -> Optional[int]:
         n = int(m.group(1))
         return n if n > 0 else None
 
+    #  A repeat() whose count is anything but a positive integer is one
+    #  the grammar rejects, rather than a track list to count tokens in.
+    #  Adi.CSS_Parser stops on it the same way.
+    if value.startswith("repeat("):
+        return None
+
     if re.match(r'^\d+$', value):
         n = int(value)
         return n if n > 0 else None
@@ -2021,12 +2027,14 @@ def validate_property_value(property_name: str, value: str) -> bool:
     if validator == "flex-basis":
         return low in {"auto", "content"} or parse_length(value) is not None
     if validator == "grid-template-columns":
-        return (
+        #  none is the property's initial value: it names no explicit
+        #  track. Adi.CSS_Parser reads it as a count of zero.
+        return low == "none" or (
             parse_grid_track_list(value) is not None
             or parse_grid_track_count(value) is not None
         )
     if validator == "grid-template-rows":
-        return parse_grid_track_count(value) is not None
+        return low == "none" or parse_grid_track_count(value) is not None
     if validator == "grid-placement":
         if low == "auto":
             return True
@@ -3404,6 +3412,9 @@ def generate_style_chain_ada(properties: dict[str, str]) -> list[str]:
 
         # Grid container
         elif prop == "grid-template-columns":
+            if value.strip().lower() == "none":
+                fields.append("Grid_Columns (Grid_Columns_Value (0))")
+                continue
             track_list = parse_grid_track_list(value)
             if track_list is not None:
                 n = len(track_list)
@@ -3433,9 +3444,12 @@ def generate_style_chain_ada(properties: dict[str, str]) -> list[str]:
                         f"Grid_Columns (Grid_Columns_Value ({count}))")
 
         elif prop == "grid-template-rows":
-            tracks = parse_grid_track_count(value)
-            if tracks is not None:
-                ada_field = f"Grid_Rows (Grid_Rows_Value ({tracks}))"
+            if value.strip().lower() == "none":
+                ada_field = "Grid_Rows (Grid_Rows_Value (0))"
+            else:
+                tracks = parse_grid_track_count(value)
+                if tracks is not None:
+                    ada_field = f"Grid_Rows (Grid_Rows_Value ({tracks}))"
 
         # Grid item placement
         elif prop == "grid-column":

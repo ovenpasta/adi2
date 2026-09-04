@@ -215,6 +215,12 @@ private
    --  just itself.
    Unsupported_Selectors : Binding_Counter := 0;
 
+   --  Declarations whose property is one the parser carries and whose
+   --  value is one that property can hold none of. Counted apart from
+   --  the two above: what a sheet gets wrong here is the value, where
+   --  there it is the name.
+   Invalid_Declarations : Binding_Counter := 0;
+
    --  Impls allocated and not yet destroyed, over all sheets.
    function Live_Impl_Count return Natural;
 

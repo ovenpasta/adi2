@@ -30,11 +30,15 @@ package body Adi.CSS_Parser.Testing is
    function Skipped_Selector_Count return Count is
      (Count (Unsupported_Selectors));
 
-   procedure Reset_Unsupported is
+   function Invalid_Value_Count return Count is
+     (Count (Invalid_Declarations));
+
+   procedure Reset_Reports is
    begin
       Unsupported_Declarations := 0;
       Unsupported_Selectors := 0;
-   end Reset_Unsupported;
+      Invalid_Declarations := 0;
+   end Reset_Reports;
 
    function Selector_Count (Sheet : Stylesheet) return Natural is
      (Adi.CSS_Parser.Selector_Count (Sheet));

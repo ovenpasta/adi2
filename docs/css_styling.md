@@ -355,6 +355,13 @@ reported: `tools/css_to_ada.py` as an `unsupported-property` diagnostic,
 `Adi.CSS_Parser` through `Adi.Log`. The sheet loads either way, and the
 declarations beside the dropped one still apply.
 
+A value the property's grammar rejects costs its declaration the same
+way: `invalid-property-value` from the generator, `Adi.Log` from the
+parser. A shorthand answers for the whole declaration rather than each
+property it can fill, so `border: 1px solid` carries on its width and
+style alone, while `border: 1px solid red junk` costs the whole rule
+over the one token neither pipeline reads.
+
 ### Box Model
 
 | Property | Values | Example |
@@ -556,8 +563,8 @@ Two of those values are accepted but not yet acted on:
 
 | Property | Values | Example |
 |----------|--------|---------|
-| `grid-template-columns` | track list or `repeat(N, size)` | `grid-template-columns: auto auto 1fr;` |
-| `grid-template-rows` | column count or `repeat(N, ...)` | `grid-template-rows: repeat(2, 1fr);` |
+| `grid-template-columns` | track list, `repeat(N, size)`, or `none` | `grid-template-columns: auto auto 1fr;` |
+| `grid-template-rows` | row count, `repeat(N, ...)`, or `none` | `grid-template-rows: repeat(2, 1fr);` |
 | `grid-column` | start / span | `grid-column: 2;` |
 | `grid-row` | start / span | `grid-row: 1 / span 2;` |
 
@@ -625,7 +632,7 @@ Unlike `border`, outline does not shift surrounding content and respects `border
 
 | Property | Values | Example |
 |----------|--------|---------|
-| `box-shadow` | offset-x offset-y blur spread color | `box-shadow: 0 4px 12px rgba(0,0,0,0.2);` |
+| `box-shadow` | offset-x offset-y blur spread color, the color in any form and either side of the lengths | `box-shadow: 0 4px 12px rgba(0,0,0,0.2);` `box-shadow: 0 2px 4px #1e293b;` |
 | `cursor` | `auto`, `default`, `pointer`, `text`, `move`, `not-allowed`, `wait`, `crosshair`, `grab`, `grabbing`, `ns-resize`, `ew-resize`, `nesw-resize`, `nwse-resize` | `cursor: pointer;` |
 
 ### Background Images

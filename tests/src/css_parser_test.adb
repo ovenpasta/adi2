@@ -1979,7 +1979,7 @@ procedure Css_Parser_Test is
          S    : Adi.CSS_Parser.Stylesheet;
          OK_S : Boolean;
       begin
-         Adi.CSS_Parser.Testing.Reset_Unsupported;
+         Adi.CSS_Parser.Testing.Reset_Reports;
          Adi.CSS_Parser.Load_String (S, Text, OK_S);
          Test_Support.Assert (OK_S, "the sheet still loads: " & Text);
          return Adi.CSS_Parser.Testing.Unsupported_Count;
@@ -2061,7 +2061,7 @@ procedure Css_Parser_Test is
          S    : Adi.CSS_Parser.Stylesheet;
          OK_S : Boolean;
       begin
-         Adi.CSS_Parser.Testing.Reset_Unsupported;
+         Adi.CSS_Parser.Testing.Reset_Reports;
          Adi.CSS_Parser.Load_String (S, Text, OK_S);
          Test_Support.Assert (OK_S, "the sheet still loads: " & Text);
          return Adi.CSS_Parser.Testing.Skipped_Selector_Count;
@@ -2156,7 +2156,7 @@ procedure Css_Parser_Test is
          S    : Adi.CSS_Parser.Stylesheet;
          OK_S : Boolean;
       begin
-         Adi.CSS_Parser.Testing.Reset_Unsupported;
+         Adi.CSS_Parser.Testing.Reset_Reports;
          Adi.CSS_Parser.Load_String
            (S, ".keep, .drop::bogus { color: rgb(7, 8, 9); }", OK_S);
          Test_Support.Assert (OK_S, "the sheet loads");
@@ -2168,6 +2168,410 @@ procedure Css_Parser_Test is
             "and the other one keeps its block");
       end;
    end Test_Skipped_Selector_Is_Reported;
+
+   --  Every property name the parser carries, driven twice: once with a
+   --  value its grammar rejects, once with one it reads. The first says
+   --  the branch reports; the second says it reports only then, which
+   --  is what a shorthand with a component left unnamed would break.
+   --
+   --  font-family stands out of both: every family list the length
+   --  limit admits is a value it holds, and Fits_In_Style reports the
+   --  ones past that limit in its own words.
+   procedure Test_Invalid_Value_Is_Reported is
+      use type Adi.CSS_Parser.Testing.Count;
+      type Text is access constant String;
+      type Decl is record
+         Name : Text;
+         Val  : Text;
+      end record;
+      type Decl_List is array (Positive range <>) of Decl;
+
+      Rejected : constant Decl_List :=
+        [
+         (new String'("align-content"), new String'("$$$$$$")),
+         (new String'("align-items"), new String'("$$$$$$")),
+         (new String'("align-self"), new String'("$$$$$$")),
+         (new String'("background"), new String'("$$$$$$")),
+         (new String'("background-color"), new String'("$$$$$$")),
+         (new String'("background-image"), new String'("$$$$$$")),
+         (new String'("border"), new String'("$$$$$$")),
+         (new String'("border-bottom"), new String'("$$$$$$")),
+         (new String'("border-bottom-color"), new String'("$$$$$$")),
+         (new String'("border-bottom-left-radius"), new String'("$$$$$$")),
+         (new String'("border-bottom-right-radius"), new String'("$$$$$$")),
+         (new String'("border-bottom-style"), new String'("$$$$$$")),
+         (new String'("border-bottom-width"), new String'("$$$$$$")),
+         (new String'("border-color"), new String'("$$$$$$")),
+         (new String'("border-left"), new String'("$$$$$$")),
+         (new String'("border-left-color"), new String'("$$$$$$")),
+         (new String'("border-left-style"), new String'("$$$$$$")),
+         (new String'("border-left-width"), new String'("$$$$$$")),
+         (new String'("border-radius"), new String'("$$$$$$")),
+         (new String'("border-right"), new String'("$$$$$$")),
+         (new String'("border-right-color"), new String'("$$$$$$")),
+         (new String'("border-right-style"), new String'("$$$$$$")),
+         (new String'("border-right-width"), new String'("$$$$$$")),
+         (new String'("border-style"), new String'("$$$$$$")),
+         (new String'("border-top"), new String'("$$$$$$")),
+         (new String'("border-top-color"), new String'("$$$$$$")),
+         (new String'("border-top-left-radius"), new String'("$$$$$$")),
+         (new String'("border-top-right-radius"), new String'("$$$$$$")),
+         (new String'("border-top-style"), new String'("$$$$$$")),
+         (new String'("border-top-width"), new String'("$$$$$$")),
+         (new String'("border-width"), new String'("$$$$$$")),
+         (new String'("bottom"), new String'("$$$$$$")),
+         (new String'("box-shadow"), new String'("$$$$$$")),
+         (new String'("color"), new String'("$$$$$$")),
+         (new String'("column-gap"), new String'("$$$$$$")),
+         (new String'("cursor"), new String'("$$$$$$")),
+         (new String'("display"), new String'("$$$$$$")),
+         (new String'("flex-basis"), new String'("$$$$$$")),
+         (new String'("flex-direction"), new String'("$$$$$$")),
+         (new String'("flex-grow"), new String'("$$$$$$")),
+         (new String'("flex-shrink"), new String'("$$$$$$")),
+         (new String'("flex-wrap"), new String'("$$$$$$")),
+         (new String'("font-size"), new String'("$$$$$$")),
+         (new String'("font-style"), new String'("$$$$$$")),
+         (new String'("font-weight"), new String'("$$$$$$")),
+         (new String'("gap"), new String'("$$$$$$")),
+         (new String'("grid-column"), new String'("$$$$$$")),
+         (new String'("grid-row"), new String'("$$$$$$")),
+         (new String'("grid-template-columns"), new String'("repeat(x, 1fr)")),
+         (new String'("grid-template-rows"), new String'("repeat(x, 1fr)")),
+         (new String'("height"), new String'("$$$$$$")),
+         (new String'("justify-content"), new String'("$$$$$$")),
+         (new String'("left"), new String'("$$$$$$")),
+         (new String'("line-height"), new String'("$$$$$$")),
+         (new String'("list-style"), new String'("$$$$$$")),
+         (new String'("list-style-image"), new String'("$$$$$$")),
+         (new String'("list-style-position"), new String'("$$$$$$")),
+         (new String'("list-style-type"), new String'("$$$$$$")),
+         (new String'("margin"), new String'("$$$$$$")),
+         (new String'("margin-bottom"), new String'("$$$$$$")),
+         (new String'("margin-left"), new String'("$$$$$$")),
+         (new String'("margin-right"), new String'("$$$$$$")),
+         (new String'("margin-top"), new String'("$$$$$$")),
+         (new String'("max-height"), new String'("$$$$$$")),
+         (new String'("max-width"), new String'("$$$$$$")),
+         (new String'("min-height"), new String'("$$$$$$")),
+         (new String'("min-width"), new String'("$$$$$$")),
+         (new String'("object-fit"), new String'("$$$$$$")),
+         (new String'("object-position"), new String'("$$$$$$")),
+         (new String'("opacity"), new String'("$$$$$$")),
+         (new String'("order"), new String'("$$$$$$")),
+         (new String'("outline"), new String'("$$$$$$")),
+         (new String'("outline-color"), new String'("$$$$$$")),
+         (new String'("outline-offset"), new String'("$$$$$$")),
+         (new String'("outline-style"), new String'("$$$$$$")),
+         (new String'("outline-width"), new String'("$$$$$$")),
+         (new String'("overflow"), new String'("$$$$$$")),
+         (new String'("overflow-x"), new String'("$$$$$$")),
+         (new String'("overflow-y"), new String'("$$$$$$")),
+         (new String'("padding"), new String'("$$$$$$")),
+         (new String'("padding-bottom"), new String'("$$$$$$")),
+         (new String'("padding-left"), new String'("$$$$$$")),
+         (new String'("padding-right"), new String'("$$$$$$")),
+         (new String'("padding-top"), new String'("$$$$$$")),
+         (new String'("position"), new String'("$$$$$$")),
+         (new String'("right"), new String'("$$$$$$")),
+         (new String'("row-gap"), new String'("$$$$$$")),
+         (new String'("text-align"), new String'("$$$$$$")),
+         (new String'("text-decoration"), new String'("$$$$$$")),
+         (new String'("text-overflow"), new String'("$$$$$$")),
+         (new String'("text-wrap-mode"), new String'("$$$$$$")),
+         (new String'("top"), new String'("$$$$$$")),
+         (new String'("transition"), new String'("$$$$$$")),
+         (new String'("vertical-align"), new String'("$$$$$$")),
+         (new String'("visibility"), new String'("$$$$$$")),
+         (new String'("white-space"), new String'("$$$$$$")),
+         (new String'("width"), new String'("$$$$$$"))];
+
+      Read : constant Decl_List :=
+        [
+         (new String'("align-content"), new String'("center")),
+         (new String'("align-items"), new String'("center")),
+         (new String'("align-self"), new String'("center")),
+         (new String'("background"), new String'("red")),
+         (new String'("background-color"), new String'("red")),
+         (new String'("background-image"), new String'("none")),
+         (new String'("border"), new String'("1px solid red")),
+         (new String'("border-bottom"), new String'("1px solid red")),
+         (new String'("border-bottom-color"), new String'("red")),
+         (new String'("border-bottom-left-radius"), new String'("4px")),
+         (new String'("border-bottom-right-radius"), new String'("4px")),
+         (new String'("border-bottom-style"), new String'("solid")),
+         (new String'("border-bottom-width"), new String'("1px")),
+         (new String'("border-color"), new String'("red")),
+         (new String'("border-left"), new String'("1px solid red")),
+         (new String'("border-left-color"), new String'("red")),
+         (new String'("border-left-style"), new String'("solid")),
+         (new String'("border-left-width"), new String'("1px")),
+         (new String'("border-radius"), new String'("4px")),
+         (new String'("border-right"), new String'("1px solid red")),
+         (new String'("border-right-color"), new String'("red")),
+         (new String'("border-right-style"), new String'("solid")),
+         (new String'("border-right-width"), new String'("1px")),
+         (new String'("border-style"), new String'("solid")),
+         (new String'("border-top"), new String'("1px solid red")),
+         (new String'("border-top-color"), new String'("red")),
+         (new String'("border-top-left-radius"), new String'("4px")),
+         (new String'("border-top-right-radius"), new String'("4px")),
+         (new String'("border-top-style"), new String'("solid")),
+         (new String'("border-top-width"), new String'("1px")),
+         (new String'("border-width"), new String'("1px")),
+         (new String'("bottom"), new String'("4px")),
+         (new String'("box-shadow"), new String'("0px 1px 2px red")),
+         (new String'("color"), new String'("red")),
+         (new String'("column-gap"), new String'("4px")),
+         (new String'("cursor"), new String'("pointer")),
+         (new String'("display"), new String'("flex")),
+         (new String'("flex-basis"), new String'("4px")),
+         (new String'("flex-direction"), new String'("row")),
+         (new String'("flex-grow"), new String'("1")),
+         (new String'("flex-shrink"), new String'("1")),
+         (new String'("flex-wrap"), new String'("wrap")),
+         (new String'("font-size"), new String'("12px")),
+         (new String'("font-style"), new String'("italic")),
+         (new String'("font-weight"), new String'("700")),
+         (new String'("gap"), new String'("4px")),
+         (new String'("grid-column"), new String'("1")),
+         (new String'("grid-row"), new String'("1")),
+         (new String'("grid-template-columns"), new String'("1fr 1fr")),
+         (new String'("grid-template-rows"), new String'("1fr 1fr")),
+         (new String'("height"), new String'("4px")),
+         (new String'("justify-content"), new String'("center")),
+         (new String'("left"), new String'("4px")),
+         (new String'("line-height"), new String'("1.5")),
+         (new String'("list-style"), new String'("disc")),
+         (new String'("list-style-image"), new String'("none")),
+         (new String'("list-style-position"), new String'("inside")),
+         (new String'("list-style-type"), new String'("disc")),
+         (new String'("margin"), new String'("4px")),
+         (new String'("margin-bottom"), new String'("4px")),
+         (new String'("margin-left"), new String'("4px")),
+         (new String'("margin-right"), new String'("4px")),
+         (new String'("margin-top"), new String'("4px")),
+         (new String'("max-height"), new String'("4px")),
+         (new String'("max-width"), new String'("4px")),
+         (new String'("min-height"), new String'("4px")),
+         (new String'("min-width"), new String'("4px")),
+         (new String'("object-fit"), new String'("cover")),
+         (new String'("object-position"), new String'("center")),
+         (new String'("opacity"), new String'("0.5")),
+         (new String'("order"), new String'("1")),
+         (new String'("outline"), new String'("1px solid red")),
+         (new String'("outline-color"), new String'("red")),
+         (new String'("outline-offset"), new String'("2px")),
+         (new String'("outline-style"), new String'("solid")),
+         (new String'("outline-width"), new String'("1px")),
+         (new String'("overflow"), new String'("hidden")),
+         (new String'("overflow-x"), new String'("hidden")),
+         (new String'("overflow-y"), new String'("hidden")),
+         (new String'("padding"), new String'("4px")),
+         (new String'("padding-bottom"), new String'("4px")),
+         (new String'("padding-left"), new String'("4px")),
+         (new String'("padding-right"), new String'("4px")),
+         (new String'("padding-top"), new String'("4px")),
+         (new String'("position"), new String'("absolute")),
+         (new String'("right"), new String'("4px")),
+         (new String'("row-gap"), new String'("4px")),
+         (new String'("text-align"), new String'("center")),
+         (new String'("text-decoration"), new String'("underline")),
+         (new String'("text-overflow"), new String'("ellipsis")),
+         (new String'("text-wrap-mode"), new String'("wrap")),
+         (new String'("top"), new String'("4px")),
+         (new String'("transition"), new String'("color 200ms ease-out")),
+         (new String'("vertical-align"), new String'("middle")),
+         (new String'("visibility"), new String'("hidden")),
+         (new String'("white-space"), new String'("nowrap")),
+         (new String'("width"), new String'("4px"))];
+
+      function Reports (D : Decl) return Adi.CSS_Parser.Testing.Count is
+         Doc : constant String :=
+           ".u { " & D.Name.all & ": " & D.Val.all & "; }";
+         S    : Adi.CSS_Parser.Stylesheet;
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Testing.Reset_Reports;
+         Adi.CSS_Parser.Load_String (S, Doc, OK_S);
+         Test_Support.Assert (OK_S, "the sheet still loads: " & Doc);
+         Test_Support.Assert
+           (Adi.CSS_Parser.Testing.Unsupported_Count = 0,
+            "the parser carries the name: " & D.Name.all);
+         return Adi.CSS_Parser.Testing.Invalid_Value_Count;
+      end Reports;
+   begin
+      for D of Rejected loop
+         Test_Support.Assert
+           (Reports (D) = 1,
+            "a value the grammar rejects is reported: "
+            & D.Name.all & ": " & D.Val.all);
+      end loop;
+
+      for D of Read loop
+         Test_Support.Assert
+           (Reports (D) = 0,
+            "a value the grammar reads is carried: "
+            & D.Name.all & ": " & D.Val.all);
+      end loop;
+
+      --  A shorthand carries a component left unnamed and drops the
+      --  whole declaration over a token it cannot read, which is where
+      --  tools/css_to_ada.py stops.
+      for D of Decl_List'
+        [(new String'("border"), new String'("1px solid")),
+         (new String'("border-top"), new String'("solid red")),
+         (new String'("outline"), new String'("1px solid")),
+         (new String'("list-style"), new String'("disc")),
+         (new String'("box-shadow"), new String'("1px 2px")),
+         (new String'("grid-template-columns"), new String'("none")),
+         (new String'("grid-template-rows"), new String'("none")),
+         (new String'("grid-column"), new String'("auto")),
+         (new String'("grid-row"), new String'("auto")),
+         (new String'("grid-column"), new String'("span 2")),
+         (new String'("grid-column"), new String'("3 / 5"))]
+      loop
+         Test_Support.Assert
+           (Reports (D) = 0,
+            "a shorthand carries what it names: "
+            & D.Name.all & ": " & D.Val.all);
+      end loop;
+
+      for D of Decl_List'
+        [(new String'("border"), new String'("1px solid red junk")),
+         (new String'("border-left"), new String'("1px junk")),
+         (new String'("outline"), new String'("1px junk")),
+         (new String'("list-style"), new String'("disc junk")),
+         (new String'("box-shadow"), new String'("1px 2px junk"))]
+      loop
+         Test_Support.Assert
+           (Reports (D) = 1,
+            "one token it cannot read costs the declaration: "
+            & D.Name.all & ": " & D.Val.all);
+      end loop;
+
+      --  Parse_Rules walks a selector list rule by rule, so a
+      --  declaration under two selectors is answered for under each.
+      declare
+         S    : Adi.CSS_Parser.Stylesheet;
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Testing.Reset_Reports;
+         Adi.CSS_Parser.Load_String (S, ".a, .b { color: $$$; }", OK_S);
+         Test_Support.Assert (OK_S, "the sheet loads");
+         Test_Support.Assert
+           (Adi.CSS_Parser.Testing.Invalid_Value_Count = 2,
+            "a selector list reports the declaration once per selector");
+      end;
+   end Test_Invalid_Value_Is_Reported;
+
+   --  box-shadow takes its colour from any of the forms Parse_Color
+   --  reads, which is what tools/css_to_ada.py takes it from. The two
+   --  pipelines resolve one sheet, so a colour one of them reads and
+   --  the other drops would render a compiled sheet and a live-reloaded
+   --  one differently.
+   procedure Test_Shadow_Takes_Any_Colour is
+      function Shadow_Of (Value : String) return Box_Shadow_Value is
+         S    : Adi.CSS_Parser.Stylesheet;
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Load_String
+           (S, ".sh { box-shadow: " & Value & "; }", OK_S);
+         Test_Support.Assert (OK_S, "the sheet loads: " & Value);
+         declare
+            Styles : constant Part_Style_Array :=
+              Adi.CSS_Parser.Styles_For_Class (S, "sh");
+            R : constant Resolved_Style :=
+              Compute_Resolved
+                (Styles (Main_Part).Style, No_States, No_States);
+         begin
+            return R.Box_Shadow;
+         end;
+      end Shadow_Of;
+
+      Named : constant Box_Shadow_Value := Shadow_Of ("1px 2px 4px red");
+      Hex   : constant Box_Shadow_Value := Shadow_Of ("1px 2px 4px #ff8800");
+      Func  : constant Box_Shadow_Value :=
+        Shadow_Of ("1px 2px 4px rgba(1, 2, 3, 0.5)");
+      Plain : constant Box_Shadow_Value := Shadow_Of ("1px 2px 4px");
+      --  Four distinct lengths, so a pair read in the wrong order or a
+      --  spread left behind shows up as a value rather than a zero.
+      Spread : constant Box_Shadow_Value :=
+        Shadow_Of ("1px 2px 3px 4px red");
+      --  CSS puts the colour before or after the lengths.
+      First  : constant Box_Shadow_Value := Shadow_Of ("red 1px 2px 3px");
+   begin
+      Test_Support.Assert
+        (Is_Named_Color (Named.Color, Red), "a named colour is read");
+      Test_Support.Assert
+        (Named.Offset_Y.Amount = 2.0 and then Named.Blur_Radius.Amount = 4.0,
+         "and the lengths beside it stand");
+      Test_Support.Assert
+        (Is_RGB_Color (Hex.Color, 255, 136, 0), "a hex colour is read");
+      Test_Support.Assert
+        (Hex.Blur_Radius.Amount = 4.0, "and its lengths stand");
+      Test_Support.Assert
+        (Is_RGBA_Color (Func.Color, 1, 2, 3, 0.5), "so is a function one");
+      Test_Support.Assert
+        (Plain.Offset_X.Amount = 1.0 and then Plain.Offset_Y.Amount = 2.0,
+         "a shadow of lengths alone keeps them");
+
+      Test_Support.Assert
+        (Spread.Offset_X.Amount = 1.0
+           and then Spread.Offset_Y.Amount = 2.0
+           and then Spread.Blur_Radius.Amount = 3.0
+           and then Spread.Spread_Radius.Amount = 4.0,
+         "four lengths land in the order they were written");
+      Test_Support.Assert
+        (Is_Named_Color (Spread.Color, Red), "beside their colour");
+
+      Test_Support.Assert
+        (Is_Named_Color (First.Color, Red)
+           and then First.Offset_X.Amount = 1.0
+           and then First.Offset_Y.Amount = 2.0
+           and then First.Blur_Radius.Amount = 3.0,
+         "a colour written first leaves the lengths in order");
+   end Test_Shadow_Takes_Any_Colour;
+
+   --  none is the initial value of both grid-template properties and
+   --  names no explicit track. CSS leaves what appears to the implicit
+   --  grid and grid-auto-*, neither of which Adi carries, so a count of
+   --  zero is what stands for it -- the value Grid_Rows already uses.
+   procedure Test_Grid_Template_None is
+      function Resolved (Text : String) return Resolved_Style is
+         S    : Adi.CSS_Parser.Stylesheet;
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Load_String (S, ".g { " & Text & " }", OK_S);
+         Test_Support.Assert (OK_S, "the sheet loads: " & Text);
+         declare
+            Styles : constant Part_Style_Array :=
+              Adi.CSS_Parser.Styles_For_Class (S, "g");
+         begin
+            return Compute_Resolved
+              (Styles (Main_Part).Style, No_States, No_States);
+         end;
+      end Resolved;
+
+      Named : constant Resolved_Style :=
+        Resolved ("grid-template-columns: 1fr 2fr; grid-template-rows: 3;");
+      Cleared : constant Resolved_Style :=
+        Resolved ("grid-template-columns: 1fr 2fr;"
+                  & " grid-template-columns: none;"
+                  & " grid-template-rows: none;");
+   begin
+      Test_Support.Assert
+        (Named.Grid_Columns = 2 and then Named.Grid_Column_Tracks.Count = 2,
+         "a track list names its tracks");
+      Test_Support.Assert (Named.Grid_Rows = 3, "and a count its rows");
+
+      Test_Support.Assert
+        (Cleared.Grid_Columns = 0
+           and then Cleared.Grid_Column_Tracks.Count = 0,
+         "none leaves a column count of zero, and the tracks with it");
+      Test_Support.Assert
+        (Cleared.Grid_Rows = 0, "and a row count of zero");
+   end Test_Grid_Template_None;
 
 begin
    Test_Support.Start_Suite ("CSS parser test");
@@ -2238,6 +2642,9 @@ begin
    Test_No_Declaration_Rejects_The_Sheet;
    Test_Unsupported_Property_Is_Reported;
    Test_Skipped_Selector_Is_Reported;
+   Test_Invalid_Value_Is_Reported;
+   Test_Shadow_Takes_Any_Colour;
+   Test_Grid_Template_None;
    Test_Var_Resolution;
 
    Test_Font_Family;

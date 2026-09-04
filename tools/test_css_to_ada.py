@@ -2565,5 +2565,30 @@ class TestMalformedSelectorDiagnostic(unittest.TestCase):
         self.assertEqual([r.selector.name for r in stylesheet.rules], ["good"])
 
 
+class TestGridTemplateNone(unittest.TestCase):
+    """none names no explicit track, which is a count of zero."""
+
+    def test_none_is_a_value_both_pipelines_read(self):
+        for prop in ("grid-template-columns", "grid-template-rows"):
+            self.assertTrue(validate_property_value(prop, "none"), prop)
+
+    def test_none_generates_a_zero_count(self):
+        self.assertIn(
+            "Grid_Columns (Grid_Columns_Value (0))",
+            "\n".join(generate_style_chain_ada(
+                {"grid-template-columns": "none"})))
+        self.assertIn(
+            "Grid_Rows (Grid_Rows_Value (0))",
+            "\n".join(generate_style_chain_ada(
+                {"grid-template-rows": "none"})))
+
+    def test_a_repeat_with_no_count_stays_rejected(self):
+        # The whitespace fallback would otherwise read it as two tracks,
+        # where Adi.CSS_Parser stops on the repeat( form itself.
+        for prop in ("grid-template-columns", "grid-template-rows"):
+            self.assertFalse(
+                validate_property_value(prop, "repeat(x, 1fr)"), prop)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -29,12 +29,14 @@ package Adi.CSS_Parser.Testing is
    function Probe_Count return Count;
    procedure Reset_Probes;
 
-   --  Declarations dropped since the last reset for naming a property
-   --  outside the parser's table, and selectors passed over in the same
-   --  window. Reset_Unsupported clears both.
+   --  What the parser reported since the last reset: declarations
+   --  naming a property outside its table, selectors it passed over,
+   --  and declarations whose value their property can hold none of.
+   --  Reset_Reports clears all three.
    function Unsupported_Count return Count;
    function Skipped_Selector_Count return Count;
-   procedure Reset_Unsupported;
+   function Invalid_Value_Count return Count;
+   procedure Reset_Reports;
 
    --  The selectors a sheet names, so a differential test can walk all
    --  of them, and the scan the selector index replaced.

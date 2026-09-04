@@ -716,6 +716,9 @@ package body Adi.Font is
       return "";
    end Get_Path;
 
+   function Sized_Cache_Entries return Natural is
+     (Natural (Sized_Cache.Length));
+
    function Get_Generation (Handle : Font_Handle) return Natural is
       H : constant Font_Handle := Canonical_Handle (Handle);
    begin
@@ -724,6 +727,24 @@ package body Adi.Font is
       end if;
       return Family_Generation.Element (Positive (H));
    end Get_Generation;
+
+   --  The handle a sized-font key is built from. A null one stands for
+   --  whatever Find_Fallback settled on, so naming that handle is what
+   --  lets the key follow it: to another face when Set_Default_Font
+   --  names one, and to another generation when a variant of the face
+   --  in hand arrives. Reaching for the global environment counter here
+   --  instead would answer both, and would also answer every unrelated
+   --  font load, each one stranding a TTF_Font the cache holds for the
+   --  life of the process.
+   function Effective_Handle (Handle : Font_Handle) return Font_Handle is
+      H : constant Font_Handle := Canonical_Handle (Handle);
+   begin
+      if H /= Null_Font then
+         return H;
+      end if;
+      Find_Fallback;
+      return Default_Fallback_Handle;
+   end Effective_Handle;
 
    Env_Generation : Font_Generation := 0;
 
@@ -1541,7 +1562,7 @@ package body Adi.Font is
          Decoration => Attrs.Decoration,
          Line_Skip  => Attrs.Line_Skip,
          Wrap_Align => Attrs.Wrap_Align);
-      H      : constant Font_Handle := Canonical_Handle (Norm.Family);
+      H      : constant Font_Handle := Effective_Handle (Norm.Family);
       Key    : constant Sized_Font_Key :=
         (Attrs      => (Family     => H,
                         Size       => Norm.Size,

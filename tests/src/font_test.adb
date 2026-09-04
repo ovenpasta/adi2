@@ -9,6 +9,7 @@ with Adi.Build_Target;
 with Adi.CSS_Styles;       use Adi.CSS_Styles;
 with Adi.Core;
 with Adi.Font;
+with Adi.Font.Testing;
 with Test_Support;
 
 procedure Font_Test is
@@ -560,6 +561,108 @@ begin
          end;
          TTF_DestroySurfaceTextEngine (Engine);
       end if;
+   end;
+
+   ---------------------------------------------------------------------
+   --  The fallback a later Set_Default_Font names
+   ---------------------------------------------------------------------
+
+   Test_Support.Section ("Set_Default_Font reaches text already drawn");
+   declare
+      Sample : constant String := "Hello World!";
+      --  A size the sections above leave alone, so what this measures
+      --  is opened here rather than served from an earlier key.
+      Size   : constant Float := 17.0;
+      Plain  : constant Font_Handle :=
+        Adi.Font.Load ("vendor/open-sans/static/OpenSans-Regular.ttf");
+      Narrow : constant Font_Handle :=
+        Adi.Font.Load ("vendor/open-sans/static/OpenSans_Condensed-Bold.ttf");
+      use type Adi.Core.Size_2D;
+      use type Adi.Core.Pixel_Type;
+   begin
+      if Plain = Null_Font or else Narrow = Null_Font then
+         Test_Support.Assert (False, "both faces load");
+      else
+         declare
+            Plain_Own  : constant Adi.Core.Size_2D :=
+              Adi.Font.Measure_Text (Plain, Sample, Size);
+            Narrow_Own : constant Adi.Core.Size_2D :=
+              Adi.Font.Measure_Text (Narrow, Sample, Size);
+         begin
+            --  Asserted first: two faces that measured alike would let
+            --  every comparison below pass on nothing.
+            Test_Support.Assert
+              (Plain_Own.Width /= Narrow_Own.Width,
+               "the two faces measure apart, so a comparison can tell "
+               & "them apart");
+
+            Adi.Font.Set_Default_Font (Plain);
+            declare
+               First : constant Adi.Core.Size_2D :=
+                 Adi.Font.Measure_Text (Null_Font, Sample, Size);
+            begin
+               Test_Support.Assert
+                 (First.Width = Plain_Own.Width,
+                  "text with no family of its own measures as the "
+                  & "default font");
+
+               Adi.Font.Set_Default_Font (Narrow);
+               declare
+                  Second : constant Adi.Core.Size_2D :=
+                    Adi.Font.Measure_Text (Null_Font, Sample, Size);
+               begin
+                  Put_Line ("  plain" & Plain_Own.Width'Image
+                            & "  narrow" & Narrow_Own.Width'Image
+                            & "  after the change" & Second.Width'Image);
+                  Test_Support.Assert
+                    (Second.Width = Narrow_Own.Width,
+                     "and follows the default font to the next one");
+               end;
+            end;
+         end;
+      end if;
+   end;
+
+   ---------------------------------------------------------------------
+   --  What an unrelated font load costs the fallback's cached instance
+   ---------------------------------------------------------------------
+
+   Test_Support.Section ("a font load leaves the fallback's instance alone");
+   declare
+      Sample : constant String := "Hello World!";
+      --  A size no section above reaches for.
+      Size   : constant Float := 19.0;
+      Held   : Natural;
+      Ignore : Font_Handle;
+      use type Adi.Core.Size_2D;
+   begin
+      declare
+         Warm : constant Adi.Core.Size_2D :=
+           Adi.Font.Measure_Text (Null_Font, Sample, Size);
+         pragma Unreferenced (Warm);
+      begin
+         Held := Adi.Font.Testing.Sized_Fonts_Held;
+      end;
+
+      --  Registering any face moves the environment generation, whether
+      --  or not the fallback names it. A key built from that counter
+      --  would open a second instance of the face already in hand, and
+      --  nothing releases the first.
+      Ignore := Adi.Font.Load
+        ("vendor/open-sans/static/OpenSans-Medium.ttf");
+
+      declare
+         Again : constant Adi.Core.Size_2D :=
+           Adi.Font.Measure_Text (Null_Font, Sample, Size);
+         pragma Unreferenced (Again);
+      begin
+         Put_Line ("  held before" & Natural'Image (Held)
+                   & "  after" & Natural'Image
+                     (Adi.Font.Testing.Sized_Fonts_Held));
+         Test_Support.Assert
+           (Adi.Font.Testing.Sized_Fonts_Held = Held,
+            "the instance already open is the one used again");
+      end;
    end;
 
    Test_Support.Finish;

@@ -280,4 +280,13 @@ package Adi.Font is
       Font_Size_Px : Pixel_Type;
       Font         : TTF_Font_Access) return Pixel_Type;
 
+
+private
+
+   --  Sized TTF_Font instances the cache holds, one per distinct
+   --  (family, size, weight, style, decoration, layout) key. Nothing
+   --  releases one, so this only rises: a key that stops being asked
+   --  for keeps its instance. Read through Adi.Font.Testing.
+   function Sized_Cache_Entries return Natural;
+
 end Adi.Font;

@@ -860,6 +860,16 @@ whole `font-family` fallback list. A style holds each as an index into
 a store the library interns them in, so equal text is one entry however
 many rules spell it.
 
+`font-family` carries a grammar beside that limit, and both pipelines
+hold it: a comma-separated list whose names are quoted strings or runs
+of CSS identifiers. An identifier opens with a letter, an underscore, or
+a character past ASCII -- so a name in its own script stands -- or with
+a hyphen that a second hyphen or one of those follows, which is what
+`-apple-system` is. A word opening with a digit wants quoting, as in
+`"Hawaii 5-0"`. A list outside that shape is dropped and
+reported, the generator as `invalid-property-value` and the parser
+through `Adi.Log`.
+
 A value carries up to `Adi.CSS_Styles.Max_CSS_Text_Length` characters,
 4096. The generator and the runtime parser hold the same figure and
 drop a declaration naming more, reporting it — the generator as an

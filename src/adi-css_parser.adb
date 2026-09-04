@@ -658,6 +658,107 @@ package body Adi.CSS_Parser is
       return False;
    end Fits_In_Style;
 
+   --  <family-name>#. A quoted name is a string; an unquoted one is a
+   --  sequence of CSS identifiers, so a word opening with a digit wants
+   --  quoting -- CSS Fonts spells that example "Hawaii 5-0". An
+   --  identifier opens with a letter, an underscore, a hyphen, or a
+   --  code point past ASCII, which is what -apple-system and a name
+   --  written in its own script both need. tools/css_to_ada.py holds
+   --  this same grammar, or a declaration one pipeline kept would be
+   --  one the other dropped.
+   function Is_Font_Family_List (Input : String) return Boolean is
+
+      --  CSS counts a form feed as white space, where the parser's own
+      --  Is_Whitespace stops at the four this file reads elsewhere.
+      function Is_CSS_Space (C : Character) return Boolean is
+        (C in ' ' | ASCII.HT | ASCII.LF | ASCII.CR | ASCII.FF);
+
+      function Ident_Start (C : Character) return Boolean is
+        (C in 'a' .. 'z' | 'A' .. 'Z' | '_'
+         or else Character'Pos (C) >= 128);
+
+      function Ident_Char (C : Character) return Boolean is
+        (Ident_Start (C) or else C in '0' .. '9' | '-');
+
+      --  A leading hyphen opens an identifier when a second one or an
+      --  opening character follows it.
+      function Is_Ident (T : String) return Boolean is
+        (T'Length > 0
+         and then (Ident_Start (T (T'First))
+                   or else (T (T'First) = '-'
+                            and then T'Length > 1
+                            and then (Ident_Start (T (T'First + 1))
+                                      or else T (T'First + 1) = '-')))
+         and then (for all C of T => Ident_Char (C)));
+
+      function CSS_Trimmed (S : String) return String is
+         First : Positive := S'First;
+         Last  : Natural  := S'Last;
+      begin
+         while First <= Last and then Is_CSS_Space (S (First)) loop
+            First := First + 1;
+         end loop;
+         while Last >= First and then Is_CSS_Space (S (Last)) loop
+            Last := Last - 1;
+         end loop;
+         return (if First > Last then "" else S (First .. Last));
+      end CSS_Trimmed;
+
+      function Name_Is_Read (Name : String) return Boolean is
+         N : constant String := CSS_Trimmed (Name);
+      begin
+         if N'Length = 0 then
+            return False;
+         end if;
+
+         if N (N'First) in '"' | ''' then
+            --  The quote stands at the ends and nowhere between them.
+            return N'Length >= 2
+              and then N (N'Last) = N (N'First)
+              and then (for all I in N'First + 1 .. N'Last - 1 =>
+                          N (I) /= N (N'First));
+         end if;
+
+         declare
+            First : Natural := N'First;
+         begin
+            for I in N'Range loop
+               if Is_CSS_Space (N (I)) then
+                  if I > First
+                    and then not Is_Ident (N (First .. I - 1))
+                  then
+                     return False;
+                  end if;
+                  First := I + 1;
+               end if;
+            end loop;
+            return First <= N'Last and then Is_Ident (N (First .. N'Last));
+         end;
+      end Name_Is_Read;
+
+      Quote    : Character := ' ';
+      In_Quote : Boolean := False;
+      First    : Natural := Input'First;
+   begin
+      for I in Input'Range loop
+         if In_Quote then
+            if Input (I) = Quote then
+               In_Quote := False;
+            end if;
+         elsif Input (I) in '"' | ''' then
+            In_Quote := True;
+            Quote := Input (I);
+         elsif Input (I) = ',' then
+            if not Name_Is_Read (Input (First .. I - 1)) then
+               return False;
+            end if;
+            First := I + 1;
+         end if;
+      end loop;
+
+      return Name_Is_Read (Input (First .. Input'Last));
+   end Is_Font_Family_List;
+
    function Parse_Quoted_String
      (Input    : String;
       Out_Text : out Unbounded_String) return Boolean
@@ -3037,8 +3138,12 @@ package body Adi.CSS_Parser is
       elsif Key = D_Max_Height then
          if Parse_Size_Value (V, SVal) then Rules.Max_Height := Set (SVal); else Bad_Value; end if;
       elsif Key = D_Font_Family then
-         if Fits_In_Style (V) then
+         if not Fits_In_Style (V) then
+            null;  --  Fits_In_Style reports the length in its own words.
+         elsif Is_Font_Family_List (V) then
             Rules.Font_Family := Set_Font_Family (V);
+         else
+            Bad_Value;
          end if;
       elsif Key = D_Font_Size then
          if Parse_Length (V, LVal) then Rules.Font_Size := Set_Font (To_Length (LVal)); else Bad_Value; end if;

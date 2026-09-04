@@ -2590,5 +2590,99 @@ class TestGridTemplateNone(unittest.TestCase):
                 validate_property_value(prop, "repeat(x, 1fr)"), prop)
 
 
+class TestFontFamilyGrammar(unittest.TestCase):
+    """The family lists both pipelines read, and the ones both refuse.
+
+    tests/src/css_parser_test.adb drives this same table through
+    Adi.CSS_Parser; a name one side reads and the other refuses is a
+    declaration a compiled sheet carries and a parsed one drops.
+    """
+
+    READ = [
+        "sans-serif",
+        "Arial",
+        "Arial, sans-serif",
+        '"Helvetica Neue", Arial, sans-serif',
+        "'Comic Sans MS'",
+        "Open Sans",
+        "system-ui",
+        "-apple-system",
+        "--custom",
+        "--3",
+        "_",
+    ]
+
+    REFUSED = [
+        "123bogus",
+        "Arial,, sans-serif",
+        "Arial,",
+        ",Arial",
+        "$$$",
+        '"unterminated',
+        "Arial!",
+        "Hawaii 5-0",
+        '"Foo"Bar"',
+        "-",
+        "-1abc",
+    ]
+
+    #  Bytes rather than literals, so these stand outside the table the
+    #  Ada side is pinned against; css_parser_test.adb drives the same
+    #  four through Adi.CSS_Parser.
+    BEYOND_ASCII = [
+        "Caf\u00e9 Regular",
+        "\u5fae Regular",
+        "Arial,\fsans-serif",
+        "\u00a0Arial",
+        "-\u00a0-",
+    ]
+
+    #  str.split() would break on these and read two names; CSS counts
+    #  them as characters of one.
+    REFUSED_BEYOND_ASCII = [
+        "foo\u000bbar",
+        "foo\u001cbar",
+    ]
+
+    def test_the_lists_beyond_ascii(self):
+        for value in self.BEYOND_ASCII:
+            self.assertTrue(
+                validate_property_value("font-family", value), repr(value))
+
+    def test_the_separators_css_leaves_out(self):
+        for value in self.REFUSED_BEYOND_ASCII:
+            self.assertFalse(
+                validate_property_value("font-family", value), repr(value))
+
+    def test_the_lists_it_reads(self):
+        for value in self.READ:
+            self.assertTrue(
+                validate_property_value("font-family", value), value)
+
+    def test_the_lists_it_refuses(self):
+        for value in self.REFUSED:
+            self.assertFalse(
+                validate_property_value("font-family", value), value)
+
+    def test_the_ada_table_holds_the_same_names(self):
+        adb = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "tests", "src", "css_parser_test.adb",
+        )
+        with open(adb, "r", encoding="utf-8") as f:
+            source = f.read()
+        start = source.index("procedure Test_Font_Family_Grammar")
+        body = source[start:source.index("end Test_Font_Family_Grammar;", start)]
+
+        def names(after):
+            chunk = body[body.index(after):]
+            chunk = chunk[:chunk.index("];")]
+            return [m.replace('""', '"')
+                    for m in re.findall(r'new String\'\("(.*?)"\)', chunk)]
+
+        self.assertEqual(names("Read : constant"), self.READ)
+        self.assertEqual(names("Refused : constant"), self.REFUSED)
+
+
 if __name__ == "__main__":
     unittest.main()

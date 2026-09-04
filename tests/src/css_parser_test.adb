@@ -2174,9 +2174,9 @@ procedure Css_Parser_Test is
    --  the branch reports; the second says it reports only then, which
    --  is what a shorthand with a component left unnamed would break.
    --
-   --  font-family stands out of both: every family list the length
-   --  limit admits is a value it holds, and Fits_In_Style reports the
-   --  ones past that limit in its own words.
+   --  A value past Max_CSS_Text_Length is the one case answered for
+   --  outside this, by Fits_In_Style rather than by the branch;
+   --  Test_Font_Family_Grammar holds what the count does there.
    procedure Test_Invalid_Value_Is_Reported is
       use type Adi.CSS_Parser.Testing.Count;
       type Text is access constant String;
@@ -2188,103 +2188,104 @@ procedure Css_Parser_Test is
 
       Rejected : constant Decl_List :=
         [
-         (new String'("align-content"), new String'("$$$$$$")),
-         (new String'("align-items"), new String'("$$$$$$")),
-         (new String'("align-self"), new String'("$$$$$$")),
-         (new String'("background"), new String'("$$$$$$")),
-         (new String'("background-color"), new String'("$$$$$$")),
-         (new String'("background-image"), new String'("$$$$$$")),
-         (new String'("border"), new String'("$$$$$$")),
-         (new String'("border-bottom"), new String'("$$$$$$")),
-         (new String'("border-bottom-color"), new String'("$$$$$$")),
-         (new String'("border-bottom-left-radius"), new String'("$$$$$$")),
-         (new String'("border-bottom-right-radius"), new String'("$$$$$$")),
-         (new String'("border-bottom-style"), new String'("$$$$$$")),
-         (new String'("border-bottom-width"), new String'("$$$$$$")),
-         (new String'("border-color"), new String'("$$$$$$")),
-         (new String'("border-left"), new String'("$$$$$$")),
-         (new String'("border-left-color"), new String'("$$$$$$")),
-         (new String'("border-left-style"), new String'("$$$$$$")),
-         (new String'("border-left-width"), new String'("$$$$$$")),
-         (new String'("border-radius"), new String'("$$$$$$")),
-         (new String'("border-right"), new String'("$$$$$$")),
-         (new String'("border-right-color"), new String'("$$$$$$")),
-         (new String'("border-right-style"), new String'("$$$$$$")),
-         (new String'("border-right-width"), new String'("$$$$$$")),
-         (new String'("border-style"), new String'("$$$$$$")),
-         (new String'("border-top"), new String'("$$$$$$")),
-         (new String'("border-top-color"), new String'("$$$$$$")),
-         (new String'("border-top-left-radius"), new String'("$$$$$$")),
-         (new String'("border-top-right-radius"), new String'("$$$$$$")),
-         (new String'("border-top-style"), new String'("$$$$$$")),
-         (new String'("border-top-width"), new String'("$$$$$$")),
-         (new String'("border-width"), new String'("$$$$$$")),
-         (new String'("bottom"), new String'("$$$$$$")),
-         (new String'("box-shadow"), new String'("$$$$$$")),
-         (new String'("color"), new String'("$$$$$$")),
-         (new String'("column-gap"), new String'("$$$$$$")),
-         (new String'("cursor"), new String'("$$$$$$")),
-         (new String'("display"), new String'("$$$$$$")),
-         (new String'("flex-basis"), new String'("$$$$$$")),
-         (new String'("flex-direction"), new String'("$$$$$$")),
-         (new String'("flex-grow"), new String'("$$$$$$")),
-         (new String'("flex-shrink"), new String'("$$$$$$")),
-         (new String'("flex-wrap"), new String'("$$$$$$")),
-         (new String'("font-size"), new String'("$$$$$$")),
-         (new String'("font-style"), new String'("$$$$$$")),
-         (new String'("font-weight"), new String'("$$$$$$")),
-         (new String'("gap"), new String'("$$$$$$")),
-         (new String'("grid-column"), new String'("$$$$$$")),
-         (new String'("grid-row"), new String'("$$$$$$")),
+         (new String'("align-content"), new String'("$$$")),
+         (new String'("align-items"), new String'("$$$")),
+         (new String'("align-self"), new String'("$$$")),
+         (new String'("background"), new String'("$$$")),
+         (new String'("background-color"), new String'("$$$")),
+         (new String'("background-image"), new String'("$$$")),
+         (new String'("border"), new String'("$$$")),
+         (new String'("border-bottom"), new String'("$$$")),
+         (new String'("border-bottom-color"), new String'("$$$")),
+         (new String'("border-bottom-left-radius"), new String'("$$$")),
+         (new String'("border-bottom-right-radius"), new String'("$$$")),
+         (new String'("border-bottom-style"), new String'("$$$")),
+         (new String'("border-bottom-width"), new String'("$$$")),
+         (new String'("border-color"), new String'("$$$")),
+         (new String'("border-left"), new String'("$$$")),
+         (new String'("border-left-color"), new String'("$$$")),
+         (new String'("border-left-style"), new String'("$$$")),
+         (new String'("border-left-width"), new String'("$$$")),
+         (new String'("border-radius"), new String'("$$$")),
+         (new String'("border-right"), new String'("$$$")),
+         (new String'("border-right-color"), new String'("$$$")),
+         (new String'("border-right-style"), new String'("$$$")),
+         (new String'("border-right-width"), new String'("$$$")),
+         (new String'("border-style"), new String'("$$$")),
+         (new String'("border-top"), new String'("$$$")),
+         (new String'("border-top-color"), new String'("$$$")),
+         (new String'("border-top-left-radius"), new String'("$$$")),
+         (new String'("border-top-right-radius"), new String'("$$$")),
+         (new String'("border-top-style"), new String'("$$$")),
+         (new String'("border-top-width"), new String'("$$$")),
+         (new String'("border-width"), new String'("$$$")),
+         (new String'("bottom"), new String'("$$$")),
+         (new String'("box-shadow"), new String'("$$$")),
+         (new String'("color"), new String'("$$$")),
+         (new String'("column-gap"), new String'("$$$")),
+         (new String'("cursor"), new String'("$$$")),
+         (new String'("display"), new String'("$$$")),
+         (new String'("flex-basis"), new String'("$$$")),
+         (new String'("flex-direction"), new String'("$$$")),
+         (new String'("flex-grow"), new String'("$$$")),
+         (new String'("flex-shrink"), new String'("$$$")),
+         (new String'("flex-wrap"), new String'("$$$")),
+         (new String'("font-family"), new String'("$$$")),
+         (new String'("font-size"), new String'("$$$")),
+         (new String'("font-style"), new String'("$$$")),
+         (new String'("font-weight"), new String'("$$$")),
+         (new String'("gap"), new String'("$$$")),
+         (new String'("grid-column"), new String'("$$$")),
+         (new String'("grid-row"), new String'("$$$")),
          (new String'("grid-template-columns"), new String'("repeat(x, 1fr)")),
          (new String'("grid-template-rows"), new String'("repeat(x, 1fr)")),
-         (new String'("height"), new String'("$$$$$$")),
-         (new String'("justify-content"), new String'("$$$$$$")),
-         (new String'("left"), new String'("$$$$$$")),
-         (new String'("line-height"), new String'("$$$$$$")),
-         (new String'("list-style"), new String'("$$$$$$")),
-         (new String'("list-style-image"), new String'("$$$$$$")),
-         (new String'("list-style-position"), new String'("$$$$$$")),
-         (new String'("list-style-type"), new String'("$$$$$$")),
-         (new String'("margin"), new String'("$$$$$$")),
-         (new String'("margin-bottom"), new String'("$$$$$$")),
-         (new String'("margin-left"), new String'("$$$$$$")),
-         (new String'("margin-right"), new String'("$$$$$$")),
-         (new String'("margin-top"), new String'("$$$$$$")),
-         (new String'("max-height"), new String'("$$$$$$")),
-         (new String'("max-width"), new String'("$$$$$$")),
-         (new String'("min-height"), new String'("$$$$$$")),
-         (new String'("min-width"), new String'("$$$$$$")),
-         (new String'("object-fit"), new String'("$$$$$$")),
-         (new String'("object-position"), new String'("$$$$$$")),
-         (new String'("opacity"), new String'("$$$$$$")),
-         (new String'("order"), new String'("$$$$$$")),
-         (new String'("outline"), new String'("$$$$$$")),
-         (new String'("outline-color"), new String'("$$$$$$")),
-         (new String'("outline-offset"), new String'("$$$$$$")),
-         (new String'("outline-style"), new String'("$$$$$$")),
-         (new String'("outline-width"), new String'("$$$$$$")),
-         (new String'("overflow"), new String'("$$$$$$")),
-         (new String'("overflow-x"), new String'("$$$$$$")),
-         (new String'("overflow-y"), new String'("$$$$$$")),
-         (new String'("padding"), new String'("$$$$$$")),
-         (new String'("padding-bottom"), new String'("$$$$$$")),
-         (new String'("padding-left"), new String'("$$$$$$")),
-         (new String'("padding-right"), new String'("$$$$$$")),
-         (new String'("padding-top"), new String'("$$$$$$")),
-         (new String'("position"), new String'("$$$$$$")),
-         (new String'("right"), new String'("$$$$$$")),
-         (new String'("row-gap"), new String'("$$$$$$")),
-         (new String'("text-align"), new String'("$$$$$$")),
-         (new String'("text-decoration"), new String'("$$$$$$")),
-         (new String'("text-overflow"), new String'("$$$$$$")),
-         (new String'("text-wrap-mode"), new String'("$$$$$$")),
-         (new String'("top"), new String'("$$$$$$")),
-         (new String'("transition"), new String'("$$$$$$")),
-         (new String'("vertical-align"), new String'("$$$$$$")),
-         (new String'("visibility"), new String'("$$$$$$")),
-         (new String'("white-space"), new String'("$$$$$$")),
-         (new String'("width"), new String'("$$$$$$"))];
+         (new String'("height"), new String'("$$$")),
+         (new String'("justify-content"), new String'("$$$")),
+         (new String'("left"), new String'("$$$")),
+         (new String'("line-height"), new String'("$$$")),
+         (new String'("list-style"), new String'("$$$")),
+         (new String'("list-style-image"), new String'("$$$")),
+         (new String'("list-style-position"), new String'("$$$")),
+         (new String'("list-style-type"), new String'("$$$")),
+         (new String'("margin"), new String'("$$$")),
+         (new String'("margin-bottom"), new String'("$$$")),
+         (new String'("margin-left"), new String'("$$$")),
+         (new String'("margin-right"), new String'("$$$")),
+         (new String'("margin-top"), new String'("$$$")),
+         (new String'("max-height"), new String'("$$$")),
+         (new String'("max-width"), new String'("$$$")),
+         (new String'("min-height"), new String'("$$$")),
+         (new String'("min-width"), new String'("$$$")),
+         (new String'("object-fit"), new String'("$$$")),
+         (new String'("object-position"), new String'("$$$")),
+         (new String'("opacity"), new String'("$$$")),
+         (new String'("order"), new String'("$$$")),
+         (new String'("outline"), new String'("$$$")),
+         (new String'("outline-color"), new String'("$$$")),
+         (new String'("outline-offset"), new String'("$$$")),
+         (new String'("outline-style"), new String'("$$$")),
+         (new String'("outline-width"), new String'("$$$")),
+         (new String'("overflow"), new String'("$$$")),
+         (new String'("overflow-x"), new String'("$$$")),
+         (new String'("overflow-y"), new String'("$$$")),
+         (new String'("padding"), new String'("$$$")),
+         (new String'("padding-bottom"), new String'("$$$")),
+         (new String'("padding-left"), new String'("$$$")),
+         (new String'("padding-right"), new String'("$$$")),
+         (new String'("padding-top"), new String'("$$$")),
+         (new String'("position"), new String'("$$$")),
+         (new String'("right"), new String'("$$$")),
+         (new String'("row-gap"), new String'("$$$")),
+         (new String'("text-align"), new String'("$$$")),
+         (new String'("text-decoration"), new String'("$$$")),
+         (new String'("text-overflow"), new String'("$$$")),
+         (new String'("text-wrap-mode"), new String'("$$$")),
+         (new String'("top"), new String'("$$$")),
+         (new String'("transition"), new String'("$$$")),
+         (new String'("vertical-align"), new String'("$$$")),
+         (new String'("visibility"), new String'("$$$")),
+         (new String'("white-space"), new String'("$$$")),
+         (new String'("width"), new String'("$$$"))];
 
       Read : constant Decl_List :=
         [
@@ -2330,6 +2331,7 @@ procedure Css_Parser_Test is
          (new String'("flex-grow"), new String'("1")),
          (new String'("flex-shrink"), new String'("1")),
          (new String'("flex-wrap"), new String'("wrap")),
+         (new String'("font-family"), new String'("sans-serif")),
          (new String'("font-size"), new String'("12px")),
          (new String'("font-style"), new String'("italic")),
          (new String'("font-weight"), new String'("700")),
@@ -2573,6 +2575,105 @@ procedure Css_Parser_Test is
         (Cleared.Grid_Rows = 0, "and a row count of zero");
    end Test_Grid_Template_None;
 
+   --  A family list is <family-name>#, and both pipelines hold it to
+   --  one grammar: a name one reads and the other refuses is a
+   --  declaration a compiled sheet carries and a parsed one drops.
+   --  tools/test_css_to_ada.py drives this same table.
+   procedure Test_Font_Family_Grammar is
+      use type Adi.CSS_Parser.Testing.Count;
+      type Text is access constant String;
+      type Text_List is array (Positive range <>) of Text;
+
+      function Reports (Value : String) return Adi.CSS_Parser.Testing.Count is
+         S    : Adi.CSS_Parser.Stylesheet;
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Testing.Reset_Reports;
+         Adi.CSS_Parser.Load_String
+           (S, ".f { font-family: " & Value & "; }", OK_S);
+         Test_Support.Assert (OK_S, "the sheet still loads: " & Value);
+         return Adi.CSS_Parser.Testing.Invalid_Value_Count;
+      end Reports;
+
+      Read : constant Text_List :=
+        [new String'("sans-serif"),
+         new String'("Arial"),
+         new String'("Arial, sans-serif"),
+         new String'("""Helvetica Neue"", Arial, sans-serif"),
+         new String'("'Comic Sans MS'"),
+         new String'("Open Sans"),
+         new String'("system-ui"),
+         new String'("-apple-system"),
+         new String'("--custom"),
+         new String'("--3"),
+         new String'("_")];
+
+      Refused : constant Text_List :=
+        [new String'("123bogus"),
+         new String'("Arial,, sans-serif"),
+         new String'("Arial,"),
+         new String'(",Arial"),
+         new String'("$$$"),
+         new String'("""unterminated"),
+         new String'("Arial!"),
+         new String'("Hawaii 5-0"),
+         new String'("""Foo""Bar"""),
+         new String'("-"),
+         new String'("-1abc")];
+
+   begin
+      for V of Read loop
+         Test_Support.Assert
+           (Reports (V.all) = 0, "a family list is carried: " & V.all);
+      end loop;
+      for V of Refused loop
+         Test_Support.Assert
+           (Reports (V.all) = 1,
+            "and one outside the grammar is reported: " & V.all);
+      end loop;
+
+      --  Bytes rather than literals, so these stand outside the table
+      --  tools/test_css_to_ada.py pins: a name in its own script, a
+      --  form feed, which CSS counts as white space, and a no-break
+      --  space, which it counts as a character of the name.
+      declare
+         E_Acute : constant String :=
+           Character'Val (16#C3#) & Character'Val (16#A9#);
+         Wei     : constant String := Character'Val (16#E5#)
+           & Character'Val (16#BE#) & Character'Val (16#AE#);
+         NBSP    : constant String :=
+           Character'Val (16#C2#) & Character'Val (16#A0#);
+      begin
+         Test_Support.Assert
+           (Reports ("Caf" & E_Acute & " Regular") = 0,
+            "a name past ASCII is carried");
+         Test_Support.Assert
+           (Reports (Wei & " Regular") = 0, "whatever its script");
+         Test_Support.Assert
+           (Reports ("Arial," & ASCII.FF & "sans-serif") = 0,
+            "a form feed separates two names");
+         Test_Support.Assert
+           (Reports (NBSP & "Arial") = 0,
+            "a no-break space is a character of the name");
+         Test_Support.Assert
+           (Reports ("-" & NBSP & "-") = 0,
+            "so it carries a hyphen either side of it");
+         Test_Support.Assert
+           (Reports ("foo" & Character'Val (16#0B#) & "bar") = 1,
+            "where a vertical tab separates nothing, and names nothing");
+      end;
+
+      --  A value past Max_CSS_Text_Length is answered for by
+      --  Fits_In_Style, which reports the length in its own words.
+      declare
+         Long : constant String (1 .. Max_CSS_Text_Length + 1) :=
+           [others => 'a'];
+      begin
+         Test_Support.Assert
+           (Reports (Long) = 0, "a family list past the limit is left to it");
+      end;
+   end Test_Font_Family_Grammar;
+
 begin
    Test_Support.Start_Suite ("CSS parser test");
 
@@ -2645,6 +2746,7 @@ begin
    Test_Invalid_Value_Is_Reported;
    Test_Shadow_Takes_Any_Colour;
    Test_Grid_Template_None;
+   Test_Font_Family_Grammar;
    Test_Var_Resolution;
 
    Test_Font_Family;

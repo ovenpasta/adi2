@@ -1017,6 +1017,13 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    type Grid_Column_Span_Value is new Natural range 1 .. Natural'Last;
    type Grid_Row_Span_Value is new Natural range 1 .. Natural'Last;
 
+   --  CSS makes none the initial value of grid-template-columns, and a
+   --  rule naming none resolves to zero here. One stands as the default
+   --  instead, because this is a count rather than a template: one
+   --  column is what a container laying out with no template of its own
+   --  gets. Every reader takes zero and one the same way -- the grid
+   --  paths clamp, the list paths branch on more than one -- so the two
+   --  agree on layout; the default says it where they infer it.
    Default_Grid_Columns : constant Grid_Columns_Value := 1;
    Default_Grid_Rows : constant Grid_Rows_Value := 0;  -- 0 => auto
    Default_Grid_Column : constant Grid_Column_Value := 0; -- 0 => auto

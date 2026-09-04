@@ -1874,16 +1874,42 @@ def _validate_list_style_shorthand(value: str) -> bool:
     return any_valid
 
 
-CSS_GENERIC_FAMILIES = {
-    "serif", "sans-serif", "monospace", "cursive", "fantasy",
-    "system-ui", "ui-serif", "ui-sans-serif", "ui-monospace", "ui-rounded",
-    "emoji", "math", "fangsong",
-}
+CSS_WHITESPACE = " \t\n\r\f"
+
+
+def _is_ident_start(ch: str) -> bool:
+    return (
+        "a" <= ch <= "z" or "A" <= ch <= "Z" or ch == "_" or ord(ch) >= 0x80
+    )
+
+
+def _is_ident_char(ch: str) -> bool:
+    return _is_ident_start(ch) or "0" <= ch <= "9" or ch == "-"
+
+
+def _is_css_ident(token: str) -> bool:
+    """A CSS identifier: -apple-system and a name in its own script both are."""
+    if not token:
+        return False
+    if token[0] == "-":
+        if len(token) < 2 or not (
+            _is_ident_start(token[1]) or token[1] == "-"
+        ):
+            return False
+    elif not _is_ident_start(token[0]):
+        return False
+    return all(_is_ident_char(ch) for ch in token)
 
 
 def _validate_font_family(value: str) -> bool:
-    """Validate a CSS font-family value (comma-separated list of names)."""
-    raw = value.strip()
+    """A CSS font-family value: <family-name>#.
+
+    A quoted name is a string; an unquoted one is a sequence of
+    identifiers, so a word opening with a digit wants quoting -- CSS
+    Fonts spells that example "Hawaii 5-0". Adi.CSS_Parser's
+    Is_Font_Family_List holds this same grammar.
+    """
+    raw = value.strip(CSS_WHITESPACE)
     if not raw or not css_text_fits(raw):
         return False
     # Split on commas that are not inside quotes
@@ -1899,30 +1925,27 @@ def _validate_font_family(value: str) -> bool:
             in_quote = ch
             current.append(ch)
         elif ch == ',':
-            names.append(''.join(current).strip())
+            names.append(''.join(current).strip(CSS_WHITESPACE))
             current = []
         else:
             current.append(ch)
-    names.append(''.join(current).strip())
-    if not names or any(n == '' for n in names):
-        return False
+    names.append(''.join(current).strip(CSS_WHITESPACE))
+
     for name in names:
-        low = name.lower()
-        # Quoted string
-        if (name.startswith('"') and name.endswith('"')) or \
-           (name.startswith("'") and name.endswith("'")):
-            if len(name) < 2:
+        if not name:
+            return False
+        if name[0] in ('"', "'"):
+            #  The quote stands at the ends and nowhere between them.
+            if (len(name) < 2 or name[-1] != name[0]
+                    or name[0] in name[1:-1]):
                 return False
             continue
-        # Generic family or unquoted identifier (one or more words)
-        if low in CSS_GENERIC_FAMILIES:
-            continue
-        # Unquoted custom family name — CSS identifier: must start with a letter
-        # or underscore, followed by letters, digits, hyphens, underscores, spaces
-        if name[0].isalpha() or name[0] == '_':
-            if all(ch.isalnum() or ch in (' ', '-', '_') for ch in name):
-                continue
-        return False
+        #  Split on CSS white space alone: str.split() would also break
+        #  on a no-break space, which CSS counts as a character of the
+        #  name, and would join across a vertical tab, which it does not.
+        tokens = [t for t in re.split(f"[{CSS_WHITESPACE}]+", name) if t]
+        if not tokens or not all(_is_css_ident(t) for t in tokens):
+            return False
     return True
 
 

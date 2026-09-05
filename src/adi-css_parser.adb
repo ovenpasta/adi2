@@ -153,7 +153,7 @@ package body Adi.CSS_Parser is
 
    type Parsed_Rule is record
       Sel   : Parsed_Selector;
-      Style : Style_Rules := Empty_Style;
+      Style : Rule_Slots;
    end record;
 
    package Parsed_Rule_Vectors is new Ada.Containers.Indefinite_Vectors
@@ -178,7 +178,11 @@ package body Adi.CSS_Parser is
    --  selectors.
    package Rules_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
-      Element_Type => Style_Rules);
+      Element_Type => Rule_Slots);
+
+   --  A rule set naming nothing, which is what a selector entry opens
+   --  on.
+   Empty_Slots : constant Rule_Slots := Slots_Of (Empty_Style);
 
    type Rule_Sheet_Data is record
       Rules         : Rules_Vectors.Vector;
@@ -2750,10 +2754,19 @@ package body Adi.CSS_Parser is
 
       return Decl_Unknown;
    end Decl_Of;
-   procedure Apply_Property (Rules    : in out Style_Rules;
-                             Selector : String;
-                             Name     : String;
-                             Value    : String) is
+
+   --  Which of a property's values a longhand names: the edge or the
+   --  corner at that literal's position, as Slot_Part numbers them.
+   function Edge_Part (E : Edge) return Slot_Part is
+     (Slot_Part (Edge'Pos (E)));
+
+   function Corner_Part (K : Corner) return Slot_Part is
+     (Slot_Part (Corner'Pos (K)));
+
+   procedure Apply_Declaration (Slots    : in out Rule_Slots;
+                                Selector : String;
+                                Name     : String;
+                                Value    : String) is
       P : constant String := Lower (Trimmed (Name));
       Key : constant Decl_Name := Decl_Of (P);
       V : constant String := Trimmed (Value);
@@ -2787,6 +2800,22 @@ package body Adi.CSS_Parser is
       Border_Width_Val : Parsed_Length;
       Border_Color_Val : Color_Value;
 
+      --  The declaration's value reaching the rule set: at the whole
+      --  property, or at one of the parts a property whose values
+      --  cascade separately carries.
+      procedure Take (Prop : CSS_Property; R : Value_Ref);
+      procedure Take (Prop : CSS_Property; Part : Slot_Part; R : Value_Ref);
+
+      procedure Take (Prop : CSS_Property; R : Value_Ref) is
+      begin
+         Apply_Property (Slots, Prop, R);
+      end Take;
+
+      procedure Take (Prop : CSS_Property; Part : Slot_Part; R : Value_Ref) is
+      begin
+         Apply_Property (Slots, Prop, Part, R);
+      end Take;
+
       --  Every branch below ends on this where its grammar rejects the
       --  text, which is what tools/css_to_ada.py answers with an
       --  invalid-property-value diagnostic. A branch reaches it once:
@@ -2816,32 +2845,32 @@ package body Adi.CSS_Parser is
       end if;
 
       if Key = D_Color then
-         if Parse_Color (V, CVal) then Rules.Color := Set (CVal); else Bad_Value; end if;
+         if Parse_Color (V, CVal) then Take (Prop_Color, Intern (CVal)); else Bad_Value; end if;
       elsif Key = D_Background_Color or else Key = D_Background then
-         if Parse_Color (V, CVal) then Rules.Background_Color := Set_Bg (CVal); else Bad_Value; end if;
+         if Parse_Color (V, CVal) then Take (Prop_Background_Color, Intern (CVal)); else Bad_Value; end if;
       elsif Key = D_Padding then
-         if Parse_Box (V, Box) then Rules.Padding := Set (Box); else Bad_Value; end if;
+         if Parse_Box (V, Box) then Take (Prop_Padding, Intern (Box)); else Bad_Value; end if;
       elsif Key = D_Padding_Top then
          if Parse_Length (V, LVal) then
-            Rules.Padding (Top) := Set (To_Length (LVal));
+            Take (Prop_Padding, Edge_Part (Top), Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Padding_Right then
          if Parse_Length (V, LVal) then
-            Rules.Padding (Right) := Set (To_Length (LVal));
+            Take (Prop_Padding, Edge_Part (Right), Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Padding_Bottom then
          if Parse_Length (V, LVal) then
-            Rules.Padding (Bottom) := Set (To_Length (LVal));
+            Take (Prop_Padding, Edge_Part (Bottom), Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Padding_Left then
          if Parse_Length (V, LVal) then
-            Rules.Padding (Left) := Set (To_Length (LVal));
+            Take (Prop_Padding, Edge_Part (Left), Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
@@ -2850,122 +2879,134 @@ package body Adi.CSS_Parser is
             Sides : Opt_Margin_Sides;
          begin
             if Parse_Margin_Shorthand (V, Sides) then
-               Rules.Margin := Sides;
+               --  The shorthand names all four sides, whichever count
+               --  of values it was written with.
+               for E in Edge loop
+                  Take (Prop_Margin, Edge_Part (E), Intern (Sides (E).Value));
+               end loop;
             else
                Bad_Value;
             end if;
          end;
       elsif Key = D_Margin_Top then
          if Lower (V) = "auto" then
-            Rules.Margin (Top) := Opt_Margin.Val (Auto_Margin);
+            Take (Prop_Margin, Edge_Part (Top), Intern (Auto_Margin));
          elsif Parse_Length (V, LVal) then
-            Rules.Margin (Top) := Opt_Margin.Val (Margin (To_Length (LVal)));
+            Take (Prop_Margin, Edge_Part (Top),
+                  Intern (Margin (To_Length (LVal))));
          else
             Bad_Value;
          end if;
       elsif Key = D_Margin_Right then
          if Lower (V) = "auto" then
-            Rules.Margin (Right) := Opt_Margin.Val (Auto_Margin);
+            Take (Prop_Margin, Edge_Part (Right), Intern (Auto_Margin));
          elsif Parse_Length (V, LVal) then
-            Rules.Margin (Right) := Opt_Margin.Val (Margin (To_Length (LVal)));
+            Take (Prop_Margin, Edge_Part (Right),
+                  Intern (Margin (To_Length (LVal))));
          else
             Bad_Value;
          end if;
       elsif Key = D_Margin_Bottom then
          if Lower (V) = "auto" then
-            Rules.Margin (Bottom) := Opt_Margin.Val (Auto_Margin);
+            Take (Prop_Margin, Edge_Part (Bottom), Intern (Auto_Margin));
          elsif Parse_Length (V, LVal) then
-            Rules.Margin (Bottom) := Opt_Margin.Val (Margin (To_Length (LVal)));
+            Take (Prop_Margin, Edge_Part (Bottom),
+                  Intern (Margin (To_Length (LVal))));
          else
             Bad_Value;
          end if;
       elsif Key = D_Margin_Left then
          if Lower (V) = "auto" then
-            Rules.Margin (Left) := Opt_Margin.Val (Auto_Margin);
+            Take (Prop_Margin, Edge_Part (Left), Intern (Auto_Margin));
          elsif Parse_Length (V, LVal) then
-            Rules.Margin (Left) := Opt_Margin.Val (Margin (To_Length (LVal)));
+            Take (Prop_Margin, Edge_Part (Left),
+                  Intern (Margin (To_Length (LVal))));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Width then
-         if Parse_Border_Width (V, BW) then Rules.Border_Width := Set (BW); else Bad_Value; end if;
+         if Parse_Border_Width (V, BW) then Take (Prop_Border_Width, Intern (BW)); else Bad_Value; end if;
       elsif Key = D_Border_Top_Width then
          if Parse_Length (V, LVal) then
-            Rules.Border_Width (Top) := Set (To_Length (LVal));
+            Take (Prop_Border_Width, Edge_Part (Top),
+                  Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Right_Width then
          if Parse_Length (V, LVal) then
-            Rules.Border_Width (Right) := Set (To_Length (LVal));
+            Take (Prop_Border_Width, Edge_Part (Right),
+                  Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Bottom_Width then
          if Parse_Length (V, LVal) then
-            Rules.Border_Width (Bottom) := Set (To_Length (LVal));
+            Take (Prop_Border_Width, Edge_Part (Bottom),
+                  Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Left_Width then
          if Parse_Length (V, LVal) then
-            Rules.Border_Width (Left) := Set (To_Length (LVal));
+            Take (Prop_Border_Width, Edge_Part (Left),
+                  Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Color then
-         if Parse_Color (V, CVal) then Rules.Border_Color := Set (Border_Color (CVal)); else Bad_Value; end if;
+         if Parse_Color (V, CVal) then Take (Prop_Border_Color, Intern (Border_Color (CVal))); else Bad_Value; end if;
       elsif Key = D_Border_Top_Color then
          if Parse_Color (V, CVal) then
-            Rules.Border_Color (Top) := Set_Edge_Color (CVal);
+            Take (Prop_Border_Color, Edge_Part (Top), Intern (CVal));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Right_Color then
          if Parse_Color (V, CVal) then
-            Rules.Border_Color (Right) := Set_Edge_Color (CVal);
+            Take (Prop_Border_Color, Edge_Part (Right), Intern (CVal));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Bottom_Color then
          if Parse_Color (V, CVal) then
-            Rules.Border_Color (Bottom) := Set_Edge_Color (CVal);
+            Take (Prop_Border_Color, Edge_Part (Bottom), Intern (CVal));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Left_Color then
          if Parse_Color (V, CVal) then
-            Rules.Border_Color (Left) := Set_Edge_Color (CVal);
+            Take (Prop_Border_Color, Edge_Part (Left), Intern (CVal));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Style then
          if Parse_Border_Style_Value (V, Border_Side) then
-            Rules.Border_Style := Set (Border_Style (Border_Side));
+            Take (Prop_Border_Style, Intern (Border_Style (Border_Side)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Top_Style then
          if Parse_Border_Style_Value (V, Border_Side) then
-            Rules.Border_Style (Top) := Set_Edge_Style (Border_Side);
+            Take (Prop_Border_Style, Edge_Part (Top), Intern (Border_Side));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Right_Style then
          if Parse_Border_Style_Value (V, Border_Side) then
-            Rules.Border_Style (Right) := Set_Edge_Style (Border_Side);
+            Take (Prop_Border_Style, Edge_Part (Right), Intern (Border_Side));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Bottom_Style then
          if Parse_Border_Style_Value (V, Border_Side) then
-            Rules.Border_Style (Bottom) := Set_Edge_Style (Border_Side);
+            Take (Prop_Border_Style, Edge_Part (Bottom), Intern (Border_Side));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Left_Style then
          if Parse_Border_Style_Value (V, Border_Side) then
-            Rules.Border_Style (Left) := Set_Edge_Style (Border_Side);
+            Take (Prop_Border_Style, Edge_Part (Left), Intern (Border_Side));
          else
             Bad_Value;
          end if;
@@ -2984,13 +3025,16 @@ package body Adi.CSS_Parser is
                      or else Has_Border_Color)
          then
             if Has_Border_Width then
-               Rules.Border_Width := Set (Border_Width (To_Length (Border_Width_Val)));
+               Take (Prop_Border_Width,
+                     Intern (Border_Width (To_Length (Border_Width_Val))));
             end if;
             if Has_Border_Style then
-               Rules.Border_Style := Set (Border_Style (Border_Side));
+               Take (Prop_Border_Style,
+                     Intern (Border_Style (Border_Side)));
             end if;
             if Has_Border_Color then
-               Rules.Border_Color := Set (Border_Color (Border_Color_Val));
+               Take (Prop_Border_Color,
+                     Intern (Border_Color (Border_Color_Val)));
             end if;
          else
             Bad_Value;
@@ -3010,13 +3054,16 @@ package body Adi.CSS_Parser is
                      or else Has_Border_Color)
          then
             if Has_Border_Width then
-               Rules.Border_Width (Top) := Set (To_Length (Border_Width_Val));
+               Take (Prop_Border_Width, Edge_Part (Top),
+                     Intern (To_Length (Border_Width_Val)));
             end if;
             if Has_Border_Style then
-               Rules.Border_Style (Top) := Set_Edge_Style (Border_Side);
+               Take (Prop_Border_Style, Edge_Part (Top),
+                     Intern (Border_Side));
             end if;
             if Has_Border_Color then
-               Rules.Border_Color (Top) := Set_Edge_Color (Border_Color_Val);
+               Take (Prop_Border_Color, Edge_Part (Top),
+                     Intern (Border_Color_Val));
             end if;
          else
             Bad_Value;
@@ -3036,13 +3083,16 @@ package body Adi.CSS_Parser is
                      or else Has_Border_Color)
          then
             if Has_Border_Width then
-               Rules.Border_Width (Right) := Set (To_Length (Border_Width_Val));
+               Take (Prop_Border_Width, Edge_Part (Right),
+                     Intern (To_Length (Border_Width_Val)));
             end if;
             if Has_Border_Style then
-               Rules.Border_Style (Right) := Set_Edge_Style (Border_Side);
+               Take (Prop_Border_Style, Edge_Part (Right),
+                     Intern (Border_Side));
             end if;
             if Has_Border_Color then
-               Rules.Border_Color (Right) := Set_Edge_Color (Border_Color_Val);
+               Take (Prop_Border_Color, Edge_Part (Right),
+                     Intern (Border_Color_Val));
             end if;
          else
             Bad_Value;
@@ -3062,13 +3112,16 @@ package body Adi.CSS_Parser is
                      or else Has_Border_Color)
          then
             if Has_Border_Width then
-               Rules.Border_Width (Bottom) := Set (To_Length (Border_Width_Val));
+               Take (Prop_Border_Width, Edge_Part (Bottom),
+                     Intern (To_Length (Border_Width_Val)));
             end if;
             if Has_Border_Style then
-               Rules.Border_Style (Bottom) := Set_Edge_Style (Border_Side);
+               Take (Prop_Border_Style, Edge_Part (Bottom),
+                     Intern (Border_Side));
             end if;
             if Has_Border_Color then
-               Rules.Border_Color (Bottom) := Set_Edge_Color (Border_Color_Val);
+               Take (Prop_Border_Color, Edge_Part (Bottom),
+                     Intern (Border_Color_Val));
             end if;
          else
             Bad_Value;
@@ -3088,121 +3141,135 @@ package body Adi.CSS_Parser is
                      or else Has_Border_Color)
          then
             if Has_Border_Width then
-               Rules.Border_Width (Left) := Set (To_Length (Border_Width_Val));
+               Take (Prop_Border_Width, Edge_Part (Left),
+                     Intern (To_Length (Border_Width_Val)));
             end if;
             if Has_Border_Style then
-               Rules.Border_Style (Left) := Set_Edge_Style (Border_Side);
+               Take (Prop_Border_Style, Edge_Part (Left),
+                     Intern (Border_Side));
             end if;
             if Has_Border_Color then
-               Rules.Border_Color (Left) := Set_Edge_Color (Border_Color_Val);
+               Take (Prop_Border_Color, Edge_Part (Left),
+                     Intern (Border_Color_Val));
             end if;
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Radius then
-         if Parse_Border_Radius (V, BR) then Rules.Border_Radius := Set (BR); else Bad_Value; end if;
+         if Parse_Border_Radius (V, BR) then Take (Prop_Border_Radius, Intern (BR)); else Bad_Value; end if;
       elsif Key = D_Border_Top_Left_Radius then
          if Parse_Length (V, LVal) then
-            Rules.Border_Radius (Top_Left) := Set (To_Length (LVal));
+            Take (Prop_Border_Radius, Corner_Part (Top_Left),
+                  Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Top_Right_Radius then
          if Parse_Length (V, LVal) then
-            Rules.Border_Radius (Top_Right) := Set (To_Length (LVal));
+            Take (Prop_Border_Radius, Corner_Part (Top_Right),
+                  Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Bottom_Right_Radius then
          if Parse_Length (V, LVal) then
-            Rules.Border_Radius (Bottom_Right) := Set (To_Length (LVal));
+            Take (Prop_Border_Radius, Corner_Part (Bottom_Right),
+                  Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Border_Bottom_Left_Radius then
          if Parse_Length (V, LVal) then
-            Rules.Border_Radius (Bottom_Left) := Set (To_Length (LVal));
+            Take (Prop_Border_Radius, Corner_Part (Bottom_Left),
+                  Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Width then
-         if Parse_Size_Value (V, SVal) then Rules.Width := Set (SVal); else Bad_Value; end if;
+         if Parse_Size_Value (V, SVal) then Take (Prop_Width, Intern (SVal)); else Bad_Value; end if;
       elsif Key = D_Height then
-         if Parse_Size_Value (V, SVal) then Rules.Height := Set (SVal); else Bad_Value; end if;
+         if Parse_Size_Value (V, SVal) then Take (Prop_Height, Intern (SVal)); else Bad_Value; end if;
       elsif Key = D_Min_Width then
-         if Parse_Size_Value (V, SVal) then Rules.Min_Width := Set (SVal); else Bad_Value; end if;
+         if Parse_Size_Value (V, SVal) then Take (Prop_Min_Width, Intern (SVal)); else Bad_Value; end if;
       elsif Key = D_Max_Width then
-         if Parse_Size_Value (V, SVal) then Rules.Max_Width := Set (SVal); else Bad_Value; end if;
+         if Parse_Size_Value (V, SVal) then Take (Prop_Max_Width, Intern (SVal)); else Bad_Value; end if;
       elsif Key = D_Min_Height then
-         if Parse_Size_Value (V, SVal) then Rules.Min_Height := Set (SVal); else Bad_Value; end if;
+         if Parse_Size_Value (V, SVal) then Take (Prop_Min_Height, Intern (SVal)); else Bad_Value; end if;
       elsif Key = D_Max_Height then
-         if Parse_Size_Value (V, SVal) then Rules.Max_Height := Set (SVal); else Bad_Value; end if;
+         if Parse_Size_Value (V, SVal) then Take (Prop_Max_Height, Intern (SVal)); else Bad_Value; end if;
       elsif Key = D_Font_Family then
          if not Fits_In_Style (V) then
             null;  --  Fits_In_Style reports the length in its own words.
          elsif Is_Font_Family_List (V) then
-            Rules.Font_Family := Set_Font_Family (V);
+            declare
+               Family : constant Opt_Font.Optional := Set_Font_Family (V);
+            begin
+               if Opt_Font.Is_Set (Family) then
+                  Take (Prop_Font_Family, Intern (Family.Value));
+               end if;
+            end;
          else
             Bad_Value;
          end if;
       elsif Key = D_Font_Size then
-         if Parse_Length (V, LVal) then Rules.Font_Size := Set_Font (To_Length (LVal)); else Bad_Value; end if;
+         if Parse_Length (V, LVal) then Take (Prop_Font_Size, Intern (To_Length (LVal))); else Bad_Value; end if;
       elsif Key = D_Font_Weight then
-         if LV = "100" or else LV = "thin" then Rules.Font_Weight := Set (Weight_Thin);
-         elsif LV = "200" or else LV = "extra-light" or else LV = "ultralight" then Rules.Font_Weight := Set (Weight_Extra_Light);
-         elsif LV = "300" or else LV = "light" then Rules.Font_Weight := Set (Weight_Light);
-         elsif LV = "400" or else LV = "normal" then Rules.Font_Weight := Set (Weight_Normal);
-         elsif LV = "500" or else LV = "medium" then Rules.Font_Weight := Set (Weight_Medium);
-         elsif LV = "600" or else LV = "semi-bold" or else LV = "semibold" then Rules.Font_Weight := Set (Weight_Semi_Bold);
-         elsif LV = "700" or else LV = "bold" then Rules.Font_Weight := Set (Weight_Bold);
-         elsif LV = "800" or else LV = "extra-bold" or else LV = "extrabold" then Rules.Font_Weight := Set (Weight_Extra_Bold);
-         elsif LV = "900" or else LV = "black" then Rules.Font_Weight := Set (Weight_Black);
+         if LV = "100" or else LV = "thin" then Take (Prop_Font_Weight, Intern (Weight_Thin));
+         elsif LV = "200" or else LV = "extra-light" or else LV = "ultralight" then Take (Prop_Font_Weight, Intern (Weight_Extra_Light));
+         elsif LV = "300" or else LV = "light" then Take (Prop_Font_Weight, Intern (Weight_Light));
+         elsif LV = "400" or else LV = "normal" then Take (Prop_Font_Weight, Intern (Weight_Normal));
+         elsif LV = "500" or else LV = "medium" then Take (Prop_Font_Weight, Intern (Weight_Medium));
+         elsif LV = "600" or else LV = "semi-bold" or else LV = "semibold" then Take (Prop_Font_Weight, Intern (Weight_Semi_Bold));
+         elsif LV = "700" or else LV = "bold" then Take (Prop_Font_Weight, Intern (Weight_Bold));
+         elsif LV = "800" or else LV = "extra-bold" or else LV = "extrabold" then Take (Prop_Font_Weight, Intern (Weight_Extra_Bold));
+         elsif LV = "900" or else LV = "black" then Take (Prop_Font_Weight, Intern (Weight_Black));
          else
             Bad_Value;
          end if;
       elsif Key = D_Font_Style then
-         if LV = "normal" then Rules.Font_Style := Set (Style_Normal);
-         elsif LV = "italic" then Rules.Font_Style := Set (Style_Italic);
-         elsif LV = "oblique" then Rules.Font_Style := Set (Style_Oblique);
+         if LV = "normal" then Take (Prop_Font_Style, Intern (Style_Normal));
+         elsif LV = "italic" then Take (Prop_Font_Style, Intern (Style_Italic));
+         elsif LV = "oblique" then Take (Prop_Font_Style, Intern (Style_Oblique));
          else
             Bad_Value;
          end if;
       elsif Key = D_Text_Decoration then
-         if LV = "none" then Rules.Text_Decoration := Set (Decoration_None);
-         elsif LV = "underline" then Rules.Text_Decoration := Set (Decoration_Underline);
-         elsif LV = "overline" then Rules.Text_Decoration := Set (Decoration_Overline);
-         elsif LV = "line-through" then Rules.Text_Decoration := Set (Decoration_Line_Through);
+         if LV = "none" then Take (Prop_Text_Decoration, Intern (Decoration_None));
+         elsif LV = "underline" then Take (Prop_Text_Decoration, Intern (Decoration_Underline));
+         elsif LV = "overline" then Take (Prop_Text_Decoration, Intern (Decoration_Overline));
+         elsif LV = "line-through" then Take (Prop_Text_Decoration, Intern (Decoration_Line_Through));
          else
             Bad_Value;
          end if;
       elsif Key = D_List_Style_Type then
          if Parse_List_Style_Type_Value (V, List_Type_Val) then
-            Rules.List_Style_Type := Set (List_Type_Val);
+            Take (Prop_List_Style_Type, Intern (List_Type_Val));
          else
             Bad_Value;
          end if;
       elsif Key = D_Background_Image then
          if LV = "none" then
-            Rules.Background_Image := Set_Bg_Image (No_Background_Image);
+            Take (Prop_Background_Image, Intern (No_Background_Image));
          elsif Parse_Linear_Gradient (V, Grad_Val) then
-            Rules.Background_Image := Set_Bg_Image (Grad_Val);
+            Take (Prop_Background_Image, Intern (Grad_Val));
          elsif Parse_URL_Function (V, URI_Text) then
-            Rules.Background_Image := Set_Bg_Image
-              (Background_Image_URL (To_String (URI_Text)));
+            Take (Prop_Background_Image,
+                  Intern (Background_Image_URL (To_String (URI_Text))));
          else
             Bad_Value;
          end if;
       elsif Key = D_List_Style_Image then
          if LV = "none" then
-            Rules.List_Style_Image := Set (No_List_Image);
+            Take (Prop_List_Style_Image, Intern (No_List_Image));
          elsif Parse_URL_Function (V, URI_Text) then
-            Rules.List_Style_Image := Set (List_Image (To_String (URI_Text)));
+            Take (Prop_List_Style_Image,
+                  Intern (List_Image (To_String (URI_Text))));
          else
             Bad_Value;
          end if;
       elsif Key = D_List_Style_Position then
          if Parse_List_Style_Position_Value (V, List_Position_Val) then
-            Rules.List_Style_Position := Set (List_Position_Val);
+            Take (Prop_List_Style_Position, Intern (List_Position_Val));
          else
             Bad_Value;
          end if;
@@ -3217,136 +3284,138 @@ package body Adi.CSS_Parser is
             List_Position_Set)
          then
             if List_Type_Set then
-               Rules.List_Style_Type := Set (List_Type_Val);
+               Take (Prop_List_Style_Type, Intern (List_Type_Val));
             end if;
             if List_Image_Set then
-               Rules.List_Style_Image := Set (List_Image_Val);
+               Take (Prop_List_Style_Image, Intern (List_Image_Val));
             end if;
             if List_Position_Set then
-               Rules.List_Style_Position := Set (List_Position_Val);
+               Take (Prop_List_Style_Position,
+                     Intern (List_Position_Val));
             end if;
          else
             Bad_Value;
          end if;
       elsif Key = D_White_Space then
-         if LV = "normal" then Rules.White_Space := Set (WS_Normal);
-         elsif LV = "nowrap" then Rules.White_Space := Set (WS_Nowrap);
-         elsif LV = "pre" then Rules.White_Space := Set (WS_Pre);
-         elsif LV = "pre-wrap" then Rules.White_Space := Set (WS_Pre_Wrap);
-         elsif LV = "pre-line" then Rules.White_Space := Set (WS_Pre_Line);
+         if LV = "normal" then Take (Prop_White_Space, Intern (WS_Normal));
+         elsif LV = "nowrap" then Take (Prop_White_Space, Intern (WS_Nowrap));
+         elsif LV = "pre" then Take (Prop_White_Space, Intern (WS_Pre));
+         elsif LV = "pre-wrap" then Take (Prop_White_Space, Intern (WS_Pre_Wrap));
+         elsif LV = "pre-line" then Take (Prop_White_Space, Intern (WS_Pre_Line));
          else
             Bad_Value;
          end if;
       elsif Key = D_Text_Overflow then
-         if LV = "clip" then Rules.Text_Overflow := Set (Overflow_Clip);
-         elsif LV = "ellipsis" then Rules.Text_Overflow := Set (Overflow_Ellipsis);
+         if LV = "clip" then Take (Prop_Text_Overflow, Intern (Overflow_Clip));
+         elsif LV = "ellipsis" then Take (Prop_Text_Overflow, Intern (Overflow_Ellipsis));
          else
             Bad_Value;
          end if;
       elsif Key = D_Line_Height then
          if LV = "normal" then
-            Rules.Line_Height := Set (Normal_Line_Height);
+            Take (Prop_Line_Height, Intern (Normal_Line_Height));
          elsif Parse_Number (V, F) then
-            Rules.Line_Height := Set (Line_Height (F));
+            Take (Prop_Line_Height, Intern (Line_Height (F)));
          elsif Parse_Length (V, LVal) then
-            Rules.Line_Height := Set (Line_Height (To_Length (LVal)));
+            Take (Prop_Line_Height,
+                  Intern (Line_Height (To_Length (LVal))));
          else
             Bad_Value;
          end if;
       elsif Key = D_Text_Align then
-         if LV = "left" then Rules.Text_Align := Set (Text_Left);
-         elsif LV = "right" then Rules.Text_Align := Set (Text_Right);
-         elsif LV = "center" then Rules.Text_Align := Set (Text_Center);
-         elsif LV = "justify" then Rules.Text_Align := Set (Text_Justify);
-         elsif LV = "start" then Rules.Text_Align := Set (Text_Start);
-         elsif LV = "end" then Rules.Text_Align := Set (Text_End);
+         if LV = "left" then Take (Prop_Text_Align, Intern (Text_Left));
+         elsif LV = "right" then Take (Prop_Text_Align, Intern (Text_Right));
+         elsif LV = "center" then Take (Prop_Text_Align, Intern (Text_Center));
+         elsif LV = "justify" then Take (Prop_Text_Align, Intern (Text_Justify));
+         elsif LV = "start" then Take (Prop_Text_Align, Intern (Text_Start));
+         elsif LV = "end" then Take (Prop_Text_Align, Intern (Text_End));
          else
             Bad_Value;
          end if;
       elsif Key = D_Text_Wrap_Mode then
-         if LV = "wrap" then Rules.Text_Wrap_Mode := Set (TWM_Wrap);
-         elsif LV = "nowrap" then Rules.Text_Wrap_Mode := Set (TWM_Nowrap);
+         if LV = "wrap" then Take (Prop_Text_Wrap_Mode, Intern (TWM_Wrap));
+         elsif LV = "nowrap" then Take (Prop_Text_Wrap_Mode, Intern (TWM_Nowrap));
          else
             Bad_Value;
          end if;
       elsif Key = D_Vertical_Align then
-         if LV = "baseline" then Rules.Vertical_Align := Set (VA_Baseline);
-         elsif LV = "top" then Rules.Vertical_Align := Set (VA_Top);
-         elsif LV = "middle" then Rules.Vertical_Align := Set (VA_Middle);
-         elsif LV = "bottom" then Rules.Vertical_Align := Set (VA_Bottom);
-         elsif LV = "text-top" then Rules.Vertical_Align := Set (VA_Text_Top);
-         elsif LV = "text-bottom" then Rules.Vertical_Align := Set (VA_Text_Bottom);
+         if LV = "baseline" then Take (Prop_Vertical_Align, Intern (VA_Baseline));
+         elsif LV = "top" then Take (Prop_Vertical_Align, Intern (VA_Top));
+         elsif LV = "middle" then Take (Prop_Vertical_Align, Intern (VA_Middle));
+         elsif LV = "bottom" then Take (Prop_Vertical_Align, Intern (VA_Bottom));
+         elsif LV = "text-top" then Take (Prop_Vertical_Align, Intern (VA_Text_Top));
+         elsif LV = "text-bottom" then Take (Prop_Vertical_Align, Intern (VA_Text_Bottom));
          else
             Bad_Value;
          end if;
       elsif Key = D_Display then
-         if LV = "none" then Rules.Display := Set (Display_None);
-         elsif LV = "block" then Rules.Display := Set (Block);
-         elsif LV = "inline" then Rules.Display := Set (Inline);
-         elsif LV = "inline-block" then Rules.Display := Set (Inline_Block);
-         elsif LV = "flex" then Rules.Display := Set (Flex);
-         elsif LV = "inline-flex" then Rules.Display := Set (Inline_Flex);
-         elsif LV = "grid" then Rules.Display := Set (Grid);
-         elsif LV = "inline-grid" then Rules.Display := Set (Inline_Grid);
+         if LV = "none" then Take (Prop_Display, Intern (Display_Value'(Display_None)));
+         elsif LV = "block" then Take (Prop_Display, Intern (Display_Value'(Block)));
+         elsif LV = "inline" then Take (Prop_Display, Intern (Display_Value'(Inline)));
+         elsif LV = "inline-block" then Take (Prop_Display, Intern (Display_Value'(Inline_Block)));
+         elsif LV = "flex" then Take (Prop_Display, Intern (Display_Value'(Flex)));
+         elsif LV = "inline-flex" then Take (Prop_Display, Intern (Display_Value'(Inline_Flex)));
+         elsif LV = "grid" then Take (Prop_Display, Intern (Display_Value'(Grid)));
+         elsif LV = "inline-grid" then Take (Prop_Display, Intern (Display_Value'(Inline_Grid)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Position then
-         if LV = "static" then Rules.Position := Set (Static);
-         elsif LV = "relative" then Rules.Position := Set (Relative);
-         elsif LV = "absolute" then Rules.Position := Set (Absolute);
-         elsif LV = "fixed" then Rules.Position := Set (Fixed);
-         elsif LV = "sticky" then Rules.Position := Set (Sticky);
+         if LV = "static" then Take (Prop_Position, Intern (Position_Value'(Static)));
+         elsif LV = "relative" then Take (Prop_Position, Intern (Position_Value'(Relative)));
+         elsif LV = "absolute" then Take (Prop_Position, Intern (Position_Value'(Absolute)));
+         elsif LV = "fixed" then Take (Prop_Position, Intern (Position_Value'(Fixed)));
+         elsif LV = "sticky" then Take (Prop_Position, Intern (Position_Value'(Sticky)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Top then
          if LV = "auto" then
-            Rules.Top := Set_Top (Auto_Inset);
+            Take (Prop_Top, Intern (Auto_Inset));
          elsif Parse_Length (V, LVal) then
-            Rules.Top := Set_Top (Inset (To_Length (LVal)));
+            Take (Prop_Top, Intern (Inset (To_Length (LVal))));
          else
             Bad_Value;
          end if;
       elsif Key = D_Right then
          if LV = "auto" then
-            Rules.Right := Set_Right (Auto_Inset);
+            Take (Prop_Right, Intern (Auto_Inset));
          elsif Parse_Length (V, LVal) then
-            Rules.Right := Set_Right (Inset (To_Length (LVal)));
+            Take (Prop_Right, Intern (Inset (To_Length (LVal))));
          else
             Bad_Value;
          end if;
       elsif Key = D_Bottom then
          if LV = "auto" then
-            Rules.Bottom := Set_Bottom (Auto_Inset);
+            Take (Prop_Bottom, Intern (Auto_Inset));
          elsif Parse_Length (V, LVal) then
-            Rules.Bottom := Set_Bottom (Inset (To_Length (LVal)));
+            Take (Prop_Bottom, Intern (Inset (To_Length (LVal))));
          else
             Bad_Value;
          end if;
       elsif Key = D_Left then
          if LV = "auto" then
-            Rules.Left := Set_Left (Auto_Inset);
+            Take (Prop_Left, Intern (Auto_Inset));
          elsif Parse_Length (V, LVal) then
-            Rules.Left := Set_Left (Inset (To_Length (LVal)));
+            Take (Prop_Left, Intern (Inset (To_Length (LVal))));
          else
             Bad_Value;
          end if;
       elsif Key = D_Overflow then
          if Parse_Overflow_Value (LV, Overflow_Val) then
-            Set_Overflow_Shorthand (Rules, Overflow_Val);
+            Take (Prop_Overflow, Intern (Overflow_Val));
          else
             Bad_Value;
          end if;
       elsif Key = D_Overflow_X then
          if Parse_Overflow_Value (LV, Overflow_Val) then
-            Rules.Overflow_X := Set_Overflow_X (Overflow_Val);
+            Take (Prop_Overflow_X, Intern (Overflow_Val));
          else
             Bad_Value;
          end if;
       elsif Key = D_Overflow_Y then
          if Parse_Overflow_Value (LV, Overflow_Val) then
-            Rules.Overflow_Y := Set_Overflow_Y (Overflow_Val);
+            Take (Prop_Overflow_Y, Intern (Overflow_Val));
          else
             Bad_Value;
          end if;
@@ -3358,125 +3427,121 @@ package body Adi.CSS_Parser is
       --  where the specified value is read back rather than used.
       elsif Key = D_Opacity then
          if Parse_Number (V, F) then
-            Rules.Opacity :=
-              Set (Opacity_Value (Float'Max (0.0, Float'Min (1.0, F))));
+            Take (Prop_Opacity,
+                  Intern (Opacity_Value
+                            (Float'Max (0.0, Float'Min (1.0, F)))));
          else
             Bad_Value;
          end if;
       elsif Key = D_Cursor then
-         if LV = "auto" then Rules.Cursor := Set (Cursor_Auto);
-         elsif LV = "default" then Rules.Cursor := Set (Cursor_Default);
-         elsif LV = "pointer" then Rules.Cursor := Set (Cursor_Pointer);
-         elsif LV = "text" then Rules.Cursor := Set (Cursor_Text);
-         elsif LV = "move" then Rules.Cursor := Set (Cursor_Move);
-         elsif LV = "not-allowed" then Rules.Cursor := Set (Cursor_Not_Allowed);
-         elsif LV = "wait" then Rules.Cursor := Set (Cursor_Wait);
-         elsif LV = "crosshair" then Rules.Cursor := Set (Cursor_Crosshair);
-         elsif LV = "grab" then Rules.Cursor := Set (Cursor_Grab);
-         elsif LV = "grabbing" then Rules.Cursor := Set (Cursor_Grabbing);
+         if LV = "auto" then Take (Prop_Cursor, Intern (Cursor_Auto));
+         elsif LV = "default" then Take (Prop_Cursor, Intern (Cursor_Default));
+         elsif LV = "pointer" then Take (Prop_Cursor, Intern (Cursor_Pointer));
+         elsif LV = "text" then Take (Prop_Cursor, Intern (Cursor_Text));
+         elsif LV = "move" then Take (Prop_Cursor, Intern (Cursor_Move));
+         elsif LV = "not-allowed" then Take (Prop_Cursor, Intern (Cursor_Not_Allowed));
+         elsif LV = "wait" then Take (Prop_Cursor, Intern (Cursor_Wait));
+         elsif LV = "crosshair" then Take (Prop_Cursor, Intern (Cursor_Crosshair));
+         elsif LV = "grab" then Take (Prop_Cursor, Intern (Cursor_Grab));
+         elsif LV = "grabbing" then Take (Prop_Cursor, Intern (Cursor_Grabbing));
          else
             Bad_Value;
          end if;
       elsif Key = D_Visibility then
-         if LV = "visible" then Rules.Visibility := Set (Visibility_Visible);
-         elsif LV = "hidden" then Rules.Visibility := Set (Visibility_Hidden);
-         elsif LV = "collapse" then Rules.Visibility := Set (Visibility_Collapse);
+         if LV = "visible" then Take (Prop_Visibility, Intern (Visibility_Visible));
+         elsif LV = "hidden" then Take (Prop_Visibility, Intern (Visibility_Hidden));
+         elsif LV = "collapse" then Take (Prop_Visibility, Intern (Visibility_Collapse));
          else
             Bad_Value;
          end if;
       elsif Key = D_Object_Fit then
-         if LV = "fill" then Rules.Object_Fit := Set (Fit_Fill);
-         elsif LV = "contain" then Rules.Object_Fit := Set (Fit_Contain);
-         elsif LV = "cover" then Rules.Object_Fit := Set (Fit_Cover);
-         elsif LV = "none" then Rules.Object_Fit := Set (Fit_None);
-         elsif LV = "scale-down" then Rules.Object_Fit := Set (Fit_Scale_Down);
+         if LV = "fill" then Take (Prop_Object_Fit, Intern (Fit_Fill));
+         elsif LV = "contain" then Take (Prop_Object_Fit, Intern (Fit_Contain));
+         elsif LV = "cover" then Take (Prop_Object_Fit, Intern (Fit_Cover));
+         elsif LV = "none" then Take (Prop_Object_Fit, Intern (Fit_None));
+         elsif LV = "scale-down" then Take (Prop_Object_Fit, Intern (Fit_Scale_Down));
          else
             Bad_Value;
          end if;
       elsif Key = D_Object_Position then
          if Parse_Object_Position_Value (V, Object_Pos_Val) then
-            Rules.Object_Position := Set (Object_Pos_Val);
+            Take (Prop_Object_Position, Intern (Object_Pos_Val));
          else
             Bad_Value;
          end if;
       elsif Key = D_Flex_Direction then
-         if LV = "row" then Rules.Flex_Direction := Set (Row);
-         elsif LV = "row-reverse" then Rules.Flex_Direction := Set (Row_Reverse);
-         elsif LV = "column" then Rules.Flex_Direction := Set (Column);
-         elsif LV = "column-reverse" then Rules.Flex_Direction := Set (Column_Reverse);
+         if LV = "row" then Take (Prop_Flex_Direction, Intern (Flex_Direction_Value'(Row)));
+         elsif LV = "row-reverse" then Take (Prop_Flex_Direction, Intern (Flex_Direction_Value'(Row_Reverse)));
+         elsif LV = "column" then Take (Prop_Flex_Direction, Intern (Flex_Direction_Value'(Column)));
+         elsif LV = "column-reverse" then Take (Prop_Flex_Direction, Intern (Flex_Direction_Value'(Column_Reverse)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Flex_Wrap then
-         if LV = "nowrap" then Rules.Flex_Wrap := Set (No_Wrap);
-         elsif LV = "wrap" then Rules.Flex_Wrap := Set (Wrap);
-         elsif LV = "wrap-reverse" then Rules.Flex_Wrap := Set (Wrap_Reverse);
+         if LV = "nowrap" then Take (Prop_Flex_Wrap, Intern (Flex_Wrap_Value'(No_Wrap)));
+         elsif LV = "wrap" then Take (Prop_Flex_Wrap, Intern (Flex_Wrap_Value'(Wrap)));
+         elsif LV = "wrap-reverse" then Take (Prop_Flex_Wrap, Intern (Flex_Wrap_Value'(Wrap_Reverse)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Justify_Content then
-         if LV = "flex-start" or else LV = "start" then Rules.Justify_Content := Set (Flex_Start);
-         elsif LV = "flex-end" or else LV = "end" then Rules.Justify_Content := Set (Flex_End);
-         elsif LV = "center" then Rules.Justify_Content := Set (Center);
-         elsif LV = "space-between" then Rules.Justify_Content := Set (Space_Between);
-         elsif LV = "space-around" then Rules.Justify_Content := Set (Space_Around);
-         elsif LV = "space-evenly" then Rules.Justify_Content := Set (Space_Evenly);
+         if LV = "flex-start" or else LV = "start" then Take (Prop_Justify_Content, Intern (Justify_Content_Value'(Flex_Start)));
+         elsif LV = "flex-end" or else LV = "end" then Take (Prop_Justify_Content, Intern (Justify_Content_Value'(Flex_End)));
+         elsif LV = "center" then Take (Prop_Justify_Content, Intern (Justify_Content_Value'(Center)));
+         elsif LV = "space-between" then Take (Prop_Justify_Content, Intern (Justify_Content_Value'(Space_Between)));
+         elsif LV = "space-around" then Take (Prop_Justify_Content, Intern (Justify_Content_Value'(Space_Around)));
+         elsif LV = "space-evenly" then Take (Prop_Justify_Content, Intern (Justify_Content_Value'(Space_Evenly)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Align_Items then
-         if LV = "flex-start" or else LV = "start" then Rules.Align_Items := Set (Flex_Start);
-         elsif LV = "flex-end" or else LV = "end" then Rules.Align_Items := Set (Flex_End);
-         elsif LV = "center" then Rules.Align_Items := Set (Center);
-         elsif LV = "baseline" then Rules.Align_Items := Set (Baseline);
-         elsif LV = "stretch" then Rules.Align_Items := Set (Stretch);
+         if LV = "flex-start" or else LV = "start" then Take (Prop_Align_Items, Intern (Align_Items_Value'(Flex_Start)));
+         elsif LV = "flex-end" or else LV = "end" then Take (Prop_Align_Items, Intern (Align_Items_Value'(Flex_End)));
+         elsif LV = "center" then Take (Prop_Align_Items, Intern (Align_Items_Value'(Center)));
+         elsif LV = "baseline" then Take (Prop_Align_Items, Intern (Align_Items_Value'(Baseline)));
+         elsif LV = "stretch" then Take (Prop_Align_Items, Intern (Align_Items_Value'(Stretch)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Align_Self then
-         if LV = "auto" then Rules.Align_Self := Set (Align_Self_Value'(Auto));
-         elsif LV = "flex-start" or else LV = "start" then Rules.Align_Self := Set (Align_Self_Value'(Flex_Start));
-         elsif LV = "flex-end" or else LV = "end" then Rules.Align_Self := Set (Align_Self_Value'(Flex_End));
-         elsif LV = "center" then Rules.Align_Self := Set (Align_Self_Value'(Center));
-         elsif LV = "baseline" then Rules.Align_Self := Set (Align_Self_Value'(Baseline));
-         elsif LV = "stretch" then Rules.Align_Self := Set (Align_Self_Value'(Stretch));
+         if LV = "auto" then Take (Prop_Align_Self, Intern (Align_Self_Value'(Auto)));
+         elsif LV = "flex-start" or else LV = "start" then Take (Prop_Align_Self, Intern (Align_Self_Value'(Flex_Start)));
+         elsif LV = "flex-end" or else LV = "end" then Take (Prop_Align_Self, Intern (Align_Self_Value'(Flex_End)));
+         elsif LV = "center" then Take (Prop_Align_Self, Intern (Align_Self_Value'(Center)));
+         elsif LV = "baseline" then Take (Prop_Align_Self, Intern (Align_Self_Value'(Baseline)));
+         elsif LV = "stretch" then Take (Prop_Align_Self, Intern (Align_Self_Value'(Stretch)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Align_Content then
-         if LV = "flex-start" or else LV = "start" then Rules.Align_Content := Set (Align_Content_Value'(Flex_Start));
-         elsif LV = "flex-end" or else LV = "end" then Rules.Align_Content := Set (Align_Content_Value'(Flex_End));
-         elsif LV = "center" then Rules.Align_Content := Set (Align_Content_Value'(Center));
-         elsif LV = "space-between" then Rules.Align_Content := Set (Align_Content_Value'(Space_Between));
-         elsif LV = "space-around" then Rules.Align_Content := Set (Align_Content_Value'(Space_Around));
-         elsif LV = "stretch" then Rules.Align_Content := Set (Align_Content_Value'(Stretch));
+         if LV = "flex-start" or else LV = "start" then Take (Prop_Align_Content, Intern (Align_Content_Value'(Flex_Start)));
+         elsif LV = "flex-end" or else LV = "end" then Take (Prop_Align_Content, Intern (Align_Content_Value'(Flex_End)));
+         elsif LV = "center" then Take (Prop_Align_Content, Intern (Align_Content_Value'(Center)));
+         elsif LV = "space-between" then Take (Prop_Align_Content, Intern (Align_Content_Value'(Space_Between)));
+         elsif LV = "space-around" then Take (Prop_Align_Content, Intern (Align_Content_Value'(Space_Around)));
+         elsif LV = "stretch" then Take (Prop_Align_Content, Intern (Align_Content_Value'(Stretch)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Gap then
          if Parse_Length_List (V, Ls) then
-            if Ls.Length = 1 then Rules.Gap := Set (Gap (To_Length (Ls (1))));
-            elsif Ls.Length >= 2 then Rules.Gap := Set (Gap (To_Length (Ls (1)), To_Length (Ls (2))));
+            if Ls.Length = 1 then
+               Take (Prop_Gap, Intern (Gap (To_Length (Ls (1)))));
+            elsif Ls.Length >= 2 then
+               Take (Prop_Gap,
+                     Intern (Gap (To_Length (Ls (1)), To_Length (Ls (2)))));
             end if;
          else
             Bad_Value;
          end if;
       elsif Key = D_Row_Gap or else Key = D_Column_Gap then
          if Parse_Length (V, LVal) then
-            declare
-               --  One field carries both axes, so a longhand overlays its
-               --  own axis and leaves the other as it was — unnamed here,
-               --  or whatever a preceding shorthand in this rule set.
-               Axis : constant Gap_Value :=
-                 (if Key = D_Row_Gap then Gap_Row (To_Length (LVal))
-                  else Gap_Column (To_Length (LVal)));
-            begin
-               if Opt_Gap.Is_Set (Rules.Gap) then
-                  Rules.Gap := Set (Overlay (Rules.Gap.Value, Axis));
-               else
-                  Rules.Gap := Set (Axis);
-               end if;
-            end;
+            --  An axis is a slot of its own, so a longhand leaves the
+            --  other axis as it was -- unnamed here, or whatever a
+            --  preceding shorthand in this rule set left.
+            Take (Prop_Gap,
+                  (if Key = D_Row_Gap then Gap_Row_Part else Gap_Column_Part),
+                  Intern (To_Length (LVal)));
          else
             Bad_Value;
          end if;
@@ -3486,25 +3551,25 @@ package body Adi.CSS_Parser is
       --  is dropped, where an out-of-range opacity above is not.
       elsif Key = D_Flex_Grow then
          if Parse_Number (V, F) and then F >= 0.0 then
-            Rules.Flex_Grow := Set (Flex_Grow_Value (F));
+            Take (Prop_Flex_Grow, Intern (Flex_Grow_Value (F)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Flex_Shrink then
          if Parse_Number (V, F) and then F >= 0.0 then
-            Rules.Flex_Shrink := Set (Flex_Shrink_Value (F));
+            Take (Prop_Flex_Shrink, Intern (Flex_Shrink_Value (F)));
          else
             Bad_Value;
          end if;
       elsif Key = D_Flex_Basis then
-         if LV = "auto" then Rules.Flex_Basis := Set (Auto_Basis);
-         elsif LV = "content" then Rules.Flex_Basis := Set (Content_Basis);
-         elsif Parse_Length (V, LVal) then Rules.Flex_Basis := Set (Basis (To_Length (LVal)));
+         if LV = "auto" then Take (Prop_Flex_Basis, Intern (Auto_Basis));
+         elsif LV = "content" then Take (Prop_Flex_Basis, Intern (Content_Basis));
+         elsif Parse_Length (V, LVal) then Take (Prop_Flex_Basis, Intern (Basis (To_Length (LVal))));
          else
             Bad_Value;
          end if;
       elsif Key = D_Order then
-         if Parse_Integer (V, I) then Rules.Order := Set (Order_Value (I)); else Bad_Value; end if;
+         if Parse_Integer (V, I) then Take (Prop_Order, Intern (Order_Value (I))); else Bad_Value; end if;
       elsif Key = D_Grid_Template_Columns then
          declare
             TL : Grid_Track_List;
@@ -3514,23 +3579,27 @@ package body Adi.CSS_Parser is
                --  track. CSS leaves the tracks to the implicit grid and
                --  grid-auto-columns, which Adi carries as a count of
                --  zero, the way Grid_Rows already carries auto.
-               Rules.Grid_Column_Tracks := Default_Grid_Track_List;
-               Rules.Grid_Columns := Set (Grid_Columns_Value (0));
+               Take (Prop_Grid_Columns, Tracks_Part,
+                     Intern (Default_Grid_Track_List));
+               Take (Prop_Grid_Columns, First_Part,
+                     Intern (Grid_Columns_Value (0)));
             elsif Parse_Grid_Track_List (V, TL) then
-               Rules.Grid_Column_Tracks := TL;
-               Rules.Grid_Columns := Set (Grid_Columns_Value (TL.Count));
+               Take (Prop_Grid_Columns, Tracks_Part, Intern (TL));
+               Take (Prop_Grid_Columns, First_Part,
+                     Intern (Grid_Columns_Value (TL.Count)));
             elsif Parse_Grid_Track_Count (V, N) then
                --  Fallback: token count > Max_Grid_Tracks; keep count only
-               Rules.Grid_Columns := Set (Grid_Columns_Value (N));
+               Take (Prop_Grid_Columns, First_Part,
+                     Intern (Grid_Columns_Value (N)));
             else
                Bad_Value;
             end if;
          end;
       elsif Key = D_Grid_Template_Rows then
          if LV = "none" then
-            Rules.Grid_Rows := Set (Grid_Rows_Value (0));
+            Take (Prop_Grid_Rows, Intern (Grid_Rows_Value (0)));
          elsif Parse_Grid_Track_Count (V, N) then
-            Rules.Grid_Rows := Set (Grid_Rows_Value (N));
+            Take (Prop_Grid_Rows, Intern (Grid_Rows_Value (N)));
          else
             Bad_Value;
          end if;
@@ -3561,9 +3630,11 @@ package body Adi.CSS_Parser is
                      Got_Start := True;
                      Start_Line := Natural (Start_Val);
                      if Is_Col then
-                        Rules.Grid_Column := Set (Grid_Column_Value (Start_Val));
+                        Take (Prop_Grid_Column,
+                              Intern (Grid_Column_Value (Start_Val)));
                      else
-                        Rules.Grid_Row := Set (Grid_Row_Value (Start_Val));
+                        Take (Prop_Grid_Row,
+                              Intern (Grid_Row_Value (Start_Val)));
                      end if;
                      Took := True;
                   end if;
@@ -3575,9 +3646,11 @@ package body Adi.CSS_Parser is
                        and then Span_Val > 0
                      then
                         if Is_Col then
-                           Rules.Grid_Column_Span := Set (Grid_Column_Span_Value (Span_Val));
+                           Take (Prop_Grid_Column_Span,
+                                 Intern (Grid_Column_Span_Value (Span_Val)));
                         else
-                           Rules.Grid_Row_Span := Set (Grid_Row_Span_Value (Span_Val));
+                           Take (Prop_Grid_Row_Span,
+                                 Intern (Grid_Row_Span_Value (Span_Val)));
                         end if;
                         Took := True;
                      end if;
@@ -3585,9 +3658,15 @@ package body Adi.CSS_Parser is
                      --  "start / end_line" -> span = end - start
                      if Start_Val > Integer (Start_Line) then
                         if Is_Col then
-                           Rules.Grid_Column_Span := Set (Grid_Column_Span_Value (Start_Val - Integer (Start_Line)));
+                           Take (Prop_Grid_Column_Span,
+                                 Intern (Grid_Column_Span_Value
+                                           (Start_Val
+                                            - Integer (Start_Line))));
                         else
-                           Rules.Grid_Row_Span := Set (Grid_Row_Span_Value (Start_Val - Integer (Start_Line)));
+                           Take (Prop_Grid_Row_Span,
+                                 Intern (Grid_Row_Span_Value
+                                           (Start_Val
+                                            - Integer (Start_Line))));
                         end if;
                         Took := True;
                      end if;
@@ -3603,17 +3682,21 @@ package body Adi.CSS_Parser is
                     and then Span_Val > 0
                   then
                      if Is_Col then
-                        Rules.Grid_Column_Span := Set (Grid_Column_Span_Value (Span_Val));
+                        Take (Prop_Grid_Column_Span,
+                              Intern (Grid_Column_Span_Value (Span_Val)));
                      else
-                        Rules.Grid_Row_Span := Set (Grid_Row_Span_Value (Span_Val));
+                        Take (Prop_Grid_Row_Span,
+                              Intern (Grid_Row_Span_Value (Span_Val)));
                      end if;
                      Took := True;
                   end if;
                elsif Parse_Integer (V, Start_Val) and then Start_Val > 0 then
                   if Is_Col then
-                     Rules.Grid_Column := Set (Grid_Column_Value (Start_Val));
+                     Take (Prop_Grid_Column,
+                           Intern (Grid_Column_Value (Start_Val)));
                   else
-                     Rules.Grid_Row := Set (Grid_Row_Value (Start_Val));
+                     Take (Prop_Grid_Row,
+                           Intern (Grid_Row_Value (Start_Val)));
                   end if;
                   Took := True;
                elsif LV = "auto" then
@@ -3630,19 +3713,19 @@ package body Adi.CSS_Parser is
             end if;
          end;
       elsif Key = D_Outline_Width then
-         if Parse_Length (V, LVal) then Rules.Outline_Width := Set_Outline_Width (To_Length (LVal)); else Bad_Value; end if;
+         if Parse_Length (V, LVal) then Take (Prop_Outline_Width, Intern (To_Length (LVal))); else Bad_Value; end if;
       elsif Key = D_Outline_Color then
-         if Parse_Color (V, CVal) then Rules.Outline_Color := Set_Outline_Color (CVal); else Bad_Value; end if;
+         if Parse_Color (V, CVal) then Take (Prop_Outline_Color, Intern (CVal)); else Bad_Value; end if;
       elsif Key = D_Outline_Style then
-         if LV = "none" then Rules.Outline_Style := Set (Outline_None);
-         elsif LV = "solid" then Rules.Outline_Style := Set (Outline_Solid);
-         elsif LV = "dashed" then Rules.Outline_Style := Set (Outline_Dashed);
-         elsif LV = "dotted" then Rules.Outline_Style := Set (Outline_Dotted);
+         if LV = "none" then Take (Prop_Outline_Style, Intern (Outline_None));
+         elsif LV = "solid" then Take (Prop_Outline_Style, Intern (Outline_Solid));
+         elsif LV = "dashed" then Take (Prop_Outline_Style, Intern (Outline_Dashed));
+         elsif LV = "dotted" then Take (Prop_Outline_Style, Intern (Outline_Dotted));
          else
             Bad_Value;
          end if;
       elsif Key = D_Outline_Offset then
-         if Parse_Length (V, LVal) then Rules.Outline_Offset := Set_Outline_Offset (To_Length (LVal)); else Bad_Value; end if;
+         if Parse_Length (V, LVal) then Take (Prop_Outline_Offset, Intern (To_Length (LVal))); else Bad_Value; end if;
       elsif Key = D_Outline then
          declare
             Tokens : Token_Vectors.Vector;
@@ -3691,27 +3774,27 @@ package body Adi.CSS_Parser is
               and then (Has_Style or else Has_Width or else Has_Color)
             then
                if Has_Style then
-                  Rules.Outline_Style := Set (Style_Val);
+                  Take (Prop_Outline_Style, Intern (Style_Val));
                end if;
                if Has_Width then
-                  Rules.Outline_Width :=
-                    Set_Outline_Width (To_Length (Width_Val));
+                  Take (Prop_Outline_Width,
+                        Intern (To_Length (Width_Val)));
                end if;
                if Has_Color then
-                  Rules.Outline_Color := Set_Outline_Color (Color_Val);
+                  Take (Prop_Outline_Color, Intern (Color_Val));
                end if;
             else
                Bad_Value;
             end if;
          end;
       elsif Key = D_Box_Shadow then
-         if Parse_Box_Shadow (V, Shadow_Val) then Rules.Box_Shadow := Set (Shadow_Val); else Bad_Value; end if;
+         if Parse_Box_Shadow (V, Shadow_Val) then Take (Prop_Box_Shadow, Intern (Shadow_Val)); else Bad_Value; end if;
       elsif Key = D_Transition then
          declare
             T : Transition_Spec;
          begin
             if Parse_Transition (V, T) then
-               Rules.Transition := Set (T);
+               Take (Prop_Transition, Intern (T));
             else
                Bad_Value;
             end if;
@@ -3734,7 +3817,7 @@ package body Adi.CSS_Parser is
    exception
       when Constraint_Error =>
          null;
-   end Apply_Property;
+   end Apply_Declaration;
 
    ---------------------------------------------------------------------------
    --  Custom Property Preprocessing (var(), :root, @property)
@@ -4239,7 +4322,7 @@ package body Adi.CSS_Parser is
       Root    : Style_Definition;
       --  The declarations land in one rule set and it is interned once,
       --  so the store holds the block rather than every prefix of it.
-      Base    : Style_Rules;
+      Base    : Rule_Slots;
       Touched : Boolean := False;
    begin
       if Root_CSS'Length = 0 then
@@ -4248,7 +4331,7 @@ package body Adi.CSS_Parser is
 
       Working := Metadata.Root_Styles;
       Root := Definition (Working (Main_Part).Style);
-      Base := Rules_Of (Root.Base);
+      Base := Slots_Of (Root.Base);
 
       while Pos <= Root_CSS'Last loop
          while Pos <= Root_CSS'Last
@@ -4276,13 +4359,17 @@ package body Adi.CSS_Parser is
                begin
                   Metadata.Has_Root_Style := True;
                   Touched := True;
-                  Apply_Property (Base, ":root", Prop_Name, Prop_Value);
-                  if Lower (Prop_Name) = "font-size"
-                    and then Opt_Font_Size.Is_Set (Base.Font_Size)
-                  then
-                     Metadata.Has_Root_Font_Size := True;
-                     Metadata.Root_Font_Size :=
-                       Opt_Font_Size.Resolve (Base.Font_Size);
+                  Apply_Declaration (Base, ":root", Prop_Name, Prop_Value);
+                  if Lower (Prop_Name) = "font-size" then
+                     declare
+                        Folded : constant Style_Rules := Rules_Of (Base);
+                     begin
+                        if Opt_Font_Size.Is_Set (Folded.Font_Size) then
+                           Metadata.Has_Root_Font_Size := True;
+                           Metadata.Root_Font_Size :=
+                             Opt_Font_Size.Resolve (Folded.Font_Size);
+                        end if;
+                     end;
                   end if;
                end;
             end if;
@@ -4440,7 +4527,7 @@ package body Adi.CSS_Parser is
                                     Sep : constant Natural := Fix.Index (Decl, ":");
                                  begin
                                     if Sep > 0 then
-                                       Apply_Property (
+                                       Apply_Declaration (
                                           Rule.Style,
                                           Sel_Text,
                                           Trimmed (Decl (Decl'First .. Sep - 1)),
@@ -4567,10 +4654,10 @@ package body Adi.CSS_Parser is
                else
                   W.Rules (Rule_Index).Style :=
                     Intern_Rules
-                      (Merge (Rules_Of (W.Rules (Rule_Index).Style), R.Style));
+                      (Merge (Slots_Of (W.Rules (Rule_Index).Style), R.Style));
                end if;
             else
-               W.Base := Intern_Rules (Merge (Rules_Of (W.Base), R.Style));
+               W.Base := Intern_Rules (Merge (Slots_Of (W.Base), R.Style));
             end if;
 
             C (R.Sel.Part) := (Style => Intern (W), Enabled => True);
@@ -5128,7 +5215,7 @@ package body Adi.CSS_Parser is
          return Element (C);
       end if;
 
-      D.Rules.Append (Empty_Style);
+      D.Rules.Append (Empty_Slots);
       D.Index (Kind).Insert (Key, D.Rules.Last_Index);
       return D.Rules.Last_Index;
    end Ensure_Rules;
@@ -5177,7 +5264,7 @@ package body Adi.CSS_Parser is
             --  is what settles two declarations of one property.
             if R.Sel.Part = Main_Part and then not R.Sel.Has_State then
                declare
-                  Folded : constant Style_Rules :=
+                  Folded : constant Rule_Slots :=
                     Merge (Sheet.Data.Rules (Idx), R.Style);
                begin
                   Sheet.Data.Rules.Replace_Element (Idx, Folded);
@@ -5216,7 +5303,7 @@ package body Adi.CSS_Parser is
          if not Has_Element (C) then
             return Empty_Style;
          end if;
-         return Sheet.Data.Rules (Element (C));
+         return Rules_Of (Sheet.Data.Rules (Element (C)));
       end;
    end Base_Rules;
 

@@ -2359,6 +2359,12 @@ package body Adi.CSS_Styles is
 
    function Slot_Count (L : Rule_Slots) return Natural is (L.Count);
 
+   function Slot_Property (L : Rule_Slots; I : Positive) return CSS_Property is
+     (L.Items (I).Prop);
+
+   function Slot_Part_Of (L : Rule_Slots; I : Positive) return Slot_Part is
+     (L.Items (I).Part);
+
    ---------------------------------------------------------------------
    --  Style_Rules to slots
    ---------------------------------------------------------------------
@@ -2857,6 +2863,113 @@ package body Adi.CSS_Styles is
 
    function Resolve (L : Rule_Slots) return Resolved_Style is
      (Resolve (Rules_Of (L)));
+
+   ---------------------------------------------------------------------
+   --  Filling a list one value at a time
+   ---------------------------------------------------------------------
+
+   --  Insert-or-replace on the key, which holds the list ordered and
+   --  one slot deep per key.
+   procedure Put (L : in out Rule_Slots; E : Prop_Slot) is
+      I : Positive := 1;
+   begin
+      while I <= L.Count and then Precedes (L.Items (I), E) loop
+         I := I + 1;
+      end loop;
+
+      if I <= L.Count
+        and then L.Items (I).Prop = E.Prop
+        and then L.Items (I).Part = E.Part
+      then
+         L.Items (I) := E;
+         return;
+      end if;
+
+      --  A full list holds every key Slots_Of emits, so a key arriving
+      --  past the cap is one outside that set -- a property that gained
+      --  a part, or a caller naming a part Slots_Of leaves unnamed.
+      --  Saying so beats the slice assignment below faulting on an
+      --  index nothing explains. parser_slots_test holds the set closed
+      --  over every property and part the two Apply_Property can name.
+      if L.Count >= Max_Rule_Slots then
+         raise Program_Error with
+           "css: " & E.Prop'Image & " part" & E.Part'Image
+           & " is a rule-set key past the" & Natural'Image (Max_Rule_Slots)
+           & " Slots_Of names";
+      end if;
+
+      L.Items (I + 1 .. L.Count + 1) := L.Items (I .. L.Count);
+      L.Items (I) := E;
+      L.Count := L.Count + 1;
+   end Put;
+
+   --  Leaves the key unnamed, and the freed entry at its default so
+   --  that two lists carrying the same slots carry the same bytes.
+   procedure Take_Out
+     (L : in out Rule_Slots; P : CSS_Property; Part : Slot_Part) is
+   begin
+      for I in 1 .. L.Count loop
+         if L.Items (I).Prop = P and then L.Items (I).Part = Part then
+            L.Items (I .. L.Count - 1) := L.Items (I + 1 .. L.Count);
+            L.Items (L.Count) := (others => <>);
+            L.Count := L.Count - 1;
+            return;
+         end if;
+      end loop;
+   end Take_Out;
+
+   --  What a value comes to in slots is what Slots_Of answers for a
+   --  rule set naming that property alone, so the shapes carrying more
+   --  than one slot -- four edges, two axes, a count beside a track
+   --  list -- are stated once, where Slots_Of states them.
+   procedure Take_Slots (L : in out Rule_Slots; Named : Style_Rules) is
+      Fresh : constant Rule_Slots := Slots_Of (Named);
+   begin
+      for I in 1 .. Fresh.Count loop
+         Put (L, Fresh.Items (I));
+      end loop;
+   end Take_Slots;
+
+   --  Every part the property owns leaves at once, which is what a
+   --  whole value answers for: a shorthand takes over from a longhand
+   --  ahead of it.
+   procedure Take_Out_All (L : in out Rule_Slots; P : CSS_Property) is
+      Kept : Natural := 0;
+   begin
+      for I in 1 .. L.Count loop
+         if L.Items (I).Prop /= P then
+            Kept := Kept + 1;
+            L.Items (Kept) := L.Items (I);
+         end if;
+      end loop;
+
+      for I in Kept + 1 .. L.Count loop
+         L.Items (I) := (others => <>);
+      end loop;
+
+      L.Count := Kept;
+   end Take_Out_All;
+
+   procedure Apply_Property
+     (L : in out Rule_Slots; P : CSS_Property; R : Value_Ref)
+   is
+      Named : Style_Rules;
+   begin
+      Apply_Property (Named, P, R);
+      Take_Out_All (L, P);
+      Take_Slots (L, Named);
+   end Apply_Property;
+
+   procedure Apply_Property
+     (L : in out Rule_Slots; P : CSS_Property; Part : Slot_Part;
+      R : Value_Ref)
+   is
+      Named : Style_Rules;
+   begin
+      Apply_Property (Named, P, Part, R);
+      Take_Out (L, P, Part);
+      Take_Slots (L, Named);
+   end Apply_Property;
 
    ---------------------------------------------------------------------
    --  Merging and inheriting: two ordered lists, one walk

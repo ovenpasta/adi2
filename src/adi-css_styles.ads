@@ -1708,8 +1708,36 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Rules_Of (L : Rule_Slots)   return Style_Rules;
    function Intern_Rules (L : Rule_Slots) return Rules_Handle;
 
-   --  Slots the list holds. Instrumentation a test reads.
+   --  Slots the list holds, and the key each one carries.
+   --  Instrumentation a test reads: the value under a key is read
+   --  through Rules_Of, which is what says how it is typed.
    function Slot_Count (L : Rule_Slots) return Natural;
+   function Slot_Property (L : Rule_Slots; I : Positive) return CSS_Property;
+   function Slot_Part_Of (L : Rule_Slots; I : Positive) return Slot_Part;
+
+   --  Filling a list one value at a time, which is how Adi.CSS_Parser
+   --  builds a rule set out of the declarations it reads. A key the
+   --  list already holds is replaced, so a rule naming a property twice
+   --  keeps the last as the cascade says, and the list holds one slot
+   --  per key however many declarations reach it -- Max_Rule_Slots is
+   --  what the keys number, so it bounds any sequence of these.
+   --
+   --  Where a value lands is what Slots_Of says. The three-argument
+   --  form takes every key P owns, so `padding` reaches its four edges
+   --  and a longhand ahead of it stands aside; the four-argument form
+   --  takes the one part it names and leaves P's other parts to the
+   --  cascade. A track list of no tracks leaves grid-template-columns'
+   --  second part unnamed, which is the shape Slots_Of gives a rule set
+   --  carrying none.
+   --
+   --  `overflow` reaches two keys by naming two properties rather than
+   --  two parts of one: Prop_Overflow owns no slot, and the rule set
+   --  holds Prop_Overflow_X and Prop_Overflow_Y, each at First_Part.
+   procedure Apply_Property
+     (L : in out Rule_Slots; P : CSS_Property; R : Value_Ref);
+   procedure Apply_Property
+     (L : in out Rule_Slots; P : CSS_Property; Part : Slot_Part;
+      R : Value_Ref);
 
    --  Override wins every key it names and the rest of Base stands, so
    --  a rule naming one border edge leaves the other three alone.

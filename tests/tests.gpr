@@ -83,7 +83,8 @@ project Tests is
       "style_composer_test",
       "widget_property_test",
       "list_box_visibility_test",
-      "idle_tick_test");
+      "idle_tick_test",
+      "parser_slots_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

@@ -452,7 +452,7 @@ Corner radius longhands currently accept a single value only (elliptical two-val
 
 | Property | Values | Example |
 |----------|--------|---------|
-| `font-family` | comma-separated names | `font-family: "Open Sans", sans-serif;` |
+| `font-family` | comma-separated names, the thirteen CSS generic families among them | `font-family: "Open Sans", sans-serif;` |
 | `font-size` | length | `font-size: 16px;` |
 | `font-weight` | `100`–`900`, `thin`, `extra-light`, `light`, `normal`, `medium`, `semi-bold`, `bold`, `extra-bold`, `black` | `font-weight: 700;` |
 | `font-style` | `normal`, `italic`, `oblique` | `font-style: italic;` |
@@ -1699,7 +1699,40 @@ Adi.Font.Enable_System_Font_Search;
 
 Names are matched case-insensitively. Comma-separated lists are tried left-to-right; the first name that matches wins. If no name matches, the default font is used. In registry-only mode an unregistered name is skipped without a scan; after `Enable_System_Font_Search` it is searched for once, and the miss is cached so later lookups of the same name are cheap.
 
-The generic families `sans-serif`, `serif` and `monospace` resolve in either mode, since they are names CSS defines rather than names of installed families. Each is tried against a per-platform candidate list — on Linux, DejaVu, Noto and Liberation — and answered by the first one present. Registering a face under the generic's own name overrides that. Resolution happens on first use and is then kept, so a generic the program never asks for is never scanned for.
+The generic families resolve in either mode, since they are names CSS
+defines rather than names of installed families. All thirteen of CSS
+Fonts 4 §2.1.1 are read:
+
+| Generic | Resolves to |
+|---------|-------------|
+| `serif`, `sans-serif`, `monospace` | the platform's text faces — on Linux, DejaVu, Noto and Liberation |
+| `system-ui`, `ui-sans-serif` | the desktop UI face: Adwaita Sans or Cantarell on Linux, Segoe UI on Windows, Helvetica Neue on macOS |
+| `ui-serif` | New York on macOS, the serif list elsewhere |
+| `ui-monospace` | the monospace list, whose head is already the UI face each platform uses |
+| `ui-rounded` | SF Rounded on macOS, the UI sans list elsewhere |
+| `cursive`, `fantasy` | the platform's script and display faces: Z003 and Impact on Linux, Apple Chancery and Papyrus on macOS, Comic Sans MS and Impact on Windows |
+| `math`, `emoji`, `fangsong` | a face of that kind where one is installed |
+
+Each is tried against its per-platform candidate list and answered by the
+first one present. Registering a face under the generic's own name
+overrides that. Resolution happens on first use and is then kept, so a
+generic the program never asks for is never scanned for.
+
+`math`, `emoji` and `fangsong` name faces an installation frequently
+omits, and a generic whose candidates are all absent resolves to nothing
+and stops there — the default face answers, and the name itself stays out
+of the ordinary family search. That holds for all thirteen: writing
+`font-family: ui-monospace` reaches a monospace face, where treating the
+name as an ordinary family would walk every font directory for a family
+that lives only in the stylesheet.
+
+Two platform faces sit beyond reach of the scan, which opens a font
+collection at its first face: Windows keeps Cambria Math inside
+`cambria.ttc` behind Cambria, and macOS keeps STFangsong inside a
+collection behind another family. So `math` on a stock Windows install
+answers with the default face unless the machine's owner has installed
+STIX Two Math or Latin Modern Math, and `fangsong` on macOS answers with
+the default face.
 
 ---
 

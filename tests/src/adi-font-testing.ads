@@ -20,4 +20,15 @@ package Adi.Font.Testing is
    --  is what a closed face has to take with it.
    function Line_Skip_Cached (Font : TTF_Font_Access) return Boolean;
 
+   --  Whether the font directories have been walked for this name as an
+   --  ordinary family, which is how a test tells the two resolution
+   --  paths apart: a generic answers from its own candidate table and
+   --  leaves this reading alone.
+   function Searched_As_Family (Name : String) return Boolean;
+
+   --  Drops a name from the registry, so a section that needs the
+   --  resolver to run its full length starts from a registry that has
+   --  never heard the name.
+   procedure Forget_Name (Name : String);
+
 end Adi.Font.Testing;

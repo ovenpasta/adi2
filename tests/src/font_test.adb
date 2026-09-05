@@ -56,6 +56,36 @@ procedure Font_Test is
       Sweep;
    end Drain;
 
+   --  The thirteen names CSS Fonts 4 §2.1.1 defines, in its own order.
+   type Family_Name_Ref is access constant String;
+   type Family_Name_List is array (Positive range <>) of Family_Name_Ref;
+
+   CSS_Generics : constant Family_Name_List :=
+     [new String'("serif"),
+      new String'("sans-serif"),
+      new String'("monospace"),
+      new String'("cursive"),
+      new String'("fantasy"),
+      new String'("system-ui"),
+      new String'("ui-serif"),
+      new String'("ui-sans-serif"),
+      new String'("ui-monospace"),
+      new String'("ui-rounded"),
+      new String'("math"),
+      new String'("emoji"),
+      new String'("fangsong")];
+
+   --  A name no system carries, so what happens to it says which path
+   --  the resolver took.
+   Unknown_Family : constant String := "Nothing Is Installed Under This";
+
+   function Resolved_Family (Family : String) return Font_Handle is
+      Rules : Style_Rules;
+   begin
+      Rules.Font_Family := Set_Font_Family (Family);
+      return Resolve (Rules).Font_Family;
+   end Resolved_Family;
+
    procedure Check (Name : String; H : Font_Handle; Expect_Found : Boolean) is
    begin
       Test_Support.Assert
@@ -190,6 +220,52 @@ begin
          "and the name is matched case-insensitively");
    end;
 
+   Test_Support.Section ("the UI generics reach a face of their own kind");
+   declare
+      Sys_UI   : constant Font_Handle := Resolved_Family ("system-ui");
+      UI_Sans  : constant Font_Handle := Resolved_Family ("ui-sans-serif");
+      UI_Serif : constant Font_Handle := Resolved_Family ("ui-serif");
+      UI_Mono  : constant Font_Handle := Resolved_Family ("ui-monospace");
+      Rounded  : constant Font_Handle := Resolved_Family ("ui-rounded");
+      Mono     : constant Font_Handle := Resolved_Family ("monospace");
+   begin
+      Test_Support.Assert
+        (Sys_UI /= Null_Font and then UI_Sans /= Null_Font
+           and then UI_Serif /= Null_Font and then Rounded /= Null_Font,
+         "the UI generics resolve with arbitrary family lookup still"
+         & " closed, the way the CSS 2.1 three do");
+      Test_Support.Assert
+        (UI_Mono = Mono,
+         "ui-monospace reaches the platform's monospace face");
+      Test_Support.Assert
+        (UI_Sans /= Mono,
+         "and ui-sans-serif reaches a different one, so the kind the"
+         & " name asks for is what answers");
+      Test_Support.Assert
+        (Resolved_Family ("UI-MonoSpace") = UI_Mono,
+         "the new names are matched case-insensitively too");
+   end;
+
+   Test_Support.Section
+     ("registry-only mode leaves the font directories alone");
+   declare
+      Ignored : Font_Handle;
+   begin
+      for Name of CSS_Generics loop
+         Ignored := Resolved_Family (Name.all);
+         Test_Support.Assert
+           (not Adi.Font.Testing.Searched_As_Family (Name.all),
+            Name.all & " is answered from its own candidate table");
+      end loop;
+
+      Ignored := Resolved_Family (Unknown_Family);
+      Test_Support.Assert
+        (Ignored = Null_Font
+           and then not Adi.Font.Testing.Searched_As_Family (Unknown_Family),
+         "and an ordinary name the registry has never heard of is"
+         & " skipped rather than searched for");
+   end;
+
    Test_Support.Section ("a registered face wins over the platform list");
    declare
       use type Font_Handle;
@@ -233,6 +309,74 @@ begin
 
 
    Adi.Font.Enable_System_Font_Search;
+
+   Test_Support.Section
+     ("a generic is never searched for as a family of that name");
+   declare
+      Ignored : Font_Handle;
+   begin
+      --  A section above binds a face to "monospace", and a bound name
+      --  answers ahead of the generic tables, which would leave that
+      --  one iteration reporting on the registry instead. Every name is
+      --  put back to unbound so each reaches the resolver's full
+      --  length.
+      for Name of CSS_Generics loop
+         Adi.Font.Testing.Forget_Name (Name.all);
+      end loop;
+
+      --  The reason the vocabulary is worth carrying: with the search
+      --  open, a name the resolver leaves unplaced walks every font
+      --  directory for a family that lives only in the stylesheet.
+      for Name of CSS_Generics loop
+         Ignored := Resolved_Family (Name.all);
+         Test_Support.Assert
+           (not Adi.Font.Testing.Searched_As_Family (Name.all),
+            Name.all & " resolves through the generic tables, leaving"
+            & " the font directories alone");
+      end loop;
+
+      Ignored := Resolved_Family ("UI-Rounded");
+      Test_Support.Assert
+        (not Adi.Font.Testing.Searched_As_Family ("UI-Rounded"),
+         "which the case of the name makes no difference to");
+
+      --  Which of the thirteen the running machine has a face for is
+      --  its own business, so this is reported rather than asserted.
+      for Name of CSS_Generics loop
+         Put_Line
+           ("  " & Name.all & " -> "
+            & Font_Handle'Image (Resolved_Family (Name.all)));
+      end loop;
+
+      --  The other half of the reading: an ordinary name does take the
+      --  walk, so the assertions above stand on the path taken rather
+      --  than on a probe that answers False to everything.
+      Ignored := Resolved_Family (Unknown_Family);
+      Test_Support.Assert
+        (Ignored = Null_Font
+           and then Adi.Font.Testing.Searched_As_Family (Unknown_Family),
+         "an ordinary name the system has not got is searched for once"
+         & " and remembered as a miss");
+   end;
+
+   Test_Support.Section ("a face registered under a generic's own name wins");
+   declare
+      Chosen : constant Font_Handle :=
+        Adi.Font.Load ("vendor/open-sans/static/OpenSans-Regular.ttf",
+                       "the chosen generic");
+   begin
+      if Chosen = Null_Font then
+         Test_Support.Assert (False, "the fixture font loads");
+      else
+         for Name of CSS_Generics loop
+            Adi.Font.Register_Name (Name.all, Chosen);
+            Test_Support.Assert
+              (Resolved_Family (Name.all) = Chosen,
+               "an application that names a face for " & Name.all
+               & " gets that face");
+         end loop;
+      end if;
+   end;
 
    case Adi.Build_Target.Platform is
       when Adi.Build_Target.macOS =>

@@ -20,4 +20,9 @@ package body Adi.Font.Testing is
    function Line_Skip_Cached (Font : TTF_Font_Access) return Boolean is
      (Adi.Font.Has_Natural_Skip (Font));
 
+   function Searched_As_Family (Name : String) return Boolean is
+     (Adi.Font.Family_Search_Missed (Name));
+
+   procedure Forget_Name (Name : String) renames Adi.Font.Forget_Name;
+
 end Adi.Font.Testing;

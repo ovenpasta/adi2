@@ -149,14 +149,29 @@ package Adi.Font is
    --  the resolver to use Find, so unregistered names trigger a system font
    --  search on first use.
    --
-   --  The generic families -- sans-serif, serif and monospace -- resolve in
-   --  either mode. They are names CSS defines rather than names of anything
-   --  installed, so an application that has not opened lookup to arbitrary
-   --  families still gets a monospace face from "monospace". Each is tried
-   --  against a per-platform list of candidates and answered by the first
-   --  one present; a name registered for the generic itself wins over that.
-   --  Resolution happens on first use and is kept, so nothing is scanned
-   --  for a generic the program never asks about.
+   --  The generic families resolve in either mode. They are names CSS
+   --  defines rather than names of anything installed, so an application
+   --  that has not opened lookup to arbitrary families still gets a
+   --  monospace face from "monospace". All thirteen of CSS Fonts 4
+   --  §2.1.1 are read:
+   --
+   --    serif        sans-serif     monospace
+   --    cursive      fantasy        system-ui
+   --    ui-serif     ui-sans-serif  ui-monospace
+   --    ui-rounded   math           emoji
+   --    fangsong
+   --
+   --  Each is tried against a per-platform list of candidates and
+   --  answered by the first one present; a name registered for the
+   --  generic itself wins over that. Resolution happens on first use
+   --  and is kept, so nothing is scanned for a generic the program
+   --  never asks about.
+   --
+   --  A generic whose candidates are all absent -- math, emoji and
+   --  fangsong are the usual ones -- resolves to nothing and stops
+   --  there, leaving the default face to answer. The name itself stays
+   --  out of the ordinary family search, which would walk every font
+   --  directory for a family that lives only in the stylesheet.
    ---------------------------------------------------------------------------
 
    procedure Enable_System_Font_Search;
@@ -345,5 +360,17 @@ private
    function Face_Pins (Font : TTF_Font_Access) return Natural;
    function Face_Last_Used (Font : TTF_Font_Access) return Natural;
    function Has_Natural_Skip (Font : TTF_Font_Access) return Boolean;
+
+   --  Drops a name from the registry, so a test can put back the state
+   --  a section before it changed. Registration is one-way for an
+   --  application: a name it has bound stays bound for the run.
+   procedure Forget_Name (Name : String);
+
+   --  Whether the font directories have been walked for this name as an
+   --  ordinary family and came back empty. The miss cache is keyed by
+   --  the family together with the stem, so this answers for the stem
+   --  Find derives from the name and leaves the curated stems of the
+   --  generic tables to answer for themselves.
+   function Family_Search_Missed (Name : String) return Boolean;
 
 end Adi.Font;

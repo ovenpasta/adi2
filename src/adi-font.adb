@@ -285,9 +285,37 @@ package body Adi.Font is
    --  so they resolve whichever mode the CSS resolver is in: an app that
    --  has not opened system font lookup to arbitrary names still gets
    --  "monospace" to mean a monospace face. First candidate present wins.
+   --
+   --  Several of the thirteen describe a face a platform keeps only one
+   --  of, and those share the list that already names it. The rest --
+   --  math, emoji and fangsong especially -- describe faces an install
+   --  often omits; each carries a real list so a present one is found,
+   --  and a generic that reaches none of its candidates resolves to
+   --  nothing, which leaves the default face to answer.
    ---------------------------------------------------------------------------
 
-   type Generic_Family is (Generic_Sans, Generic_Serif, Generic_Mono);
+   --  CSS Fonts 4 §2.1.1, in the order it lists them.
+   type Generic_Family is
+     (Generic_Serif,    Generic_Sans,      Generic_Mono,
+      Generic_Cursive,  Generic_Fantasy,   Generic_System_UI,
+      Generic_UI_Serif, Generic_UI_Sans,   Generic_UI_Mono,
+      Generic_UI_Round, Generic_Math,      Generic_Emoji,
+      Generic_Fangsong);
+
+   Generic_Names : constant array (Generic_Family) of Font_Path_Ref :=
+     [Generic_Serif     => new String'("serif"),
+      Generic_Sans      => new String'("sans-serif"),
+      Generic_Mono      => new String'("monospace"),
+      Generic_Cursive   => new String'("cursive"),
+      Generic_Fantasy   => new String'("fantasy"),
+      Generic_System_UI => new String'("system-ui"),
+      Generic_UI_Serif  => new String'("ui-serif"),
+      Generic_UI_Sans   => new String'("ui-sans-serif"),
+      Generic_UI_Mono   => new String'("ui-monospace"),
+      Generic_UI_Round  => new String'("ui-rounded"),
+      Generic_Math      => new String'("math"),
+      Generic_Emoji     => new String'("emoji"),
+      Generic_Fangsong  => new String'("fangsong")];
 
    type Fallback_Font_List is
      array (Positive range <>) of Fallback_Font_Entry;
@@ -308,6 +336,50 @@ package body Adi.Font is
       (new String'("NotoSansMono"),    new String'("noto sans mono")),
       (new String'("LiberationMono"),  new String'("liberation mono"))];
 
+   --  The desktop UI face ahead of the sans list, in the order
+   --  fontconfig's 60-latin.conf prefers it. Distributions differ on
+   --  which of the two they ship, and a machine carrying neither still
+   --  wants an answer.
+   Linux_UI_Sans : aliased constant Fallback_Font_List :=
+     [(new String'("AdwaitaSans"),     new String'("adwaita sans")),
+      (new String'("Cantarell"),       new String'("cantarell")),
+      (new String'("DejaVuSans"),      new String'("dejavu sans")),
+      (new String'("NotoSans"),        new String'("noto sans")),
+      (new String'("LiberationSans"),  new String'("liberation sans"))];
+
+   --  Z003 is URW's Chancery, which the ghostscript fonts install;
+   --  Comic Sans MS arrives with the Microsoft core fonts. fontconfig
+   --  names both ends of the same range.
+   Linux_Cursive : aliased constant Fallback_Font_List :=
+     [(new String'("Z003"),            new String'("z003")),
+      (new String'("Comic"),           new String'("comic sans ms"))];
+
+   --  Impact is the display face a distribution is likely to carry,
+   --  again through the Microsoft core fonts. The three Adobe faces
+   --  fontconfig lists beside it ship with neither, so the table stops
+   --  where the odds do.
+   Linux_Fantasy : aliased constant Fallback_Font_List :=
+     [(new String'("impact"),          new String'("impact"))];
+
+   --  DejaVu's own OpenType MATH face leads, the way DejaVu leads the
+   --  lists above; the other two are what fontconfig prefers among the
+   --  faces a Linux install actually carries.
+   Linux_Math : aliased constant Fallback_Font_List :=
+     [(new String'("DejaVuMath"),      new String'("dejavu math tex gyre")),
+      (new String'("STIXTwoMath"),     new String'("stix two math")),
+      (new String'("latinmodern-math"), new String'("latin modern math"))];
+
+   Linux_Emoji : aliased constant Fallback_Font_List :=
+     [(new String'("NotoColorEmoji"),  new String'("noto color emoji")),
+      (new String'("NotoEmoji"),       new String'("noto emoji"))];
+
+   --  Fangsong reaches Linux through the Microsoft core fonts or a
+   --  Chinese font package, distributions shipping none of their own,
+   --  so the default face answering here is the ordinary outcome.
+   Linux_Fangsong : aliased constant Fallback_Font_List :=
+     [(new String'("simfang"),         new String'("fangsong")),
+      (new String'("STFang"),          new String'("stfangsong"))];
+
    macOS_Sans : aliased constant Fallback_Font_List :=
      [(new String'("HelveticaNeue"),   new String'("helvetica neue")),
       (new String'("Helvetica"),       new String'("helvetica")),
@@ -322,6 +394,45 @@ package body Adi.Font is
       (new String'("Monaco"),          new String'("monaco")),
       (new String'("Courier"),         new String'("courier new"))];
 
+   --  New York is Apple's UI serif, beside the San Francisco faces in
+   --  /System/Library/Fonts; the supplemental serifs stand behind it.
+   macOS_UI_Serif : aliased constant Fallback_Font_List :=
+     [(new String'("NewYork"),         new String'("new york")),
+      (new String'("Times"),           new String'("times new roman")),
+      (new String'("Georgia"),         new String'("georgia"))];
+
+   --  SF Rounded ships as SFNSRounded.ttf. Its sibling SFNS.ttf reports
+   --  a family of "System Font", so the family this entry expects is
+   --  worth doubting, and macOS_Sans stands behind it entire.
+   macOS_UI_Rounded : aliased constant Fallback_Font_List :=
+     [(new String'("SFNSRounded"),     new String'("sf pro rounded")),
+      (new String'("HelveticaNeue"),   new String'("helvetica neue")),
+      (new String'("Helvetica"),       new String'("helvetica")),
+      (new String'("Arial"),           new String'("arial"))];
+
+   macOS_Cursive : aliased constant Fallback_Font_List :=
+     [(new String'("Apple Chancery"),  new String'("apple chancery")),
+      (new String'("Zapfino"),         new String'("zapfino"))];
+
+   macOS_Fantasy : aliased constant Fallback_Font_List :=
+     [(new String'("Papyrus"),         new String'("papyrus")),
+      (new String'("Impact"),          new String'("impact"))];
+
+   macOS_Math : aliased constant Fallback_Font_List :=
+     [(new String'("STIXTwoMath"),     new String'("stix two math")),
+      (new String'("STIXGeneral"),     new String'("stixgeneral"))];
+
+   macOS_Emoji : aliased constant Fallback_Font_List :=
+     [(new String'("Apple Color Emoji"),
+       new String'("apple color emoji"))];
+
+   --  macOS keeps STFangsong inside a collection whose first face is
+   --  another family, and a scan reads a collection's first face, so a
+   --  stock install has nothing here for a scan to reach. The generic
+   --  resolves to nothing and the default face answers, which is what
+   --  the platform gives us.
+   macOS_Fangsong : aliased constant Fallback_Font_List := [];
+
    Windows_Sans : aliased constant Fallback_Font_List :=
      [(new String'("segoeui"),         new String'("segoe ui")),
       (new String'("arial"),           new String'("arial"))];
@@ -334,30 +445,90 @@ package body Adi.Font is
      [(new String'("consola"),         new String'("consolas")),
       (new String'("cour"),            new String'("courier new"))];
 
+   Windows_Cursive : aliased constant Fallback_Font_List :=
+     [(new String'("comic"),           new String'("comic sans ms")),
+      (new String'("segoesc"),         new String'("segoe script"))];
+
+   Windows_Fantasy : aliased constant Fallback_Font_List :=
+     [(new String'("impact"),          new String'("impact"))];
+
+   --  Windows keeps Cambria Math inside cambria.ttc behind face 0
+   --  "Cambria", and a scan reads a collection's first face, so a stock
+   --  install answers here with the default face. These two reach a
+   --  machine whose owner installed them, which is who asks for math.
+   Windows_Math : aliased constant Fallback_Font_List :=
+     [(new String'("STIXTwoMath"),     new String'("stix two math")),
+      (new String'("latinmodern-math"), new String'("latin modern math"))];
+
+   Windows_Emoji : aliased constant Fallback_Font_List :=
+     [(new String'("seguiemj"),        new String'("segoe ui emoji"))];
+
+   Windows_Fangsong : aliased constant Fallback_Font_List :=
+     [(new String'("simfang"),         new String'("fangsong"))];
+
+   type Generic_Table is array (Generic_Family) of Fallback_List_Ref;
+
+   --  A generic a platform draws from a face it already names points at
+   --  that list rather than repeating it. Linux settles system-ui on
+   --  the desktop UI faces, which ui-rounded shares for want of a
+   --  rounded one of its own.
+   Linux_Generics : constant Generic_Table :=
+     [Generic_Serif     => Linux_Serif'Access,
+      Generic_Sans      => Linux_Sans'Access,
+      Generic_Mono      => Linux_Mono'Access,
+      Generic_Cursive   => Linux_Cursive'Access,
+      Generic_Fantasy   => Linux_Fantasy'Access,
+      Generic_System_UI => Linux_UI_Sans'Access,
+      Generic_UI_Serif  => Linux_Serif'Access,
+      Generic_UI_Sans   => Linux_UI_Sans'Access,
+      Generic_UI_Mono   => Linux_Mono'Access,
+      Generic_UI_Round  => Linux_UI_Sans'Access,
+      Generic_Math      => Linux_Math'Access,
+      Generic_Emoji     => Linux_Emoji'Access,
+      Generic_Fangsong  => Linux_Fangsong'Access];
+
+   --  SFNS.ttf reports a family of "System Font", leaving the San
+   --  Francisco text face with no name to match, so system-ui takes the
+   --  sans list -- Helvetica Neue, which is what the platform reaches
+   --  for anyway. New York and SF Rounded do carry families of their
+   --  own and get lists of their own.
+   macOS_Generics : constant Generic_Table :=
+     [Generic_Serif     => macOS_Serif'Access,
+      Generic_Sans      => macOS_Sans'Access,
+      Generic_Mono      => macOS_Mono'Access,
+      Generic_Cursive   => macOS_Cursive'Access,
+      Generic_Fantasy   => macOS_Fantasy'Access,
+      Generic_System_UI => macOS_Sans'Access,
+      Generic_UI_Serif  => macOS_UI_Serif'Access,
+      Generic_UI_Sans   => macOS_Sans'Access,
+      Generic_UI_Mono   => macOS_Mono'Access,
+      Generic_UI_Round  => macOS_UI_Rounded'Access,
+      Generic_Math      => macOS_Math'Access,
+      Generic_Emoji     => macOS_Emoji'Access,
+      Generic_Fangsong  => macOS_Fangsong'Access];
+
+   --  Segoe UI already heads the sans list and Consolas the mono one,
+   --  both of them the UI faces, so the ui- names share those lists.
+   Windows_Generics : constant Generic_Table :=
+     [Generic_Serif     => Windows_Serif'Access,
+      Generic_Sans      => Windows_Sans'Access,
+      Generic_Mono      => Windows_Mono'Access,
+      Generic_Cursive   => Windows_Cursive'Access,
+      Generic_Fantasy   => Windows_Fantasy'Access,
+      Generic_System_UI => Windows_Sans'Access,
+      Generic_UI_Serif  => Windows_Serif'Access,
+      Generic_UI_Sans   => Windows_Sans'Access,
+      Generic_UI_Mono   => Windows_Mono'Access,
+      Generic_UI_Round  => Windows_Sans'Access,
+      Generic_Math      => Windows_Math'Access,
+      Generic_Emoji     => Windows_Emoji'Access,
+      Generic_Fangsong  => Windows_Fangsong'Access];
+
    function Generic_Candidates (G : Generic_Family) return Fallback_List_Ref
-   is
-   begin
-      case Adi.Build_Target.Platform is
-         when Adi.Build_Target.Linux =>
-            case G is
-               when Generic_Sans  => return Linux_Sans'Access;
-               when Generic_Serif => return Linux_Serif'Access;
-               when Generic_Mono  => return Linux_Mono'Access;
-            end case;
-         when Adi.Build_Target.macOS =>
-            case G is
-               when Generic_Sans  => return macOS_Sans'Access;
-               when Generic_Serif => return macOS_Serif'Access;
-               when Generic_Mono  => return macOS_Mono'Access;
-            end case;
-         when Adi.Build_Target.Windows =>
-            case G is
-               when Generic_Sans  => return Windows_Sans'Access;
-               when Generic_Serif => return Windows_Serif'Access;
-               when Generic_Mono  => return Windows_Mono'Access;
-            end case;
-      end case;
-   end Generic_Candidates;
+   is (case Adi.Build_Target.Platform is
+          when Adi.Build_Target.Linux   => Linux_Generics (G),
+          when Adi.Build_Target.macOS   => macOS_Generics (G),
+          when Adi.Build_Target.Windows => Windows_Generics (G));
 
    --  Resolved once and kept. Nothing here runs at elaboration: a program
    --  that never asks for a generic never scans for one.
@@ -367,17 +538,14 @@ package body Adi.Font is
    function Generic_Of (Key : String; G : out Generic_Family) return Boolean
    is
    begin
-      if Key = "sans-serif" then
-         G := Generic_Sans;
-      elsif Key = "serif" then
-         G := Generic_Serif;
-      elsif Key = "monospace" then
-         G := Generic_Mono;
-      else
-         G := Generic_Sans;
-         return False;
-      end if;
-      return True;
+      for Candidate in Generic_Family loop
+         if Key = Generic_Names (Candidate).all then
+            G := Candidate;
+            return True;
+         end if;
+      end loop;
+      G := Generic_Sans;
+      return False;
    end Generic_Of;
 
    function Is_Valid_Handle (Handle : Font_Handle) return Boolean is
@@ -1560,6 +1728,12 @@ package body Adi.Font is
       Log ("register name: """ & Name & """ -> handle=" & Font_Handle'Image (Handle));
    end Register_Name;
 
+   procedure Forget_Name (Name : String) is
+   begin
+      Env_Generation := Env_Generation + 1;
+      Name_Registry.Exclude (Ada.Characters.Handling.To_Lower (Name));
+   end Forget_Name;
+
    function Lookup (Name : String) return Font_Handle is
       Key    : constant String := Ada.Characters.Handling.To_Lower (Name);
       Cursor : constant Name_Maps.Cursor := Name_Registry.Find (Key);
@@ -1610,6 +1784,14 @@ package body Adi.Font is
 
    function Find (Name : String) return Font_Handle
    is (Find_With_Prefix (Name, Derive_File_Prefix (Name)));
+
+   function Family_Search_Missed (Name : String) return Boolean is
+      Key : constant String := Ada.Characters.Handling.To_Lower (Name);
+   begin
+      return Name_Miss_Cache.Contains
+        (Key & '|'
+         & Ada.Characters.Handling.To_Lower (Derive_File_Prefix (Name)));
+   end Family_Search_Missed;
 
    --  A generic is resolved by asking for each candidate family in turn,
    --  with the filename stem the table gives rather than one derived from

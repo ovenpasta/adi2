@@ -1711,6 +1711,9 @@ package body Adi.Widget is
       else
          New_Item.Computed_Style := Get_Resolved_Part_Handle (W, I.Part);
       end if;
+      --  One pin per stored element naming the face, so a value copied
+      --  from a rendered item carries its own.
+      Adi.Font.Pin_Face (New_Item.Cached_Font);
       W.Items.Append (New_Item);
       Mark_Render_Dirty (W);
    end Add_Item;
@@ -1725,6 +1728,8 @@ package body Adi.Widget is
                TTF_DestroyText (It.Cached_TTF_Text);
                It.Cached_TTF_Text := null;
             end if;
+            Adi.Font.Unpin_Face (It.Cached_Font);
+            It.Cached_Font := null;
          end;
       end loop;
       W.Items.Clear;
@@ -1826,6 +1831,8 @@ package body Adi.Widget is
                           Index : Positive;
                           I : Item) is
       New_Item : Item := I;
+      Old_Font : TTF_Font_Access := null;
+      Old_Text : TTF_Text_Access := null;
    begin
       if Index <= Positive (W.Items.Length) then
          if New_Item.Has_Style_Override then
@@ -1833,7 +1840,30 @@ package body Adi.Widget is
          else
             New_Item.Computed_Style := Get_Resolved_Part_Handle (W, I.Part);
          end if;
+
+         --  The element being replaced hands back its pin and the value
+         --  arriving takes one of its own, so a write-back carrying the
+         --  same face nets to nothing. The text object is the caller's
+         --  either way: destroyed only when the arrival names another
+         --  one, this being the only place it is dropped outside
+         --  Clear_Items.
+         declare
+            Old : Item renames W.Items.Reference (Index).Element.all;
+         begin
+            Old_Font := Old.Cached_Font;
+            if Old.Cached_TTF_Text /= New_Item.Cached_TTF_Text then
+               Old_Text := Old.Cached_TTF_Text;
+            end if;
+         end;
+
+         Adi.Font.Pin_Face (New_Item.Cached_Font);
          W.Items.Replace_Element (Index, New_Item);
+
+         if Old_Text /= null then
+            TTF_DestroyText (Old_Text);
+         end if;
+         Adi.Font.Unpin_Face (Old_Font);
+
          Mark_Render_Dirty (W);
       end if;
    end Update_Item;
@@ -5710,6 +5740,11 @@ package body Adi.Widget is
          if Font = null then
             return;
          end if;
+
+         --  Pinned before the old pin is dropped, so a key that resolves
+         --  to the face already held never passes through zero.
+         Adi.Font.Pin_Face (Font);
+         Adi.Font.Unpin_Face (Prev_Font);
 
          It.Cached_Font := Font;
          It.Cached_Font_Attrs := Font_Attrs;

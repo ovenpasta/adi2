@@ -134,8 +134,8 @@ package body Adi.Font is
 
    type Sized_Font_Key is record
       Attrs      : Font_Attributes;
-      Size_Q     : Natural;
-      Generation : Natural;
+      Size_Q     : Natural := 0;
+      Generation : Natural := 0;
    end record;
 
    function "<" (L, R : Sized_Font_Key) return Boolean is
@@ -165,9 +165,24 @@ package body Adi.Font is
       return L.Generation < R.Generation;
    end "<";
 
+   --  Compared only as a difference, so the wrap costs nothing.
+   type Frame_Serial is mod 2 ** 32;
+
+   --  The order a face was opened in, which settles a tie between two
+   --  last used in the same frame. Wide enough that it never wraps, so
+   --  the order it imposes is total.
+   type Open_Serial is range 0 .. 2 ** 62;
+
+   type Face_Record is record
+      Font      : TTF_Font_Access := null;
+      Pins      : Natural := 0;
+      Last_Used : Frame_Serial := 0;
+      Serial    : Open_Serial := 0;
+   end record;
+
    package Sized_Font_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Sized_Font_Key,
-      Element_Type => TTF_Font_Access);
+      Element_Type => Face_Record);
 
    Sized_Cache : Sized_Font_Maps.Map;
 
@@ -190,6 +205,24 @@ package body Adi.Font is
       "<"          => Font_Addr_Lt);
 
    Natural_Skip_Cache : Font_Skip_Maps.Map;
+
+   --  A face by the pointer callers hold, so a pin can be taken against
+   --  the only name a holder has for it.
+   package Face_Index_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => TTF_Font_Access,
+      Element_Type => Sized_Font_Key,
+      "<"          => Font_Addr_Lt);
+
+   Face_Index : Face_Index_Maps.Map;
+
+   --  Measured resident growth per open face, glyph cache included; see
+   --  docs/architecture.md, "Sized-face budget".
+   Face_Charge : constant Byte_Count := 144 * 1024;
+
+   Face_Limit  : Byte_Count := Default_Face_Budget;
+   Frame_Now   : Frame_Serial := 0;
+   Next_Serial : Open_Serial := 0;
+   Evictions   : Event_Count := 0;
 
    Default_Fallback_Handle : Font_Handle := Null_Font;
    Fallback_Found : Boolean := False;
@@ -716,8 +749,177 @@ package body Adi.Font is
       return "";
    end Get_Path;
 
-   function Sized_Cache_Entries return Natural is
-     (Natural (Sized_Cache.Length));
+   ---------------------------------------------------------------------------
+   --  Sized-face residency
+   ---------------------------------------------------------------------------
+
+   function Faces_Held return Natural is (Natural (Sized_Cache.Length));
+
+   function Face_Bytes_Used return Byte_Count is
+     (Byte_Count (Sized_Cache.Length) * Face_Charge);
+
+   function Face_Budget return Byte_Count is (Face_Limit);
+
+   function Face_Evictions return Event_Count is (Evictions);
+
+   --  A face the frame is not using. The distance is modular, so the
+   --  serial wrapping does not turn a just-used face into an ancient one.
+   function Is_Idle (E : Face_Record) return Boolean is
+     (E.Pins = 0 and then Frame_Now - E.Last_Used > 1);
+
+   function Idle_Face_Bytes return Byte_Count is
+      Total : Byte_Count := 0;
+   begin
+      for E of Sized_Cache loop
+         if Is_Idle (E) then
+            Total := Total + Face_Charge;
+         end if;
+      end loop;
+      return Total;
+   end Idle_Face_Bytes;
+
+   --  The line-skip cache keys on the pointer and a face opened later
+   --  can land on the address this one gives up, so its entry goes
+   --  before the close rather than after it.
+   procedure Close_Face (Key : Sized_Font_Key) is
+      Cur : constant Sized_Font_Maps.Cursor := Sized_Cache.Find (Key);
+   begin
+      if not Sized_Font_Maps.Has_Element (Cur) then
+         return;
+      end if;
+      declare
+         F : constant TTF_Font_Access := Sized_Font_Maps.Element (Cur).Font;
+      begin
+         Natural_Skip_Cache.Exclude (F);
+         Face_Index.Exclude (F);
+         Sized_Cache.Delete (Key);
+         TTF_CloseFont (F);
+         Log ("close face: family=" & Font_Handle'Image (Key.Attrs.Family)
+              & ", size_q=" & Natural'Image (Key.Size_Q));
+      end;
+   end Close_Face;
+
+   --  Close idle faces, least recently used first, until idle residency
+   --  is at or below the budget or nothing idle remains.
+   procedure Trim_Idle is
+      Idle : Byte_Count := Idle_Face_Bytes;
+   begin
+      while Idle > Face_Limit loop
+         declare
+            Found  : Boolean := False;
+            Victim : Sized_Font_Key;
+            Oldest : Frame_Serial := 0;
+            First  : Open_Serial := 0;
+         begin
+            for Cur in Sized_Cache.Iterate loop
+               declare
+                  E   : Face_Record renames
+                    Sized_Font_Maps.Constant_Reference (Sized_Cache, Cur)
+                      .Element.all;
+                  Age : constant Frame_Serial := Frame_Now - E.Last_Used;
+               begin
+                  if Is_Idle (E)
+                    and then (not Found
+                              or else Age > Oldest
+                              or else (Age = Oldest and then E.Serial < First))
+                  then
+                     Found  := True;
+                     Victim := Sized_Font_Maps.Key (Cur);
+                     Oldest := Age;
+                     First  := E.Serial;
+                  end if;
+               end;
+            end loop;
+
+            exit when not Found;
+
+            Close_Face (Victim);
+            Evictions := Evictions + 1;
+            Idle := (if Idle > Face_Charge then Idle - Face_Charge else 0);
+         end;
+      end loop;
+   end Trim_Idle;
+
+   procedure Set_Face_Budget (Bytes : Byte_Count) is
+   begin
+      Face_Limit := Bytes;
+      Trim_Idle;
+   end Set_Face_Budget;
+
+   procedure Advance_Frame (Frames : Positive := 1) is
+   begin
+      --  The frame moves first, so what was used two frames ago becomes
+      --  idle on this pass.
+      Frame_Now := Frame_Now + Frame_Serial (Frames);
+      Trim_Idle;
+   end Advance_Frame;
+
+   --  The face a caller's pointer names, or no element.
+   function Find_Face (Font : TTF_Font_Access) return Sized_Font_Maps.Cursor is
+   begin
+      if Font = null then
+         return Sized_Font_Maps.No_Element;
+      end if;
+      declare
+         Cur : constant Face_Index_Maps.Cursor := Face_Index.Find (Font);
+      begin
+         if not Face_Index_Maps.Has_Element (Cur) then
+            return Sized_Font_Maps.No_Element;
+         end if;
+         return Sized_Cache.Find (Face_Index_Maps.Element (Cur));
+      end;
+   end Find_Face;
+
+   procedure Pin_Face (Font : TTF_Font_Access) is
+      Cur : constant Sized_Font_Maps.Cursor := Find_Face (Font);
+   begin
+      if Sized_Font_Maps.Has_Element (Cur) then
+         declare
+            E : Face_Record renames Sized_Cache.Reference (Cur).Element.all;
+         begin
+            E.Pins := E.Pins + 1;
+            E.Last_Used := Frame_Now;
+         end;
+      end if;
+   end Pin_Face;
+
+   procedure Unpin_Face (Font : TTF_Font_Access) is
+      Cur : constant Sized_Font_Maps.Cursor := Find_Face (Font);
+   begin
+      if Sized_Font_Maps.Has_Element (Cur) then
+         declare
+            E : Face_Record renames Sized_Cache.Reference (Cur).Element.all;
+         begin
+            if E.Pins > 0 then
+               E.Pins := E.Pins - 1;
+            end if;
+         end;
+      end if;
+   end Unpin_Face;
+
+   function Face_Resident (Font : TTF_Font_Access) return Boolean is
+     (Sized_Font_Maps.Has_Element (Find_Face (Font)));
+
+   function Face_Pins (Font : TTF_Font_Access) return Natural is
+      Cur : constant Sized_Font_Maps.Cursor := Find_Face (Font);
+   begin
+      if Sized_Font_Maps.Has_Element (Cur) then
+         return Sized_Font_Maps.Element (Cur).Pins;
+      end if;
+      return 0;
+   end Face_Pins;
+
+   function Face_Last_Used (Font : TTF_Font_Access) return Natural is
+      Cur : constant Sized_Font_Maps.Cursor := Find_Face (Font);
+   begin
+      if Sized_Font_Maps.Has_Element (Cur) then
+         return Natural (Sized_Font_Maps.Element (Cur).Last_Used);
+      end if;
+      return 0;
+   end Face_Last_Used;
+
+   function Has_Natural_Skip (Font : TTF_Font_Access) return Boolean is
+     (Font /= null and then Natural_Skip_Cache.Contains (Font));
 
    function Get_Generation (Handle : Font_Handle) return Natural is
       H : constant Font_Handle := Canonical_Handle (Handle);
@@ -1582,7 +1784,13 @@ package body Adi.Font is
               & ", style=" & Key.Attrs.Style'Image
               & ", deco=" & Key.Attrs.Decoration'Image
               & ", gen=" & Natural'Image (Key.Generation));
-         return Sized_Font_Maps.Element (Cursor);
+         declare
+            E : Face_Record renames
+              Sized_Cache.Reference (Cursor).Element.all;
+         begin
+            E.Last_Used := Frame_Now;
+            return E.Font;
+         end;
       end if;
 
       declare
@@ -1627,7 +1835,19 @@ package body Adi.Font is
                    when Wrap_Left   => TTF_HORIZONTAL_ALIGN_LEFT,
                    when Wrap_Center => TTF_HORIZONTAL_ALIGN_CENTER,
                    when Wrap_Right  => TTF_HORIZONTAL_ALIGN_RIGHT));
-            Sized_Cache.Insert (Key, F);
+
+            Next_Serial := Next_Serial + 1;
+            Sized_Cache.Insert
+              (Key,
+               (Font      => F,
+                Pins      => 0,
+                Last_Used => Frame_Now,
+                Serial    => Next_Serial));
+            Face_Index.Insert (F, Key);
+
+            --  A frame that opens many faces need not wait for the next
+            --  one. Nothing this frame reached is a candidate.
+            Trim_Idle;
          end if;
          return F;
       end;

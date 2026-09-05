@@ -7,6 +7,7 @@ with Adi.Clock; use Adi.Clock;
 with Ada.Environment_Variables;
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
+with Adi.Font;
 with Adi.Log;
 with Adi.SDL; use Adi.SDL;
 with Adi.Layout_Util; use Adi.Layout_Util;
@@ -1191,8 +1192,13 @@ package body Adi.Window is
           Render_Start := Now;
 
           --  Only frames that are drawn count: ticks spent idle must not
-          --  age cached textures that had no chance to be used.
+          --  age cached textures and faces that had no chance to be
+          --  used. Both run before anything this frame reads them. The
+          --  face counter is process-wide, so with several windows up it
+          --  moves once per window render rather than once per tick;
+          --  Adi.Font.Advance_Frame says why that is immaterial.
           Adi.Render.Advance_Frame (W.Ctx);
+          Adi.Font.Advance_Frame;
 
           Debug_Log
             ("render tick=" & Natural'Image (Debug_Tick_No)

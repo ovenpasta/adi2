@@ -194,6 +194,85 @@
 - Variant-aware cache with `Register_Variant` and fallback probing
 - Platform font paths selected via `Adi.Build_Target.Is_Windows`
 
+#### Sized-face budget
+
+Each distinct key — family, quantized size, weight, style, decoration,
+line skip, wrap alignment, family generation — opens a face of its own,
+and every face holds an operating-system handle: a descriptor for one
+read from a file, an IO stream for one read from memory. Which keys a
+program reaches follows what the user does rather than what the program
+declares: a UI scale dragged through its range asks for a face per step
+it stops on, an animated `line-height` for another. `Size_Quantum`
+collapses adjacent sizes to a half-pixel grain, which lowers the rate and
+bounds nothing; `Set_Face_Budget` is the bound.
+
+**What a face is charged.** SDL_ttf reports nothing about a face's
+footprint, so `Face_Charge` is measured rather than accounted. Resident
+growth per face, over a program that opens faces and shapes text through
+them:
+
+| Font | File | Opened | After shaping | After all printable ASCII |
+|------|------|--------|---------------|---------------------------|
+| Open Sans Regular | 131 KB | 28 KB | 139 KB | 147 KB |
+| DejaVu Sans | 760 KB | 67 KB | 310 KB | — |
+
+Neither figure moved with the point size, from 8 px to 100 px. The charge
+is 144 KB: a round figure over the 139 KB one string costs and level with
+the 147 KB the whole printable ASCII range does, so ordinary text through
+a font of the size an interface ships sits inside it. It covers the face
+and what SDL_ttf and HarfBuzz build behind it on first use. It follows
+neither a font several times larger nor a face whose text reaches further
+into one, and it says nothing about the descriptor each file-backed face
+also holds — the scarcer of the two resources, and one a charge uniform
+per face bounds alongside the bytes.
+
+**Why the default is 8 MB.** Read across the example corpus through
+`perf_stats`, residency runs from 2 faces (`hello_example`) to 43
+(`font_example`, 6.3 MB), with `html_view_example` at 23 and
+`material_demo` at 17; the mean is 6.4. Eight megabytes is about sixty
+faces, above the largest, so a program of that shape never pays a reopen
+and one sweeping a scale through its range settles here instead of
+climbing.
+
+**What may be closed.** A face is a candidate only when nothing pins it
+*and* it was handed out neither in this render nor the one before. The
+pin covers the durable holder: `Item.Cached_Font`, and the `TTF_Text`
+built from it that SDL_ttf requires be destroyed before its font is
+closed. `Adi.Widget` takes the pin where it sets `Cached_Font` and drops
+it where it clears or repoints one — `Render_Text_Item`, `Add_Item`,
+`Update_Item`, `Clear_Items`, and widget teardown through `Clear_Items`.
+The render distance covers the other kind of holder: a measurement that
+takes a raw pointer into a local for the length of one call — every
+`Get_TTF_Font` caller outside `Adi.Widget` is of that shape. This differs
+deliberately from `Adi.Texture_Cache`, where a pin held across frames is
+a documented misuse; a face behind a live text object genuinely cannot be
+reclaimed, which is why the budget governs idle residency alone.
+
+The distinction between the two matters: pins alone are not enough.
+Building with the frame distance removed and a one-byte budget, every
+example fails to start, because layout measures through one face while
+opening another and nothing has yet pinned either.
+
+**When.** `Adi.Window.Render` calls `Advance_Frame` beside
+`Adi.Render.Advance_Frame` and before anything reads a face. That is
+once per drawn frame *per window*: the font counter is process-wide
+where a renderer's cache is per window, so two windows drawing in one
+tick advance it twice, and the distance is measured in window renders
+rather than ticks. Nothing depends on the difference — the pin covers
+what outlives a call, and no caller holds a raw pointer across a render
+— and a shorter grace window from more windows only makes eviction more
+eager. Eviction also runs at `Set_Face_Budget` and as a face is opened.
+A program that never renders holds every face it opens.
+
+**Ranking.** Least recently used, ties broken by opening order. Where
+`Adi.Texture_Cache` weighs rebuilding time against bytes, every face is
+charged the same figure, so that ratio is constant across entries and
+reduces to the recency it breaks its ties by.
+
+**Coupling.** `Natural_Skip_Cache` keys on the font pointer's address, so
+a closed face takes its entry with it in the same step — otherwise a face
+opened later and landing on the recycled address reads a stale line skip.
+
 **Adi.Text_Buffer** (`adi-text_buffer.ads`): Shared text editing core.
 - Line-oriented storage, caret with line/column, selection
 - UTF-8 aware navigation and editing

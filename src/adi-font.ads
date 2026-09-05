@@ -214,6 +214,63 @@ package Adi.Font is
    function Get_TTF_Font (Attrs : Font_Attributes) return TTF_Font_Access;
 
    ---------------------------------------------------------------------------
+   --  Sized-face residency
+   --
+   --  Each distinct key opens a face of its own, holding memory and an
+   --  operating-system handle. The budget below bounds the set. See
+   --  docs/architecture.md, "Sized-face budget".
+   ---------------------------------------------------------------------------
+
+   type Byte_Count is range 0 .. 2 ** 40;
+
+   --  Wraps rather than raising, and one bit short of the word so every
+   --  value converts to a signed 64-bit integer.
+   type Event_Count is mod 2 ** 63;
+
+   --  About sixty faces of a UI font.
+   Default_Face_Budget : constant Byte_Count := 8 * 1024 * 1024;
+
+   --  The budget bounds idle residency and not what the frame is
+   --  drawing, so Face_Bytes_Used exceeds it by whatever is in use.
+   --  Lowering it trims idle faces at once, and only those.
+   procedure Set_Face_Budget (Bytes : Byte_Count);
+   function Face_Budget return Byte_Count;
+
+   function Faces_Held return Natural;
+   function Face_Bytes_Used return Byte_Count;
+
+   --  What the budget is compared against.
+   function Idle_Face_Bytes return Byte_Count;
+
+   --  Rising while a program does the same thing says the budget sits
+   --  below its working set.
+   function Face_Evictions return Event_Count;
+
+   --  Holds a face open for as long as a durable holder depends on it.
+   --  SDL_ttf requires every TTF_Text be destroyed before the font it
+   --  was built from is closed, so whoever keeps one pins the face and
+   --  drops the pin where it destroys that text or repoints it.
+   --
+   --  Pins count, and a face is a candidate for eviction only at zero.
+   --  A pointer that reached no durable holder needs none: a face handed
+   --  out in this render or the one before it counts as in use.
+   procedure Pin_Face (Font : TTF_Font_Access);
+   procedure Unpin_Face (Font : TTF_Font_Access);
+
+   --  Call before a drawn frame reads any face. The counter is
+   --  process-wide where a renderer's is per window, so several windows
+   --  drawing in one tick advance it several times and the distance
+   --  above is measured in window renders. That costs nothing either
+   --  way: the pin is what covers a holder outliving a call, and the
+   --  distance is a grace window for one that does not, which no caller
+   --  holds across a render. Frames above one covers a stretch that
+   --  went undrawn.
+   --
+   --  Eviction happens here, at Set_Face_Budget, and as a face is
+   --  opened.
+   procedure Advance_Frame (Frames : Positive := 1);
+
+   ---------------------------------------------------------------------------
    --  Text measurement
    ---------------------------------------------------------------------------
 
@@ -283,10 +340,10 @@ package Adi.Font is
 
 private
 
-   --  Sized TTF_Font instances the cache holds, one per distinct
-   --  (family, size, weight, style, decoration, layout) key. Nothing
-   --  releases one, so this only rises: a key that stops being asked
-   --  for keeps its instance. Read through Adi.Font.Testing.
-   function Sized_Cache_Entries return Natural;
+   --  Read through Adi.Font.Testing.
+   function Face_Resident (Font : TTF_Font_Access) return Boolean;
+   function Face_Pins (Font : TTF_Font_Access) return Natural;
+   function Face_Last_Used (Font : TTF_Font_Access) return Natural;
+   function Has_Natural_Skip (Font : TTF_Font_Access) return Boolean;
 
 end Adi.Font;

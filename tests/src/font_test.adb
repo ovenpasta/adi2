@@ -1,6 +1,9 @@
 with Ada.Environment_Variables;
 with Ada.Text_IO;          use Ada.Text_IO;
 with Adi.SDL;
+with Adi.SDL.PixelFormat;  use Adi.SDL.PixelFormat;
+with Adi.SDL.Render;       use Adi.SDL.Render;
+with Adi.SDL.Surface;      use Adi.SDL.Surface;
 with Adi.SDL.TTF;      use Adi.SDL.TTF;
 with Adi.SDL.TTF.TextEngine; use Adi.SDL.TTF.TextEngine;
 with Interfaces.C.Strings;
@@ -10,11 +13,48 @@ with Adi.CSS_Styles;       use Adi.CSS_Styles;
 with Adi.Core;
 with Adi.Font;
 with Adi.Font.Testing;
+with Adi.Render;
+with Adi.Widget;
+with Adi.Widget.Label;
 with Test_Support;
 
 procedure Font_Test is
    Sdl_OK   : Adi.SDL.C_bool;
    Ttf_OK   : Adi.SDL.C_bool;
+
+   use type Adi.Font.Byte_Count;
+   use type Adi.Font.Event_Count;
+
+   Probe_Path : constant String :=
+     "vendor/open-sans/static/OpenSans-Regular.ttf";
+
+   --  A key of its own per Skip, so a section can open as many faces as
+   --  it needs without colliding with another's.
+   function Face (Family : Font_Handle;
+                  Skip   : Natural;
+                  Size   : Float := 16.0) return TTF_Font_Access is
+     (Adi.Font.Get_TTF_Font
+        (Adi.Font.Make_Attributes
+           (Family     => Family,
+            Size       => Size,
+            Weight     => Weight_Normal,
+            Style      => Style_Normal,
+            Decoration => Decoration_None,
+            Line_Skip  => Skip)));
+
+   --  Idle faces age out over two frames, so a sweep is two of them.
+   procedure Sweep is
+   begin
+      Adi.Font.Advance_Frame;
+      Adi.Font.Advance_Frame;
+   end Sweep;
+
+   --  Everything unpinned, gone, so a section starts from a known count.
+   procedure Drain is
+   begin
+      Adi.Font.Set_Face_Budget (0);
+      Sweep;
+   end Drain;
 
    procedure Check (Name : String; H : Font_Handle; Expect_Found : Boolean) is
    begin
@@ -663,6 +703,306 @@ begin
            (Adi.Font.Testing.Sized_Fonts_Held = Held,
             "the instance already open is the one used again");
       end;
+   end;
+
+   ---------------------------------------------------------------------
+   --  The sized-face budget
+   ---------------------------------------------------------------------
+
+   Test_Support.Section ("a face the frame still has is never closed");
+   declare
+      Probe : constant Font_Handle := Adi.Font.Load (Probe_Path);
+      Before : Natural;
+      F      : TTF_Font_Access;
+   begin
+      Drain;
+      Before := Adi.Font.Testing.Sized_Fonts_Held;
+      Put_Line ("  held after draining at a zero budget:"
+                & Natural'Image (Before));
+      Test_Support.Assert
+        (Before = 0,
+         "a zero budget takes every face nothing holds");
+
+      F := Face (Probe, 7001);
+      Test_Support.Assert
+        (F /= null and then Adi.Font.Testing.Sized_Fonts_Held = 1,
+         "a face opens under a zero budget rather than being refused");
+
+      Adi.Font.Advance_Frame;
+      Test_Support.Assert
+        (Adi.Font.Testing.Resident (F),
+         "a face handed out in the previous frame stays, budget or no "
+         & "budget");
+
+      Adi.Font.Advance_Frame;
+      Test_Support.Assert
+        (not Adi.Font.Testing.Resident (F)
+           and then Adi.Font.Testing.Sized_Fonts_Held = 0,
+         "and goes once two frames have passed over it");
+   end;
+
+   Test_Support.Section ("lowering the budget trims idle faces at once");
+   declare
+      Probe  : constant Font_Handle := Adi.Font.Load (Probe_Path);
+      Charge : Adi.Font.Byte_Count;
+      Opened : array (1 .. 5) of TTF_Font_Access;
+   begin
+      Drain;
+      Adi.Font.Set_Face_Budget (Adi.Font.Default_Face_Budget);
+
+      --  Opened back to back, so all five carry the same frame and the
+      --  order they were opened in is the only thing separating them.
+      for I in Opened'Range loop
+         Opened (I) := Face (Probe, 7100 + I);
+      end loop;
+      Test_Support.Assert
+        (Adi.Font.Testing.Sized_Fonts_Held = 5,
+         "five keys open five faces");
+      Test_Support.Assert
+        ((for all I in Opened'Range =>
+            Adi.Font.Testing.Last_Used (Opened (I))
+              = Adi.Font.Testing.Last_Used (Opened (1))),
+         "and share a frame, so the eviction order rests on the tie-break "
+         & "alone");
+
+      Charge := Adi.Font.Face_Bytes_Used / 5;
+      Sweep;
+      Test_Support.Assert
+        (Adi.Font.Idle_Face_Bytes = 5 * Charge
+           and then Adi.Font.Testing.Sized_Fonts_Held = 5,
+         "under a budget above them they age into idle and stay");
+
+      --  No frame advances here: the trim is the budget's own doing.
+      Adi.Font.Set_Face_Budget (2 * Charge);
+      Put_Line ("  held after the budget dropped to two:"
+                & Natural'Image (Adi.Font.Testing.Sized_Fonts_Held));
+      Test_Support.Assert
+        (Adi.Font.Testing.Sized_Fonts_Held = 2,
+         "lowering the budget closes what will not fit, without waiting "
+         & "for a frame");
+      Test_Support.Assert
+        (Adi.Font.Idle_Face_Bytes = 2 * Charge,
+         "and stops at the figure it was given");
+      Test_Support.Assert
+        (Adi.Font.Testing.Resident (Opened (4))
+           and then Adi.Font.Testing.Resident (Opened (5)),
+         "the two opened last are the two it keeps");
+      Test_Support.Assert
+        ((for all I in 1 .. 3 =>
+            not Adi.Font.Testing.Resident (Opened (I))),
+         "and the three opened before them are the ones it closed");
+   end;
+
+   Test_Support.Section ("pressure takes the least recently used face");
+   declare
+      Probe   : constant Font_Handle := Adi.Font.Load (Probe_Path);
+      Charge  : Adi.Font.Byte_Count;
+      A, B, C : TTF_Font_Access;
+   begin
+      Drain;
+      Adi.Font.Set_Face_Budget (Adi.Font.Default_Face_Budget);
+
+      A := Face (Probe, 7201);
+      Adi.Font.Advance_Frame;
+      B := Face (Probe, 7202);
+      Adi.Font.Advance_Frame;
+      C := Face (Probe, 7203);
+      Adi.Font.Advance_Frame;
+
+      Charge := Adi.Font.Face_Bytes_Used / 3;
+      Test_Support.Assert
+        (Adi.Font.Testing.Last_Used (A) < Adi.Font.Testing.Last_Used (B)
+           and then Adi.Font.Testing.Last_Used (B)
+                      < Adi.Font.Testing.Last_Used (C),
+         "the three faces carry the frames they were opened in");
+
+      --  Two of the three are idle; room for one closes the older.
+      Adi.Font.Set_Face_Budget (Charge);
+      Test_Support.Assert
+        (not Adi.Font.Testing.Resident (A),
+         "the face used longest ago goes first");
+      Test_Support.Assert
+        (Adi.Font.Testing.Resident (B) and then Adi.Font.Testing.Resident (C),
+         "and the two used since it stay");
+   end;
+
+   Test_Support.Section ("a pinned face outlasts every sweep");
+   declare
+      Probe : constant Font_Handle := Adi.Font.Load (Probe_Path);
+      Kept  : TTF_Font_Access;
+      Loose : TTF_Font_Access;
+   begin
+      Drain;
+      Kept  := Face (Probe, 7301);
+      Loose := Face (Probe, 7302);
+      Adi.Font.Pin_Face (Kept);
+      Test_Support.Assert
+        (Adi.Font.Testing.Pins (Kept) = 1
+           and then Adi.Font.Testing.Pins (Loose) = 0,
+         "a pin lands on the face it names and no other");
+
+      Sweep;
+      Sweep;
+      Test_Support.Assert
+        (Adi.Font.Testing.Resident (Kept),
+         "a pinned face survives a zero budget");
+      Test_Support.Assert
+        (not Adi.Font.Testing.Resident (Loose)
+           and then Adi.Font.Testing.Sized_Fonts_Held = 1,
+         "and the unpinned one beside it does not");
+
+      Adi.Font.Unpin_Face (Kept);
+      Test_Support.Assert
+        (Adi.Font.Testing.Pins (Kept) = 0
+           and then Adi.Font.Testing.Resident (Kept),
+         "dropping the pin leaves the face standing until a sweep");
+      Sweep;
+      Test_Support.Assert
+        (Adi.Font.Testing.Sized_Fonts_Held = 0,
+         "which then takes it");
+   end;
+
+   Test_Support.Section ("a face reopened after eviction measures the same");
+   declare
+      Probe  : constant Font_Handle := Adi.Font.Load (Probe_Path);
+      Sample : constant String := "Hello World!";
+      Attrs  : constant Adi.Font.Font_Attributes :=
+        Adi.Font.Make_Attributes
+          (Family     => Probe,
+           Size       => 23.0,
+           Weight     => Weight_Normal,
+           Style      => Style_Normal,
+           Decoration => Decoration_None,
+           Line_Skip  => 7401);
+      use type Adi.Core.Size_2D;
+      use type Adi.Core.Pixel_Type;
+      First  : Adi.Core.Size_2D;
+      Again  : Adi.Core.Size_2D;
+      Evicts : Adi.Font.Event_Count;
+   begin
+      Drain;
+      First  := Adi.Font.Measure_Text (Attrs, Sample);
+      Evicts := Adi.Font.Face_Evictions;
+      Sweep;
+      Test_Support.Assert
+        (Adi.Font.Testing.Sized_Fonts_Held = 0
+           and then Adi.Font.Face_Evictions > Evicts,
+         "the face that measured the first time is closed");
+
+      Again := Adi.Font.Measure_Text (Attrs, Sample);
+      Put_Line ("  first" & First.Width'Image & " x" & First.Height'Image
+                & "   reopened" & Again.Width'Image
+                & " x" & Again.Height'Image);
+      Test_Support.Assert
+        (First.Width > 0.0 and then First.Height > 0.0,
+         "the measurement says something to compare");
+      Test_Support.Assert
+        (First = Again,
+         "and a reopened face measures identically");
+   end;
+
+   Test_Support.Section ("a closed face takes its line skip with it");
+   declare
+      Probe : constant Font_Handle := Adi.Font.Load (Probe_Path);
+      Small : TTF_Font_Access;
+      Large : TTF_Font_Access;
+      use type Adi.Core.Pixel_Type;
+      Small_Skip : Adi.Core.Pixel_Type;
+      Large_Skip : Adi.Core.Pixel_Type;
+   begin
+      Drain;
+      Small := Face (Probe, 0, 12.0);
+      Small_Skip := Adi.Font.Natural_Line_Skip_Px (Small);
+      Test_Support.Assert
+        (Adi.Font.Testing.Line_Skip_Cached (Small),
+         "querying a face's own spacing records it against the pointer");
+
+      Sweep;
+      Test_Support.Assert
+        (not Adi.Font.Testing.Line_Skip_Cached (Small),
+         "closing the face drops that record in the same step");
+
+      --  An address the allocator hands back is where a record left
+      --  behind would be read as the new face's own spacing.
+      Large := Face (Probe, 0, 48.0);
+      Large_Skip := Adi.Font.Natural_Line_Skip_Px (Large);
+      Put_Line ("  12 px skip" & Small_Skip'Image
+                & "   48 px skip" & Large_Skip'Image
+                & "   same address "
+                & Boolean'Image (Small = Large));
+      Test_Support.Assert
+        (Large_Skip > Small_Skip,
+         "and the face opened next reports its own spacing");
+   end;
+
+   Test_Support.Section ("a face behind a live text object is not evicted");
+   declare
+      Canvas   : SDL_Surface_Ptr;
+      Renderer : SDL_Renderer_Ptr;
+      Ctx      : Adi.Render.Render_Context;
+      L        : Adi.Widget.Label.Label_Handle;
+      H        : Adi.Widget.Widget_Handle;
+      Drawn    : TTF_Font_Access := null;
+   begin
+      Canvas := SDL_CreateSurface (64, 64, SDL_PIXELFORMAT_RGBA32);
+      Renderer := (if Canvas = null then null
+                   else SDL_CreateSoftwareRenderer (Canvas));
+      if Renderer = null then
+         Test_Support.Assert (False, "SDL provides a software renderer");
+      else
+         Drain;
+         Adi.Font.Set_Face_Budget (Adi.Font.Default_Face_Budget);
+         Adi.Render.Create (Ctx, Renderer);
+
+         L := Adi.Widget.Label.Create_Handle ("Pinned");
+         H := Adi.Widget.Label.To_Widget_Handle (L);
+         Adi.Widget.Set_Geometry (H, (0.0, 0.0, 200.0, 40.0));
+         Adi.Widget.Layout_Tree (H);
+         Adi.Widget.Update (H);
+         Adi.Widget.Render_Tree (H, Ctx);
+
+         for It of Adi.Widget.Get_Items_For_Part
+                     (H, Adi.Widget.Label_Part)
+         loop
+            if It.Cached_Font /= null then
+               Drawn := It.Cached_Font;
+            end if;
+         end loop;
+
+         Put_Line ("  label items:"
+                   & Natural'Image (Adi.Widget.Item_Count (H))
+                   & "  faces held:"
+                   & Natural'Image (Adi.Font.Testing.Sized_Fonts_Held));
+         Test_Support.Assert
+           (Drawn /= null,
+            "the label drew its text through a face of the cache");
+         Test_Support.Assert
+           (Adi.Font.Testing.Pins (Drawn) = 1,
+            "and the item holding the text object pins it");
+
+         Adi.Font.Set_Face_Budget (0);
+         Sweep;
+         Sweep;
+         Put_Line ("  held under a zero budget with one label up:"
+                   & Natural'Image (Adi.Font.Testing.Sized_Fonts_Held));
+         Test_Support.Assert
+           (Adi.Font.Testing.Resident (Drawn),
+            "pressure spares the face a live text object was built from");
+
+         Adi.Widget.Destroy (H);
+         Test_Support.Assert
+           (Adi.Font.Testing.Pins (Drawn) = 0,
+            "destroying the widget releases the pin its items held");
+         Sweep;
+         Test_Support.Assert
+           (not Adi.Font.Testing.Resident (Drawn),
+            "and the face goes on the sweep after that");
+
+         Adi.Render.Destroy (Ctx);
+         SDL_DestroyRenderer (Renderer);
+         SDL_DestroySurface (Canvas);
+      end if;
+      Adi.Font.Set_Face_Budget (Adi.Font.Default_Face_Budget);
    end;
 
    Test_Support.Finish;

@@ -14,6 +14,7 @@ with GNAT.OS_Lib;
 with Adi.App;
 with Adi.Clock;
 with Adi.Core;                   use Adi.Core;
+with Adi.Font;
 with Adi.CSS_Styles;             use Adi.CSS_Styles;
 with Adi.Resolved_Styles;
 with Adi.Screenshot;
@@ -83,13 +84,23 @@ package body Adi.MCP is
    --  a count that keeps climbing across a steady scene names the store
    --  something is feeding.
    procedure Write_Style_Stores (W : in out Adi.JSON.JSON_Writer) is
-      procedure Store (Name : String; Count, Bytes : Natural) is
+      --  A byte figure reaches the wire at the width it is kept in.
+      --  Adi.Font.Byte_Count runs past what Natural holds, and the
+      --  budget behind it is the application's to set.
+      procedure Store (Name  : String;
+                       Count : Natural;
+                       Bytes : Adi.JSON.JSON_Integer) is
       begin
          W.Key (Name);
          W.Start_Object;
          W.Key_Value ("count", Adi.JSON.JSON_Integer (Count));
-         W.Key_Value ("bytes", Adi.JSON.JSON_Integer (Bytes));
+         W.Key_Value ("bytes", Bytes);
          W.End_Object;
+      end Store;
+
+      procedure Store (Name : String; Count, Bytes : Natural) is
+      begin
+         Store (Name, Count, Adi.JSON.JSON_Integer (Bytes));
       end Store;
    begin
       W.Key ("style_stores");
@@ -116,12 +127,24 @@ package body Adi.MCP is
              Adi.Widget_Properties.Store_Bytes
                + Adi.Widget_Properties.Name_Bytes);
 
+      --  Sized faces, which the others differ from twice over: they hold
+      --  an operating-system handle each, and a budget closes them.
+      Store ("fonts",
+             Adi.Font.Faces_Held,
+             Adi.JSON.JSON_Integer (Adi.Font.Face_Bytes_Used));
+
       --  The resolved store is the one that lets go, at this many
       --  entries; the rest hold what they have for the process.
       W.Key_Value ("resolved_cap",
         Adi.JSON.JSON_Integer (Adi.Resolved_Styles.Entry_Cap));
       W.Key_Value ("resolved_generation",
         Adi.JSON.JSON_Integer (Adi.Resolved_Styles.Generation));
+      W.Key_Value ("font_idle_bytes",
+        Adi.JSON.JSON_Integer (Adi.Font.Idle_Face_Bytes));
+      W.Key_Value ("font_budget",
+        Adi.JSON.JSON_Integer (Adi.Font.Face_Budget));
+      W.Key_Value ("font_evictions",
+        Adi.JSON.JSON_Integer (Long_Long_Integer (Adi.Font.Face_Evictions)));
       W.End_Object;
 
       --  The style composer's fixed pool of chain buffers. Reclaimed

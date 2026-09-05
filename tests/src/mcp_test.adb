@@ -7,6 +7,7 @@ with Ada.Characters.Handling;
 with Ada.Tags;
 
 with Adi.CSS_Styles;           use Adi.CSS_Styles;
+with Adi.Font;
 with Adi.JSON;
 with Adi.Widget;               use Adi.Widget;
 with Adi.Widget.Box;
@@ -797,6 +798,43 @@ procedure MCP_Test is
       end;
    end Test_Style_Stores_Schema;
 
+   --  Adi.Font.Byte_Count reaches 2**40 and the budget behind it is the
+   --  application's to set, so the figures leaving here are asserted at
+   --  a width no Natural holds. Getting that wrong raises inside the
+   --  writer, where Frame_Handler's catch-all swallows it and the
+   --  caller waits for a reply that is never written.
+   procedure Test_Font_Budget_Beyond_A_Natural is
+      use Adi.JSON;
+
+      --  Three gigabytes: inside Byte_Count, past Natural'Last.
+      Huge : constant Adi.Font.Byte_Count := 3_000_000_000;
+      Kept : constant Adi.Font.Byte_Count := Adi.Font.Face_Budget;
+      W    : Adi.JSON.JSON_Writer := Adi.JSON.Create;
+   begin
+      Section ("perf_stats carries a budget wider than a Natural");
+
+      Adi.Font.Set_Face_Budget (Huge);
+      W.Start_Object;
+      Adi.MCP.Testing.Write_Style_Stores (W);
+      W.End_Object;
+      Adi.Font.Set_Face_Budget (Kept);
+
+      declare
+         P    : Parsers.Parser := Parsers.Create (W.To_String);
+         Root : constant Types.JSON_Value := P.Parse;
+         Stores : constant Types.JSON_Value := Root.Get ("style_stores");
+      begin
+         Assert (Long_Long_Integer (JSON_Integer'
+                   (Stores.Get ("font_budget").Value))
+                   = Long_Long_Integer (Huge),
+                 "the budget reaches the response at the width it is set");
+      end;
+   exception
+      when others =>
+         Adi.Font.Set_Face_Budget (Kept);
+         raise;
+   end Test_Font_Budget_Beyond_A_Natural;
+
 begin
    Start_Suite ("MCP Test Suite");
    Put_Line ("");
@@ -815,6 +853,7 @@ begin
    Test_Texture_Cache_Schema;
    Test_Frame_Stats_Schema;
    Test_Style_Stores_Schema;
+   Test_Font_Budget_Beyond_A_Natural;
 
    Test_Support.Finish;
 end MCP_Test;

@@ -26,6 +26,7 @@ generate_if_needed() {
 }
 
 generate_if_needed "$CSS_DIR/side_cascade.css" "$OUT_DIR/side_cascade_styles.ads" "Side_Cascade_Styles"
+generate_if_needed "$CSS_DIR/grid_tracks.css" "$OUT_DIR/grid_tracks_styles.ads" "Grid_Tracks_Styles"
 generate_if_needed "$CSS_DIR/auto_margin.css" "$OUT_DIR/auto_margin_styles.ads" "Auto_Margin_Styles"
 generate_if_needed "$CSS_DIR/flat_values.css" "$OUT_DIR/flat_values_styles.ads" "Flat_Values_Styles"
 generate_if_needed "$CSS_DIR/widget_property.css" "$OUT_DIR/widget_property_styles.ads" "Widget_Property_Styles" \

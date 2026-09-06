@@ -32,7 +32,7 @@ from css_to_ada import (
     parse_css,
     parse_css_with_diagnostics,
     parse_stylesheet_with_diagnostics,
-    parse_grid_track_count,
+    parse_grid_tracks,
     parse_grid_placement,
     MAX_GRID_TRACKS,
     parse_list_style_shorthand,
@@ -47,7 +47,6 @@ from css_to_ada import (
     parse_linear_gradient,
     generate_gradient_ada,
     group_rules_by_widget,
-    parse_grid_track_list,
     generate_style_chain_ada,
     generate_style_chain,
     ChainTooLong,
@@ -353,24 +352,38 @@ class TestParseTransition(unittest.TestCase):
         self.assertIsNone(parse_transition("background-color ease"))
 
 
-class TestParseGridTrackCount(unittest.TestCase):
-    """The track count, and the cap both pipelines share.
+class TestParseGridTracks(unittest.TestCase):
+    """The track grammar, the count it yields, and the cap on the sizes.
 
     Past MAX_GRID_TRACKS the sizes are dropped and only the count
-    survives, so the boundary is walked at the cap and one past it.
+    survives, so the boundary is walked at the cap and one past it. A
+    token the grammar refuses is no track, so it adds to no count.
     """
 
     def test_repeat(self):
-        self.assertEqual(parse_grid_track_count("repeat(3, 1fr)"), 3)
+        self.assertEqual(parse_grid_tracks("repeat(3, 1fr)")[0], 3)
 
     def test_explicit_tracks(self):
-        self.assertEqual(parse_grid_track_count("1fr 1fr 1fr"), 3)
+        self.assertEqual(parse_grid_tracks("1fr 1fr 1fr")[0], 3)
 
     def test_none(self):
-        self.assertIsNone(parse_grid_track_count("none"))
+        self.assertIsNone(parse_grid_tracks("none"))
 
     def test_number(self):
-        self.assertEqual(parse_grid_track_count("4"), 4)
+        self.assertEqual(parse_grid_tracks("4")[0], 4)
+
+    def test_a_token_outside_the_grammar_names_no_track(self):
+        for value in ("red blue", "-1fr 1fr", "-50px 1fr", "1fr junk",
+                      "repeat(3, garbage)", "repeat(x, 1fr)", "0",
+                      "1fr /", "10 20"):
+            self.assertIsNone(parse_grid_tracks(value), value)
+
+    def test_repeats_add_up(self):
+        #  Two repeats past the cap between them: the sizes go and the
+        #  count is the sum, not the first repeat's.
+        count, specs = parse_grid_tracks("repeat(10, 1fr) repeat(10, auto)")
+        self.assertEqual(count, 20)
+        self.assertIsNone(specs)
 
     def test_the_cap_matches_the_ada_constant(self):
         ads = os.path.join(
@@ -393,7 +406,7 @@ class TestParseGridTrackCount(unittest.TestCase):
     def test_at_the_cap_keeps_the_sizes(self):
         value = self._sizes(MAX_GRID_TRACKS)
         self.assertEqual(
-            parse_grid_track_list(value),
+            parse_grid_tracks(value)[1],
             [("px", float(i)) for i in range(1, MAX_GRID_TRACKS + 1)],
         )
         ada = "\n".join(
@@ -407,9 +420,10 @@ class TestParseGridTrackCount(unittest.TestCase):
     def test_past_the_cap_falls_back_to_the_bare_count(self):
         over = MAX_GRID_TRACKS + 1
         value = self._sizes(over)
-        self.assertIsNone(parse_grid_track_list(value))
+        count, specs = parse_grid_tracks(value)
+        self.assertIsNone(specs)
         #  The count still parses, and is what the generator emits alone.
-        self.assertEqual(parse_grid_track_count(value), over)
+        self.assertEqual(count, over)
         ada = "\n".join(
             generate_style_chain_ada({"grid-template-columns": value}))
         self.assertIn(f"Grid_Columns (Grid_Columns_Value ({over}))", ada)
@@ -1074,18 +1088,42 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
         self.assertIn("2 => (Track_Auto, 0.0)", ada)
         self.assertIn("3 => (Track_Fr, 1.0)", ada)
 
+    # A negative size names no track, so the value is one the property
+    # can hold none of and the whole declaration goes: neither the list
+    # nor a count of the tokens reaches the chain. Adi.CSS_Parser
+    # answers the same value with Bad_Value.
     def test_grid_template_columns_negative_fr_rejected(self):
-        # Negative fr values should produce no Grid_Column_Tracks
-        ada = self._gen({"grid-template-columns": "-1fr 1fr"})
-        self.assertNotIn("Grid_Column_Tracks =>", ada)
+        self.assertFalse(
+            validate_property_value("grid-template-columns", "-1fr 1fr"))
+        self.assertNotIn(
+            "Grid_Columns", self._gen({"grid-template-columns": "-1fr 1fr"}))
 
     def test_grid_template_columns_negative_px_rejected(self):
-        ada = self._gen({"grid-template-columns": "-50px 1fr"})
-        self.assertNotIn("Grid_Column_Tracks =>", ada)
+        self.assertFalse(
+            validate_property_value("grid-template-columns", "-50px 1fr"))
+        self.assertNotIn(
+            "Grid_Columns", self._gen({"grid-template-columns": "-50px 1fr"}))
+
+    def test_grid_template_columns_none(self):
+        #  `none` names both of grid-template-columns' values: a count
+        #  of zero, and the list of no tracks that clears the track key
+        #  so a rule ahead of it cannot show through. Adi.CSS_Parser
+        #  writes the same pair, and tests/src/grid_tracks_test.adb
+        #  drives the two over one corpus.
+        ada = self._gen({"grid-template-columns": "none"})
+        self.assertIn("Grid_Columns (Grid_Columns_Value (0))", ada)
+        self.assertIn("Grid_Columns (Default_Grid_Track_List)", ada)
+        self.assertNotIn("Count =>", ada)
 
     def test_grid_template_rows(self):
         ada = self._gen({"grid-template-rows": "1fr 1fr"})
         self.assertIn("Grid_Rows (Grid_Rows_Value (2))", ada)
+
+    def test_grid_template_rows_none(self):
+        #  Rows carry a count and no list, so none is that one value at
+        #  zero.
+        ada = self._gen({"grid-template-rows": "none"})
+        self.assertIn("Grid_Rows (Grid_Rows_Value (0))", ada)
 
     def test_grid_column(self):
         ada = self._gen({"grid-column": "1 / 3"})
@@ -1730,14 +1768,14 @@ class TestGenerateLengthAndColor(unittest.TestCase):
     def test_pix_grid_track_end_to_end(self):
         """A pix track survives into the generated package.
 
-        The count fallback accepts a track list it cannot parse and emits
-        only Grid_Columns, so a dropped pix track turns into N equal
-        columns rather than a visible failure.
+        pix is the one Adi unit no browser reads, so a grammar that
+        missed it would leave the track list unspecified and the
+        declaration dropped.
         """
         self.assertEqual(
-            parse_grid_track_list("40pix 1fr"), [("pix", 40.0), ("fr", 1.0)])
+            parse_grid_tracks("40pix 1fr")[1], [("pix", 40.0), ("fr", 1.0)])
         self.assertEqual(
-            parse_grid_track_list("repeat(2, 8pix)"),
+            parse_grid_tracks("repeat(2, 8pix)")[1],
             [("pix", 8.0), ("pix", 8.0)])
 
         rules = parse_css(".g { grid-template-columns: 40pix 1fr; }")
@@ -2588,6 +2626,100 @@ class TestGridTemplateNone(unittest.TestCase):
         for prop in ("grid-template-columns", "grid-template-rows"):
             self.assertFalse(
                 validate_property_value(prop, "repeat(x, 1fr)"), prop)
+
+
+class TestGridTemplateInvalidTracks(unittest.TestCase):
+    """A value naming a token the grammar refuses is dropped whole.
+
+    Counting the tokens instead would turn `red blue` into two columns.
+    The count-only form is for a list this grammar reads and cannot
+    store, which is the cap and nothing else.
+    tests/src/css_parser_test.adb drives the same table through
+    Adi.CSS_Parser, which reports each of these as an invalid value.
+    """
+
+    DROPPED = [
+        "red blue",
+        "-1fr 1fr",
+        "-50px 1fr",
+        "1fr junk",
+        "auto solid",
+        "repeat(3, garbage)",
+        "repeat(2, red)",
+        "repeat(3, -1fr)",
+        "0",
+        "10 20",
+    ]
+
+    READ = {
+        "1fr 1fr 1fr": 3,
+        "repeat(3, 1fr)": 3,
+        "120px 1fr": 2,
+        "auto 1fr": 2,
+        "40pix 1fr": 2,
+        "repeat(2, auto) 1fr": 3,
+        "3": 3,
+    }
+
+    def test_a_refused_token_costs_the_declaration(self):
+        for prop in ("grid-template-columns", "grid-template-rows"):
+            for value in self.DROPPED:
+                self.assertFalse(
+                    validate_property_value(prop, value),
+                    f"{prop}: {value}")
+
+    def test_a_refused_token_reaches_no_chain(self):
+        for value in self.DROPPED:
+            self.assertNotIn(
+                "Grid_Columns",
+                "\n".join(generate_style_chain_ada(
+                    {"grid-template-columns": value})),
+                value)
+            self.assertNotIn(
+                "Grid_Rows",
+                "\n".join(generate_style_chain_ada(
+                    {"grid-template-rows": value})),
+                value)
+
+    def test_the_lists_it_reads_still_count(self):
+        for value, count in self.READ.items():
+            self.assertTrue(
+                validate_property_value("grid-template-columns", value),
+                value)
+            self.assertIn(
+                f"Grid_Columns (Grid_Columns_Value ({count}))",
+                "\n".join(generate_style_chain_ada(
+                    {"grid-template-columns": value})),
+                value)
+            self.assertIn(
+                f"Grid_Rows (Grid_Rows_Value ({count}))",
+                "\n".join(generate_style_chain_ada(
+                    {"grid-template-rows": value})),
+                value)
+
+    def test_past_the_cap_a_read_list_still_counts(self):
+        #  The one case the count-only form exists for: every token is a
+        #  track, and there are more of them than the array holds.
+        over = MAX_GRID_TRACKS + 1
+        value = " ".join(f"{i}px" for i in range(1, over + 1))
+        for prop in ("grid-template-columns", "grid-template-rows"):
+            self.assertTrue(validate_property_value(prop, value), prop)
+        self.assertIn(
+            f"Grid_Columns (Grid_Columns_Value ({over}))",
+            "\n".join(generate_style_chain_ada(
+                {"grid-template-columns": value})))
+        self.assertIn(
+            f"Grid_Rows (Grid_Rows_Value ({over}))",
+            "\n".join(generate_style_chain_ada(
+                {"grid-template-rows": value})))
+
+    def test_past_the_cap_one_refused_token_still_drops_it(self):
+        #  The cap is not a way past the grammar: a list too long to
+        #  store is still read token by token.
+        over = MAX_GRID_TRACKS + 1
+        value = " ".join(f"{i}px" for i in range(1, over)) + " red"
+        for prop in ("grid-template-columns", "grid-template-rows"):
+            self.assertFalse(validate_property_value(prop, value), prop)
 
 
 class TestFontFamilyGrammar(unittest.TestCase):

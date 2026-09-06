@@ -50,7 +50,7 @@ the life of the process.
 of rule sets. What the store holds is a `Rule_Slots` value: the
 properties the rule set names and nothing else, one eight-byte slot each,
 in property order. A rule naming three properties is 24 bytes where the
-`Style_Rules` record is 1,072.
+`Style_Rules` record is 1,080.
 
 A slot is a `CSS_Property`, the part of it the slot carries, whether the
 slot sets or clears, and a `Value_Ref`. A property whose values cascade
@@ -197,7 +197,7 @@ reports and `tests/src/style_handle_test.adb` pins:
 
 | | bytes |
 |---|---|
-| `Style_Rules`, the aggregate | 1,072 |
+| `Style_Rules`, the aggregate | 1,080 |
 | a stored rule set, at the 3.15 properties a rule names | 25 |
 | `State_Rule` | 16 |
 | `Widget_Style` | 4 |

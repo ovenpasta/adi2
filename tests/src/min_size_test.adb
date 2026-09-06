@@ -173,13 +173,13 @@ begin
          (Display            => Set (Grid),
           Grid_Columns       => Set (Grid_Columns_Value (4)),
           Grid_Column_Tracks =>
-             (Count  => 4,
-              Tracks =>
-                 [1      => (Track_Auto, 0.0),
-                  2      => (Track_Auto, 0.0),
-                  3      => (Track_Auto, 0.0),
-                  4      => (Track_Fr, 1.0),
-                  others => <>]),
+             Set ((Count  => 4,
+                   Tracks =>
+                      [1      => (Track_Auto, 0.0),
+                       2      => (Track_Auto, 0.0),
+                       3      => (Track_Auto, 0.0),
+                       4      => (Track_Fr, 1.0),
+                       others => <>])),
           others             => <>);
       Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
       Grid_Parts : constant Part_Style_Array :=
@@ -241,11 +241,11 @@ begin
          (Display            => Set (Grid),
           Grid_Columns       => Set (Grid_Columns_Value (2)),
           Grid_Column_Tracks =>
-             (Count  => 2,
-              Tracks =>
-                 [1      => (Track_Auto, 0.0),
-                  2      => (Track_Fr, 1.0),
-                  others => <>]),
+             Set ((Count  => 2,
+                   Tracks =>
+                      [1      => (Track_Auto, 0.0),
+                       2      => (Track_Fr, 1.0),
+                       others => <>])),
           others             => <>);
       Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
       Grid_Parts : constant Part_Style_Array :=
@@ -316,11 +316,11 @@ begin
          (Display            => Set (Grid),
           Grid_Columns       => Set (Grid_Columns_Value (2)),
           Grid_Column_Tracks =>
-             (Count  => 2,
-              Tracks =>
-                 [1      => (Track_Auto, 0.0),
-                  2      => (Track_Fr, 1.0),
-                  others => <>]),
+             Set ((Count  => 2,
+                   Tracks =>
+                      [1      => (Track_Auto, 0.0),
+                       2      => (Track_Fr, 1.0),
+                       others => <>])),
           others             => <>);
       Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
       Grid_Parts : constant Part_Style_Array :=
@@ -392,11 +392,11 @@ begin
          (Display            => Set (Grid),
           Grid_Columns       => Set (Grid_Columns_Value (2)),
           Grid_Column_Tracks =>
-             (Count  => 2,
-              Tracks =>
-                 [1      => (Track_Auto, 0.0),
-                  2      => (Track_Fr, 1.0),
-                  others => <>]),
+             Set ((Count  => 2,
+                   Tracks =>
+                      [1      => (Track_Auto, 0.0),
+                       2      => (Track_Fr, 1.0),
+                       others => <>])),
           others             => <>);
       Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
       Grid_Parts : constant Part_Style_Array :=
@@ -603,11 +603,11 @@ begin
          (Display            => Set (Grid),
           Grid_Columns       => Set (Grid_Columns_Value (2)),
           Grid_Column_Tracks =>
-             (Count  => 2,
-              Tracks =>
-                 [1      => (Track_Auto, 0.0),
-                  2      => (Track_Fr, 1.0),
-                  others => <>]),
+             Set ((Count  => 2,
+                   Tracks =>
+                      [1      => (Track_Auto, 0.0),
+                       2      => (Track_Fr, 1.0),
+                       others => <>])),
           others             => <>);
       Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
       Grid_Parts : constant Part_Style_Array :=
@@ -687,11 +687,11 @@ begin
          (Display            => Set (Grid),
           Grid_Columns       => Set (Grid_Columns_Value (2)),
           Grid_Column_Tracks =>
-             (Count  => 2,
-              Tracks =>
-                 [1      => (Track_Auto, 0.0),
-                  2      => (Track_Fr, 1.0),
-                  others => <>]),
+             Set ((Count  => 2,
+                   Tracks =>
+                      [1      => (Track_Auto, 0.0),
+                       2      => (Track_Fr, 1.0),
+                       others => <>])),
           others             => <>);
       Grid_WS    : constant Widget_Style := From (Grid_Style).Build;
       Grid_Parts : constant Part_Style_Array :=
@@ -1250,11 +1250,11 @@ begin
          (Display            => Set (Grid),
           Grid_Columns       => Set (Grid_Columns_Value (2)),
           Grid_Column_Tracks =>
-             (Count  => 2,
-              Tracks =>
-                 [1      => (Track_Fr, 1.0),
-                  2      => (Track_Fr, 1.0),
-                  others => <>]),
+             Set ((Count  => 2,
+                   Tracks =>
+                      [1      => (Track_Fr, 1.0),
+                       2      => (Track_Fr, 1.0),
+                       others => <>])),
           Gap                => Set (Gap (Px (30.0))),
           others             => <>);
       Grid_Parts : constant Part_Style_Array :=
@@ -1366,8 +1366,8 @@ begin
          (Display            => Set (Grid),
           Grid_Columns       => Set (Grid_Columns_Value (1)),
           Grid_Column_Tracks =>
-             (Count  => 1,
-              Tracks => [1 => (Track_Fr, 1.0), others => <>]),
+             Set ((Count  => 1,
+                   Tracks => [1 => (Track_Fr, 1.0), others => <>])),
           Gap                => Set (Gap (Px (Row_Gap_Px))),
           others             => <>);
 
@@ -1457,8 +1457,8 @@ begin
          (Display            => Set (Grid),
           Grid_Columns       => Set (Grid_Columns_Value (1)),
           Grid_Column_Tracks =>
-             (Count  => 1,
-              Tracks => [1 => (Track_Fr, 1.0), others => <>]),
+             Set ((Count  => 1,
+                   Tracks => [1 => (Track_Fr, 1.0), others => <>])),
           others             => <>);
       Wrap_Style : constant Style_Rules :=
          (Text_Wrap_Mode => Set (TWM_Wrap), others => <>);
@@ -2808,12 +2808,12 @@ begin
          (Display            => Set (Grid),
           Grid_Columns       => Set (Grid_Columns_Value (3)),
           Grid_Column_Tracks =>
-             (Count  => 3,
-              Tracks =>
-                 [1      => (Track_Fr, 1.0),
-                  2      => (Track_Fr, 1.0),
-                  3      => (Track_Fr, 1.0),
-                  others => <>]),
+             Set ((Count  => 3,
+                   Tracks =>
+                      [1      => (Track_Fr, 1.0),
+                       2      => (Track_Fr, 1.0),
+                       3      => (Track_Fr, 1.0),
+                       others => <>])),
           others             => <>);
 
       function Floor_Of (W : Float) return Part_Style_Array is
@@ -2867,8 +2867,8 @@ begin
          (Display            => Set (Grid),
           Grid_Columns       => Set (Grid_Columns_Value (1)),
           Grid_Column_Tracks =>
-             (Count  => 1,
-              Tracks => [1 => (Track_Fr, 0.5), others => <>]),
+             Set ((Count  => 1,
+                   Tracks => [1 => (Track_Fr, 0.5), others => <>])),
           others             => <>);
    begin
       Set_Part_Styles
@@ -3131,12 +3131,12 @@ begin
          (Display            => Set (Adi.CSS_Styles.Grid),
           Grid_Columns       => Set (Grid_Columns_Value (3)),
           Grid_Column_Tracks =>
-             (Count  => 3,
-              Tracks =>
-                 [1      => (Track_Fr, 1.0),
-                  2      => (Track_Fr, 1.0),
-                  3      => (Track_Fr, 1.0),
-                  others => <>]),
+             Set ((Count  => 3,
+                   Tracks =>
+                      [1      => (Track_Fr, 1.0),
+                       2      => (Track_Fr, 1.0),
+                       3      => (Track_Fr, 1.0),
+                       others => <>])),
           others             => <>);
 
       function Floor_Of (W : Float) return Part_Style_Array is
@@ -3366,8 +3366,8 @@ begin
             (Display            => Set (Adi.CSS_Styles.Grid),
              Grid_Columns       => Set (Grid_Columns_Value (1)),
              Grid_Column_Tracks =>
-                (Count  => 1,
-                 Tracks => [1 => (Track_Px, 120.0), others => <>]),
+                Set ((Count  => 1,
+                      Tracks => [1 => (Track_Px, 120.0), others => <>])),
              others             => <>);
       begin
          Child := +Adi.Widget.Box.Create_Handle;
@@ -3444,8 +3444,8 @@ begin
             (Display            => Set (Adi.CSS_Styles.Grid),
              Grid_Columns       => Set (Grid_Columns_Value (1)),
              Grid_Column_Tracks =>
-                (Count  => 1,
-                 Tracks => [1 => Spec, others => <>]),
+                Set ((Count  => 1,
+                      Tracks => [1 => Spec, others => <>])),
              others             => <>);
       begin
          Set_Part_Styles

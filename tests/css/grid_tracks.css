@@ -1,0 +1,48 @@
+/*  Corpus for grid_tracks_test.
+
+    tools/css_to_ada.py compiles this file into
+    tests/generated/grid_tracks_styles.ads; the test parses the same
+    file at run time and requires both paths to resolve to the same
+    style. `none` is the initial value of both grid-template
+    properties, so every rule below either names it over a track list
+    an earlier rule set or names a track list over it. That is where
+    the two pipelines can disagree about what `none` leaves behind. */
+
+box {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-rows: 3;
+}
+
+.plain {
+  grid-template-columns: none;
+  grid-template-rows: none;
+}
+
+.wide {
+  grid-template-columns: 120px 1fr;
+}
+
+.last-wins {
+  grid-template-columns: 1fr 2fr;
+  grid-template-columns: none;
+}
+
+.list-after-none {
+  grid-template-columns: none;
+  grid-template-columns: 60px 40px;
+}
+
+#pin {
+  grid-template-columns: none;
+}
+
+/*  A token outside the track grammar makes the declaration invalid,
+    and CSS drops an invalid declaration whole. Counting its tokens
+    instead would make `red blue` two columns and `repeat(3, garbage)`
+    three rows, so the rule ahead of this one has to keep its own. */
+.bad-tracks {
+  display: grid;
+  grid-template-columns: red blue;
+  grid-template-rows: repeat(3, garbage);
+}

@@ -268,8 +268,8 @@ begin
            (Display            => Set (Adi.CSS_Styles.Grid),
             Grid_Columns       => Set (Grid_Columns_Value (1)),
             Grid_Column_Tracks =>
-              (Count  => 1,
-               Tracks => [1 => (Track_Px, 300.0), others => <>]),
+              Set ((Count  => 1,
+                    Tracks => [1 => (Track_Px, 300.0), others => <>])),
             others             => <>);
       begin
          Set_Part_Style (Host, Main_Part, From (Host_Rules).Build);

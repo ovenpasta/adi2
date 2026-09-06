@@ -45,8 +45,9 @@ procedure Style_Handle_Test is
               "a Part_Style_Array is 96 bytes");
       Assert (State_Rule'Object_Size = 16 * 8,
               "a State_Rule is a selector, a rules handle and a priority");
-      Assert (Style_Rules'Object_Size = 1072 * 8,
-              "a Style_Rules stays 1072 bytes, behind the handle");
+      Assert (Style_Rules'Object_Size = 1080 * 8,
+              "a Style_Rules stays 1080 bytes, behind the handle, not"
+              & Natural'Image (Style_Rules'Object_Size / 8));
       Assert (Style_Definition'Object_Size <= 288 * 8,
               "a Style_Definition is the sixteen slots and their counts");
    end Test_Widths;

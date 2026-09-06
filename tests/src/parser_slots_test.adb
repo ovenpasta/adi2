@@ -295,12 +295,15 @@ procedure Parser_Slots_Test is
       Assert (Slot_Count (Tracks) = 2,
               "grid-template-columns carries the track list beside its"
               & " count, not" & Natural'Image (Slot_Count (Tracks)));
-      Assert (Rules_Of (Tracks).Grid_Column_Tracks.Count = 3,
+      Assert (Opt_Grid_Tracks.Resolve
+                (Rules_Of (Tracks).Grid_Column_Tracks).Count = 3,
               "with the tracks the value named");
-      Assert (Slot_Count (Dropped) = 1,
-              "and `none` leaves the count alone, at"
+      Assert (Slot_Count (Dropped) = 2,
+              "and `none` names the track list beside the count rather"
+              & " than leaving it to the cascade, at"
               & Natural'Image (Slot_Count (Dropped)));
-      Assert (Rules_Of (Dropped).Grid_Column_Tracks.Count = 0,
+      Assert (Opt_Grid_Tracks.Resolve
+                (Rules_Of (Dropped).Grid_Column_Tracks).Count = 0,
               "with no track list beside it");
 
       Assert (Slot_Count (Flow) = 2,

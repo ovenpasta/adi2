@@ -2238,7 +2238,9 @@ procedure Css_Parser_Test is
          (new String'("grid-column"), new String'("$$$")),
          (new String'("grid-row"), new String'("$$$")),
          (new String'("grid-template-columns"), new String'("repeat(x, 1fr)")),
+         (new String'("grid-template-columns"), new String'("red blue")),
          (new String'("grid-template-rows"), new String'("repeat(x, 1fr)")),
+         (new String'("grid-template-rows"), new String'("red blue")),
          (new String'("height"), new String'("$$$")),
          (new String'("justify-content"), new String'("$$$")),
          (new String'("left"), new String'("$$$")),
@@ -2575,6 +2577,191 @@ procedure Css_Parser_Test is
         (Cleared.Grid_Rows = 0, "and a row count of zero");
    end Test_Grid_Template_None;
 
+   --  A track list is a list of track sizes, and a value naming
+   --  anything else is one the property can hold none of: CSS drops
+   --  the declaration whole. Counting the tokens instead would make
+   --  "red blue" two columns. The count-only form is for a list this
+   --  grammar reads and the track array cannot hold, which is the cap
+   --  and nothing else. tools/test_css_to_ada.py drives this same
+   --  table through the generator.
+   procedure Test_Grid_Template_Track_Grammar is
+      use type Adi.CSS_Parser.Testing.Count;
+      type Text is access constant String;
+      type Text_List is array (Positive range <>) of Text;
+
+      Sheet : Adi.CSS_Parser.Stylesheet;
+
+      --  The declaration's own sheet, so the resolved style beside the
+      --  report says what the property was left holding.
+      function Reports (Prop, Value : String)
+                        return Adi.CSS_Parser.Testing.Count
+      is
+         OK_S : Boolean;
+      begin
+         Adi.CSS_Parser.Testing.Reset_Reports;
+         Adi.CSS_Parser.Load_String
+           (Sheet, ".g { " & Prop & ": " & Value & "; }", OK_S);
+         Test_Support.Assert
+           (OK_S, "the sheet still loads: " & Prop & ": " & Value);
+         return Adi.CSS_Parser.Testing.Invalid_Value_Count;
+      end Reports;
+
+      function Style_Of return Resolved_Style is
+         Styles : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Sheet, "g");
+      begin
+         return Compute_Resolved
+           (Styles (Main_Part).Style, No_States, No_States);
+      end Style_Of;
+
+      --  A run of distinct widths, so a list kept is a list of sizes
+      --  rather than a count wearing one.
+      function Sizes (N : Positive) return String is
+         Buf : Unbounded_String;
+      begin
+         for I in 1 .. N loop
+            declare
+               D : constant String := I'Image;
+            begin
+               if I > 1 then
+                  Append (Buf, ' ');
+               end if;
+               Append (Buf, D (D'First + 1 .. D'Last) & "px");
+            end;
+         end loop;
+         return To_String (Buf);
+      end Sizes;
+
+      Dropped : constant Text_List :=
+        [new String'("red blue"),
+         new String'("-1fr 1fr"),
+         new String'("-50px 1fr"),
+         new String'("1fr junk"),
+         new String'("auto solid"),
+         new String'("repeat(3, garbage)"),
+         new String'("repeat(2, red)"),
+         new String'("repeat(3, -1fr)"),
+         new String'("0"),
+         new String'("10 20")];
+
+      type Read_Case is record
+         Value : Text;
+         Count : Natural;
+      end record;
+      type Read_List is array (Positive range <>) of Read_Case;
+
+      Read : constant Read_List :=
+        [(new String'("1fr 1fr 1fr"), 3),
+         (new String'("repeat(3, 1fr)"), 3),
+         (new String'("120px 1fr"), 2),
+         (new String'("auto 1fr"), 2),
+         (new String'("40pix 1fr"), 2),
+         (new String'("repeat(2, auto) 1fr"), 3),
+         (new String'("3"), 3)];
+
+      Over : constant Positive := Max_Grid_Tracks + 1;
+   begin
+      for V of Dropped loop
+         Test_Support.Assert
+           (Reports ("grid-template-columns", V.all) = 1,
+            "a token outside the track grammar costs the declaration: "
+            & V.all);
+         declare
+            R : constant Resolved_Style := Style_Of;
+         begin
+            Test_Support.Assert
+              (R.Grid_Columns = Default_Grid_Columns
+                 and then R.Grid_Column_Tracks.Count = 0,
+               "and leaves neither tracks nor a count: " & V.all);
+         end;
+
+         Test_Support.Assert
+           (Reports ("grid-template-rows", V.all) = 1,
+            "rows read the same grammar: " & V.all);
+         Test_Support.Assert
+           (Style_Of.Grid_Rows = Default_Grid_Rows,
+            "and are left as they were: " & V.all);
+      end loop;
+
+      for C of Read loop
+         Test_Support.Assert
+           (Reports ("grid-template-columns", C.Value.all) = 0,
+            "a list of track sizes is carried: " & C.Value.all);
+         declare
+            R : constant Resolved_Style := Style_Of;
+         begin
+            Test_Support.Assert
+              (Natural (R.Grid_Columns) = C.Count
+                 and then R.Grid_Column_Tracks.Count = C.Count,
+               "with its tracks and their count: " & C.Value.all);
+         end;
+
+         Test_Support.Assert
+           (Reports ("grid-template-rows", C.Value.all) = 0,
+            "rows carry it too: " & C.Value.all);
+         Test_Support.Assert
+           (Natural (Style_Of.Grid_Rows) = C.Count,
+            "as a count: " & C.Value.all);
+      end loop;
+
+      --  The one case the count-only form exists for.
+      Test_Support.Assert
+        (Reports ("grid-template-columns", Sizes (Over)) = 0,
+         "a list past the cap is read");
+      declare
+         R : constant Resolved_Style := Style_Of;
+      begin
+         Test_Support.Assert
+           (Natural (R.Grid_Columns) = Over
+              and then R.Grid_Column_Tracks.Count = 0,
+            "and keeps its count with the sizes given up");
+      end;
+      Test_Support.Assert
+        (Reports ("grid-template-rows", Sizes (Over)) = 0
+           and then Natural (Style_Of.Grid_Rows) = Over,
+         "rows past the cap keep their count");
+
+      --  At the cap the sizes still fit.
+      Test_Support.Assert
+        (Reports ("grid-template-columns", Sizes (Max_Grid_Tracks)) = 0,
+         "a list at the cap is read");
+      declare
+         R : constant Resolved_Style := Style_Of;
+      begin
+         Test_Support.Assert
+           (Natural (R.Grid_Columns) = Max_Grid_Tracks
+              and then R.Grid_Column_Tracks.Count = Max_Grid_Tracks
+              and then R.Grid_Column_Tracks.Tracks (Max_Grid_Tracks) =
+                         (Track_Px, Float (Max_Grid_Tracks)),
+            "and keeps every size");
+      end;
+
+      --  The cap is no way past the grammar.
+      Test_Support.Assert
+        (Reports ("grid-template-columns",
+                  Sizes (Max_Grid_Tracks) & " red") = 1,
+         "one token it cannot read costs a list past the cap");
+      Test_Support.Assert
+        (Reports ("grid-template-rows",
+                  Sizes (Max_Grid_Tracks) & " red") = 1,
+         "for rows as well");
+
+      --  Two repeats naming more tracks between them than the array
+      --  holds: the count is the sum, not the first repeat's.
+      Test_Support.Assert
+        (Reports ("grid-template-columns",
+                  "repeat(10, 1fr) repeat(10, auto)") = 0,
+         "repeats past the cap are read");
+      declare
+         R : constant Resolved_Style := Style_Of;
+      begin
+         Test_Support.Assert
+           (Natural (R.Grid_Columns) = 20
+              and then R.Grid_Column_Tracks.Count = 0,
+            "and add up to one count");
+      end;
+   end Test_Grid_Template_Track_Grammar;
+
    --  A family list is <family-name>#, and both pipelines hold it to
    --  one grammar: a name one reads and the other refuses is a
    --  declaration a compiled sheet carries and a parsed one drops.
@@ -2759,6 +2946,7 @@ begin
    Test_Invalid_Value_Is_Reported;
    Test_Shadow_Takes_Any_Colour;
    Test_Grid_Template_None;
+   Test_Grid_Template_Track_Grammar;
    Test_Font_Family_Grammar;
    Test_Var_Resolution;
 

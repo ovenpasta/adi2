@@ -1028,7 +1028,8 @@ package body Adi.CSS_Styles is
          Gap              => Opt_Gap.Resolve (S.Gap),
          Grid_Columns       => Opt_Grid_Cols.Resolve (S.Grid_Columns),
          Grid_Rows          => Opt_Grid_Rows.Resolve (S.Grid_Rows),
-         Grid_Column_Tracks => S.Grid_Column_Tracks,
+         Grid_Column_Tracks =>
+           Opt_Grid_Tracks.Resolve (S.Grid_Column_Tracks),
 
          -- Flexbox Item
          Align_Self       => Opt_Align_Self.Resolve (S.Align_Self),
@@ -2272,7 +2273,7 @@ package body Adi.CSS_Styles is
          --  second part and cascades beside the count.
          when Prop_Grid_Columns =>
             if Part = Tracks_Part then
-               S.Grid_Column_Tracks := Tracks_Of (R);
+               S.Grid_Column_Tracks := Set (Tracks_Of (R));
             else
                S.Grid_Columns := Set (Grid_Columns_Of (R));
             end if;
@@ -2326,7 +2327,7 @@ package body Adi.CSS_Styles is
 
          when Prop_Grid_Columns =>
             if Part = Tracks_Part then
-               S.Grid_Column_Tracks := Default_Grid_Track_List;
+               S.Grid_Column_Tracks := Opt_Grid_Tracks.Cleared;
             else
                S.Grid_Columns := Opt_Grid_Cols.Cleared;
             end if;
@@ -2478,8 +2479,10 @@ package body Adi.CSS_Styles is
                elsif Opt_Grid_Cols.Is_None (S.Grid_Columns) then
                   Wipe (P, First_Part);
                end if;
-               if S.Grid_Column_Tracks.Count > 0 then
-                  Emit (P, Tracks_Part, Intern (S.Grid_Column_Tracks));
+               if Opt_Grid_Tracks.Is_Set (S.Grid_Column_Tracks) then
+                  Emit (P, Tracks_Part, Intern (S.Grid_Column_Tracks.Value));
+               elsif Opt_Grid_Tracks.Is_None (S.Grid_Column_Tracks) then
+                  Wipe (P, Tracks_Part);
                end if;
 
             --  The shorthand owns no field: a rule set holds it as its

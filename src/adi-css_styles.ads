@@ -1102,6 +1102,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    package Opt_Gap           is new Optional_Values (Gap_Value, Default_Gap);
    package Opt_Order         is new Optional_Values (Order_Value, Default_Order);
    package Opt_Grid_Cols     is new Optional_Values (Grid_Columns_Value, Default_Grid_Columns);
+   package Opt_Grid_Tracks   is new Optional_Values (Grid_Track_List, Default_Grid_Track_List);
    package Opt_Grid_Rows     is new Optional_Values (Grid_Rows_Value, Default_Grid_Rows);
    package Opt_Grid_Column   is new Optional_Values (Grid_Column_Value, Default_Grid_Column);
    package Opt_Grid_Row      is new Optional_Values (Grid_Row_Value, Default_Grid_Row);
@@ -1316,7 +1317,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       Gap              : Opt_Gap.Optional          := Opt_Gap.Unset;
       Grid_Columns     : Opt_Grid_Cols.Optional    := Opt_Grid_Cols.Unset;
       Grid_Rows        : Opt_Grid_Rows.Optional    := Opt_Grid_Rows.Unset;
-      Grid_Column_Tracks : Grid_Track_List         := Default_Grid_Track_List;
+      Grid_Column_Tracks : Opt_Grid_Tracks.Optional := Opt_Grid_Tracks.Unset;
 
       -- Flexbox Item
       Align_Self       : Opt_Align_Self.Optional   := Opt_Align_Self.Unset;
@@ -1345,7 +1346,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    --  A rule set stored once and named by a four-byte handle. What the
    --  store holds is the slot list below -- the properties the rule set
    --  names and nothing else, eight bytes each -- so an entry costs the
-   --  properties it carries rather than the 1,072 bytes of the record.
+   --  properties it carries rather than the 1,080 bytes of the record.
    --  Interning is canonical, so equal rule sets share one handle and
    --  comparing two handles compares two values. The store holds an
    --  entry for the life of the process.
@@ -1677,7 +1678,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    --  A rule set as it is stored and worked on: the properties it names
    --  and nothing else, one eight-byte slot each, in property order. A
    --  rule naming three properties is 24 bytes where the record naming
-   --  all sixty-six is 1,072.
+   --  all sixty-six is 1,080.
    --
    --  Merging, inheriting and interning are comparisons of keys, so
    --  none of them names a property: each walks two ordered lists at
@@ -1726,9 +1727,9 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    --  form takes every key P owns, so `padding` reaches its four edges
    --  and a longhand ahead of it stands aside; the four-argument form
    --  takes the one part it names and leaves P's other parts to the
-   --  cascade. A track list of no tracks leaves grid-template-columns'
-   --  second part unnamed, which is the shape Slots_Of gives a rule set
-   --  carrying none.
+   --  cascade. A track list of no tracks names grid-template-columns'
+   --  second part as holding nothing, so a rule naming `none` takes the
+   --  tracks off a rule ahead of it.
    --
    --  `overflow` reaches two keys by naming two properties rather than
    --  two parts of one: Prop_Overflow owns no slot, and the rule set
@@ -2098,6 +2099,13 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Set (V : Order_Value) return Opt_Order.Optional renames Opt_Order.Val;
    function Set (V : Grid_Columns_Value) return Opt_Grid_Cols.Optional renames Opt_Grid_Cols.Val;
    function Set (V : Grid_Rows_Value) return Opt_Grid_Rows.Optional renames Opt_Grid_Rows.Val;
+
+   --  A list of no tracks is what `none` names, and the only list of
+   --  none, so the two spellings are one value: the property's second
+   --  part named and holding nothing.
+   function Set (V : Grid_Track_List) return Opt_Grid_Tracks.Optional is
+     (if V.Count = 0 then Opt_Grid_Tracks.Cleared else Opt_Grid_Tracks.Val (V));
+
    function Set (V : Grid_Column_Value) return Opt_Grid_Column.Optional renames Opt_Grid_Column.Val;
    function Set (V : Grid_Row_Value) return Opt_Grid_Row.Optional renames Opt_Grid_Row.Val;
    function Set (V : Grid_Column_Span_Value) return Opt_Grid_Col_Span.Optional renames Opt_Grid_Col_Span.Val;

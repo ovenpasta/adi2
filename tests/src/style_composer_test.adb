@@ -967,7 +967,7 @@ procedure Style_Composer_Test is
 
       Assert (By_Chain
               = From ((Grid_Columns       => Set (Grid_Columns_Value (2)),
-                       Grid_Column_Tracks => Tracks,
+                       Grid_Column_Tracks => Set (Tracks),
                        others             => <>)).Build,
               "the chain and the aggregate name the same track list");
 
@@ -1694,8 +1694,9 @@ procedure Style_Composer_Test is
               "all sixty-six properties compose, not"
               & Composable'Image);
 
-      Assert (Rules_Of (Definition (Style_Of.Grid_Columns (3).Build).Base)
-                .Grid_Column_Tracks.Count = 0,
+      Assert (Opt_Grid_Tracks.Resolve
+                (Rules_Of (Definition (Style_Of.Grid_Columns (3).Build).Base)
+                   .Grid_Column_Tracks).Count = 0,
               "and a chain naming the column count alone leaves the track "
               & "list empty, that being the property's other value");
    end Test_Residue;

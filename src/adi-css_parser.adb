@@ -399,78 +399,37 @@ package body Adi.CSS_Parser is
       return True;
    end Parse_Natural;
 
-   function Parse_Grid_Track_Count
-     (Input : String; Count : out Natural) return Boolean
-   is
-      V : constant String := Lower (Trimmed (Input));
-      Paren : Natural;
-      Comma : Natural;
-   begin
-      --  "repeat(N, ...)" form
-      if V'Length > 7
-        and then V (V'First .. V'First + 6) = "repeat("
-        and then V (V'Last) = ')'
-      then
-         Paren := V'First + 6;  --  index of '('
-         Comma := 0;
-         for J in Paren + 1 .. V'Last - 1 loop
-            if V (J) = ',' then
-               Comma := J;
-               exit;
-            end if;
-         end loop;
-         if Comma > 0 then
-            return Parse_Natural (V (Paren + 1 .. Comma - 1), Count)
-              and then Count > 0;
-         end if;
-         return False;
-      end if;
-      --  Plain integer form
-      if Parse_Natural (V, Count) and then Count > 0 then
-         return True;
-      end if;
-      --  Space-separated track list (e.g. "1fr 1fr 1fr"): count tokens
-      declare
-         N_Tokens : Natural := 0;
-         In_Token : Boolean := False;
-      begin
-         for J in V'Range loop
-            if V (J) = ' ' or else V (J) = ASCII.HT then
-               In_Token := False;
-            elsif not In_Token then
-               In_Token := True;
-               N_Tokens := N_Tokens + 1;
-            end if;
-         end loop;
-         if N_Tokens > 0 then
-            Count := N_Tokens;
-            return True;
-         end if;
-      end;
-      return False;
-   end Parse_Grid_Track_Count;
-
-   --  Parse "grid-template-columns" value into a Grid_Track_List.
+   --  Parse a "grid-template-columns" or "grid-template-rows" value.
    --  Supports: plain integer N (→ N equal fr tracks), space-separated
    --  size tokens, repeat(N, size), and mixed "repeat(N, size) size...".
-   --  Returns False on unknown tokens or when token count exceeds Max_Grid_Tracks;
-   --  callers fall back to Grid_Columns count-only in that case.
-   function Parse_Grid_Track_List
-     (Input : String; List : out Grid_Track_List) return Boolean
+   --
+   --  Count is how many tracks the value names, and stands whether or
+   --  not their sizes fit: past Max_Grid_Tracks there is nowhere to put
+   --  them, so List comes back empty and the count travels alone. That
+   --  degradation is for a list this grammar reads. A token outside it
+   --  returns False, which is the declaration the caller drops.
+   function Parse_Grid_Tracks
+     (Input : String;
+      List  : out Grid_Track_List;
+      Count : out Natural) return Boolean
    is
       V       : constant String  := Lower (Trimmed (Input));
-      Count   : Natural          := 0;
       Num     : Float;
       N_Plain : Natural;
 
-      function Append (Spec : Grid_Track_Spec) return Boolean is
+      --  Times comes from repeat(), which names as many tracks as it
+      --  likes: the sizes stop at the array's end and the count runs
+      --  on, saturating rather than raising on a pair of huge repeats.
+      procedure Append (Spec : Grid_Track_Spec; Times : Positive := 1) is
+         Room : constant Natural :=
+           (if Count >= Max_Grid_Tracks then 0
+            else Max_Grid_Tracks - Count);
       begin
-         if Count >= Max_Grid_Tracks then
-            return False;
-         end if;
-         Count := Count + 1;
-         List.Tracks (Count) := Spec;
-         return True;
+         for K in 1 .. Natural'Min (Times, Room) loop
+            List.Tracks (Count + K) := Spec;
+         end loop;
+         Count := (if Times > Natural'Last - Count then Natural'Last
+                   else Count + Times);
       end Append;
 
       function Token_To_Spec
@@ -521,11 +480,7 @@ package body Adi.CSS_Parser is
          if not Token_To_Spec (Trimmed (T (Comma + 1 .. T'Last - 1)), Size_Spec) then
             return False;
          end if;
-         for I in 1 .. Rep_Count loop
-            if not Append (Size_Spec) then
-               return False;
-            end if;
-         end loop;
+         Append (Size_Spec, Rep_Count);
          return True;
       end Process_Repeat;
 
@@ -541,7 +496,8 @@ package body Adi.CSS_Parser is
          if not Token_To_Spec (T, Spec) then
             return False;
          end if;
-         return Append (Spec);
+         Append (Spec);
+         return True;
       end Process_Token;
 
       I     : Natural;
@@ -550,61 +506,62 @@ package body Adi.CSS_Parser is
 
    begin
       List := Default_Grid_Track_List;
+      Count := 0;
 
       --  Legacy: plain integer N → N equal fr(1.0) tracks
       if Parse_Natural (V, N_Plain) and then N_Plain > 0 then
-         if N_Plain > Max_Grid_Tracks then
-            return False;
-         end if;
-         List.Count := N_Plain;
-         for K in 1 .. N_Plain loop
-            List.Tracks (K) := (Kind => Track_Fr, Value => 1.0);
-         end loop;
-         return True;
-      end if;
-
-      --  Token-level parsing
-      I := V'First;
-      while I <= V'Last loop
-         --  Skip whitespace
-         while I <= V'Last
-           and then (V (I) = ' ' or else V (I) = ASCII.HT)
-         loop
-            I := I + 1;
-         end loop;
-         exit when I > V'Last;
-
-         Start := I;
-         Depth := 0;
-         --  Scan to end of token, respecting parentheses for repeat(...)
+         Append ((Kind => Track_Fr, Value => 1.0), N_Plain);
+      else
+         --  Token-level parsing
+         I := V'First;
          while I <= V'Last loop
-            if V (I) = '(' then
-               Depth := Depth + 1;
-            elsif V (I) = ')' then
-               if Depth > 0 then
-                  Depth := Depth - 1;
-               end if;
-               if Depth = 0 then
-                  I := I + 1;  --  advance past ')'
+            --  Skip whitespace
+            while I <= V'Last
+              and then (V (I) = ' ' or else V (I) = ASCII.HT)
+            loop
+               I := I + 1;
+            end loop;
+            exit when I > V'Last;
+
+            Start := I;
+            Depth := 0;
+            --  Scan to end of token, respecting parentheses for repeat(...)
+            while I <= V'Last loop
+               if V (I) = '(' then
+                  Depth := Depth + 1;
+               elsif V (I) = ')' then
+                  if Depth > 0 then
+                     Depth := Depth - 1;
+                  end if;
+                  if Depth = 0 then
+                     I := I + 1;  --  advance past ')'
+                     exit;
+                  end if;
+               elsif (V (I) = ' ' or else V (I) = ASCII.HT) and then Depth = 0 then
                   exit;
                end if;
-            elsif (V (I) = ' ' or else V (I) = ASCII.HT) and then Depth = 0 then
-               exit;
-            end if;
-            I := I + 1;
-         end loop;
+               I := I + 1;
+            end loop;
 
-         if I > Start and then not Process_Token (V (Start .. I - 1)) then
-            return False;
-         end if;
-      end loop;
+            if I > Start and then not Process_Token (V (Start .. I - 1)) then
+               return False;
+            end if;
+         end loop;
+      end if;
 
       if Count = 0 then
          return False;
       end if;
-      List.Count := Count;
+
+      if Count <= Max_Grid_Tracks then
+         List.Count := Count;
+      else
+         --  Over the cap the sizes are a partial list, which is worse
+         --  than none: the count stands and the tracks are given up.
+         List := Default_Grid_Track_List;
+      end if;
       return True;
-   end Parse_Grid_Track_List;
+   end Parse_Grid_Tracks;
 
    function Parse_Length (Input : String; L : out Parsed_Length) return Boolean is
       V : constant String := Lower (Trimmed (Input));
@@ -2791,6 +2748,7 @@ package body Adi.CSS_Parser is
       F : Float;
       I : Integer;
       N : Natural;
+      Tracks : Grid_Track_List;
       Overflow_Val : Overflow_Value;
       Border_Side  : Border_Style_Kind;
       Has_Border_Width : Boolean := False;
@@ -3571,34 +3529,35 @@ package body Adi.CSS_Parser is
       elsif Key = D_Order then
          if Parse_Integer (V, I) then Take (Prop_Order, Intern (Order_Value (I))); else Bad_Value; end if;
       elsif Key = D_Grid_Template_Columns then
-         declare
-            TL : Grid_Track_List;
-         begin
-            if LV = "none" then
-               --  The property's initial value: this names no explicit
-               --  track. CSS leaves the tracks to the implicit grid and
-               --  grid-auto-columns, which Adi carries as a count of
-               --  zero, the way Grid_Rows already carries auto.
-               Take (Prop_Grid_Columns, Tracks_Part,
-                     Intern (Default_Grid_Track_List));
-               Take (Prop_Grid_Columns, First_Part,
-                     Intern (Grid_Columns_Value (0)));
-            elsif Parse_Grid_Track_List (V, TL) then
-               Take (Prop_Grid_Columns, Tracks_Part, Intern (TL));
-               Take (Prop_Grid_Columns, First_Part,
-                     Intern (Grid_Columns_Value (TL.Count)));
-            elsif Parse_Grid_Track_Count (V, N) then
-               --  Fallback: token count > Max_Grid_Tracks; keep count only
-               Take (Prop_Grid_Columns, First_Part,
-                     Intern (Grid_Columns_Value (N)));
-            else
-               Bad_Value;
+         if LV = "none" then
+            --  The property's initial value: this names no explicit
+            --  track. CSS leaves the tracks to the implicit grid and
+            --  grid-auto-columns, which Adi carries as a count of
+            --  zero, the way Grid_Rows already carries auto. The
+            --  list of no tracks is the cleared track key, so the
+            --  declaration takes the tracks off an earlier rule
+            --  rather than leaving them to it.
+            Take (Prop_Grid_Columns, Tracks_Part,
+                  Intern (Default_Grid_Track_List));
+            Take (Prop_Grid_Columns, First_Part,
+                  Intern (Grid_Columns_Value (0)));
+         elsif Parse_Grid_Tracks (V, Tracks, N) then
+            --  Past the cap the sizes are given up and the count is
+            --  taken alone, leaving the tracks to a less specific rule.
+            if Tracks.Count > 0 then
+               Take (Prop_Grid_Columns, Tracks_Part, Intern (Tracks));
             end if;
-         end;
+            Take (Prop_Grid_Columns, First_Part,
+                  Intern (Grid_Columns_Value (N)));
+         else
+            Bad_Value;
+         end if;
       elsif Key = D_Grid_Template_Rows then
          if LV = "none" then
             Take (Prop_Grid_Rows, Intern (Grid_Rows_Value (0)));
-         elsif Parse_Grid_Track_Count (V, N) then
+         elsif Parse_Grid_Tracks (V, Tracks, N) then
+            --  Rows carry a count and no sizes, so the list the same
+            --  grammar builds is read for its length alone.
             Take (Prop_Grid_Rows, Intern (Grid_Rows_Value (N)));
          else
             Bad_Value;

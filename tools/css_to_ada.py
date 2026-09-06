@@ -634,33 +634,6 @@ def parse_length(value: str) -> Optional[ParsedLength]:
 MAX_GRID_TRACKS = 16
 
 
-def parse_grid_track_count(value: str) -> Optional[int]:
-    """Parse grid-template-* into a simple track count."""
-    value = value.strip().lower()
-    if not value or value == "none":
-        return None
-
-    m = re.match(r'^repeat\(\s*(\d+)\s*,.*\)$', value)
-    if m:
-        n = int(m.group(1))
-        return n if n > 0 else None
-
-    #  A repeat() whose count is anything but a positive integer is one
-    #  the grammar rejects, rather than a track list to count tokens in.
-    #  Adi.CSS_Parser stops on it the same way.
-    if value.startswith("repeat("):
-        return None
-
-    if re.match(r'^\d+$', value):
-        n = int(value)
-        return n if n > 0 else None
-
-    tokens = [t for t in re.split(r'\s+', value) if t and t != "/"]
-    if tokens:
-        return len(tokens)
-    return None
-
-
 def _parse_one_track_token(token: str) -> Optional[tuple[str, float]]:
     """Parse a single size token into (kind, value).
     kind is 'auto', 'fr', 'px', or 'pix'.  Returns None on unknown syntax."""
@@ -719,50 +692,58 @@ def _tokenize_track_list(value: str) -> Optional[list[str]]:
     return tokens if tokens else None
 
 
-def parse_grid_track_list(value: str) -> Optional[list[tuple[str, float]]]:
-    """Parse grid-template-columns into a list of (kind, value) specs.
+def parse_grid_tracks(
+    value: str,
+) -> Optional[tuple[int, Optional[list[tuple[str, float]]]]]:
+    """Parse a grid-template-* value into (count, specs).
 
-    Rules:
-    - Plain integer N  → N copies of ("fr", 1.0)  (legacy equal-column semantics)
+    Reads:
+    - Plain integer N  → N copies of ("fr", 1.0)  (legacy equal-column form)
     - repeat(N, size)  → N copies of the parsed size token
     - Space-separated  → one spec per token
-    - Returns None when count > MAX_GRID_TRACKS or on parse error (caller falls
-      back to parse_grid_track_count for a count-only Grid_Columns field).
+
+    count is how many tracks the value names, and stands whether or not
+    their sizes fit: past MAX_GRID_TRACKS there is nowhere to put them,
+    so specs comes back None and the count travels alone. That
+    degradation is for a list this grammar reads. A token outside it
+    returns None, which is the declaration the caller drops.
+    Adi.CSS_Parser.Parse_Grid_Tracks reads the same grammar.
     """
     v = value.strip().lower()
     if not v or v == "none":
         return None
 
-    # Legacy: plain integer N → N equal fr(1.0) tracks
+    count = 0
+    specs: list[tuple[str, float]] = []
+
     if re.match(r'^\d+$', v):
         n = int(v)
-        if n <= 0 or n > MAX_GRID_TRACKS:
+        if n <= 0:
             return None
-        return [("fr", 1.0)] * n
+        count = n
+        specs = [("fr", 1.0)] * min(n, MAX_GRID_TRACKS)
+    else:
+        for tok in _tokenize_track_list(v) or []:
+            m = re.match(r'^repeat\(\s*(\d+)\s*,\s*(.*)\)$', tok)
+            if m:
+                rep_count = int(m.group(1))
+                spec = _parse_one_track_token(m.group(2))
+                if spec is None or rep_count <= 0:
+                    return None
+                #  A repeat() names as many tracks as it likes; the
+                #  sizes stop at the cap and the count runs on.
+                specs.extend([spec] * min(rep_count, MAX_GRID_TRACKS))
+                count += rep_count
+            else:
+                spec = _parse_one_track_token(tok)
+                if spec is None:
+                    return None
+                specs.append(spec)
+                count += 1
+        if count == 0:
+            return None
 
-    raw_tokens = _tokenize_track_list(v)
-    if not raw_tokens:
-        return None
-
-    result: list[tuple[str, float]] = []
-    for tok in raw_tokens:
-        m = re.match(r'^repeat\(\s*(\d+)\s*,\s*(.*)\)$', tok)
-        if m:
-            rep_count = int(m.group(1))
-            size_tok = m.group(2).strip()
-            spec = _parse_one_track_token(size_tok)
-            if spec is None or rep_count <= 0:
-                return None
-            result.extend([spec] * rep_count)
-        else:
-            spec = _parse_one_track_token(tok)
-            if spec is None:
-                return None
-            result.append(spec)
-
-    if not result or len(result) > MAX_GRID_TRACKS:
-        return None
-    return result
+    return (count, specs if count <= MAX_GRID_TRACKS else None)
 
 
 def parse_grid_placement(value: str) -> tuple[Optional[int], Optional[int]]:
@@ -2049,15 +2030,10 @@ def validate_property_value(property_name: str, value: str) -> bool:
         return lengths is not None and len(lengths) >= 1
     if validator == "flex-basis":
         return low in {"auto", "content"} or parse_length(value) is not None
-    if validator == "grid-template-columns":
+    if validator in ("grid-template-columns", "grid-template-rows"):
         #  none is the property's initial value: it names no explicit
         #  track. Adi.CSS_Parser reads it as a count of zero.
-        return low == "none" or (
-            parse_grid_track_list(value) is not None
-            or parse_grid_track_count(value) is not None
-        )
-    if validator == "grid-template-rows":
-        return low == "none" or parse_grid_track_count(value) is not None
+        return low == "none" or parse_grid_tracks(value) is not None
     if validator == "grid-placement":
         if low == "auto":
             return True
@@ -3436,11 +3412,20 @@ def generate_style_chain_ada(properties: dict[str, str]) -> list[str]:
         # Grid container
         elif prop == "grid-template-columns":
             if value.strip().lower() == "none":
+                #  The count and the track list are two values of one
+                #  property, so `none` names both: a count of zero, and
+                #  the list of no tracks that clears the track key.
                 fields.append("Grid_Columns (Grid_Columns_Value (0))")
+                fields.append("Grid_Columns (Default_Grid_Track_List)")
                 continue
-            track_list = parse_grid_track_list(value)
+            parsed = parse_grid_tracks(value)
+            if parsed is None:
+                continue
+            count, track_list = parsed
+            fields.append(f"Grid_Columns (Grid_Columns_Value ({count}))")
+            #  Past the cap the sizes are given up and the count stands
+            #  alone, leaving the tracks to a less specific rule.
             if track_list is not None:
-                n = len(track_list)
                 track_entries = []
                 for idx, (kind, val) in enumerate(track_list, 1):
                     if kind == "auto":
@@ -3455,24 +3440,20 @@ def generate_style_chain_ada(properties: dict[str, str]) -> list[str]:
                         track_entries.append(
                             f"{idx} => (Track_Px, {format_float(val)})")
                 tracks_str = ", ".join(track_entries) + ", others => <>"
-                fields.append(f"Grid_Columns (Grid_Columns_Value ({n}))")
                 fields.append(
-                    f"Grid_Columns ((Count => {n}, "
+                    f"Grid_Columns ((Count => {count}, "
                     f"Tracks => [{tracks_str}]))")
-                continue
-            else:
-                count = parse_grid_track_count(value)
-                if count is not None:
-                    ada_field = (
-                        f"Grid_Columns (Grid_Columns_Value ({count}))")
+            continue
 
         elif prop == "grid-template-rows":
             if value.strip().lower() == "none":
                 ada_field = "Grid_Rows (Grid_Rows_Value (0))"
             else:
-                tracks = parse_grid_track_count(value)
-                if tracks is not None:
-                    ada_field = f"Grid_Rows (Grid_Rows_Value ({tracks}))"
+                #  Rows carry a count and no sizes, so the list the same
+                #  grammar builds is read for its length alone.
+                parsed = parse_grid_tracks(value)
+                if parsed is not None:
+                    ada_field = f"Grid_Rows (Grid_Rows_Value ({parsed[0]}))"
 
         # Grid item placement
         elif prop == "grid-column":

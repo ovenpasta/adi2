@@ -694,12 +694,42 @@ procedure Style_Composer_Test is
                   (Align_Content => Opt_Align_Content.Cleared, others => <>),
                   "align-content");
       Same_Clear (Prop_Gap, (Gap => Opt_Gap.Cleared, others => <>), "gap");
+      --  Two fields, the count and the track list, both of them
+      --  grid-template-columns' own.
       Same_Clear (Prop_Grid_Columns,
-                  (Grid_Columns => Opt_Grid_Cols.Cleared, others => <>),
+                  (Grid_Columns       => Opt_Grid_Cols.Cleared,
+                   Grid_Column_Tracks => Opt_Grid_Tracks.Cleared,
+                   others             => <>),
                   "grid-columns");
       Same_Clear (Prop_Grid_Rows,
                   (Grid_Rows => Opt_Grid_Rows.Cleared, others => <>),
                   "grid-rows");
+
+      --  Same_Clear reads the fields a clear names. This reads what a
+      --  clear costs the chain ahead of it, the track list being the
+      --  half of grid-template-columns a caller reaches separately.
+      declare
+         Tracks : constant Grid_Track_List :=
+           (Count  => 3,
+            Tracks => [1 => (Track_Fr, 1.0),
+                       2 => (Track_Fr, 2.0),
+                       3 => (Track_Fr, 1.0),
+                       others => <>]);
+         Kept    : constant Widget_Style :=
+           Style_Of.Grid_Columns (Tracks).Build;
+         Cleared : constant Widget_Style :=
+           Style_Of.Grid_Columns (Tracks).Clear (Prop_Grid_Columns).Build;
+      begin
+         Assert (Opt_Grid_Tracks.Resolve
+                   (Rules_Of (Definition (Kept).Base)
+                      .Grid_Column_Tracks).Count = 3,
+                 "a chain naming a track list carries it");
+         Assert (Opt_Grid_Tracks.Resolve
+                   (Rules_Of (Definition (Cleared).Base)
+                      .Grid_Column_Tracks).Count = 0,
+                 "and clearing grid-template-columns takes the track list "
+                 & "with the count, both being the property's");
+      end;
       Same_Clear (Prop_Align_Self,
                   (Align_Self => Opt_Align_Self.Cleared, others => <>),
                   "align-self");
@@ -1641,9 +1671,12 @@ procedure Style_Composer_Test is
    --  differ. That is what makes the default safe rather than merely
    --  convenient.
    --
-   --  The residue is Grid_Column_Tracks alone, which no chain can name
-   --  because it has no CSS_Property literal: giving it one is the
-   --  descriptor table's business.
+   --  Grid_Column_Tracks stays outside this loop. It holds no
+   --  CSS_Property literal of its own, riding grid-template-columns as
+   --  that property's second value, so Sample_Ref answers that literal
+   --  with a count and the loop reads the count alone. A chain reaches
+   --  the list through the Grid_Columns overload taking one, and what a
+   --  clear costs it is held in Test_Every_Clear.
    procedure Test_Residue is
       Composable : Natural := 0;
       Applied, Wiped, Parted : Style_Rules;

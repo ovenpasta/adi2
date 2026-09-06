@@ -2212,7 +2212,11 @@ package body Adi.CSS_Styles is
          when Prop_Align_Self       => S.Align_Self := Opt_Align_Self.Cleared;
          when Prop_Flex_Basis       => S.Flex_Basis := Opt_Flex_Basis.Cleared;
          when Prop_Order            => S.Order := Opt_Order.Cleared;
-         when Prop_Grid_Columns     => S.Grid_Columns := Opt_Grid_Cols.Cleared;
+         --  The property owns a count and a track list, so clearing it
+         --  reaches both. The per-part form below names one at a time.
+         when Prop_Grid_Columns     =>
+            S.Grid_Columns := Opt_Grid_Cols.Cleared;
+            S.Grid_Column_Tracks := Opt_Grid_Tracks.Cleared;
          when Prop_Grid_Rows        => S.Grid_Rows := Opt_Grid_Rows.Cleared;
          when Prop_Grid_Column   => S.Grid_Column := Opt_Grid_Column.Cleared;
          when Prop_Grid_Row      => S.Grid_Row := Opt_Grid_Row.Cleared;

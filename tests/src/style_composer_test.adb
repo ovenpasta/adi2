@@ -972,6 +972,66 @@ procedure Style_Composer_Test is
               & "interned rule set");
    end Test_Side_Longhands_Agree_With_Parser;
 
+   --  One of a property's values cleared, which is what `initial` on a
+   --  longhand comes to.
+   procedure Test_Part_Clears is
+      Source : constant String :=
+        ".c {" & ASCII.LF
+        & "  padding-top: initial;" & ASCII.LF
+        & "  border-top-width: initial;" & ASCII.LF
+        & "  border-bottom-left-radius: initial;" & ASCII.LF
+        & "  margin-left: initial;" & ASCII.LF
+        & "  row-gap: initial;" & ASCII.LF
+        & "}" & ASCII.LF;
+
+      Sheet  : Adi.CSS_Parser.Rule_Sheet;
+      Loaded : Boolean;
+
+      By_Chain : constant Widget_Style :=
+        Style_Of
+          .Clear (Prop_Padding, Top)
+          .Clear (Prop_Border_Width, Top)
+          .Clear (Prop_Border_Radius, Bottom_Left)
+          .Clear (Prop_Margin, Left)
+          .Clear (Prop_Gap, Gap_Row_Part)
+        .Build;
+   begin
+      Section ("one value of a property, cleared");
+
+      Adi.CSS_Parser.Load_Rules (Sheet, Source, Loaded);
+      Assert (Loaded, "the sheet parses");
+
+      Assert (Intern_Rules
+                (Adi.CSS_Parser.Base_Rules
+                   (Sheet, Adi.CSS_Parser.Class_Selector, "c"))
+              = Definition (By_Chain).Base,
+              "the parser and the chain fold `initial` on a longhand to "
+              & "one interned rule set");
+
+      Assert (Style_Of.Clear (Prop_Padding, Top).Build
+              /= Style_Of.Clear (Prop_Padding).Build,
+              "clearing one edge leaves the other three to the cascade");
+      Assert (Style_Of.Clear (Prop_Padding, Top).Clear (Prop_Padding, Right)
+                .Clear (Prop_Padding, Bottom).Clear (Prop_Padding, Left).Build
+              = Style_Of.Clear (Prop_Padding).Build,
+              "and four edges cleared apart are the property cleared");
+      Assert (Style_Of.Clear (Prop_Gap, Gap_Row_Part)
+                .Clear (Prop_Gap, Gap_Column_Part).Build
+              = Style_Of.Clear (Prop_Gap).Build,
+              "which holds of the two gap axes as well, whose cleared"
+              & " state is a value rather than an absence");
+      Assert (Style_Of.Clear (Prop_Border_Radius, Top_Left)
+                .Clear (Prop_Border_Radius, Top_Right)
+                .Clear (Prop_Border_Radius, Bottom_Right)
+                .Clear (Prop_Border_Radius, Bottom_Left).Build
+              = Style_Of.Clear (Prop_Border_Radius).Build,
+              "and of the four corners");
+      Assert (Style_Of.Padding (CSS_Box (Px (2.0)))
+                .Clear (Prop_Padding, Top).Build
+              /= Style_Of.Padding (CSS_Box (Px (2.0))).Build,
+              "a clear after a value in one chain takes that edge back");
+   end Test_Part_Clears;
+
    --  grid-template-columns carries a count and a track list, and the
    --  list has no CSS_Property literal, so it is the property's second
    --  part and a chain naming both takes two steps.
@@ -1755,6 +1815,7 @@ begin
    Test_Gap_Axes;
    Test_Side_Longhands;
    Test_Side_Longhands_Agree_With_Parser;
+   Test_Part_Clears;
    Test_Grid_Tracks;
    Test_Overflow_Shorthand;
    Test_Text_Limit;

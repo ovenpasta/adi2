@@ -2762,6 +2762,384 @@ procedure Css_Parser_Test is
       end;
    end Test_Grid_Template_Track_Grammar;
 
+   --  The CSS-wide keywords. `initial` is the property taken to its
+   --  initial value, which the cascade has to see as a value rather
+   --  than as an absence: a rule saying it takes the property off a
+   --  less specific rule, where dropping the declaration would leave
+   --  that rule's value standing. `unset` is `initial` outside
+   --  Inheritable_Properties, and `inherit` within it -- so `inherit`,
+   --  and `unset` where the property inherits, are reported and
+   --  dropped. tools/test_css_to_ada.py drives the same declarations
+   --  through the generator.
+   procedure Test_CSS_Wide_Keywords is
+      use type Adi.CSS_Parser.Testing.Count;
+
+      Sheet_W : Adi.CSS_Parser.Stylesheet;
+      OK_W    : Boolean := False;
+
+      --  Two rules of one sheet cascading, the base first: what a
+      --  widget matching both classes resolves to.
+      function Merged (Base, Over : String) return Resolved_Style is
+         B : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Sheet_W, Base);
+         O : constant Part_Style_Array :=
+           Adi.CSS_Parser.Styles_For_Class (Sheet_W, Over);
+      begin
+         return Resolve
+           (Rules_Of (Merge (Definition (B (Main_Part).Style).Base,
+                             Definition (O (Main_Part).Style).Base)));
+      end Merged;
+
+      --  Every property the base rule names is named again by one of
+      --  the overrides, so what stands is the keyword rather than the
+      --  cascade.
+      Wide_CSS : constant String :=
+        ".base { color: red; padding: 9px; padding-top: 3px;"
+        & " font-size: 21px; display: flex; opacity: 0.25;"
+        & " border-width: 7px; border-radius: 5px;"
+        & " grid-template-columns: 1fr 2fr 3fr;"
+        & " overflow: hidden; gap: 11px; margin: 8px;"
+        & " list-style: disc inside; outline: 2px solid red;"
+        & " white-space: pre; }"
+        & ".initial { color: initial; font-size: initial;"
+        & " display: initial; opacity: initial;"
+        & " grid-template-columns: initial; overflow: initial;"
+        & " outline: initial; }"
+        & ".part { padding-top: initial; border-top-width: initial;"
+        & " border-top-left-radius: initial; margin-left: initial;"
+        & " row-gap: initial; }"
+        & ".whole { padding: initial; border-width: initial;"
+        & " gap: initial; list-style: initial; }"
+        & ".unset { padding: unset; display: unset; overflow: unset; }"
+        & ".refused { color: unset; font-size: inherit;"
+        & " white-space: unset; padding: inherit; }"
+        & ".reverted { color: revert; padding: revert; }"
+        & ".none-tracks { grid-template-columns: none; }";
+   begin
+      Test_Support.Section ("the CSS-wide keywords");
+
+      Adi.CSS_Parser.Testing.Reset_Reports;
+      Adi.CSS_Parser.Load_String (Sheet_W, Wide_CSS, OK_W);
+      Test_Support.Assert (OK_W, "a sheet naming the keywords loads");
+
+      --  What the base rule sets is what a keyword has to beat.
+      declare
+         B : constant Resolved_Style := Merged ("base", "base");
+      begin
+         Test_Support.Assert
+           (Is_Named_Color (B.Color, Red)
+              and then Nearly_Equal (B.Font_Size.Amount, 21.0)
+              and then B.Display = Flex
+              and then B.Grid_Columns = 3
+              and then B.Overflow_X = Overflow_Hidden,
+            "the base rule is what a keyword has to beat");
+      end;
+
+      declare
+         R : constant Resolved_Style := Merged ("base", "initial");
+      begin
+         Test_Support.Assert
+           (R.Color = Default_Color,
+            "color: initial takes the colour to its initial value");
+         Test_Support.Assert
+           (R.Font_Size = Default_Font_Size, "and font-size to its own");
+         Test_Support.Assert
+           (R.Display = Default_Display, "and display to its own");
+         Test_Support.Assert
+           (Nearly_Equal (Float (R.Opacity), Float (Default_Opacity)),
+            "and opacity to its own");
+         --  The clear reaches both of grid-template-columns' values:
+         --  the track list goes empty, and the count goes to
+         --  Default_Grid_Columns, which is 1. `none` -- which CSS calls
+         --  this property's initial value -- names a count of 0
+         --  instead, so the two spellings part company on the count.
+         --  Every reader of the count takes 0 and 1 alike, so nothing
+         --  lays out differently; what differs is the value
+         --  introspection reads back, and 0 is not reachable through
+         --  the clear. Test_Grid_Template_None and grid_tracks_test
+         --  hold the count `none` answers with.
+         Test_Support.Assert
+           (R.Grid_Column_Tracks.Count = 0,
+            "grid-template-columns: initial clears the track list");
+         Test_Support.Assert
+           (R.Grid_Columns = Default_Grid_Columns,
+            "and takes the count to the property's default");
+         Test_Support.Assert
+           (Merged ("base", "none-tracks").Grid_Columns /= R.Grid_Columns,
+            "where `none` answers a different count, so the two"
+            & " spellings of the initial value differ");
+         Test_Support.Assert
+           (Merged ("base", "none-tracks").Grid_Column_Tracks.Count = 0,
+            "agreeing on the track list alone");
+         Test_Support.Assert
+           (R.Overflow_X = Default_Overflow
+              and then R.Overflow_Y = Default_Overflow,
+            "overflow: initial reaches both axes");
+         Test_Support.Assert
+           (R.Outline_Width = Default_Outline_Width
+              and then R.Outline_Color = Default_Outline_Color
+              and then R.Outline_Style = Default_Outline_Style,
+            "and a shorthand clears every property it fills");
+      end;
+
+      --  A longhand clears the one value it names.
+      declare
+         R : constant Resolved_Style := Merged ("base", "part");
+         Pad : constant Edge_Pixels := Get_Padding_Px (R);
+         BW  : constant Edge_Pixels := Get_Border_Width_Px (R);
+         Rad : constant Corner_Pixels := Get_Border_Radius_Px (R.Border_Radius);
+      begin
+         Test_Support.Assert
+           (Nearly_Equal (Float (Pad.Top), 0.0)
+              and then Nearly_Equal (Float (Pad.Left), 9.0),
+            "padding-top: initial leaves the other edges to the cascade");
+         Test_Support.Assert
+           (Nearly_Equal (Float (BW.Top), 0.0)
+              and then Nearly_Equal (Float (BW.Left), 7.0),
+            "border-top-width: initial clears its edge alone");
+         Test_Support.Assert
+           (Nearly_Equal (Rad.Top_Left, 0.0)
+              and then Nearly_Equal (Rad.Bottom_Right, 5.0),
+            "a corner longhand clears its corner alone");
+         Test_Support.Assert
+           (R.Margin (Left).Kind = Fixed
+              and then Nearly_Equal (R.Margin (Left).Length.Amount, 0.0)
+              and then Nearly_Equal (R.Margin (Right).Length.Amount, 8.0),
+            "and a margin longhand its side alone");
+         Test_Support.Assert
+           (Nearly_Equal (Float (Get_Row_Gap (R.Gap)), 0.0)
+              and then Nearly_Equal (Float (Get_Column_Gap (R.Gap)), 11.0),
+            "row-gap: initial leaves the column gap the base rule set");
+      end;
+
+      --  A whole-property clear reaches every value the property
+      --  carries.
+      declare
+         R : constant Resolved_Style := Merged ("base", "whole");
+         Pad : constant Edge_Pixels := Get_Padding_Px (R);
+      begin
+         Test_Support.Assert
+           (Nearly_Equal (Float (Pad.Top), 0.0)
+              and then Nearly_Equal (Float (Pad.Left), 0.0),
+            "padding: initial clears all four edges");
+         Test_Support.Assert
+           (Nearly_Equal (Float (Get_Row_Gap (R.Gap)), 0.0)
+              and then Nearly_Equal (Float (Get_Column_Gap (R.Gap)), 0.0),
+            "gap: initial clears both axes");
+         Test_Support.Assert
+           (R.List_Style_Type = Default_List_Style_Type
+              and then R.List_Style_Position = Default_List_Style_Position,
+            "and list-style: initial every property it fills");
+      end;
+
+      declare
+         R : constant Resolved_Style := Merged ("base", "unset");
+         Pad : constant Edge_Pixels := Get_Padding_Px (R);
+      begin
+         Test_Support.Assert
+           (Nearly_Equal (Float (Pad.Top), 0.0)
+              and then R.Display = Default_Display
+              and then R.Overflow_X = Default_Overflow,
+            "unset on a property that does not inherit is initial");
+      end;
+
+      --  `inherit`, and `unset` where the property inherits, are
+      --  dropped: what the base rule set stands.
+      declare
+         R : constant Resolved_Style := Merged ("base", "refused");
+         Pad : constant Edge_Pixels := Get_Padding_Px (R);
+      begin
+         Test_Support.Assert
+           (Is_Named_Color (R.Color, Red),
+            "color: unset is dropped, leaving the cascade's colour");
+         Test_Support.Assert
+           (Nearly_Equal (R.Font_Size.Amount, 21.0),
+            "font-size: inherit likewise");
+         Test_Support.Assert
+           (R.White_Space = WS_Pre, "white-space: unset likewise");
+         Test_Support.Assert
+           (Nearly_Equal (Float (Pad.Top), 3.0),
+            "and padding: inherit, which no property's initial value is");
+      end;
+
+      --  `revert` is left to the property's own grammar, which is where
+      --  `initial` stood before it was read here.
+      declare
+         R : constant Resolved_Style := Merged ("base", "reverted");
+         Pad : constant Edge_Pixels := Get_Padding_Px (R);
+      begin
+         Test_Support.Assert
+           (Is_Named_Color (R.Color, Red)
+              and then Nearly_Equal (Float (Pad.Top), 3.0),
+            "revert is an ordinary value its property refuses");
+      end;
+
+      --  Four in .refused and two in .reverted, each dropped and
+      --  counted where a value its property can hold none of is
+      --  counted.
+      Test_Support.Assert
+        (Adi.CSS_Parser.Testing.Invalid_Value_Count = 6,
+         "each refused keyword is reported once, not"
+         & Adi.CSS_Parser.Testing.Count'Image
+             (Adi.CSS_Parser.Testing.Invalid_Value_Count));
+
+      Adi.CSS_Parser.Destroy (Sheet_W);
+
+      --  `inherit` is a Named_Color as well as a CSS-wide keyword, and
+      --  the colour grammar reads it -- Default_Color is that entry. So
+      --  the CSS-wide arm stands aside wherever a declaration's value
+      --  can be a colour, which is these fifteen names: the nine whose
+      --  whole value is a colour, and the six shorthands that read one
+      --  among their tokens. Adi.CSS_Parser's Color_Reading is that
+      --  set, and tools/test_css_to_ada.py reads it out of the parser
+      --  and holds the generator's own carve-out equal to it.
+      declare
+         type Text is access constant String;
+         type Text_List is array (Positive range <>) of Text;
+
+         Colour_Reading : constant Text_List :=
+           [new String'("color"),
+            new String'("background"),
+            new String'("background-color"),
+            new String'("border-color"),
+            new String'("border-top-color"),
+            new String'("border-right-color"),
+            new String'("border-bottom-color"),
+            new String'("border-left-color"),
+            new String'("outline-color"),
+            new String'("border"),
+            new String'("border-top"),
+            new String'("border-right"),
+            new String'("border-bottom"),
+            new String'("border-left"),
+            new String'("outline")];
+      begin
+         for N of Colour_Reading loop
+            declare
+               S      : Adi.CSS_Parser.Stylesheet;
+               Loaded : Boolean := False;
+            begin
+               Adi.CSS_Parser.Testing.Reset_Reports;
+               Adi.CSS_Parser.Load_String
+                 (S, ".x { " & N.all & ": inherit; }", Loaded);
+               Test_Support.Assert
+                 (Loaded, "a sheet naming " & N.all & ": inherit loads");
+               Test_Support.Assert
+                 (Adi.CSS_Parser.Testing.Invalid_Value_Count = 0,
+                  "'" & N.all & ": inherit' is read rather than reported");
+               Test_Support.Assert
+                 (Slot_Count
+                    (Slots_Of
+                       (Definition
+                          (Adi.CSS_Parser.Styles_For_Class
+                             (S, "x") (Main_Part).Style).Base)) > 0,
+                  "and it names a property, rather than being dropped: "
+                  & N.all);
+               Adi.CSS_Parser.Destroy (S);
+            end;
+         end loop;
+      end;
+
+      --  And the colour it lands on is the Inherit entry itself, which
+      --  is what Default_Color is and what the render path takes as
+      --  opaque black.
+      declare
+         Col_Sheet : Adi.CSS_Parser.Stylesheet;
+         Col_OK    : Boolean := False;
+         Col_CSS   : constant String :=
+           ".c { color: inherit; }"
+           & ".bg { background-color: inherit; }"
+           & ".bga { background: inherit; }"
+           & ".bc { border-color: inherit; }"
+           & ".btc { border-top-color: inherit; }"
+           & ".brc { border-right-color: inherit; }"
+           & ".bbc { border-bottom-color: inherit; }"
+           & ".blc { border-left-color: inherit; }"
+           & ".oc { outline-color: inherit; }"
+           & ".b { border: inherit; }"
+           & ".bt { border-top: inherit; }"
+           & ".br { border-right: inherit; }"
+           & ".bb { border-bottom: inherit; }"
+           & ".bl { border-left: inherit; }"
+           & ".o { outline: inherit; }";
+
+         function Base_Of (Class : String) return Resolved_Style is
+           (Resolve
+              (Rules_Of
+                 (Definition
+                    (Adi.CSS_Parser.Styles_For_Class
+                       (Col_Sheet, Class) (Main_Part).Style).Base)));
+
+         --  A border group resolves per edge or as one value for all
+         --  four, so an assertion names the edge rather than the shape.
+         function Edge_Colour (Class : String; E : Edge)
+           return Color_Value
+         is
+            B : constant Border_Color_Value := Base_Of (Class).Border_Color;
+         begin
+            return (if B.Kind = Gap_Uniform then B.All_Edges else B.Edges (E));
+         end Edge_Colour;
+      begin
+         Adi.CSS_Parser.Testing.Reset_Reports;
+         Adi.CSS_Parser.Load_String (Col_Sheet, Col_CSS, Col_OK);
+         Test_Support.Assert
+           (Col_OK, "a sheet naming inherit as a colour loads");
+
+         Test_Support.Assert
+           (Is_Named_Color (Base_Of ("c").Color, Inherit),
+            "color: inherit is the colour of that name");
+         Test_Support.Assert
+           (Is_Named_Color (Base_Of ("bg").Background_Color, Inherit),
+            "and so is background-color: inherit");
+         Test_Support.Assert
+           (Is_Named_Color (Base_Of ("bga").Background_Color, Inherit),
+            "and background: inherit, the alias for it");
+         Test_Support.Assert
+           (Is_Named_Color (Edge_Colour ("bc", Top), Inherit)
+              and then Is_Named_Color (Edge_Colour ("bc", Left), Inherit),
+            "border-color: inherit reaches every edge");
+         Test_Support.Assert
+           (Is_Named_Color (Edge_Colour ("btc", Top), Inherit),
+            "and border-top-color: inherit its own");
+         Test_Support.Assert
+           (Is_Named_Color (Edge_Colour ("brc", Right), Inherit),
+            "and border-right-color: inherit its own");
+         Test_Support.Assert
+           (Is_Named_Color (Edge_Colour ("bbc", Bottom), Inherit),
+            "and border-bottom-color: inherit its own");
+         Test_Support.Assert
+           (Is_Named_Color (Edge_Colour ("blc", Left), Inherit),
+            "and border-left-color: inherit its own");
+         Test_Support.Assert
+           (Is_Named_Color (Base_Of ("oc").Outline_Color, Inherit),
+            "and outline-color: inherit");
+
+         Test_Support.Assert
+           (Is_Named_Color (Edge_Colour ("b", Top), Inherit),
+            "the border shorthand reads it as its colour");
+         Test_Support.Assert
+           (Is_Named_Color (Edge_Colour ("bt", Top), Inherit),
+            "and border-top the same, on its own edge");
+         Test_Support.Assert
+           (Is_Named_Color (Edge_Colour ("br", Right), Inherit),
+            "and border-right");
+         Test_Support.Assert
+           (Is_Named_Color (Edge_Colour ("bb", Bottom), Inherit),
+            "and border-bottom");
+         Test_Support.Assert
+           (Is_Named_Color (Edge_Colour ("bl", Left), Inherit),
+            "and border-left");
+         Test_Support.Assert
+           (Is_Named_Color (Base_Of ("o").Outline_Color, Inherit),
+            "and so does the outline shorthand");
+         Test_Support.Assert
+           (Adi.CSS_Parser.Testing.Invalid_Value_Count = 0,
+            "and none of them is reported");
+
+         Adi.CSS_Parser.Destroy (Col_Sheet);
+      end;
+   end Test_CSS_Wide_Keywords;
+
    --  A family list is <family-name>#, and both pipelines hold it to
    --  one grammar: a name one reads and the other refuses is a
    --  declaration a compiled sheet carries and a parsed one drops.
@@ -2948,6 +3326,7 @@ begin
    Test_Grid_Template_None;
    Test_Grid_Template_Track_Grammar;
    Test_Font_Family_Grammar;
+   Test_CSS_Wide_Keywords;
    Test_Var_Resolution;
 
    Test_Font_Family;

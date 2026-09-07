@@ -19,7 +19,13 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import css_to_ada
-from css_spec import SUPPORTED_PARTS, all_supported_properties
+from css_spec import (
+    COLOR_READING_VALIDATORS,
+    SUPPORTED_PARTS,
+    all_supported_properties,
+    canonical_property_name,
+    property_validator,
+)
 from css_to_ada import (
     parse_length,
     parse_color,
@@ -2827,6 +2833,283 @@ class TestFontFamilyGrammar(unittest.TestCase):
 
         self.assertEqual(names("Read : constant"), self.READ)
         self.assertEqual(names("Refused : constant"), self.REFUSED)
+
+
+class TestCSSWideKeywords(unittest.TestCase):
+    """`initial`, `unset` and `inherit`, and what each comes to.
+
+    tests/src/css_parser_test.adb drives the same declarations through
+    Adi.CSS_Parser. The parity here is not between two fixtures: the
+    last three tests read Wide_Target_Of and Color_Reading out of
+    src/adi-css_parser.adb and hold them against what this generator
+    actually emits, so a wrong arm on either side fails.
+    """
+
+    #  A declaration that comes to the property's initial value, and the
+    #  composer steps it emits.
+    CLEARS = {
+        "color: initial": ["Clear (Prop_Color)"],
+        "font-size: initial": ["Clear (Prop_Font_Size)"],
+        "display: initial": ["Clear (Prop_Display)"],
+        "opacity: initial": ["Clear (Prop_Opacity)"],
+        "grid-template-columns: initial": ["Clear (Prop_Grid_Columns)"],
+        "overflow: initial": ["Clear (Prop_Overflow)"],
+        "outline: initial": ["Clear (Prop_Outline_Width)",
+                             "Clear (Prop_Outline_Color)",
+                             "Clear (Prop_Outline_Style)"],
+        "padding-top: initial": ["Clear (Prop_Padding, Top)"],
+        "border-top-width: initial": ["Clear (Prop_Border_Width, Top)"],
+        "border-top-left-radius: initial":
+            ["Clear (Prop_Border_Radius, Top_Left)"],
+        "margin-left: initial": ["Clear (Prop_Margin, Left)"],
+        "row-gap: initial": ["Clear (Prop_Gap, Gap_Row_Part)"],
+        "padding: initial": ["Clear (Prop_Padding)"],
+        "border-width: initial": ["Clear (Prop_Border_Width)"],
+        "gap: initial": ["Clear (Prop_Gap)"],
+        "list-style: initial": ["Clear (Prop_List_Style_Type)",
+                                "Clear (Prop_List_Style_Image)",
+                                "Clear (Prop_List_Style_Position)"],
+        "padding: unset": ["Clear (Prop_Padding)"],
+        "display: unset": ["Clear (Prop_Display)"],
+        "overflow: unset": ["Clear (Prop_Overflow)"],
+    }
+
+    #  `inherit`, and `unset` where the property inherits from a widget
+    #  into its parts: reported and dropped.
+    REFUSED = [
+        "color: unset",
+        "font-size: inherit",
+        "white-space: unset",
+        "padding: inherit",
+    ]
+
+    #  `inherit` is a Named_Color as well, and the colour grammar reads
+    #  it, so the CSS-wide arm stands aside wherever a declaration's
+    #  value can be a colour. Adi.CSS_Parser's Color_Reading is that
+    #  set, and test_the_colour_carve_out_matches_the_parser reads it.
+    COLOUR_INHERIT = [
+        "color",
+        "background",
+        "background-color",
+        "border-color",
+        "border-top-color",
+        "border-right-color",
+        "border-bottom-color",
+        "border-left-color",
+        "outline-color",
+        "border",
+        "border-top",
+        "border-right",
+        "border-bottom",
+        "border-left",
+        "outline",
+    ]
+
+    @staticmethod
+    def split(declaration):
+        name, _, value = declaration.partition(":")
+        return name.strip(), value.strip()
+
+    @staticmethod
+    def parser_source():
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(root, "src", "adi-css_parser.adb"),
+                  "r", encoding="utf-8") as f:
+            return f.read()
+
+    @staticmethod
+    def css_name(decl_literal):
+        """The CSS name a Decl_Name literal stands for."""
+        return decl_literal[len("D_"):].lower().replace("_", "-")
+
+    @staticmethod
+    def declaration_window(source, name):
+        """The text of one declaration in an Ada package body.
+
+        Runs from its first line to the next subprogram or object at the
+        same indent, with comment lines dropped.
+        """
+        start = source.index(name)
+        rest = source[start:]
+        following = re.search(r"\n   (?:function|procedure|type|[A-Z]\w* +:)",
+                              rest[1:])
+        window = rest[:following.start() + 1] if following else rest
+        return "\n".join(line for line in window.splitlines()
+                          if not line.lstrip().startswith("--"))
+
+    def ada_wide_targets(self):
+        """Wide_Target_Of as {css name: {(property, part or None)}}."""
+        window = self.declaration_window(self.parser_source(),
+                                         "function Wide_Target_Of")
+        targets = {}
+        for chunk in re.split(r"\bwhen\b", window)[1:]:
+            names_part, _, value = chunk.partition("=>")
+            literals = re.findall(r"D_\w+", names_part)
+            if not literals:
+                continue
+
+            keys = set()
+            whole = re.search(r"Whole_Of\s*\(([^)]*)\)", value)
+            part = re.search(
+                r"Part_Of\s*\(\s*(Prop_\w+)\s*,\s*"
+                r"(?:(?:Edge_Part|Corner_Part)\s*\(\s*(\w+)\s*\)|(\w+))\s*\)",
+                value)
+            side = re.search(r"Side_Of\s*\(\s*(\w+)\s*\)", value)
+            if whole:
+                keys = {(prop.strip(), None)
+                        for prop in whole.group(1).split(",")}
+            elif part:
+                keys = {(part.group(1), part.group(2) or part.group(3))}
+            elif side:
+                edge = side.group(1)
+                keys = {("Prop_Border_Width", edge),
+                        ("Prop_Border_Color", edge),
+                        ("Prop_Border_Style", edge)}
+            else:
+                continue
+
+            for literal in literals:
+                targets[self.css_name(literal)] = frozenset(keys)
+        return targets
+
+    def ada_colour_reading(self):
+        """Color_Reading as the set of CSS names it names True."""
+        window = self.declaration_window(self.parser_source(),
+                                         "Color_Reading : constant")
+        aggregate = window[window.index("["):window.index("=> True")]
+        return {self.css_name(literal)
+                for literal in re.findall(r"D_\w+", aggregate)}
+
+    @staticmethod
+    def generated_clear_keys(name):
+        """The (property, part or None) keys `<name>: initial` emits."""
+        steps = generate_style_chain_ada(
+            {canonical_property_name(name): "initial"})
+        keys = set()
+        for step in steps:
+            match = re.fullmatch(r"Clear \((Prop_\w+)(?:, (\w+))?\)", step)
+            if match is None:
+                raise AssertionError(f"{name}: initial emitted {step!r}")
+            keys.add((match.group(1), match.group(2)))
+        return frozenset(keys)
+
+    def test_the_declarations_that_clear(self):
+        for declaration, steps in self.CLEARS.items():
+            name, value = self.split(declaration)
+            self.assertTrue(
+                validate_property_value(name, value), declaration)
+            self.assertEqual(
+                generate_style_chain_ada({name: value}), steps, declaration)
+
+    def test_initial_reaches_every_property(self):
+        for name in all_supported_properties():
+            self.assertTrue(
+                validate_property_value(name, "initial"), name)
+            self.assertTrue(self.generated_clear_keys(name), name)
+
+    def test_the_declarations_it_refuses(self):
+        for declaration in self.REFUSED:
+            name, value = self.split(declaration)
+            self.assertFalse(
+                validate_property_value(name, value), declaration)
+            self.assertEqual(
+                generate_style_chain_ada({name: value}), [], declaration)
+
+    def test_inherit_as_a_colour_stands(self):
+        for name in self.COLOUR_INHERIT:
+            self.assertTrue(
+                validate_property_value(name, "inherit"), name)
+            steps = generate_style_chain_ada({name: "inherit"})
+            self.assertTrue(
+                any("Inherit" in step for step in steps), name)
+
+    def test_revert_is_left_to_the_grammars(self):
+        #  Adi has one cascade origin, so `revert` would be `initial`
+        #  under another name; reading it would claim a cascade Adi has
+        #  not got.  This is also where `initial` stood before it was
+        #  read as a keyword.
+        for name in ("color", "padding", "font-size", "display"):
+            self.assertFalse(validate_property_value(name, "revert"), name)
+            self.assertEqual(
+                generate_style_chain_ada({name: "revert"}), [], name)
+
+    def test_a_clear_takes_only_the_part_it_names(self):
+        self.assertEqual(
+            generate_style_chain_ada({"padding": "4px",
+                                      "padding-top": "initial"}),
+            ["Clear (Prop_Padding, Top)",
+             "Padding (Right, Px (4.0))",
+             "Padding (Bottom, Px (4.0))",
+             "Padding (Left, Px (4.0))"])
+        self.assertEqual(
+            generate_style_chain_ada({"gap": "10px", "row-gap": "initial"}),
+            ["Clear (Prop_Gap, Gap_Row_Part)",
+             "Gap (Gap_Column (Px (10.0)))"])
+        #  A shorthand after a longhand takes the side back.
+        self.assertEqual(
+            generate_style_chain_ada({"padding-top": "initial",
+                                      "padding": "4px"}),
+            ["Padding (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0)))"])
+
+    def test_the_parser_arms_cover_the_whole_vocabulary(self):
+        self.assertEqual(set(self.ada_wide_targets()),
+                         all_supported_properties())
+
+    def test_every_arm_and_the_generator_name_the_same_keys(self):
+        """Wide_Target_Of against the steps this generator emits.
+
+        Both sides are read rather than restated: the arms come out of
+        src/adi-css_parser.adb and the keys out of
+        generate_style_chain_ada, so `padding-top` landing on the wrong
+        edge fails here whichever pipeline moved it.
+        """
+        targets = self.ada_wide_targets()
+        self.assertEqual(len(targets), 98)
+        for name, keys in sorted(targets.items()):
+            self.assertEqual(self.generated_clear_keys(name), keys, name)
+
+    def test_the_colour_carve_out_matches_the_parser(self):
+        """Color_Reading against the validators that read a colour."""
+        by_validator = {
+            name for name in all_supported_properties()
+            if property_validator(name) in COLOR_READING_VALIDATORS}
+        self.assertEqual(self.ada_colour_reading(), by_validator)
+        self.assertEqual(set(self.COLOUR_INHERIT), by_validator)
+
+    def test_the_ada_suite_drives_the_same_declarations(self):
+        """The two behavioural suites exercise the same cases.
+
+        This one is a fixture against a fixture -- the parity that
+        matters is the two tests above -- but a case added on one side
+        and forgotten on the other is worth catching.
+        """
+        adb = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "tests", "src", "css_parser_test.adb",
+        )
+        with open(adb, "r", encoding="utf-8") as f:
+            source = f.read()
+        start = source.index("procedure Test_CSS_Wide_Keywords")
+        body = source[start:source.index("end Test_CSS_Wide_Keywords;", start)]
+
+        chunk = body[re.search(r"Wide_CSS *: constant String :=",
+                               body).start():]
+        chunk = chunk[:chunk.index('";') + 1]
+        css = "".join(re.findall(r'"([^"]*)"', chunk))
+        found = {"clears": [], "refused": []}
+        for name, block in re.findall(r"\.([a-z-]+) \{([^}]*)\}", css):
+            if name in ("initial", "part", "whole", "unset"):
+                found["clears"].extend(
+                    d.strip() for d in block.split(";") if d.strip())
+            elif name == "refused":
+                found["refused"].extend(
+                    d.strip() for d in block.split(";") if d.strip())
+
+        self.assertEqual(sorted(found["clears"]), sorted(self.CLEARS))
+        self.assertEqual(sorted(found["refused"]), sorted(self.REFUSED))
+
+        names = re.findall(r'new String\'\("([a-z-]+)"\)', body)
+        self.assertEqual(names, self.COLOUR_INHERIT)
 
 
 if __name__ == "__main__":

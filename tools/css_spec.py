@@ -125,6 +125,45 @@ SUPPORTED_PROPERTIES: dict[str, PropertySpec] = {
 }
 
 
+#  The CSS-wide keywords, which are valid on every property.  `revert`
+#  is left out: Adi has one cascade origin, so it would be `initial`
+#  under another name, and reading it would claim a cascade Adi has not
+#  got.
+CSS_WIDE_KEYWORDS = frozenset({"initial", "inherit", "unset"})
+
+
+#  The colour vocabulary names `inherit` -- Adi.CSS_Styles' Default_Color
+#  is that entry -- so a declaration whose grammar reads a colour reads
+#  the keyword as one.  Adi.CSS_Parser draws the line at the same
+#  declarations, through its Color_Reading table.
+COLOR_READING_VALIDATORS = frozenset(
+    {"color", "border-shorthand", "outline-shorthand"})
+
+
+#  Adi.CSS_Styles.Inheritable_Properties by CSS name, and the one
+#  shorthand standing over them: where `unset` means `inherit`.
+INHERITED_PROPERTIES = frozenset({
+    "color",
+    "cursor",
+    "font-family",
+    "font-size",
+    "font-style",
+    "font-weight",
+    "line-height",
+    "list-style",
+    "list-style-image",
+    "list-style-position",
+    "list-style-type",
+    "text-align",
+    "text-decoration",
+    "text-overflow",
+    "text-wrap-mode",
+    "vertical-align",
+    "visibility",
+    "white-space",
+})
+
+
 SUPPORTED_PARTS: dict[str, str] = {
     "main": "Main_Part",
     "label": "Label_Part",
@@ -169,3 +208,28 @@ def part_kind(name: str) -> Optional[str]:
 
 def all_supported_parts() -> set[str]:
     return set(SUPPORTED_PARTS.keys())
+
+
+def css_wide_keyword(name: str, value: str) -> Optional[str]:
+    """The CSS-wide keyword a declaration names, where its property's
+    own grammar leaves the value to be read as one."""
+    low = value.strip().lower()
+    if low not in CSS_WIDE_KEYWORDS:
+        return None
+    if low == "inherit" and property_validator(name) in COLOR_READING_VALIDATORS:
+        return None
+    return low
+
+
+def clears_to_initial(name: str, value: str) -> bool:
+    """Whether the declaration takes its property to its initial value.
+
+    `initial` says so outright, and `unset` says so for a property that
+    does not inherit; `unset` on one that does is `inherit`, which Adi
+    has no value for.
+    """
+    keyword = css_wide_keyword(name, value)
+    if keyword == "initial":
+        return True
+    return (keyword == "unset"
+            and canonical_property_name(name) not in INHERITED_PROPERTIES)

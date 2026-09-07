@@ -1,0 +1,48 @@
+/*  The CSS-wide keywords, read by both pipelines from this one file.
+    The tag rule is what each keyword has to beat: dropping the
+    declaration instead of clearing the property would leave the tag's
+    value standing, which is the difference `initial` exists to make. */
+box {
+    color: rgb(200, 30, 30);
+    padding: 9px;
+    padding-top: 3px;
+    margin: 8px;
+    border-width: 7px;
+    border-radius: 5px;
+    font-size: 21px;
+    display: flex;
+    opacity: 0.25;
+    overflow: hidden;
+    gap: 11px;
+    grid-template-columns: 1fr 2fr 3fr;
+    outline: 2px solid rgb(9, 9, 9);
+    white-space: pre;
+    list-style: disc inside;
+}
+
+/*  `initial` on a whole property, on one value of a property whose
+    values cascade separately, and on a shorthand; `unset` where the
+    property does not inherit, which is `initial`. */
+.wide {
+    color: initial;
+    font-size: initial;
+    display: initial;
+    opacity: unset;
+    overflow: initial;
+    outline: initial;
+    grid-template-columns: initial;
+    padding-top: initial;
+    border-top-width: initial;
+    border-top-left-radius: initial;
+    margin-left: initial;
+    row-gap: initial;
+    list-style: initial;
+}
+
+/*  Refused, and so left to the cascade: `inherit`, and `unset` where
+    the property inherits from a widget into its parts. */
+#pin {
+    white-space: unset;
+    padding-right: inherit;
+    min-width: 40px;
+}

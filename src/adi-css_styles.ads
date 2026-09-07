@@ -1740,6 +1740,23 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
      (L : in out Rule_Slots; P : CSS_Property; Part : Slot_Part;
       R : Value_Ref);
 
+   --  A key named as holding no value, which is what CSS `initial`
+   --  comes to. The three-argument form reaches every key P owns, so
+   --  `padding: initial` clears its four edges and `overflow: initial`
+   --  clears both axes; the four-argument form clears the one part it
+   --  names and leaves P's others to the cascade, which is what
+   --  `padding-top: initial` asks for. A property outside
+   --  Parted_Properties reads Part as its whole value.
+   --
+   --  A gap axis is named as holding its initial value rather than as
+   --  holding none: the two are the same value, and only the first is a
+   --  rule set the record can hold, so both forms answer with it and
+   --  clearing the property is clearing its two axes. Slots_Of says
+   --  why.
+   procedure Clear_Property (L : in out Rule_Slots; P : CSS_Property);
+   procedure Clear_Property
+     (L : in out Rule_Slots; P : CSS_Property; Part : Slot_Part);
+
    --  Override wins every key it names and the rest of Base stands, so
    --  a rule naming one border edge leaves the other three alone.
    function Merge (Base, Override : Rule_Slots) return Rule_Slots;

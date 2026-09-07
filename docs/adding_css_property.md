@@ -302,6 +302,22 @@ elsif P = "padding-top" then
    end if;
 ```
 
+### The CSS-wide keywords
+
+`Wide_Target_Of` says which properties, and which of their parts, a
+declaration name reaches, so that `initial` and `unset` clear exactly
+what the name covers. It is a case over `Decl_Name` with no `others`, so
+a new name fails to compile until it has an arm:
+
+```ada
+when D_Outline_Width => Whole_Of (Prop_Outline_Width),
+when D_Padding_Top   => Part_Of (Prop_Padding, Edge_Part (Top)),
+```
+
+`parser_slots_test` holds every arm against the keys it reads off the
+CSS vocabulary, so a name landing on the wrong property or the wrong
+edge fails there.
+
 ### Shorthand
 
 Shorthands split the value into tokens and detect each component by type. Use `Split_Whitespace_Tokens` (not plain `Split`) to correctly handle `rgb(...)` with spaces inside parentheses:
@@ -386,6 +402,13 @@ OUTLINE_STYLE_MAP = {
 
 Add `elif` branches in the property loop. The function builds composer
 steps: one setter call per property named, without its leading dot.
+
+The property also wants an entry saying what `initial` on it clears:
+`INITIAL_CLEARS` for one that carries its whole value, `INITIAL_GROUPS`
+for one whose values cascade separately, where the clear goes through
+the same accumulator a value fills. `test_initial_reaches_every_property`
+drives every supported name through both, so a property missing from
+them fails there.
 
 ```python
 # Longhands
@@ -522,8 +545,8 @@ When adding a new CSS property, touch these files:
 | 2b | `src/adi-css_styles.ads` + `src/adi-animation.adb` | `Layout_Affecting_Properties` and `Snaps_At_Midpoint` entries |
 | 2c | `src/adi-resolved_styles.adb` | `Hash` line, for the store to tell two styles apart on it |
 | 2d | `src/adi-css_styles` + `src/adi-widget_styles` | `Intern`/`_Of` pair, `Apply_Property` and `Clear_Property` branches, `Composer` setter |
-| 3 | `src/adi-css_parser.adb` | `elsif P = "..."` branch in `Apply_Property` |
-| 4 | `tools/css_spec.py` + `tools/css_to_ada.py` | Spec entry (`SUPPORTED_PROPERTIES`) + enum map/`elif prop == "..."` generation |
+| 3 | `src/adi-css_parser.adb` | `elsif P = "..."` branch in `Apply_Property`, and a `Wide_Target_Of` arm naming the keys the declaration reaches |
+| 4 | `tools/css_spec.py` + `tools/css_to_ada.py` | Spec entry (`SUPPORTED_PROPERTIES`) + enum map/`elif prop == "..."` generation, and an `INITIAL_CLEARS` or `INITIAL_GROUPS` entry |
 | 5 | `src/adi-widget.adb` | Rendering code (if visual), or layout code (if layout-affecting) |
 | 6 | `tests/src/css_parser_test.adb` | CSS test input + assertions |
 | 7 | `tools/test_css_to_ada.py` | Python unit tests for code generation |

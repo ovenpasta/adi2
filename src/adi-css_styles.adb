@@ -2470,8 +2470,19 @@ package body Adi.CSS_Styles is
                      end if;
                   end;
                elsif Opt_Gap.Is_None (S.Gap) then
-                  Wipe (P, Gap_Row_Part);
-                  Wipe (P, Gap_Column_Part);
+                  --  A cleared axis is not a slot this list can carry.
+                  --  Opt_Gap is named-or-not for the pair, so writing
+                  --  one back into the record clears the other with it,
+                  --  and the round trip answers two keys where the list
+                  --  carried one. Cleared and zero are the same value
+                  --  here -- Default_Gap is zero on both axes, and
+                  --  Resolve reads the axis rather than Has_Row /
+                  --  Has_Column -- so the list names the value, which
+                  --  it does carry per axis. Clearing the property and
+                  --  clearing its two axes therefore come to one rule
+                  --  set, as they do for every other group.
+                  Emit (P, Gap_Row_Part, Intern (Zero_Length));
+                  Emit (P, Gap_Column_Part, Intern (Zero_Length));
                end if;
 
             --  The track list has no CSS_Property literal and travels
@@ -2977,6 +2988,29 @@ package body Adi.CSS_Styles is
       Take_Out (L, P, Part);
       Take_Slots (L, Named);
    end Apply_Property;
+
+   procedure Clear_Property (L : in out Rule_Slots; P : CSS_Property) is
+      Named : Style_Rules;
+   begin
+      Clear_Property (Named, P);
+      Take_Out_All (L, P);
+      Take_Slots (L, Named);
+   end Clear_Property;
+
+   --  The one key, put straight rather than through the record, which
+   --  would take the property's other parts with it. A gap axis is
+   --  named as holding zero, on the terms Slots_Of states above.
+   procedure Clear_Property
+     (L : in out Rule_Slots; P : CSS_Property; Part : Slot_Part) is
+   begin
+      if P = Prop_Gap then
+         Apply_Property (L, P, Part, Intern (Zero_Length));
+      elsif Parted_Properties (P) then
+         Put (L, (P, Part, Clear_Value, No_Value_Ref));
+      else
+         Clear_Property (L, P);
+      end if;
+   end Clear_Property;
 
    ---------------------------------------------------------------------
    --  Merging and inheriting: two ordered lists, one walk

@@ -2720,6 +2720,222 @@ package body Adi.CSS_Parser is
    function Corner_Part (K : Corner) return Slot_Part is
      (Slot_Part (Corner'Pos (K)));
 
+   -------------------------------------------------
+   --  The CSS-wide keywords
+   -------------------------------------------------
+
+   --  The colour vocabulary names `inherit` -- Default_Color is that
+   --  entry -- so a declaration whose grammar reads a colour reads the
+   --  keyword as one, and the CSS-wide arm answers for the rest.
+   --  tools/css_to_ada.py draws the line at the same declarations,
+   --  through the validators that call parse_color.
+   Color_Reading : constant array (Decl_Name) of Boolean :=
+     [D_Color | D_Background | D_Background_Color | D_Border_Color
+      | D_Border_Top_Color | D_Border_Right_Color | D_Border_Bottom_Color
+      | D_Border_Left_Color | D_Outline_Color
+      | D_Border | D_Border_Top | D_Border_Right | D_Border_Bottom
+      | D_Border_Left | D_Outline => True,
+      others => False];
+
+   --  One value a declaration name reaches: the property, and the part
+   --  where the name is a longhand over a property whose values cascade
+   --  separately.
+   type Wide_Step is record
+      Prop  : CSS_Property := CSS_Property'First;
+      Part  : Slot_Part    := First_Part;
+      Whole : Boolean      := True;
+   end record;
+
+   --  The widest are three: the border and outline shorthands, a
+   --  border side, and list-style.
+   Max_Wide_Steps : constant := 3;
+
+   type Wide_Step_List is array (1 .. Max_Wide_Steps) of Wide_Step;
+
+   type Wide_Target is record
+      Count : Natural := 0;
+      Steps : Wide_Step_List;
+   end record;
+
+   function Whole_Of (P : CSS_Property) return Wide_Target is
+     ((Count => 1, Steps => [1 => (P, First_Part, True), others => <>]));
+
+   function Whole_Of (P1, P2 : CSS_Property) return Wide_Target is
+     ((Count => 2,
+       Steps => [1 => (P1, First_Part, True),
+                 2 => (P2, First_Part, True),
+                 others => <>]));
+
+   function Whole_Of (P1, P2, P3 : CSS_Property) return Wide_Target is
+     ((Count => 3,
+       Steps => [1 => (P1, First_Part, True),
+                 2 => (P2, First_Part, True),
+                 3 => (P3, First_Part, True)]));
+
+   function Part_Of (P : CSS_Property; Part : Slot_Part) return Wide_Target is
+     ((Count => 1, Steps => [1 => (P, Part, False), others => <>]));
+
+   --  The three border groups at one edge, which is what a side
+   --  shorthand covers.
+   function Side_Of (E : Edge) return Wide_Target is
+     ((Count => 3,
+       Steps => [1 => (Prop_Border_Width, Edge_Part (E), False),
+                 2 => (Prop_Border_Color, Edge_Part (E), False),
+                 3 => (Prop_Border_Style, Edge_Part (E), False)]));
+
+   --  What a declaration name reaches, which is what a CSS-wide keyword
+   --  needs and the value dispatch below spells out a value at a time.
+   --  A shorthand names every property it fills, whatever a particular
+   --  value of it happens to mention. parser_slots_test holds this
+   --  against the keys it reads off the CSS vocabulary.
+   function Wide_Target_Of (K : Decl_Name) return Wide_Target is
+     (case K is
+        when Decl_Unknown => (Count => 0, Steps => [others => <>]),
+
+        when D_Align_Content   => Whole_Of (Prop_Align_Content),
+        when D_Align_Items     => Whole_Of (Prop_Align_Items),
+        when D_Align_Self      => Whole_Of (Prop_Align_Self),
+        when D_Background | D_Background_Color =>
+           Whole_Of (Prop_Background_Color),
+        when D_Background_Image => Whole_Of (Prop_Background_Image),
+
+        when D_Border =>
+           Whole_Of (Prop_Border_Width, Prop_Border_Color,
+                     Prop_Border_Style),
+        when D_Border_Top    => Side_Of (Top),
+        when D_Border_Right  => Side_Of (Right),
+        when D_Border_Bottom => Side_Of (Bottom),
+        when D_Border_Left   => Side_Of (Left),
+
+        when D_Border_Color  => Whole_Of (Prop_Border_Color),
+        when D_Border_Top_Color =>
+           Part_Of (Prop_Border_Color, Edge_Part (Top)),
+        when D_Border_Right_Color =>
+           Part_Of (Prop_Border_Color, Edge_Part (Right)),
+        when D_Border_Bottom_Color =>
+           Part_Of (Prop_Border_Color, Edge_Part (Bottom)),
+        when D_Border_Left_Color =>
+           Part_Of (Prop_Border_Color, Edge_Part (Left)),
+
+        when D_Border_Style  => Whole_Of (Prop_Border_Style),
+        when D_Border_Top_Style =>
+           Part_Of (Prop_Border_Style, Edge_Part (Top)),
+        when D_Border_Right_Style =>
+           Part_Of (Prop_Border_Style, Edge_Part (Right)),
+        when D_Border_Bottom_Style =>
+           Part_Of (Prop_Border_Style, Edge_Part (Bottom)),
+        when D_Border_Left_Style =>
+           Part_Of (Prop_Border_Style, Edge_Part (Left)),
+
+        when D_Border_Width  => Whole_Of (Prop_Border_Width),
+        when D_Border_Top_Width =>
+           Part_Of (Prop_Border_Width, Edge_Part (Top)),
+        when D_Border_Right_Width =>
+           Part_Of (Prop_Border_Width, Edge_Part (Right)),
+        when D_Border_Bottom_Width =>
+           Part_Of (Prop_Border_Width, Edge_Part (Bottom)),
+        when D_Border_Left_Width =>
+           Part_Of (Prop_Border_Width, Edge_Part (Left)),
+
+        when D_Border_Radius => Whole_Of (Prop_Border_Radius),
+        when D_Border_Top_Left_Radius =>
+           Part_Of (Prop_Border_Radius, Corner_Part (Top_Left)),
+        when D_Border_Top_Right_Radius =>
+           Part_Of (Prop_Border_Radius, Corner_Part (Top_Right)),
+        when D_Border_Bottom_Right_Radius =>
+           Part_Of (Prop_Border_Radius, Corner_Part (Bottom_Right)),
+        when D_Border_Bottom_Left_Radius =>
+           Part_Of (Prop_Border_Radius, Corner_Part (Bottom_Left)),
+
+        when D_Bottom          => Whole_Of (Prop_Bottom),
+        when D_Box_Shadow      => Whole_Of (Prop_Box_Shadow),
+        when D_Color           => Whole_Of (Prop_Color),
+        when D_Column_Gap      => Part_Of (Prop_Gap, Gap_Column_Part),
+        when D_Row_Gap         => Part_Of (Prop_Gap, Gap_Row_Part),
+        when D_Gap             => Whole_Of (Prop_Gap),
+        when D_Cursor          => Whole_Of (Prop_Cursor),
+        when D_Display         => Whole_Of (Prop_Display),
+        when D_Flex_Basis      => Whole_Of (Prop_Flex_Basis),
+        when D_Flex_Direction  => Whole_Of (Prop_Flex_Direction),
+        when D_Flex_Grow       => Whole_Of (Prop_Flex_Grow),
+        when D_Flex_Shrink     => Whole_Of (Prop_Flex_Shrink),
+        when D_Flex_Wrap       => Whole_Of (Prop_Flex_Wrap),
+        when D_Font_Family     => Whole_Of (Prop_Font_Family),
+        when D_Font_Size       => Whole_Of (Prop_Font_Size),
+        when D_Font_Style      => Whole_Of (Prop_Font_Style),
+        when D_Font_Weight     => Whole_Of (Prop_Font_Weight),
+        when D_Grid_Column     =>
+           Whole_Of (Prop_Grid_Column, Prop_Grid_Column_Span),
+        when D_Grid_Row        =>
+           Whole_Of (Prop_Grid_Row, Prop_Grid_Row_Span),
+        when D_Grid_Template_Columns => Whole_Of (Prop_Grid_Columns),
+        when D_Grid_Template_Rows    => Whole_Of (Prop_Grid_Rows),
+        when D_Height          => Whole_Of (Prop_Height),
+        when D_Justify_Content => Whole_Of (Prop_Justify_Content),
+        when D_Left            => Whole_Of (Prop_Left),
+        when D_Line_Height     => Whole_Of (Prop_Line_Height),
+        when D_List_Style =>
+           Whole_Of (Prop_List_Style_Type, Prop_List_Style_Image,
+                     Prop_List_Style_Position),
+        when D_List_Style_Image    => Whole_Of (Prop_List_Style_Image),
+        when D_List_Style_Position => Whole_Of (Prop_List_Style_Position),
+        when D_List_Style_Type     => Whole_Of (Prop_List_Style_Type),
+
+        when D_Margin        => Whole_Of (Prop_Margin),
+        when D_Margin_Top    => Part_Of (Prop_Margin, Edge_Part (Top)),
+        when D_Margin_Right  => Part_Of (Prop_Margin, Edge_Part (Right)),
+        when D_Margin_Bottom => Part_Of (Prop_Margin, Edge_Part (Bottom)),
+        when D_Margin_Left   => Part_Of (Prop_Margin, Edge_Part (Left)),
+
+        when D_Max_Height      => Whole_Of (Prop_Max_Height),
+        when D_Max_Width       => Whole_Of (Prop_Max_Width),
+        when D_Min_Height      => Whole_Of (Prop_Min_Height),
+        when D_Min_Width       => Whole_Of (Prop_Min_Width),
+        when D_Object_Fit      => Whole_Of (Prop_Object_Fit),
+        when D_Object_Position => Whole_Of (Prop_Object_Position),
+        when D_Opacity         => Whole_Of (Prop_Opacity),
+        when D_Order           => Whole_Of (Prop_Order),
+
+        when D_Outline =>
+           Whole_Of (Prop_Outline_Width, Prop_Outline_Color,
+                     Prop_Outline_Style),
+        when D_Outline_Color  => Whole_Of (Prop_Outline_Color),
+        when D_Outline_Offset => Whole_Of (Prop_Outline_Offset),
+        when D_Outline_Style  => Whole_Of (Prop_Outline_Style),
+        when D_Outline_Width  => Whole_Of (Prop_Outline_Width),
+
+        when D_Overflow   => Whole_Of (Prop_Overflow),
+        when D_Overflow_X => Whole_Of (Prop_Overflow_X),
+        when D_Overflow_Y => Whole_Of (Prop_Overflow_Y),
+
+        when D_Padding        => Whole_Of (Prop_Padding),
+        when D_Padding_Top    => Part_Of (Prop_Padding, Edge_Part (Top)),
+        when D_Padding_Right  => Part_Of (Prop_Padding, Edge_Part (Right)),
+        when D_Padding_Bottom => Part_Of (Prop_Padding, Edge_Part (Bottom)),
+        when D_Padding_Left   => Part_Of (Prop_Padding, Edge_Part (Left)),
+
+        when D_Position        => Whole_Of (Prop_Position),
+        when D_Right           => Whole_Of (Prop_Right),
+        when D_Text_Align      => Whole_Of (Prop_Text_Align),
+        when D_Text_Decoration => Whole_Of (Prop_Text_Decoration),
+        when D_Text_Overflow   => Whole_Of (Prop_Text_Overflow),
+        when D_Text_Wrap_Mode  => Whole_Of (Prop_Text_Wrap_Mode),
+        when D_Top             => Whole_Of (Prop_Top),
+        when D_Transition      => Whole_Of (Prop_Transition),
+        when D_Vertical_Align  => Whole_Of (Prop_Vertical_Align),
+        when D_Visibility      => Whole_Of (Prop_Visibility),
+        when D_White_Space     => Whole_Of (Prop_White_Space),
+        when D_Width           => Whole_Of (Prop_Width));
+
+   --  Whether `unset` means `inherit` here, which it does for a
+   --  property Inherit_From carries from a widget into its parts. A
+   --  shorthand answers for the whole declaration, so one such property
+   --  among the ones it fills is enough.
+   function Inherits (T : Wide_Target) return Boolean is
+     (for some I in 1 .. T.Count =>
+        Inheritable_Properties (T.Steps (I).Prop));
+
+
    procedure Apply_Declaration (Slots    : in out Rule_Slots;
                                 Selector : String;
                                 Name     : String;
@@ -2786,6 +3002,20 @@ package body Adi.CSS_Parser is
            ("css: invalid value '" & V & "' for '" & P & "' in '"
             & Selector & "'; the declaration is dropped");
       end Bad_Value;
+
+      --  A keyword whose value comes from outside the rule: `inherit`,
+      --  and `unset` where the property inherits. The property is one
+      --  the parser carries and the value is one it can hold none of,
+      --  which is what Invalid_Declarations counts.
+      procedure Wide_Refused is
+      begin
+         Invalid_Declarations := Invalid_Declarations + 1;
+         Adi.Log.Warning
+           ("css: '" & LV & "' for '" & P & "' in '" & Selector
+            & "'; Adi carries a value from a widget into its parts and"
+            & " no further, so the declaration is dropped and what the"
+            & " cascade already gave the property stands");
+      end Wide_Refused;
    begin
       --  Decl_Table is the whole vocabulary, and tools/css_to_ada.py
       --  answers a name outside it with an unsupported-property
@@ -2799,6 +3029,41 @@ package body Adi.CSS_Parser is
               ("css: unsupported property '" & P & "' in '" & Selector
                & "'; the declaration is dropped");
          end if;
+         return;
+      end if;
+
+      --  The CSS-wide keywords answer for every property, so they are
+      --  read here rather than in each branch below. `initial` is the
+      --  property taken to cleared, which Optional_Values resolves to
+      --  the initial value and Merge keeps against a less specific
+      --  rule; `unset` is that outside Inheritable_Properties, and
+      --  `inherit` within it. `revert` is left to the grammars: Adi has
+      --  one cascade origin, so it would be `initial` under another
+      --  name, and claiming it would claim a cascade Adi has not got.
+      if LV = "initial" or else LV = "unset"
+        or else (LV = "inherit" and then not Color_Reading (Key))
+      then
+         declare
+            Target : constant Wide_Target := Wide_Target_Of (Key);
+         begin
+            if LV = "inherit"
+              or else (LV = "unset" and then Inherits (Target))
+            then
+               Wide_Refused;
+            else
+               for I in 1 .. Target.Count loop
+                  declare
+                     Step : Wide_Step renames Target.Steps (I);
+                  begin
+                     if Step.Whole then
+                        Clear_Property (Slots, Step.Prop);
+                     else
+                        Clear_Property (Slots, Step.Prop, Step.Part);
+                     end if;
+                  end;
+               end loop;
+            end if;
+         end;
          return;
       end if;
 

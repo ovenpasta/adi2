@@ -6,6 +6,8 @@ pragma Ada_2022;
 with Ada.Containers;
 with Adi.CSS_Parser;
 with Adi.CSS_Source;
+with Adi.Core;         use Adi.Core;
+with Adi.Layout_Util;   use Adi.Layout_Util;
 with Adi.CSS_Styles;    use Adi.CSS_Styles;
 with Adi.Widget;        use Adi.Widget;
 with Adi.Widget.Testing;
@@ -314,10 +316,11 @@ procedure Style_Handle_Test is
    ---------------------------------------------------------------------
 
    --  A gap axis has no cleared state of its own -- Opt_Gap holds one
-   --  Gap_Value, whose flags say named or not -- so a fold that reaches
-   --  one axis set beside the other cleared carries the set axis and
-   --  leaves the other reading as unnamed. That resolves as the clear
-   --  would, Default_Gap being zero on both axes, and Get_Row_Gap and
+   --  Gap_Value, whose flags say named or not -- so a slot list names a
+   --  cleared axis by its initial value instead. A fold that reaches
+   --  one axis set beside the other cleared therefore carries the set
+   --  axis and the other at zero. That is what the clear resolves to,
+   --  Default_Gap being zero on both axes, and Get_Row_Gap and
    --  Get_Column_Gap read the axis rather than the flag. This pins the
    --  pair, so making either of those axis-aware fails here rather than
    --  answering a silently wrong gap.
@@ -352,18 +355,20 @@ procedure Style_Handle_Test is
                    and then R.Has_Row and then R.Row_Gap = Px (4.0),
                  "carrying the row gap it named");
          Assert (R.Kind = Gap_Separate
-                   and then not R.Has_Column
                    and then R.Column_Gap = Zero_Length,
-                 "and the cleared column axis reading as unnamed and zero, "
-                 & "which is what the clear resolves to");
+                 "and the cleared column axis reading as zero, which is "
+                 & "what the clear resolves to");
+         Assert (Get_Column_Gap (R) = 0.0,
+                 "so a reader of that axis answers zero either way");
 
          Assert (C.Kind = Gap_Separate
                    and then C.Has_Column and then C.Column_Gap = Px (8.0),
                  "and the same the other way round for the column axis");
          Assert (C.Kind = Gap_Separate
-                   and then not C.Has_Row
                    and then C.Row_Gap = Zero_Length,
-                 "with the cleared row axis unnamed and zero");
+                 "with the cleared row axis at zero");
+         Assert (Get_Row_Gap (C) = 0.0,
+                 "and read as zero on that axis too");
       end;
 
       Assert (Merge (Intern_Rules (Wiped), Empty_Rules)

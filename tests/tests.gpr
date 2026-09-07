@@ -75,6 +75,7 @@ project Tests is
       "block_wrap_test",
       "flex_gap_min_test",
       "side_longhand_test",
+      "css_wide_test",
       "auto_margin_test",
       "os_paths_test",
       "resolved_store_test",

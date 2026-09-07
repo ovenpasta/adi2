@@ -71,6 +71,7 @@ alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
 ./tests/bin/css_parser_test
 ./tests/bin/css_source_test
 ./tests/bin/side_longhand_test
+./tests/bin/css_wide_test
 ./tests/bin/style_flat_values_test
 ./tests/bin/text_buffer_test
 ./tests/bin/text_layout_test

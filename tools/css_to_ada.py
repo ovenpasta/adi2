@@ -24,6 +24,8 @@ from css_spec import (
     SUPPORTED_PARTS,
     all_supported_properties,
     canonical_property_name,
+    clears_to_initial,
+    css_wide_keyword,
     is_supported_property,
     property_validator,
 )
@@ -1935,6 +1937,13 @@ def validate_property_value(property_name: str, value: str) -> bool:
     if validator is None:
         return False
 
+    #  The CSS-wide keywords answer for every property, ahead of the
+    #  grammars below.  `initial`, and `unset` on a property that does
+    #  not inherit, are the whole-property clear; `inherit`, and `unset`
+    #  on one that does, want a value from a cascade Adi has none of.
+    if css_wide_keyword(property_name, value) is not None:
+        return clears_to_initial(property_name, value)
+
     low = value.strip().lower()
 
     if validator == "color":
@@ -2646,6 +2655,115 @@ EDGE_NAMES = ["Top", "Right", "Bottom", "Left"]
 CORNER_NAMES = ["Top_Left", "Top_Right", "Bottom_Right", "Bottom_Left"]
 
 
+#  What a declaration name holds where its value is `initial`: the
+#  accumulator the clear goes through, and the index into it, so a
+#  shorthand written after a longhand still takes the longhand's side.
+#  None as the index names every value the property carries.
+#  Adi.CSS_Parser reaches the same keys through Wide_Target_Of.
+INITIAL_GROUPS: dict[str, tuple[str, Optional[int]]] = {
+    "padding": ("padding", None),
+    "margin": ("margin", None),
+    "border-width": ("border-width", None),
+    "border-style": ("border-style", None),
+    "border-color": ("border-color", None),
+    "border-radius": ("border-radius", None),
+    "border": ("border", None),
+    "gap": ("gap", None),
+    "overflow": ("overflow", None),
+    "list-style": ("list-style", None),
+    "row-gap": ("gap", 0),
+    "column-gap": ("gap", 1),
+    "overflow-x": ("overflow", 0),
+    "overflow-y": ("overflow", 1),
+    "list-style-type": ("list-style", 0),
+    "list-style-image": ("list-style", 1),
+    "list-style-position": ("list-style", 2),
+}
+
+for _index, _edge in enumerate(("top", "right", "bottom", "left")):
+    INITIAL_GROUPS[f"padding-{_edge}"] = ("padding", _index)
+    INITIAL_GROUPS[f"margin-{_edge}"] = ("margin", _index)
+    INITIAL_GROUPS[f"border-{_edge}-width"] = ("border-width", _index)
+    INITIAL_GROUPS[f"border-{_edge}-style"] = ("border-style", _index)
+    INITIAL_GROUPS[f"border-{_edge}-color"] = ("border-color", _index)
+    INITIAL_GROUPS[f"border-{_edge}"] = ("border", _index)
+
+for _index, _corner in enumerate(
+        ("top-left", "top-right", "bottom-right", "bottom-left")):
+    INITIAL_GROUPS[f"border-{_corner}-radius"] = ("border-radius", _index)
+
+
+#  Every other property, as the composer steps `initial` on it comes to.
+#  A shorthand clears each property it fills.
+INITIAL_CLEARS: dict[str, list[str]] = {
+    "color": ["Clear (Prop_Color)"],
+    "background-color": ["Clear (Prop_Background_Color)"],
+    "background-image": ["Clear (Prop_Background_Image)"],
+    "width": ["Clear (Prop_Width)"],
+    "height": ["Clear (Prop_Height)"],
+    "min-width": ["Clear (Prop_Min_Width)"],
+    "max-width": ["Clear (Prop_Max_Width)"],
+    "min-height": ["Clear (Prop_Min_Height)"],
+    "max-height": ["Clear (Prop_Max_Height)"],
+    "font-family": ["Clear (Prop_Font_Family)"],
+    "font-size": ["Clear (Prop_Font_Size)"],
+    "font-weight": ["Clear (Prop_Font_Weight)"],
+    "font-style": ["Clear (Prop_Font_Style)"],
+    "text-align": ["Clear (Prop_Text_Align)"],
+    "vertical-align": ["Clear (Prop_Vertical_Align)"],
+    "text-decoration": ["Clear (Prop_Text_Decoration)"],
+    "white-space": ["Clear (Prop_White_Space)"],
+    "text-overflow": ["Clear (Prop_Text_Overflow)"],
+    "text-wrap-mode": ["Clear (Prop_Text_Wrap_Mode)"],
+    "line-height": ["Clear (Prop_Line_Height)"],
+    "object-fit": ["Clear (Prop_Object_Fit)"],
+    "object-position": ["Clear (Prop_Object_Position)"],
+    "opacity": ["Clear (Prop_Opacity)"],
+    "cursor": ["Clear (Prop_Cursor)"],
+    "visibility": ["Clear (Prop_Visibility)"],
+    "display": ["Clear (Prop_Display)"],
+    "position": ["Clear (Prop_Position)"],
+    "top": ["Clear (Prop_Top)"],
+    "right": ["Clear (Prop_Right)"],
+    "bottom": ["Clear (Prop_Bottom)"],
+    "left": ["Clear (Prop_Left)"],
+    "flex-direction": ["Clear (Prop_Flex_Direction)"],
+    "flex-wrap": ["Clear (Prop_Flex_Wrap)"],
+    "justify-content": ["Clear (Prop_Justify_Content)"],
+    "align-items": ["Clear (Prop_Align_Items)"],
+    "align-self": ["Clear (Prop_Align_Self)"],
+    "align-content": ["Clear (Prop_Align_Content)"],
+    "flex-grow": ["Clear (Prop_Flex_Grow)"],
+    "flex-shrink": ["Clear (Prop_Flex_Shrink)"],
+    "flex-basis": ["Clear (Prop_Flex_Basis)"],
+    "order": ["Clear (Prop_Order)"],
+    "grid-template-columns": ["Clear (Prop_Grid_Columns)"],
+    "grid-template-rows": ["Clear (Prop_Grid_Rows)"],
+    "grid-column": ["Clear (Prop_Grid_Column)",
+                    "Clear (Prop_Grid_Column_Span)"],
+    "grid-row": ["Clear (Prop_Grid_Row)", "Clear (Prop_Grid_Row_Span)"],
+    "box-shadow": ["Clear (Prop_Box_Shadow)"],
+    "outline": ["Clear (Prop_Outline_Width)", "Clear (Prop_Outline_Color)",
+                "Clear (Prop_Outline_Style)"],
+    "outline-width": ["Clear (Prop_Outline_Width)"],
+    "outline-color": ["Clear (Prop_Outline_Color)"],
+    "outline-style": ["Clear (Prop_Outline_Style)"],
+    "outline-offset": ["Clear (Prop_Outline_Offset)"],
+    "transition": ["Clear (Prop_Transition)"],
+}
+
+
+class _Initial:
+    """The value a cleared side, corner or axis carries while a rule is
+    accumulated, which no parsed value can be mistaken for."""
+
+    def __repr__(self) -> str:
+        return "INITIAL"
+
+
+INITIAL = _Initial()
+
+
 def generate_border_style_from_four_ada(styles: list[str]) -> str:
     if styles[0] == styles[1] == styles[2] == styles[3]:
         return f"Border_Style ({styles[0]})"
@@ -2896,9 +3014,67 @@ def generate_style_chain_ada(properties: dict[str, str]) -> list[str]:
             border_radius_corners = [None, None, None, None]
         return border_radius_corners
     
+    #  A cleared side stands beside the sides a rule sets, so the group
+    #  is emitted once whichever mix it holds.
+    def clear_sides(sides, index):
+        if index is None:
+            return [INITIAL, INITIAL, INITIAL, INITIAL]
+        if sides is None:
+            sides = [None, None, None, None]
+        sides[index] = INITIAL
+        return sides
+
     for prop, value in properties.items():
         ada_field = None
-        
+
+        #  The CSS-wide keywords that come to the property's initial
+        #  value: `initial`, and `unset` where the property does not
+        #  inherit.  A property whose values cascade separately clears
+        #  through the accumulator a value fills, so a shorthand written
+        #  after a longhand still takes the longhand's side.
+        if clears_to_initial(prop, value):
+            group, index = INITIAL_GROUPS.get(prop, (None, None))
+            if group == "padding":
+                padding_sides = clear_sides(padding_sides, index)
+            elif group == "margin":
+                margin_sides = clear_sides(margin_sides, index)
+            elif group == "border-width":
+                border_width_sides = clear_sides(border_width_sides, index)
+            elif group == "border-style":
+                border_style_sides = clear_sides(border_style_sides, index)
+            elif group == "border-color":
+                border_color_sides = clear_sides(border_color_sides, index)
+            elif group == "border-radius":
+                border_radius_corners = clear_sides(
+                    border_radius_corners, index)
+            elif group == "border":
+                border_width_sides = clear_sides(border_width_sides, index)
+                border_style_sides = clear_sides(border_style_sides, index)
+                border_color_sides = clear_sides(border_color_sides, index)
+            elif group == "gap":
+                if index is None or index == 0:
+                    gap_row = INITIAL
+                if index is None or index == 1:
+                    gap_column = INITIAL
+                if gap_slot is None:
+                    gap_slot = len(fields)
+                    fields.append(None)
+            elif group == "overflow":
+                if index is None or index == 0:
+                    overflow_x = INITIAL
+                if index is None or index == 1:
+                    overflow_y = INITIAL
+            elif group == "list-style":
+                if index is None or index == 0:
+                    list_style_type = INITIAL
+                if index is None or index == 1:
+                    list_style_image = INITIAL
+                if index is None or index == 2:
+                    list_style_position = INITIAL
+            else:
+                fields.extend(INITIAL_CLEARS[prop])
+            continue
+
         # Color
         if prop == "color":
             color = parse_color(value)
@@ -3536,77 +3712,113 @@ def generate_style_chain_ada(properties: dict[str, str]) -> list[str]:
 
     #  A group naming all four sides is one step; a rule naming some of
     #  them takes a step per side, which is what leaves the rest to the
-    #  cascade.
-    def emit_group(setter, names, values, whole, element):
+    #  cascade.  A side `initial` cleared is a step of its own on the
+    #  same terms, and four of them are the whole-property clear.
+    def emit_group(setter, prop, names, values, whole, element):
         if values is None or all(v is None for v in values):
             return
-        if all(v is not None for v in values):
+        if all(v is INITIAL for v in values):
+            fields.append(f"Clear ({prop})")
+        elif all(v is not None for v in values) and not any(
+                v is INITIAL for v in values):
             fields.append(f"{setter} ({whole(values)})")
         else:
             for name, value in zip(names, values):
-                if value is not None:
+                if value is INITIAL:
+                    fields.append(f"Clear ({prop}, {name})")
+                elif value is not None:
                     fields.append(f"{setter} ({name}, {element(value)})")
 
     def length_element(v: ParsedLength) -> str:
         return generate_length_ada(v)
 
     emit_group(
-        "Padding", EDGE_NAMES, padding_sides,
+        "Padding", "Prop_Padding", EDGE_NAMES, padding_sides,
         generate_box_from_four_ada, length_element)
 
     #  Margin takes auto per side, which no CSS_Box_Value carries, so a
     #  rule naming one goes side by side whether or not it names all four.
     if margin_sides is not None and not all(v is None for v in margin_sides):
-        if (all(v is not None for v in margin_sides)
+        if all(v is INITIAL for v in margin_sides):
+            fields.append("Clear (Prop_Margin)")
+        elif (all(v is not None for v in margin_sides)
                 and all(isinstance(v, ParsedLength) for v in margin_sides)):
             box_expr = generate_box_from_four_ada(list(margin_sides))
             fields.append(f"Margin ({box_expr})")
         else:
             for name, v in zip(EDGE_NAMES, margin_sides):
-                if v is not None:
+                if v is INITIAL:
+                    fields.append(f"Clear (Prop_Margin, {name})")
+                elif v is not None:
                     fields.append(
                         f"Margin ({name}, {_generate_margin_token_ada(v)})")
     emit_group(
-        "Border_Width", EDGE_NAMES, border_width_sides,
+        "Border_Width", "Prop_Border_Width", EDGE_NAMES, border_width_sides,
         lambda v: generate_border_width_ada(four_sides_to_box_lengths(v)),
         length_element)
     emit_group(
-        "Border_Style", EDGE_NAMES, border_style_sides,
+        "Border_Style", "Prop_Border_Style", EDGE_NAMES, border_style_sides,
         generate_border_style_from_four_ada,
         lambda v: v)
     emit_group(
-        "Border_Color", EDGE_NAMES, border_color_sides,
+        "Border_Color", "Prop_Border_Color", EDGE_NAMES, border_color_sides,
         generate_border_color_from_four_ada,
         generate_color_ada)
     emit_group(
-        "Radius", CORNER_NAMES, border_radius_corners,
+        "Radius", "Prop_Border_Radius", CORNER_NAMES, border_radius_corners,
         lambda v: generate_border_radius_ada(four_sides_to_box_lengths(v)),
         length_element)
-    if list_style_type is not None:
+    if list_style_type is INITIAL:
+        fields.append("Clear (Prop_List_Style_Type)")
+    elif list_style_type is not None:
         fields.append(f"List_Style_Type ({list_style_type})")
-    if list_style_image is not None:
+    if list_style_image is INITIAL:
+        fields.append("Clear (Prop_List_Style_Image)")
+    elif list_style_image is not None:
         fields.append(f"List_Style_Image ({list_style_image})")
-    if list_style_position is not None:
+    if list_style_position is INITIAL:
+        fields.append("Clear (Prop_List_Style_Position)")
+    elif list_style_position is not None:
         fields.append(f"List_Style_Position ({list_style_position})")
     if gap_slot is not None:
         #  A rule that names one axis must say so, or the cascade cannot
         #  tell it from one that set the other axis to zero.
-        if gap_row is not None and gap_column is not None:
-            if gap_row == gap_column:
-                fields[gap_slot] = f"Gap (Gap ({generate_length_ada(gap_row)}))"
-            else:
-                fields[gap_slot] = (
-                    f"Gap (Gap ({generate_length_ada(gap_row)}, "
-                    f"{generate_length_ada(gap_column)}))"
-                )
-        elif gap_row is not None:
-            fields[gap_slot] = f"Gap (Gap_Row ({generate_length_ada(gap_row)}))"
+        steps = []
+        if gap_row is INITIAL and gap_column is INITIAL:
+            steps.append("Clear (Prop_Gap)")
         else:
-            fields[gap_slot] = f"Gap (Gap_Column ({generate_length_ada(gap_column)}))"
-    if overflow_x is not None:
-        fields.append(f"Overflow_X ({overflow_x})")
-    if overflow_y is not None:
-        fields.append(f"Overflow_Y ({overflow_y})")
+            if gap_row is INITIAL:
+                steps.append("Clear (Prop_Gap, Gap_Row_Part)")
+                gap_row = None
+            if gap_column is INITIAL:
+                steps.append("Clear (Prop_Gap, Gap_Column_Part)")
+                gap_column = None
+            if gap_row is not None and gap_column is not None:
+                if gap_row == gap_column:
+                    steps.append(
+                        f"Gap (Gap ({generate_length_ada(gap_row)}))")
+                else:
+                    steps.append(
+                        f"Gap (Gap ({generate_length_ada(gap_row)}, "
+                        f"{generate_length_ada(gap_column)}))")
+            elif gap_row is not None:
+                steps.append(
+                    f"Gap (Gap_Row ({generate_length_ada(gap_row)}))")
+            elif gap_column is not None:
+                steps.append(
+                    f"Gap (Gap_Column ({generate_length_ada(gap_column)}))")
+        fields[gap_slot:gap_slot + 1] = steps
+    if overflow_x is INITIAL and overflow_y is INITIAL:
+        fields.append("Clear (Prop_Overflow)")
+    else:
+        if overflow_x is INITIAL:
+            fields.append("Clear (Prop_Overflow_X)")
+        elif overflow_x is not None:
+            fields.append(f"Overflow_X ({overflow_x})")
+        if overflow_y is INITIAL:
+            fields.append("Clear (Prop_Overflow_Y)")
+        elif overflow_y is not None:
+            fields.append(f"Overflow_Y ({overflow_y})")
 
     return fields
 

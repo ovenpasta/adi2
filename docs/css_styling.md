@@ -362,6 +362,57 @@ property it can fill, so `border: 1px solid` carries on its width and
 style alone, while `border: 1px solid red junk` costs the whole rule
 over the one token neither pipeline reads.
 
+### The CSS-wide keywords
+
+`initial`, `inherit` and `unset` are valid on every property, and both
+pipelines read them ahead of the property's own grammar.
+
+`initial` takes the property to its initial value. It is the whole
+`Clear`, not a dropped declaration: a rule saying it takes the property
+off a less specific rule, where dropping it would leave that rule's
+value standing.
+
+```css
+.card       { padding: 12px; color: #eee; }
+.card.plain { padding: initial; }     /* 0, not 12px */
+```
+
+A longhand clears the one value it names, so `padding-top: initial`
+leaves the other three edges to the cascade. A shorthand clears every
+property it fills, so `border: initial` reaches width, style and colour
+and `overflow: initial` reaches both axes.
+
+`unset` is `initial` outside the inheritable properties, and `inherit`
+within them.
+
+`inherit`, and `unset` where the property inherits, want a value taken
+from the cascade above. Adi's inheritance runs from a widget to its
+parts and no further, so there is nothing to take: both pipelines drop
+the declaration and report it, the generator as `invalid-property-value`
+and the parser through `Adi.Log`. What the cascade already gave the
+property stands, and on a `::part` rule that is the widget's own value,
+through `Inherit_From`.
+
+`inherit` is also a `Named_Color`, and `Default_Color` is that entry, so
+the colour grammar reads it: `color`, `background-color`, the four
+`border-*-color` longhands, `outline-color`, and the `border`,
+`border-<side>` and `outline` shorthands all take `inherit` as that
+colour rather than as the keyword.
+
+`revert` is not read as a keyword. Adi has one cascade origin, so it
+would be `initial` under another name, and reading it would claim a
+cascade Adi has not got; it reaches the property's own grammar and is
+dropped there.
+
+One property parts company with CSS here. `grid-template-columns: none`
+— which CSS calls that property's initial value — is read as a count of
+zero, while the property's cleared state resolves to
+`Default_Grid_Columns`, which is one. So `grid-template-columns:
+initial` clears the track list and leaves the count at one, where
+`grid-template-columns: none` leaves it at zero. Every reader of the
+count floors it at one, so nothing lays out differently; what differs is
+the value introspection reads back.
+
 ### Box Model
 
 | Property | Values | Example |
@@ -1130,7 +1181,28 @@ Style_Of (Primary) .Clear (Prop_Background_Color) .Build
 
 `Clear` is the CSS cascade's "named, and holding no value", which stops a
 rule earlier in the cascade showing through; it is not the same as never
-naming the property.
+naming the property. It is what `initial` comes to, and what
+`tools/css_to_ada.py` emits for it.
+
+A property whose values cascade separately clears one of them at a time
+too, which is what separates `padding-top: initial` from
+`padding: initial`:
+
+```ada
+Style_Of (Primary)
+   .Clear (Prop_Padding, Top)
+   .Clear (Prop_Border_Radius, Top_Left)
+   .Clear (Prop_Gap, Gap_Row_Part)
+.Build
+```
+
+Gap is the exception: a cleared axis is named as holding zero, the
+axis's initial value, rather than as holding none. A rule set carries
+named-or-not for the gap pair rather than per axis, so only the first of
+those is a rule set it can hold, and for this property the two are the
+same value. That holds of `.Clear (Prop_Gap)` too, so clearing the
+property and clearing its two axes come to one interned style, as they
+do for every other group.
 
 `Style_Of (Existing)` opens a chain on a style already interned, which is
 the composer's answer to `Base with delta Background_Color => …`:

@@ -595,6 +595,67 @@ procedure Parser_Slots_Test is
       end loop;
    end Test_The_Parsers_Keys_Are_Inside_The_Bound;
 
+   --  The name of a declaration, which is what a CSS-wide keyword is
+   --  written against.
+   function Name_Of (Decl : String) return String is
+     (Decl (Decl'First .. Ada.Strings.Fixed.Index (Decl, ":") - 1));
+
+   --  `initial` reaches every value the property carries and no other,
+   --  so it names the keys the table above gives the name. A shorthand
+   --  is the one place the two can part: a value of it may leave a
+   --  longhand unnamed where `initial` clears all of them.
+   function Initial_Keys (Decl, Keys : String) return String is
+     (if Name_Of (Decl) = "list-style"
+      then "list_style_type/0 list_style_image/0 list_style_position/0"
+      else Keys);
+
+   procedure Test_Initial_Names_The_Same_Keys is
+   begin
+      Section ("`initial` names the keys its declaration name means");
+
+      for E of Vocabulary loop
+         declare
+            Decl : constant String := To_String (E.Decl);
+            Want : constant String :=
+              Initial_Keys (Decl, To_String (E.Keys));
+            L    : constant Rule_Slots :=
+              Slots_For (".k { " & Name_Of (Decl) & ": initial; }", "k");
+         begin
+            Assert (Keys_Of (L) = Want,
+                    "'" & Name_Of (Decl) & ": initial' names [" & Want
+                    & "], answering [" & Keys_Of (L) & "]");
+            Check_Canonical (L, Name_Of (Decl) & ": initial");
+         end;
+      end loop;
+   end Test_Initial_Names_The_Same_Keys;
+
+   --  A cleared key is a key, so a rule already naming every property
+   --  keeps its count when `initial` arrives at one of them -- and the
+   --  property it names resolves to its default rather than to what the
+   --  rule set held.
+   procedure Test_Initial_Loses_No_Key is
+      Base_Keys : constant String :=
+        Keys_Of (Slots_For (Whole_Vocabulary & " }", "every"));
+   begin
+      Section ("`initial` after a rule naming every key leaves them all");
+
+      for E of Vocabulary loop
+         declare
+            Decl : constant String := To_String (E.Decl);
+            L    : constant Rule_Slots :=
+              Slots_For (Whole_Vocabulary & " " & Name_Of (Decl)
+                         & ": initial; }", "every");
+         begin
+            Assert (Keys_Of (L) = Base_Keys,
+                    "'" & Name_Of (Decl) & ": initial' leaves every key");
+            Assert (Slot_Count (L) = Max_Rule_Slots,
+                    "'" & Name_Of (Decl) & ": initial' leaves the list at"
+                    & " Max_Rule_Slots, not"
+                    & Natural'Image (Slot_Count (L)));
+         end;
+      end loop;
+   end Test_Initial_Loses_No_Key;
+
 begin
    Start_Suite ("Parser Slots Test");
 
@@ -606,6 +667,8 @@ begin
    Test_Every_Declaration_Names_Its_Keys;
    Test_A_Declaration_Loses_No_Key;
    Test_The_Parsers_Keys_Are_Inside_The_Bound;
+   Test_Initial_Names_The_Same_Keys;
+   Test_Initial_Loses_No_Key;
 
    Finish;
 end Parser_Slots_Test;

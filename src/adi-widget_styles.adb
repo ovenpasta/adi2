@@ -1064,6 +1064,16 @@ package body Adi.Widget_Styles is
      return Composer is
      (Set_Part_Slot (C, Prop_Border_Radius, Corner_Part (K), Intern (V)));
 
+   function Clear (C : Composer; P : CSS_Property; Part : Slot_Part)
+     return Composer is
+     (Append (C, P, Chain_Part (Part), Clear_Value, No_Value_Ref));
+
+   function Clear (C : Composer; P : CSS_Property; E : Edge)
+     return Composer is (Clear (C, P, Edge_Part (E)));
+
+   function Clear (C : Composer; P : CSS_Property; K : Corner)
+     return Composer is (Clear (C, P, Corner_Part (K)));
+
    function Width (C : Composer; V : Size_Value) return Composer is
      (Set_Slot (C, Prop_Width, Intern (V)));
 
@@ -1121,8 +1131,18 @@ package body Adi.Widget_Styles is
    function Align_Items (C : Composer; V : Align_Items_Value)
      return Composer is (Set_Slot (C, Prop_Align_Items, Intern (V)));
 
+   --  A value naming one axis is that axis's slot, which is what leaves
+   --  the other where the cascade had it; one naming both takes the
+   --  pair, as Adi.CSS_Parser reads `gap` beside `row-gap` and
+   --  `column-gap`.
    function Gap (C : Composer; V : Gap_Value) return Composer is
-     (Set_Slot (C, Prop_Gap, Intern (V)));
+     (if V.Kind = Gap_Separate and then V.Has_Row and then not V.Has_Column
+      then Set_Part_Slot (C, Prop_Gap, Gap_Row_Part, Intern (V.Row_Gap))
+      elsif V.Kind = Gap_Separate
+        and then V.Has_Column and then not V.Has_Row
+      then Set_Part_Slot (C, Prop_Gap, Gap_Column_Part,
+                          Intern (V.Column_Gap))
+      else Set_Slot (C, Prop_Gap, Intern (V)));
 
    function Flex_Grow (C : Composer; V : Flex_Grow_Value) return Composer is
      (Set_Slot (C, Prop_Flex_Grow, Intern (V)));
@@ -1328,7 +1348,7 @@ package body Adi.Widget_Styles is
       end if;
 
       declare
-         R : Style_Rules := Rules_Of (Source);
+         R : Rule_Slots := Slots_Of (Source);
       begin
          for I in 1 .. B.Count loop
             if B.Slots (I).Rule = K then
@@ -1344,7 +1364,11 @@ package body Adi.Widget_Styles is
                              (R, S.Prop, Slot_Part (S.Part), S.Val);
                         end if;
                      when Clear_Value =>
-                        Clear_Property (R, S.Prop);
+                        if S.Part = Whole_Part then
+                           Clear_Property (R, S.Prop);
+                        else
+                           Clear_Property (R, S.Prop, Slot_Part (S.Part));
+                        end if;
                   end case;
                end;
             end if;

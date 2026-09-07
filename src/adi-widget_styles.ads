@@ -590,11 +590,20 @@ package Adi.Widget_Styles is
    function Transition (C : Composer; V : Transition_Spec) return Composer;
 
    --  Names the property as holding no value, which is what stops a
-   --  rule earlier in the cascade showing through. Prop_Overflow clears
-   --  its two axes, and a property whose values cascade separately
-   --  clears all of them: CSS has no spelling for clearing one edge, so
-   --  neither does a chain.
+   --  rule earlier in the cascade showing through, and what CSS
+   --  `initial` comes to. Prop_Overflow clears its two axes, and a
+   --  property whose values cascade separately clears all of them.
    function Clear (C : Composer; P : CSS_Property) return Composer;
+
+   --  One of those values on its own -- the edge, corner, gap axis or
+   --  track list -- leaving P's other parts to the cascade, which is
+   --  what separates `padding-top: initial` from `padding: initial`.
+   function Clear (C : Composer; P : CSS_Property; E : Edge)
+     return Composer;
+   function Clear (C : Composer; P : CSS_Property; K : Corner)
+     return Composer;
+   function Clear (C : Composer; P : CSS_Property; Part : Slot_Part)
+     return Composer;
 
    -------------------------------------------------
    -- Finishing

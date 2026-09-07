@@ -9,7 +9,7 @@
 --  package). The native body is a thin
 --  wrapper over Ada.Real_Time; WASM builds substitute a body over SDL
 --  ticks, because Ada.Real_Time is not part of the WebAssembly runtime
---  and the browser owns frame cadence (see wasm/PORT_REPORT.md).
+--  and the browser owns frame cadence (see wasm/README.md).
 
 pragma Ada_2022;
 

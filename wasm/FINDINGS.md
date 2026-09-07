@@ -141,7 +141,7 @@ machinery units: `a-exexpr`, `s-excmac`, `s-traceb`, `raise-gcc.c`, ...).
 - `Ada.Real_Time` (use `Ada.Calendar` or SDL ticks; frame pacing on the
   web is driven by the browser anyway). NOTE: earlier revisions of this
   file wrongly listed it as present. adi2 no longer references it — the
-  `Adi.Clock` seam wraps it natively (`PORT_REPORT.md` Section 14).
+  `Adi.Clock` seam wraps it natively (`src/adi-clock.ads`).
 - `Ada.Wide_*_IO`
 - `Ada.Numerics.Discrete_Random` (`Float_Random` is in; the generic
   discrete instantiation is not shipped)
@@ -169,7 +169,7 @@ Current status (the "Unsupported features" list in
    with a bogus `expected type "Standard.Integer"` error, and other
    `'Reduce` phrasings misbehave too (bogus `Constraint_Error` warning
    on an Integer-range variant). Workaround: rewrite as a plain loop in
-   a body — verified clean. See `PORT_REPORT.md` Section 16.
+   a body — verified clean.
 
 ## 4. SDL3 Browser App Pattern
 
@@ -225,6 +225,10 @@ Key points from the basic example:
 - The basic example predates the EH runtimes and returns all errors via
   the callbacks (`Continue` / `Success` / `Failure`); on
   `rts-wasm-emcc-eh` ordinary Ada exception handlers work too.
+- SDL3's Emscripten backend listens for **Pointer Events**
+  (`pointerdown` / `pointermove` / ...), not legacy mouse events.
+  Driving the canvas from a script or a test must dispatch
+  `PointerEvent`s.
 
 ## 5. Building SDL3 Itself
 
@@ -307,8 +311,8 @@ Important flags:
   compose with `-fwasm-exceptions`. For blocking loops use
   `-sJSPI -sJSPI_EXPORTS=main` instead (VM-level stack switching,
   composes with wasm EH; Phase 4 standard, shipped in Chromium,
-  flagged in Firefox, Safari pending — see `PORT_REPORT.md`, "What
-  JSPI is"). With SDL main callbacks you need neither.
+  flagged in Firefox, Safari pending — see `README.md`, "Main-loop
+  modes"). With SDL main callbacks you need neither.
 - `-sNODERAWFS=1` -- CLI builds under Node get transparent access to the
   real filesystem (`hac_cli` uses this).
 

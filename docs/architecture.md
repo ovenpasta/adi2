@@ -311,7 +311,7 @@ opened later and landing on the recycled address reads a stale line skip.
 - `Add_Window (A, W : Window_Handle)`; the main window is held as a `Window_Handle`
 - Each frame drains `Adi.Dispatch`, then pumps the widget, context-menu and window stores
 
-**Adi.Clock** (`adi-clock.ads`): Monotonic program clock (`Time`, `Time_Span`, `Now`, `Sleep_Until`) — the single seam between library timing and the platform. Native body wraps `Ada.Real_Time`; WASM builds substitute an SDL-ticks body (`wasm/PORT_REPORT.md`).
+**Adi.Clock** (`adi-clock.ads`): Monotonic program clock (`Time`, `Time_Span`, `Now`, `Sleep_Until`) — the single seam between library timing and the platform. Native body wraps `Ada.Real_Time`; WASM builds substitute an SDL-ticks body (`wasm/README.md`).
 
 ## Widgets
 

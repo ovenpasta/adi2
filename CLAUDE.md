@@ -35,7 +35,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Internationalization (i18n, translations, .po files, plural forms) | `docs/i18n.md` |
 | Program settings (Setting_Value, Settings_Store, JSON backend) | `docs/settings.md` |
 | Widget properties as CSS selectors (`[severity="critical"]`) | `docs/css_styling.md` (Widget Properties) |
-| WebAssembly port (build, toolchain, JSPI, example status) | `wasm/README.md`, `wasm/PORT_REPORT.md`, `wasm/FINDINGS.md` |
+| WebAssembly port (build, toolchain, JSPI, example status) | `wasm/README.md`, `wasm/FINDINGS.md` |
 | Finalization ordering (Window vs. widget tagged-type packages) and structural fix options | `docs/proposals/finalization_ordering.md` |
 | Ada 2022 Reference Manual | `rm-22-txt/RM-TOC.TXT` (chapters: `rm-22-txt/RM-*.TXT`) — local-only, gitignored; if absent, fetch the plain-text RM into `rm-22-txt/` |
 

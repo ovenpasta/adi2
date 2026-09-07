@@ -344,6 +344,8 @@ package body Adi.Widget.RLottie is
       Tick_Scroll_Animations (W, DT);
 
       if Is_Valid (W.Animation) then
+         Request_Tick (W);
+
          --  Sampled rather than stepped: several widgets may show one
          --  animation, and each stepping it would run the playhead at a
          --  multiple of its speed.

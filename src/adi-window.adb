@@ -1282,6 +1282,7 @@ package body Adi.Window is
           W.Stats_Layout_Skips    := Adi.Widget.Get_Perf_Layout_Skips;
           W.Stats_Pref_Calls      := Adi.Widget.Get_Perf_Pref_Calls;
           W.Stats_Pref_Hits       := Adi.Widget.Get_Perf_Pref_Hits;
+          W.Stats_Tick_Visits     := Adi.Widget.Get_Perf_Tick_Visits;
           W.Stats_Sel_Memo_Hits   := Adi.Widget.Get_Perf_Selector_Memo_Hits;
           W.Stats_Sel_Memo_Misses :=
             Adi.Widget.Get_Perf_Selector_Memo_Misses;
@@ -3163,6 +3164,7 @@ function Get_Size (W : in out Window) return Size_2D is
                Layout_Skips         => W.Stats_Layout_Skips,
                Pref_Calls           => W.Stats_Pref_Calls,
                Pref_Hits            => W.Stats_Pref_Hits,
+               Tick_Visits          => W.Stats_Tick_Visits,
                Selector_Memo_Hits   => W.Stats_Sel_Memo_Hits,
                Selector_Memo_Misses => W.Stats_Sel_Memo_Misses);
     end Get_Frame_Stats;

@@ -669,6 +669,7 @@ procedure MCP_Test is
          Layout_Skips         => 32,
          Pref_Calls           => 33,
          Pref_Hits            => 34,
+         Tick_Visits          => 37,
          Selector_Memo_Hits   => 35,
          Selector_Memo_Misses => 36);
 
@@ -708,6 +709,7 @@ procedure MCP_Test is
          Expect ("layout_skips", 32);
          Expect ("pref_calls", 33);
          Expect ("pref_hits", 34);
+         Expect ("tick_visits", 37);
          Expect ("selector_memo_hits", 35);
          Expect ("selector_memo_misses", 36);
 

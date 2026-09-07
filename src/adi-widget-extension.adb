@@ -25,6 +25,7 @@ package body Adi.Widget.Extension is
       --  an exception can still release it.  Afterwards the store owns
       --  it and Destroy is the only way out.
       Set_Flag (P.all, Visible, True);
+      P.Always_Ticks := True;
       Id := Widget_Stores.Register (P);
       Registered := True;
       P.Store_Index := Natural (Id.Index);

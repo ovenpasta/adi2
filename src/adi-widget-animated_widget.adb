@@ -402,6 +402,8 @@ package body Adi.Widget.Animated_Widget is
       Tick_Scroll_Animations (W, DT);
 
       if Has_Backend (W) then
+         Request_Tick (W);
+
          Changed := Advance (W.Backend.all, DT, Adi.Clock.Now);
 
          --  Two questions, and neither answers the other. The step

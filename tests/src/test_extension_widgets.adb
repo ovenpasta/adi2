@@ -61,6 +61,28 @@ package body Test_Extension_Widgets is
         (Adi.Widget.Button.Button_Widget (W));
    end Measure_Content;
 
+   overriding procedure On_Tick (W : in out Ticker; DT : Duration) is
+      pragma Unreferenced (DT);
+   begin
+      if W.Raise_Next then
+         W.Raise_Next := False;
+         raise Program_Error with "a tick that fails part-way";
+      end if;
+      W.Ticks := W.Ticks + 1;
+   end On_Tick;
+
+   function Ticks (H : Tickers.Handle) return Natural is
+      R : constant Tickers.Ref := Tickers.Borrow (H);
+   begin
+      return R.Ticks;
+   end Ticks;
+
+   procedure Raise_On_Next_Tick (H : Tickers.Handle) is
+      R : constant Tickers.Ref := Tickers.Borrow (H);
+   begin
+      R.Raise_Next := True;
+   end Raise_On_Next_Tick;
+
    procedure Click_On_Next_Build (H : Reentrants.Handle) is
       R : constant Reentrants.Ref := Reentrants.Borrow (H);
    begin

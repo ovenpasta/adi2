@@ -336,6 +336,7 @@ package body Adi.Widget is
    Perf_Layout_Skips    : Natural := 0;
    Perf_Pref_Calls      : Natural := 0;
    Perf_Pref_Hits       : Natural := 0;
+   Perf_Tick_Visits     : Natural := 0;
    Perf_Sel_Memo_Hits   : Natural := 0;
    Perf_Sel_Memo_Misses : Natural := 0;
 
@@ -1214,7 +1215,15 @@ package body Adi.Widget is
          W.Part_States (P) (S) := Active;
          Bump_Style_Version (W);
          case Part_State_Style_Effect (W, P, Old_States) is
-            when Diff_None            => null;
+            when Diff_None            =>
+               --  These two are what Has_Scroll_Work reads, and
+               --  only a tick puts them down again. The rest is a
+               --  pointer crossing a boundary the sheet is silent on.
+               if Active and then S = State_Pressed
+                 and then P in Scroll_Part | Knob_Part
+               then
+                  Request_Tick (W);
+               end if;
             when Diff_Render_Only     => Mark_Render_Dirty (W);
             when Diff_Layout_Affecting => Mark_Dirty (W);
          end case;
@@ -1956,6 +1965,7 @@ package body Adi.Widget is
                                   Started  => Started);
                            if Started then
                               W.Has_Any_Animation := True;
+                              Request_Tick (W);
                            end if;
                         end;
                      elsif New_Target /= W.Last_Target (P) then
@@ -2842,6 +2852,9 @@ package body Adi.Widget is
    begin
       W.Dirty := True;
       W.Layout_Dirty := True;
+      --  Whatever changed may be something a tick carries on, and this
+      --  walk already reaches every ancestor a tick descends through.
+      W.Ticks_Wanted := True;
       --  Bump content version so that the preferred-size cache detects
       --  content mutations (Set_Text, Add_Child, etc.) that don't
       --  affect Style_Version.  Propagates upward because a child's
@@ -2855,6 +2868,7 @@ package body Adi.Widget is
    procedure Mark_Render_Dirty (W : in out Widget'Class) is
    begin
       W.Dirty := True;
+      W.Ticks_Wanted := True;
       if W.Parent /= null then
          Mark_Render_Dirty (W.Parent.all);
       end if;
@@ -2863,6 +2877,16 @@ package body Adi.Widget is
    procedure Mark_Render_Dirty_W is new Wrap_CW_Proc (Mark_Render_Dirty);
    procedure Mark_Render_Dirty (H : Widget_Handle)
      renames Mark_Render_Dirty_W;
+
+   procedure Request_Tick (W : in out Widget'Class) is
+   begin
+      W.Ticks_Wanted := True;
+      if W.Parent /= null then
+         Request_Tick (W.Parent.all);
+      end if;
+   end Request_Tick;
+   procedure Request_Tick_W is new Wrap_CW_Proc (Request_Tick);
+   procedure Request_Tick (H : Widget_Handle) renames Request_Tick_W;
 
    procedure Mark_Clean (W : in out Widget'Class) is
    begin
@@ -3112,6 +3136,15 @@ package body Adi.Widget is
       Mark_Render_Dirty (W);
    end On_Geometry_Changed;
 
+   --  The four fields either path below has anything to change, so a
+   --  widget holding none of them reaches Is_Scroll_Enabled and the
+   --  style it resolves for neither. Tick_Animations asks it too.
+   function Has_Scroll_Work (W : Widget'Class) return Boolean is
+     (W.Scroll_Dragging
+      or else W.Scroll_Velocity_Y /= 0.0
+      or else W.Part_States (Scroll_Part) (State_Pressed)
+      or else W.Part_States (Knob_Part) (State_Pressed));
+
    function Handle_Scroll_Mouse_Down
      (W      : in out Widget'Class;
       X, Y   : Pixel_Type;
@@ -3230,6 +3263,12 @@ package body Adi.Widget is
       else
          W.Scroll_Velocity_Y := 0.0;
       end if;
+
+      --  A wheel against the end of the travel moves no offset and so
+      --  marks nothing dirty, and still leaves a speed to spend.
+      if Has_Scroll_Work (W) then
+         Request_Tick (W);
+      end if;
    end Handle_Scroll_Mouse_Wheel;
 
    procedure Tick_Scroll_Animations (W : in out Widget'Class; DT : Duration) is
@@ -3237,17 +3276,7 @@ package body Adi.Widget is
       Old_Offset : Pixel_Type;
       Fast       : Boolean;
    begin
-      --  Every widget in the tree arrives here on every tick, and
-      --  Is_Scroll_Enabled below resolves a style. A widget with
-      --  nothing held and nothing in flight leaves both paths with
-      --  nothing to change: the disabled one guards on the same two
-      --  fields, and the enabled one computes Fast as False and sets
-      --  two part states that already hold it.
-      if not W.Scroll_Dragging
-        and then W.Scroll_Velocity_Y = 0.0
-        and then not W.Part_States (Scroll_Part) (State_Pressed)
-        and then not W.Part_States (Knob_Part) (State_Pressed)
-      then
+      if not Has_Scroll_Work (W) then
          return;
       end if;
 
@@ -8330,6 +8359,7 @@ begin
    Perf_Layout_Skips    := 0;
    Perf_Pref_Calls      := 0;
    Perf_Pref_Hits       := 0;
+   Perf_Tick_Visits     := 0;
    Perf_Sel_Memo_Hits   := 0;
    Perf_Sel_Memo_Misses := 0;
 end Reset_Perf_Counters;
@@ -8342,6 +8372,7 @@ function Get_Perf_Layout_Calls return Natural is (Perf_Layout_Calls);
 function Get_Perf_Layout_Skips return Natural is (Perf_Layout_Skips);
 function Get_Perf_Pref_Calls return Natural is (Perf_Pref_Calls);
 function Get_Perf_Pref_Hits return Natural is (Perf_Pref_Hits);
+function Get_Perf_Tick_Visits return Natural is (Perf_Tick_Visits);
 
 procedure Note_Selector_Memo_Hit is
 begin
@@ -8366,6 +8397,15 @@ procedure Tick_Animations (W : in out Widget'Class; DT : Duration) is
    Had_Active : Boolean := False;
    DT_Float   : constant Float := Float (DT);
 begin
+   Inc_Sat (Perf_Tick_Visits);
+   if not W.Ticks_Wanted then
+      return;
+   end if;
+
+   --  Lowered here and raised only from here on, so a Request_Tick that
+   --  On_Tick, an observer under it or a child makes stands.
+   W.Ticks_Wanted := W.Always_Ticks;
+
    On_Tick (W, DT);
 
    for P in Part_Kind loop
@@ -8427,10 +8467,26 @@ begin
       end;
    end if;
 
-   --  Recurse to children
+   if Any_Active or else Has_Scroll_Work (W) then
+      W.Ticks_Wanted := True;
+   end if;
+
+   --  Recurse to children.
    for Child of W.Children loop
       Tick_Animations (Child.all, DT);
+      if Child.Ticks_Wanted then
+         W.Ticks_Wanted := True;
+      end if;
    end loop;
+
+exception
+   when others =>
+      --  A tick that failed part-way answered nothing about what the
+      --  widget wants next, and every frame it unwinds through skips
+      --  its own answer too. Left down, one fault takes the subtree
+      --  off the tick for the rest of the run, silently.
+      W.Ticks_Wanted := True;
+      raise;
 end Tick_Animations;
 
 end Adi.Widget;

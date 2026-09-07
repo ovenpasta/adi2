@@ -513,6 +513,7 @@ package Adi.Window is
        Layout_Skips         : Natural := 0;
        Pref_Calls           : Natural := 0;
        Pref_Hits            : Natural := 0;
+       Tick_Visits          : Natural := 0;
        Selector_Memo_Hits   : Natural := 0;
        Selector_Memo_Misses : Natural := 0;
     end record;
@@ -578,6 +579,7 @@ private
         Stats_Layout_Skips     : Natural := 0;
         Stats_Pref_Calls       : Natural := 0;
         Stats_Pref_Hits        : Natural := 0;
+        Stats_Tick_Visits      : Natural := 0;
         Stats_Sel_Memo_Hits    : Natural := 0;
         Stats_Sel_Memo_Misses  : Natural := 0;
     end record;

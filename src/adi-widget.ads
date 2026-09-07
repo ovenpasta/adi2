@@ -848,6 +848,13 @@ package Adi.Widget is
    procedure Tick_Animations (W : in out Widget'Class; DT : Duration);
    procedure Tick_Animations (H : Widget_Handle; DT : Duration);
 
+   --  A tick reaches a widget while it or something under it wants
+   --  one, and the tick that finds nothing left is the last until this
+   --  raises it again. An overriding On_Tick that can do work on a
+   --  later tick calls this where that work runs.
+   procedure Request_Tick (W : in out Widget'Class);
+   procedure Request_Tick (H : Widget_Handle);
+
    ---------------------------------------------------------------------------
    --  Per-frame performance counters (debug stats overlay)
    ---------------------------------------------------------------------------
@@ -862,6 +869,8 @@ package Adi.Widget is
    function Get_Perf_Layout_Skips return Natural;
    function Get_Perf_Pref_Calls return Natural;
    function Get_Perf_Pref_Hits return Natural;
+   --  One per entry into Tick_Animations, a pruned root included.
+   function Get_Perf_Tick_Visits return Natural;
 
    --  Adi.CSS_Source's memo over the styles a (tag, classes, id) triple
    --  folds to. Counted here so one reset covers every style counter.
@@ -1029,6 +1038,18 @@ private
       Has_Any_Animation : Boolean := False;
       --  The store generation Last_Target and Transitions name.
       Target_Store_Gen  : Natural := 0;
+
+      --  A tick descends into a widget while this holds and stops at its
+      --  parent otherwise.  Request_Tick raises it along the whole
+      --  parent chain, so a widget wanting a tick is reachable from
+      --  every root above it; a widget's own tick is the only thing that
+      --  lowers it, and it lowers it having asked the widget, its
+      --  transitions and its subtree what is left.
+      Ticks_Wanted      : Boolean := True;
+      --  A widget type the library never saw cannot be asked what its
+      --  On_Tick wants, so it is not asked and is ticked always.
+      --  Adi.Widget.Extension sets it.
+      Always_Ticks      : Boolean := False;
 
       --  Shared vertical scrolling state for overflow:auto/scroll
       Scroll_Offset_Y     : Pixel_Type := 0.0;

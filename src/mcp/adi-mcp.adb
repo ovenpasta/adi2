@@ -66,6 +66,8 @@ package body Adi.MCP is
       Count ("pref_calls", Stats.Pref_Calls);
       Count ("pref_hits", Stats.Pref_Hits);
 
+      Count ("tick_visits", Stats.Tick_Visits);
+
       --  A layer above them: the styles a (tag, classes, id) triple
       --  folds to, answered from Adi.CSS_Source's memo or recomputed.
       Count ("selector_memo_hits", Stats.Selector_Memo_Hits);

@@ -57,6 +57,23 @@ package Test_Extension_Widgets is
 
    package Reentrants is new Adi.Widget.Extension (Reentrant);
 
+   --  A widget type the library never saw that overrides On_Tick.  What
+   --  such a type wants of a tick is its own business, so nothing in the
+   --  library can decide it wants none.
+   type Ticker is new Adi.Widget.Box.Box_Widget with record
+      Ticks      : Natural := 0;
+      --  Raises once and clears itself, so a test can put a fault in
+      --  the middle of a tick without ending every tick after it.
+      Raise_Next : Boolean := False;
+   end record;
+
+   overriding procedure On_Tick (W : in out Ticker; DT : Duration);
+
+   package Tickers is new Adi.Widget.Extension (Ticker);
+
+   function Ticks (H : Tickers.Handle) return Natural;
+   procedure Raise_On_Next_Tick (H : Tickers.Handle);
+
    procedure Click_On_Next_Build (H : Reentrants.Handle);
    procedure Click_On_Next_Min_Size (H : Reentrants.Handle);
    procedure Click_On_Next_Measure (H : Reentrants.Handle);

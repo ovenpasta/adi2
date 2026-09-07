@@ -19,7 +19,7 @@ goes through `Adi.Widget_Styles.Definition`.
 
 ## Design Summary
 
-Four layers:
+Five layers:
 
 1. Handle-based per-widget style storage
 2. Prepared rule-order evaluation
@@ -98,7 +98,7 @@ record.
 
 ### 3) Global Resolved-Style Memo
 
-The existing per-widget resolved-style cache remains, and a global cache is added as a second memoization layer.
+A global cache sits behind the per-widget resolved-style cache as a second memoization layer.
 
 Global cache key includes:
 - part style handle
@@ -116,11 +116,9 @@ Policy:
 - cleared as well when the store's generation moves, since the handles
   it holds name entries the store has let go
 
-This keeps behavior deterministic and bounded while capturing cross-widget repetition.
+### 5) Selector Lookup and the Combined-Style Memo
 
-### 4) Selector Lookup and the Combined-Style Memo
-
-Above the four layers sit the two lookups that reach them from a name.
+Above the other layers sit the two lookups that reach them from a name.
 
 `Adi.CSS_Parser` keeps `Selector_Index`, one hashed map per
 `Selector_Kind` from a lowered and trimmed selector name to its position
@@ -190,7 +188,7 @@ something is feeding.
 plus rule priority, equal-priority tie order, and dynamic style churn
 through repeated selector rebinding.
 
-## Observed Results
+## Sizes
 
 `'Object_Size`/8 on x86-64 Linux, which `tests/src/style_flat_values_test.adb`
 reports and `tests/src/style_handle_test.adb` pins:
@@ -211,9 +209,6 @@ A widget's twelve part slots are 96 bytes, and every layer that stores or
 passes a style — a registered selector, a parsed selector, a stylesheet's
 `:root` block, a merge result, a builder step — carries that width or
 less.
-
-`layout_perf_test` behaviour checks (style cache hit/miss + invalidation)
-remain green.
 
 ---
 
@@ -262,10 +257,9 @@ probe, never a wrong answer, because equality settles it.
 `Background_Image` holds a gradient by `Linear_Gradient_Ref`, and a
 pointer is what equality on the enclosing style compares. `Linear_Gradient`
 therefore returns a shared pointer: it scans a store of gradient values
-and allocates only for one it has not seen. Without that, a style
-carrying a gradient is unequal to its own copy, so it interns twice and
-`Same_As_Applied` reports a source handed its own configuration again as
-changed — restyling every bound widget on every `Build`.
+and allocates only for one it has not seen, so a style carrying a
+gradient equals its own copy and `Same_As_Applied` sees a source handed
+its own configuration again as unchanged.
 
 The store is scanned rather than hashed. A sheet has a handful of
 gradients, and the angle and stop positions are floats, where equal
@@ -303,13 +297,11 @@ insertion order.
 bytes with no controlled component; `Adi.CSS_Parser.Binding` is the same
 shape at 16. Widgets bound under one name share one interned string.
 
-That is a trade, and both halves of it are real. A name is deduplicated
-across every binding that uses it, where each `Bound_Target` used to
-carry its own `Unbounded_String` — and it is retained for the process,
-where pruning a binding used to free the string it held. The text store
-never releases, so it grows with the distinct names an application binds
-under rather than with the number of bindings, and a name synthesised per
-row costs an entry per row that outlives the row.
+A name is deduplicated across every binding that uses it and retained
+for the process: the text store never releases, so it grows with the
+distinct names an application binds under rather than with the number
+of bindings, and a name synthesised per row costs an entry per row that
+outlives the row.
 
 Holding the name as an id puts `Max_CSS_Text_Length` on it, which
 holding it as a string did not. A name past the limit gets no id at all,
@@ -399,30 +391,27 @@ scattered through a sheet still merge onto one entry, and that
 
 ## Resolved Styles
 
-A `Resolved_Style` is 840 bytes of concrete values, and the widget record
-embedded 48 of them: twelve in `Cached_Resolved`, twelve in `Last_Target`,
-and a start/target pair per part across `Transitions`. Each `Item` held
-two more. A widget carries 2.72 items across the 27 widget-tree goldens,
-so a 500-widget tree held 23 MB in these records, most of it copies of
-the same handful of values.
+A `Resolved_Style` is 840 bytes of concrete values. `Adi.Resolved_Styles`
+holds each distinct value once and answers with a `Resolved_Handle`;
+interning is canonical, so equal handles carry equal values and a handle
+comparison is a value comparison. A widget names its styles by handle:
+twelve in `Cached_Resolved`, twelve in `Last_Target`, and a start/target
+pair per part across `Transitions`; each `Item` names two more.
 
-`Adi.Resolved_Styles` holds each distinct value once and answers with a
-`Resolved_Handle`. Interning is canonical, so equal handles carry equal
-values and a handle comparison is a value comparison.
+| | bytes |
+|---|---|
+| `Resolved_Style` | 840 |
+| `Resolved_Handle` | 8 |
+| `Cached_Resolved`, twelve parts | 96 |
+| `Last_Target`, twelve parts | 96 |
+| `Transitions`, twelve parts | 480 |
+| `Item` | 176 |
+| `Widget` | 1,136 |
 
-| | before | after |
-|---|---|---|
-| `Resolved_Style` | 840 | 840 |
-| `Resolved_Handle` | — | 8 |
-| `Cached_Resolved`, twelve parts | 10,080 | 96 |
-| `Last_Target`, twelve parts | 10,080 | 96 |
-| `Transitions`, twelve parts | 20,352 | 480 |
-| `Item` | 1,848 | 176 |
-| `Widget` | 40,968 | 1,136 |
-| a widget and its 2.72 items | 45,994 | 1,614 |
+`tests/src/resolved_store_test.adb` reports the chain.
 
-`Get_Resolved_Part_Style` keeps its profile and returns the stored value,
-so the sites that read a component out of it by name are unaffected.
+`Get_Resolved_Part_Style` returns the stored value, for a site that reads
+a component out of it by name.
 `Get_Resolved_Part_Handle` answers the same question as a handle, for a
 caller that stores or compares the answer rather than reading a field out
 of it, and `Adi.Resolved_Styles.Ref` gives the value in place for a

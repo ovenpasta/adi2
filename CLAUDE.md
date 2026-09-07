@@ -36,7 +36,7 @@ Before making changes, read the relevant documentation. Do not guess at APIs or 
 | Program settings (Setting_Value, Settings_Store, JSON backend) | `docs/settings.md` |
 | Widget properties as CSS selectors (`[severity="critical"]`) | `docs/css_styling.md` (Widget Properties) |
 | WebAssembly port (build, toolchain, JSPI, example status) | `wasm/README.md`, `wasm/PORT_REPORT.md`, `wasm/FINDINGS.md` |
-| Finalization ordering issue (Window vs. widget tagged-type packages) and structural fix options | `docs/finalization_ordering.md` |
+| Finalization ordering (Window vs. widget tagged-type packages) and structural fix options | `docs/proposals/finalization_ordering.md` |
 | Ada 2022 Reference Manual | `rm-22-txt/RM-TOC.TXT` (chapters: `rm-22-txt/RM-*.TXT`) — local-only, gitignored; if absent, fetch the plain-text RM into `rm-22-txt/` |
 
 ## Build Commands
@@ -142,7 +142,7 @@ python3 tools/xml_to_ada.py input.xml --output-dir out/ --package-name My_UI
 
 Incremental build for examples: `tools/generate_example_ui.sh`. Full reference in `docs/xml_ui_system.md`.
 
-Widget grammar is defined in `tools/widgets.xml` (18 widget types). Extensible via `--grammar`.
+Widget grammar is defined in `tools/widgets.xml` (19 widget types). Extensible via `--grammar`.
 
 ### Binary → Ada (`tools/binary_to_ada.py`)
 
@@ -167,7 +167,7 @@ Incremental build for examples: `tools/generate_example_bundles.sh`. Full refere
 - **TTF_Text caching**: stored in `Item.Cached_TTF_Text`, created on first render, updated via `TTF_SetTextString`
 - **Style_Rules** carries optional/unset values for CSS cascade; **Resolved_Style** is fully concrete
 - **Widget_Style** fluent builder: `From(base).On(When_State(...), style).Build`
-- **Hierarchy calls** use `access Widget'Class` (no `Widget_Access` cast needed at call sites)
+- **Hierarchy calls** (`Add_Child`, `Set_Root`, `Add_Overlay`, `Add_Page`) take `Widget_Handle`; `+` widens a typed handle
 - **Callbacks** use named access types; `'Unrestricted_Access` required for local subprograms
 
 ## Common Pitfalls

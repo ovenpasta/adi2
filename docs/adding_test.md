@@ -70,7 +70,7 @@ alr exec -- gprbuild -j0 -P tests/tests.gpr -XTEST_KIND=my_feature_test
 
 - Tests link against the Adi library, so all `Adi.*` packages are available
 - No SDL window or renderer is needed for unit tests — most widget APIs work without one
-- To test with images, use `Adi.Image.Load_SVG_Path` with a `null` renderer (creates a valid in-memory SVG image)
+- To test with images, use `Adi.Image.Load_SVG_Path`, which builds an in-memory SVG image from a path string and needs no renderer
 - To set widget geometry for `Build_Items` testing, use the public `Set_Geometry` procedure
 - Use `Item_Count`, `Get_Item`, and `Get_Preferred_Size` to inspect widget state through public API
 - To set CSS styles on a widget part, use `Set_Part_Style` with a `Widget_Style` built via `From(rules).Build`

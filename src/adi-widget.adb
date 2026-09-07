@@ -207,7 +207,7 @@ package body Adi.Widget is
       --  store and consumer-owned tagged-type packages.  Three structural
       --  options (type-erased cleanup at registration, Elaborate_All on
       --  every widget child package, or mandatory explicit Destroy) are
-      --  written up in docs/finalization_ordering.md; Option 2 there is
+      --  written up in docs/proposals/finalization_ordering.md; Option 2 there is
       --  the recommended fix.
       if In_Library_Finalization then
          W.Children.Clear;

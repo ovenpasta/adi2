@@ -32,8 +32,8 @@ cast appears at a call site:
 Adi.Widget.Box.Add_Child (Root, +Label1);
 ```
 
-The `access Widget'Class` overloads remain for use inside the widget
-bodies; new call sites use the handle form.
+`Add_Child` and `Remove_Child` also have an `access Widget'Class` overload
+for use inside the widget bodies.
 
 ### Internal storage conversion
 When converting anonymous access params to stored `Widget_Access`, use `C.all'Unchecked_Access` (not `Widget_Access(C)`) to avoid runtime accessibility `PROGRAM_ERROR`.

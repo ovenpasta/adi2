@@ -32,15 +32,15 @@ If using the XML UI system, create `examples/xml/<name>.xml`. The root element i
 </adi>
 ```
 
-Available widget tags are defined in `tools/widgets.xml`: `box`, `label`, `button`, `switch`, `stack`, `text-input`, `text-editor`, `combo-box`, `image`, `animated-image`, `animated-widget`, `rlottie`, `html-view`, `list-box`, `slider`, `integer-slider`, `value-input`, `integer-value-input`.
+Available widget tags are defined in `tools/widgets.xml`: `box`, `label`, `button`, `switch`, `stack`, `text-input`, `text-editor`, `combo-box`, `image`, `animated-image`, `animated-widget`, `rlottie`, `html-view`, `texture-view`, `list-box`, `slider`, `integer-slider`, `value-input`, `integer-value-input`.
 
 Widgets with an `id` attribute become named handle fields accessible from Ada code (e.g., `UI.My_Image`).
 
 ## 3. Register in the code generation scripts
 
 An example that ships CSS must be listed in `tools/generate_example_styles.sh`,
-and one that ships XML in `tools/generate_example_ui.sh`. Without the entry the
-generated package is never written and the example does not compile.
+and one that ships XML in `tools/generate_example_ui.sh`; the entry is what
+writes the generated package the example compiles against.
 
 ### `tools/generate_example_styles.sh`
 
@@ -175,8 +175,7 @@ Or build every example with `tools/build_examples.sh`.
 
 ## Checklist
 
-Six registration sites, plus the sources themselves. Miss any of the six and
-the example either fails to build or is silently skipped.
+Six registration sites, plus the sources themselves.
 
 | Step | File | What to add |
 |------|------|-------------|

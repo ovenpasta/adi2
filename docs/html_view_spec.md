@@ -1,37 +1,23 @@
-# `Adi.Widget.Html_View` v1 Technical Spec
+# `Adi.Widget.Html_View`
 
-## Goals
-- Render lightweight documentation-style HTML inside Adi widgets.
-- Reuse existing Adi layout/style systems where practical, without browser-level complexity.
-- Support clickable hyperlinks via `<a>` that invoke an application callback.
+A widget that renders documentation-style HTML: block and inline flow,
+lists, images, inline SVG, a tag/class/id/inline cascade over the CSS
+properties the library already resolves, and hyperlinks that reach an
+application callback. It is render-only: the application decides what
+to trust and where a link leads.
 
-## Non-Goals
-- No DOM API, JavaScript, navigation stack, forms, iframes, or script execution.
-- No complex CSS selectors/combinators (v1 remains tag/class/id + inline style).
-- No full HTML5 parsing compliance; deterministic, documented recovery rules are enough.
+Text decoration (`underline`, `line-through`, `overline`) is drawn by
+`Adi.Widget` rather than by SDL_ttf, whose renderer text engine fills
+decorations in white for coloured text; the upstream issue and patch
+are under `deps/issues/`.
 
-## Implementation Status
-- Next-phase milestone completed on 2026-02-13.
-- Renderer now uses an internal element tree (`Element`, `Text`, `Break`) with per-element attribute-driven cascade and line-box layout.
-- Phase 2 milestone completed on 2026-02-14.
-- Added line finalization alignment (`center` / `text-align`), html content scaling API, `vw`/`vh` support, block margin/padding flow participation, and expanded runtime parser support (`line-height`, `white-space`, `text-decoration`, `text-overflow`, `object-fit`, `visibility`).
-- Phase 3 milestone completed on 2026-03-01.
-- Added default stylesheet system (`Set_Default_Stylesheet`, `Set_Default_Stylesheet_String`) with browser-like typographic defaults in `examples/assets/html/default.css`.
-- Fixed `em` unit resolution in text measurement functions (was incorrectly using viewport height as font size).
-- `hr` block element now respects CSS margins.
-- Phase 4 milestone completed on 2026-05-09.
-- Implemented full CSS vertical margin collapsing: adjacent siblings, parent ↔ first/last child collapse-through across transparent wrappers, padding/border as collapse stoppers, and rendered-newline / `<br>` / `<hr>` commit semantics.
-- Temporary decoration workaround is active in `Adi.Widget` for `underline`, `line-through`, and `overline`.
-  - Reason: current SDL_ttf renderer text engine can render decoration fill ops with white RGB for non-white text colors.
-  - Upstream issue draft and patch are tracked in `deps/issues/sdl_ttf_text_decoration_color_issue.md` and `deps/issues/sdl_ttf_text_decoration_color.patch`.
-
-## Supported Tags (v1)
+## Supported Tags
 - Block: `div`, `p`, `h1`–`h6`, `ul`, `ol`, `li`, `hr`, `center`, `pre`, `blockquote`, `dl`, `dt`, `dd`, `section`, `article`, `header`, `footer`, `nav`, `main`, `aside`, `figure`, `figcaption`
 - Inline: `span`, `b`, `strong`, `em`, `i`, `code`, `a`, `s`, `del`, `ins`, `u`, `small`, `mark`, `abbr`, `kbd`, `var`, `samp`, `q`, `cite`, `time`, `img` (inline atomic box), `svg` (inline atomic box), `br`
 - Unknown tags: transparent containers (children preserved and rendered).
-- No visual defaults are applied by the widget itself. Users may load a default stylesheet via `Set_Default_Stylesheet` to get browser-like typographic defaults (font sizes, weights, margins, text-decoration). Only structural properties (`display`, `white-space` for `pre`) are set as tag defaults.
+- Tag defaults are structural only (`display`, `white-space` for `pre`). Typographic defaults (font sizes, weights, margins, text-decoration) come from a stylesheet loaded through `Set_Default_Stylesheet`.
 
-## Attributes (v1)
+## Attributes
 - Common: `id`, `class`, `style`
 - `img`: `src`, `alt`, `width`, `height`
 - `svg`: standard nested inline SVG content (for example `<svg ...><path .../></svg>`)
@@ -39,35 +25,38 @@
 
 Attributes other than the above may be parsed and ignored.
 
-## Public Widget API (Proposed)
+## Public Widget API
 Package: `Adi.Widget.Html_View`
 
 - **Creation**
   - `function Create_Handle return Html_View_Handle;`
-  - No window attachment call is required; `Html_View` is window-agnostic.
+  - The view needs no window attachment.
 
 - **Content**
   - `procedure Set_HTML (Self : in out Html_View; Source : String);`
   - `function Get_HTML (Self : Html_View) return String;`
 
-- **Hyperlink callback**
+- **Hyperlink signal**
   - ```ada
     type Link_Click_Callback is access procedure
-      (Self : access Html_View;
+      (Self : Html_View_Handle;
        Href : String);
-    procedure Set_On_Link_Click
-      (Self     : in out Html_View;
-       Callback : Link_Click_Callback);
+    procedure Connect_Link_Click
+      (Self : in out Html_View; CB : Link_Click_Callback);
+    function Connect_Link_Click
+      (Self : in out Html_View; CB : Link_Click_Callback)
+       return Link_Click_Signals.Connection_Id;
+    procedure Disconnect_Link_Click
+      (Self : in out Html_View; Id : Link_Click_Signals.Connection_Id);
     ```
-  - Triggered on left-button release when pointer is still over the same link run.
-  - If no callback is set, link clicks are ignored.
+  - Emitted on left-button release when the pointer is still over the same link run.
 
 - **Asset loading callback (`img` resources)**
   - ```ada
     with Adi.Image;
 
     type Asset_Load_Callback is access function
-      (Self : access Html_View;
+      (Self : Html_View_Handle;
        URI  : String)
        return Adi.Image.Image_Handle;
 
@@ -94,7 +83,7 @@ Package: `Adi.Widget.Html_View`
 - **Resource loading callback (`<link rel="stylesheet">`)**
   - ```ada
     type Resource_Load_Callback is access function
-      (Self : access Html_View;
+      (Self : Html_View_Handle;
        URI  : String) return String;
 
     procedure Set_On_Load_Resource
@@ -103,8 +92,8 @@ Package: `Adi.Widget.Html_View`
     ```
   - Used to resolve linked stylesheet resources by URI.
   - Invoked for `<link rel="stylesheet" href="...">` entries in HTML content.
-  - Return empty string to indicate resource-not-found.
-  - No file-system fallback is performed by the widget; resources are callback-owned.
+  - An empty string means the resource was not found.
+  - Resources are callback-owned; the widget reads no file itself.
 
 - **Default stylesheet**
   - ```ada
@@ -198,8 +187,7 @@ The renderer implements CSS-style vertical margin collapsing:
 - Render with monospace family if configured; otherwise fallback to current resolved family.
 - Default tag style may include subtle background + small horizontal padding.
 - Wrapping:
-  - Default v1: permit wrapping at normal whitespace boundaries.
-  - No horizontal scrolling in v1.
+  - Wraps at normal whitespace boundaries.
 
 ### Lists (`ul`/`ol`/`li`)
 - Each `li` is a block row with marker area + content area.
@@ -221,7 +209,7 @@ The renderer implements CSS-style vertical margin collapsing:
   - Each laid-out link fragment stores rect + `href`.
   - Hover state tracked per fragment for style resolution.
   - Click dispatch calls `On_Link_Click (Href)` once per completed click.
-- Keyboard activation for links is out of scope for v1 unless the widget is later made focus-fragment aware.
+- Links activate by pointer only.
 
 ## CSS and Cascade
 - Style sources:
@@ -232,7 +220,7 @@ The renderer implements CSS-style vertical margin collapsing:
   5. Tag/class/id selectors from parsed stylesheets
   6. Inline `style` attributes
 - Implemented precedence: `defaults < default-stylesheet < tag < class < id < inline`.
-- The widget ships with no built-in visual defaults. Users may load `examples/assets/html/default.css` via `Set_Default_Stylesheet` for browser-like typographic defaults (font sizes, weights, margins, text-decoration). Document CSS always overrides the default stylesheet.
+- `examples/assets/html/default.css` is a browser-like typographic default sheet for `Set_Default_Stylesheet`. Document CSS always overrides the default stylesheet.
 - Inline style declarations are parsed once and cached by normalized declaration text.
 - Document CSS and every inline `style` attribute go through `Adi.CSS_Parser.Rule_Sheet`, which answers a selector's `Style_Rules` and interns none of them. The view cascades those rules itself and never asks for a part, a state or a `Widget_Style`, so the round trip a `Stylesheet` makes through the rule-set and style stores would leave a permanent entry per distinct rule block and per distinct inline style. A `Rule_Sheet` is an ordinary object: the document's dies with the view, an inline style's with the call that parsed it.
 - `:root` metadata is host-scoped inside the widget:
@@ -259,12 +247,12 @@ The renderer implements CSS-style vertical margin collapsing:
 - `<li>` implies close of any open `<li>` in the same list scope (does not cross `<ul>`/`<ol>` boundaries).
 - Unexpected closing tag closes up-stack until match; if no match, ignore close token.
 - Text outside known structure is preserved as text nodes.
-- Entities supported in v1: `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&#39;`.
+- Entities: `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`, and numeric references up to `&#255;`.
 - Unknown entities remain literal text.
 
 ## Images (`img`/`svg`) and `hr`
 - `img`:
-  - Source resolution is callback-driven through `Set_On_Load_Asset` (no widget-side filesystem fallback).
+  - Source resolution is callback-driven through `Set_On_Load_Asset`.
   - Missing/failed `src` load renders `alt` text when present, otherwise empty inline placeholder.
   - `width`/`height` attributes override intrinsic size when provided.
   - If only one dimension is provided, preserve intrinsic aspect ratio.
@@ -284,10 +272,7 @@ The renderer implements CSS-style vertical margin collapsing:
 - Non-link clicks are ignored by default and may bubble per normal widget behavior.
 
 ## Window Integration
-- `Html_View` does not expose or require an `Attach_Window` API.
-- All rendering behavior (including list markers and inline SVG/image handling) is self-contained in the widget.
-- Text editors, text inputs, and combo boxes resolve overlay host windows automatically from widget-tree membership.
-- Dialog widgets still require explicit host attachment via `Attach_Window`.
+- Rendering, list markers and inline SVG/image handling are self-contained in the widget; it has no `Attach_Window`.
 
 ## Performance and Caching
 - `Set_HTML` reparses and rebuilds internal run/tree caches, then marks widget dirty.
@@ -301,7 +286,7 @@ The renderer implements CSS-style vertical margin collapsing:
 - `Html_View` installs no styles at construction and does not set the `Scrollable` flag. Scrolling and clipping come entirely from CSS `overflow-x` / `overflow-y`, whose initial value is `visible`.
 - Scrolling is opt-in: `overflow-y: auto` (or `scroll`) makes the widget a viewport that clips its document and scrolls it. `examples/css/html_view_example.css` shows the usual form.
 - Left at `visible`, `Get_Preferred_Size` routes through `Measure_Content` and the widget sizes itself to its document height — useful for short, static documents such as inline code blocks that should grow to fit.
-- Horizontal scrolling is not implemented: there is no horizontal scroll offset or scrollbar, so `overflow-x: auto` clips without any way to reach the clipped content.
+- `overflow-x: auto` clips; a horizontal offset and scrollbar are the subject of [`proposals/horizontal_scrolling.md`](proposals/horizontal_scrolling.md).
 - Appearance — background, border, radius, padding, text and link colours, scrollbar track and knob — is entirely the stylesheet's. A fresh view draws none of it.
 
 ## Testing Coverage (`tests/src/html_view_test.adb`)
@@ -355,14 +340,7 @@ The renderer implements CSS-style vertical margin collapsing:
     margins (same path also covers `pre` and `pre-wrap`).
   - `<hr>` participates in collapsing on both top and bottom edges.
 
-## Implementation Milestones
-1. Parser + normalized node model + recovery/entity handling.
-2. Block/inline layout engine with list markers and line-break semantics.
-3. Rendering integration (text, boxes, images, `hr`) with style cascade.
-4. Link fragment hit-testing + callback dispatch.
-5. Test suite and example program (`examples/html_view_example.adb`, optional in v1).
-
-## Open Decisions (Default Choices)
-- Link keyboard activation: defer to v2.
-- Rich URL policy (`mailto:`, custom schemes): pass `href` string unchanged to app callback.
-- Sanitization: widget is render-only; application decides trust and navigation policy in callback.
+## Policy
+- Link keyboard activation: pointer only.
+- URL policy (`mailto:`, custom schemes): `href` reaches the callback unchanged.
+- Sanitization: the widget is render-only; the application decides trust and navigation in the callback.

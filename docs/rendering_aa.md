@@ -1,6 +1,6 @@
 # Antialiased Rendering
 
-Adi renders rounded shapes using triangle-based geometry submitted to SDL's `SDL_RenderGeometry`. This document describes the antialiasing technique, how border and outline rings are drawn, and how to avoid common artifacts.
+Adi renders rounded shapes as triangle geometry submitted to `SDL_RenderGeometry`. This document covers the antialiasing technique, how border and outline rings are drawn, and the artifacts a mismatch produces.
 
 ---
 
@@ -89,7 +89,7 @@ Render_AA_Fringe
 
 This works for transparent, semi-transparent, and opaque backgrounds. With opaque fill, the inward fringe is mostly covered; with transparent fill, it remains visible and removes inner-edge aliasing.
 
-**Pitfall**: Do not fill with the ring's own color — it will paint over content underneath (this was tried for outline and covered the entire widget).
+**Pitfall**: Do not fill with the ring's own color — it paints over the content underneath.
 
 ### Strategy 2: Render-order layering + inward fringe (used by outlines)
 

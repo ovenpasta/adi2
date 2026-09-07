@@ -22,6 +22,9 @@ python3 tools/xml_to_ada.py input.xml \
 | `--output-dir`, `-o` | Output directory (default `.`) |
 | `--package-name`, `-p` | Ada package name (required) |
 | `--grammar`, `-g` | Extra widget grammar XML to merge with built-in |
+| `--i18n` | Wrap translatable attributes in `Adi.I18N.T` (see [I18N Integration](#i18n-integration)) |
+| `--no-live-css` | Compile the stylesheets in and read nothing from disk (see [Dual-Mode CSS](#dual-mode-css-static-fallback--dynamic-live-reload)) |
+| `--properties-package` | The Ada package declaring the widget properties an inline `<style>` selects on (see `css_styling.md`, Widget Properties) |
 
 Produces `my_ui.ads` and `my_ui.adb` in the output directory.
 
@@ -416,7 +419,7 @@ This keeps stylesheet root metadata coherent in both modes:
 
 For compile-time-only imports (styles-only links, no live CSS), generated code applies the merged root metadata directly in `Build` and uses it when resolving `rem`.
 
-When a `<window>` is present, `Tick_Styles_CB` is auto-wired to `Set_On_Tick` whenever the package has local live CSS or nested `<component>` instances. This ensures live reload also reaches component packages declared in separate XML files.
+When a `<window>` is present, `Tick_Styles_CB` is wired to `Set_On_Tick` whenever the package has local live CSS or nested `<component>` instances, so live reload also reaches component packages declared in separate XML files.
 
 For top-level `<dialog>` packages, the generated `Attach_Window` helper performs the corresponding host-window tick hookup.
 
@@ -749,7 +752,7 @@ The body contains:
 
 ## Validation
 
-The parser rejects unsupported elements with a clear error message. Any element not listed in the grammar (`tools/widgets.xml`) or the known declaration tags (`enum`, `generic`, `callback`, `link`, `style`, `window`, `dialog`, `option-group`, `page`, `item`, `component`) causes a parse failure:
+Any element outside the grammar (`tools/widgets.xml`) and the declaration tags (`enum`, `generic`, `callback`, `link`, `style`, `i18n`, `window`, `dialog`, `option-group` under `<adi>`; `page`, `item` and `component` under the widgets that take them) is a parse failure:
 
 ```
 Error parsing XML: Unsupported element <foobar> inside <adi>
@@ -808,10 +811,9 @@ plural forms, locale fallback).
 
 ## Limitations
 
-- **No dynamic widget removal** — The tree is built once in `Build`; no runtime add/remove
-- **No conditional rendering** — All widgets are always created
-- **No nested generics** — Generic widgets cannot contain other generic widgets directly
-- **No inline event handlers** — Callbacks must be declared with `<callback>` and referenced by name
-- **Single root widget per `<window>`** — Exactly one child element under `<window>`
-- **Single content widget per `<dialog>`** — At most one child element under `<dialog>`
-- **Page children** — Each `<page>` must contain exactly one widget or one `<component>`
+- **The tree is built once**, in `Build`; every widget in the XML is created, and later changes are made through the handles it exports
+- **Generic widgets hold plain widgets** — a generic widget directly inside another is outside the grammar
+- **Callbacks are declared** with `<callback>` and referenced by name
+- **One root widget per `<window>`**
+- **At most one content widget per `<dialog>`**
+- **One widget or one `<component>` per `<page>`**

@@ -1,4 +1,4 @@
-# Finalization ordering — known issue and structural options
+# Finalization ordering
 
 ## Symptom
 
@@ -73,11 +73,10 @@ references and returns without calling `On_Destroy`, `Clear_Items`, or
 `Widget_Stores.Request_Destroy` — the OS reclaims the heap at process
 exit so the store cleanup is harmless to skip.
 
-This is a **tactical guard**, not a structural fix. Widgets destroyed
-explicitly (`Adi.Widget.Destroy (H)` while the program is still
-running) go through the full normal path.
+The guard covers library finalization only. A widget destroyed while the
+program runs (`Adi.Widget.Destroy (H)`) goes through the full path.
 
-## Structural options, ordered by leverage
+## Structural options
 
 ### Option 1 — `pragma Elaborate_All` on every widget child package in `Adi.Window`
 
@@ -94,18 +93,15 @@ Forces `Adi.Window` to depend on each widget child package, which
 forces those packages to elaborate *before* Window and therefore
 finalize *after* it. The guard becomes unnecessary in the normal case.
 
-**Cost:** enumeration (breaks every time a new widget type lands),
-backwards dependency (Window now knows about every concrete widget
-type, which it doesn't otherwise need to). Doesn't cover user-defined
-widget types at all.
-
-**Effort:** ~5 lines per widget type, ~50 lines total today.
+**Cost:** a line per widget type, a dependency from `Adi.Window` on every
+concrete widget package, and nothing for a widget type defined outside
+the library.
 
 ### Option 2 — Type-erased cleanup captured at registration time (recommended)
 
-The clean fix. When a widget is created, capture a non-dispatching
-cleanup procedure derived from the concrete type **at that moment**,
-and store it in the handle-store slot alongside the access value:
+When a widget is created, capture a non-dispatching cleanup procedure
+derived from the concrete type **at that moment**, and store it in the
+handle-store slot alongside the access value:
 
 ```ada
 type Cleanup_Proc is access procedure (Self : Widget_Access);
@@ -144,12 +140,10 @@ end Widget_Registration;
 
 Instantiated once per widget type in its body.
 
-**Effort:** moderate refactor (~1–2 days for the framework
-side). Touches every Create entry point and the handle-store API.
+Touches every `Create` entry point and the handle-store API.
 
-**Pays off:** Window can be safely walked at any time, including from
-library finalization, including with consumer-defined widget types
-that we don't `with`.
+**Pays off:** the window can walk its tree at any time, including from
+library finalization, and for widget types defined outside the library.
 
 ### Option 3 — Make `Adi.Window.Destroy` mandatory; leave Finalize a leak
 
@@ -158,29 +152,21 @@ and have `Adi.Window.Finalize` only tear down SDL resources (renderer,
 window, render context). The widget tree leaks — but the OS reclaims
 it at process exit.
 
-**Cost:** API contract change. Every example, every test, every
-embedder has to remember to call Destroy. Easy to forget.
-
-**Effort:** documentation + a small change to `Finalize` to skip the
-tree walk entirely.
+**Cost:** an API contract every example, test and embedder has to
+honour.
 
 ## Recommendation
 
-**Option 2.** It's the only one that gives a real ownership guarantee
+**Option 2.** It is the one option that gives an ownership guarantee
 without enumerating widget types or putting the burden on consumers.
-The tactical guard buys time; it shouldn't be the permanent answer.
 
-If Option 2 is too much surface area in the short term, **Option 1**
-covers the in-tree widget set with minimal code and the user can layer
-their own `Elaborate_All` for custom widgets. It is, however, a real
-backwards dependency from Window onto every widget child package —
-which is arguably an architectural smell, since Window shouldn't need
-to know about Button or Combo_Box.
+**Option 1** covers the in-tree widget set with a handful of lines, and
+an application can add `Elaborate_All` for its own widgets, at the cost
+of a dependency from `Adi.Window` on every widget child package.
 
 ## See also
 
-- `src/adi-widget.adb` — `Destroy_Subtree`, `Begin_Library_Finalization`,
+- `../../src/adi-widget.adb` — `Destroy_Subtree`, `Begin_Library_Finalization`,
   `End_Library_Finalization`.
-- `src/adi-window.adb` — `Finalize` (calls Begin/End around its tree walk).
-- Commit `ce15a63` — the tactical guard. Comment at the guard site
-  cross-references this document.
+- `../../src/adi-window.adb` — `Finalize` (calls Begin/End around its tree walk).
+- Commit `ba08184` — the guard.

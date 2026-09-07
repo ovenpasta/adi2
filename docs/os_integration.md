@@ -46,17 +46,10 @@ procedure Show_Open_File_Dialog
    Filters          : File_Filter_Array := No_Filters;
    Default_Location : String := "";
    Allow_Many       : Boolean := False);
-
-procedure Show_Open_File_Dialog
-  (Callback         : Dialog_Callback;
-   Window           : Adi.Window.Window_Handle;
-   Filters          : File_Filter_Array := No_Filters;
-   Default_Location : String := "";
-   Allow_Many       : Boolean := False);
 ```
 
 - **Callback** — called with the selected file path(s), or an empty array on cancel.
-- **Window** — parent window for modal positioning. Use access overload for legacy code or handle overload for handle-first code.
+- **Window** — parent window for modal positioning.
 - **Filters** — file type filters shown in the dialog.
 - **Default_Location** — initial directory path (optional).
 - **Allow_Many** — if `True`, multiple files can be selected.
@@ -78,12 +71,6 @@ procedure Show_Save_File_Dialog
                          Adi.Window.Null_Window_Handle;
    Filters          : File_Filter_Array := No_Filters;
    Default_Location : String := "");
-
-procedure Show_Save_File_Dialog
-  (Callback         : Dialog_Callback;
-   Window           : Adi.Window.Window_Handle;
-   Filters          : File_Filter_Array := No_Filters;
-   Default_Location : String := "");
 ```
 
 ### Show_Open_Folder_Dialog
@@ -95,12 +82,6 @@ procedure Show_Open_Folder_Dialog
   (Callback         : Dialog_Callback;
    Window           : Adi.Window.Window_Handle :=
                          Adi.Window.Null_Window_Handle;
-   Default_Location : String := "";
-   Allow_Many       : Boolean := False);
-
-procedure Show_Open_Folder_Dialog
-  (Callback         : Dialog_Callback;
-   Window           : Adi.Window.Window_Handle;
    Default_Location : String := "";
    Allow_Many       : Boolean := False);
 ```
@@ -282,7 +263,7 @@ function Has_Clipboard_Text return Boolean;
 
 ## Low-Level SDL Bindings
 
-The high-level `Adi.OS` API is built on three hand-crafted SDL3 binding packages. These are available for advanced use but most applications should use `Adi.OS` instead.
+`Adi.OS` is built on three hand-crafted SDL3 binding packages:
 
 | Package | File | Wraps |
 |---------|------|-------|

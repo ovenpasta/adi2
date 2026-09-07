@@ -1,15 +1,6 @@
 # SDL3 Bindings for Adi
 
-This directory contains clean, hand-crafted Ada bindings for SDL3, following a consistent design pattern that avoids the complexity of auto-generated bindings.
-
-## Design Philosophy
-
-These bindings prioritize:
-1. **Simplicity**: Use native Ada types (`Uint8`, `Uint32`, `C_bool`, etc.) instead of raw C imports
-2. **Consistency**: All bindings follow the same structure and naming conventions
-3. **Cleanliness**: No dependencies on auto-generated bindings (no `stddef_h`, `SDL3_SDL_stdinc_h`, etc.)
-4. **Ada-native**: Proper Ada enumerations with representation clauses instead of C integers
-5. **Readability**: Well-organized with clear section comments
+`src/adi-sdl*.ads` hold hand-crafted Ada bindings for SDL3, SDL3_ttf and SDL3_image. They use the native types `Adi.SDL` declares, Ada enumerations with `Convention => C` for C enums, and nothing from the auto-generated `bindings/` tree.
 
 ## Available Bindings
 
@@ -34,14 +25,7 @@ These bindings prioritize:
 - Viewport and clipping
 - Color modulation and blending
 - VSync control
-
-Key features:
-- **Renderer Creation**: Multiple ways to create renderers (from window, software, etc.)
-- **Texture Management**: Full texture lifecycle (create, modify properties, destroy)
-- **Drawing Primitives**: Points, lines, rectangles (outlined and filled)
-- **Texture Rendering**: Basic, rotated, tiled, and 9-grid rendering
-- **State Management**: Viewport, clipping, scaling, colors, blend modes
-- **Debug Tools**: Built-in debug text rendering
+- Debug text rendering
 
 ### Adi.SDL.TTF (adi-sdl-ttf.ads)
 **TrueType font rendering via SDL3_ttf**
@@ -109,6 +93,11 @@ Key features:
 **Preferred locales**
 - `SDL_Locale` record (language, country)
 - Query of the user's preferred locale list, used by `Adi.I18N`
+
+### Adi.SDL.Properties (adi-sdl-properties.ads)
+**Property sets**
+- `SDL_PropertiesID`, create and destroy
+- Number and pointer properties, which texture creation from a foreign GPU object reads
 
 ## Binding Pattern
 
@@ -232,32 +221,11 @@ To add bindings for a new SDL subsystem:
 4. Use types from `Adi.SDL` (Uint8, Uint32, C_bool, etc.)
 5. Convert C enums to Ada enumerations with `Convention => C`
 6. Use incomplete types for opaque structures: `type T is limited null record;`
-7. Ensure consistent formatting and organization
 
 ## Auto-Generated vs Hand-Crafted
 
-The `bindings/` directory contains auto-generated bindings from SDL3 headers. These are useful for reference but should NOT be used directly because:
-
-- They have complex dependency chains (`SDL3_SDL_stdinc_h`, `stddef_h`, etc.)
-- They use raw C types throughout
-- They're harder to read and maintain
-- They don't follow Ada idioms
-
-Instead, use them as a reference when creating hand-crafted bindings in `src/adi-sdl-*.ads`.
+The `bindings/` directory holds auto-generated bindings from the SDL3 headers. They are the reference for signatures, types and constants; the hand-crafted packages are what the library compiles, since the generated ones pull in `SDL3_SDL_stdinc_h`, `stddef_h` and raw C types throughout.
 
 ## Linking
 
-To use these bindings, link against SDL3 and SDL3_ttf:
-
-```gpr
-package Linker is
-   for Default_Switches ("Ada") use
-      ("-L/usr/local/lib", "-lSDL3", "-lSDL3_ttf",
-       "-Wl,-rpath,/usr/local/lib");
-end Linker;
-```
-
-## License
-
-These bindings follow the same license as the Adi project.
-SDL3 itself is under the zlib license.
+`adi.gpr` exports `-lSDL3 -lSDL3_ttf -lSDL3_image -lm` and the platform switches as `Linker_Options`, so a project that withs it links without repeating them.

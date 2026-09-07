@@ -65,8 +65,7 @@ gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMP
 ### SVG rendering
 
 SVG is rendered through the vendored plutosvg / plutovg C library
-(`vendor/plutosvg/`). There is nothing to configure — it is built
-automatically as part of the library.
+(`vendor/plutosvg/`), built as part of the library.
 
 ### Valid TEST_KIND values
 The `Test_Kind` enumeration in `tests/tests.gpr` is the single source of
@@ -156,7 +155,7 @@ Writes only under `--build-dir`, except `config/adi2_config.gpr` in the source
 tree, written only when absent (see
 [docs/gprbuild_without_alire.md](gprbuild_without_alire.md)):
 - `config/adi_linker_config.gpr` — linker switches from pkg-config (sdl3, sdl3-ttf, sdl3-image)
-- `projects/{adi_build.gpr, tests_build.gpr, examples_build.gpr}`
+- `projects/{adi_build.gpr, tests_build.gpr, examples_build.gpr}`, and `plutosvg_build.gpr` and `rlottie_build.gpr` for the vendored C libraries `adi_build.gpr` withs
 - `build_all.sh` — full build script
 
 Target selection:

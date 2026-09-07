@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **Layout_Item** system lets widgets use flexbox layout for their internal visual elements (items), not just child widgets. This enables complex internal layouts without creating extra widget instances.
+`Layout_Item` lets a widget lay out its own visual elements (items) with the flex algorithm the containers use, without child widgets.
 
 ## Architecture
 
@@ -278,14 +278,6 @@ Only the `Main_Part` rules change; the item styles stay as they are.
 The same three parts are reachable from CSS: a bare class selector targets
 `Main_Part`, `::icon` targets `Icon_Part` and `::label` targets `Label_Part`.
 
-## Benefits
-
-1. **Reuses existing flex infrastructure** - Leverages `Compute_Flex_Layout` and `Flex_To_Rectangles`
-2. **No extra widgets** - Items are lightweight, not full widget instances
-3. **Flexible layouts** - Full flexbox power for internal widget structure
-4. **Clean separation** - Layout (positioning) vs Build_Items (rendering)
-5. **Extensible** - Easy to add more complex widgets (buttons with badge, menus, etc.)
-
 ## Workflow
 
 ```
@@ -306,13 +298,13 @@ Build_Items():
 
 ## Implementation Details
 
-The `Perform_Item_Flex_Layout` function:
-1. Converts `Layout_Item` → `Flex_Child_Info` (existing flex type)
-2. Calls `Compute_Flex_Layout` (existing flex algorithm)
-3. Calls `Flex_To_Rectangles` to get final positions
-4. Updates `Layout_Item.Geometry` with results
+`Perform_Item_Flex_Layout`:
+1. Converts each `Layout_Item` to a `Flex_Child_Info`
+2. Calls `Compute_Flex_Layout`
+3. Calls `Flex_To_Rectangles` for the final positions
+4. Writes them back to `Layout_Item.Geometry`
 
-This means all flex features work automatically:
+So the container properties all apply:
 - flex-direction (row, column, row-reverse, column-reverse)
 - justify-content (flex-start, center, space-between, etc.)
 - align-items (flex-start, center, stretch, etc.)

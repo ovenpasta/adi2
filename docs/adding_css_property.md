@@ -28,7 +28,7 @@ This file defines the Ada types that hold CSS values. Four things need adding:
 
 ### 1a. Value type (if new)
 
-If the property uses an enumeration or compound type that doesn't already exist, define it near the related types. For outline, we added a new enum after the border types:
+If the property uses an enumeration or compound type that does not already exist, define it near the related types. Outline declares its own enum after the border types:
 
 ```ada
 type Outline_Style_Kind is (Outline_None, Outline_Solid, Outline_Dashed, Outline_Dotted);
@@ -58,7 +58,7 @@ package Opt_Outline_Style  is new Optional_Values (Outline_Style_Kind, Default_O
 package Opt_Outline_Offset is new Optional_Values (Length_Value, Default_Outline_Offset);
 ```
 
-Add these near the existing `Opt_*` packages (around line 900).
+Add these beside the existing `Opt_*` packages.
 
 ### 1d. Fields in `Style_Rules` and `Resolved_Style`
 
@@ -267,38 +267,45 @@ compiling until it is sampled.
 
 ## Step 3 — Runtime CSS Parser (`src/adi-css_parser.adb`)
 
-In the `Apply_Property` procedure, add branches for each CSS property name. This is a large `if/elsif` chain matching on the property name string.
+A declaration name is a `Decl_Name` literal, looked up in `Decl_Table`
+by binary search, so a new property adds a literal and a row:
+
+```ada
+D_Outline_Width,                                   --  in Decl_Name
+("outline-width             ", D_Outline_Width),   --  in Decl_Table, in name order
+```
+
+`Apply_Declaration` then dispatches on the key. A branch parses the
+value and hands the property a `Value_Ref` through `Take`, or calls
+`Bad_Value`, which drops the declaration and reports it:
 
 ### Longhands
 
 ```ada
-elsif P = "outline-width" then
+elsif Key = D_Outline_Width then
    if Parse_Length (V, LVal) then
-      Rules.Outline_Width := Set_Outline_Width (To_Length (LVal));
+      Take (Prop_Outline_Width, Intern (To_Length (LVal)));
+   else
+      Bad_Value;
    end if;
-elsif P = "outline-color" then
-   if Parse_Color (V, CVal) then
-      Rules.Outline_Color := Set_Outline_Color (CVal);
-   end if;
-elsif P = "outline-style" then
-   if LV = "none" then Rules.Outline_Style := Set (Outline_None);
-   elsif LV = "solid" then Rules.Outline_Style := Set (Outline_Solid);
-   elsif LV = "dashed" then Rules.Outline_Style := Set (Outline_Dashed);
-   elsif LV = "dotted" then Rules.Outline_Style := Set (Outline_Dotted);
-   end if;
-elsif P = "outline-offset" then
-   if Parse_Length (V, LVal) then
-      Rules.Outline_Offset := Set_Outline_Offset (To_Length (LVal));
+elsif Key = D_Outline_Style then
+   if LV = "none" then Take (Prop_Outline_Style, Intern (Outline_None));
+   elsif LV = "solid" then Take (Prop_Outline_Style, Intern (Outline_Solid));
+   elsif LV = "dashed" then Take (Prop_Outline_Style, Intern (Outline_Dashed));
+   elsif LV = "dotted" then Take (Prop_Outline_Style, Intern (Outline_Dotted));
+   else
+      Bad_Value;
    end if;
 ```
 
-A side longhand of a box-valued property assigns one array element and
-touches nothing else:
+A side longhand of a box-valued property names the part it fills:
 
 ```ada
-elsif P = "padding-top" then
+elsif Key = D_Padding_Top then
    if Parse_Length (V, LVal) then
-      Rules.Padding (Top) := Set (To_Length (LVal));
+      Take (Prop_Padding, Edge_Part (Top), Intern (To_Length (LVal)));
+   else
+      Bad_Value;
    end if;
 ```
 
@@ -320,36 +327,46 @@ edge fails there.
 
 ### Shorthand
 
-Shorthands split the value into tokens and detect each component by type. Use `Split_Whitespace_Tokens` (not plain `Split`) to correctly handle `rgb(...)` with spaces inside parentheses:
+A shorthand splits the value with `Split_Whitespace_Tokens`, which keeps
+`rgb(...)` whole, reads each token by type, and takes the properties
+only once every token has been read — one token the grammar cannot read
+costs the whole declaration, as it does in `tools/css_to_ada.py`:
 
 ```ada
-elsif P = "outline" then
+elsif Key = D_Outline then
    declare
-      Tokens : Token_Vectors.Vector;
-      Tok_L  : Parsed_Length;
-      Tok_C  : Color_Value;
+      Tokens    : Token_Vectors.Vector;
+      Style_Val : Outline_Style_Kind := Outline_None;
+      Width_Val : Parsed_Length;
+      Color_Val : Color_Value;
+      Has_Style, Has_Width, Has_Color : Boolean := False;
+      Read_All  : Boolean := True;
    begin
       Split_Whitespace_Tokens (V, Tokens);
       for T of Tokens loop
          declare
-            Tok     : constant String := To_String (T);
-            Tok_Low : constant String := Lower (Tok);
+            Tok_Low : constant String := Lower (To_String (T));
          begin
-            if Tok_Low = "none" then
-               Rules.Outline_Style := Set (Outline_None);
-            elsif Tok_Low = "solid" then
-               Rules.Outline_Style := Set (Outline_Solid);
-            elsif Tok_Low = "dashed" then
-               Rules.Outline_Style := Set (Outline_Dashed);
-            elsif Tok_Low = "dotted" then
-               Rules.Outline_Style := Set (Outline_Dotted);
-            elsif Parse_Color (Tok, Tok_C) then
-               Rules.Outline_Color := Set_Outline_Color (Tok_C);
-            elsif Parse_Length (Tok, Tok_L) then
-               Rules.Outline_Width := Set_Outline_Width (To_Length (Tok_L));
+            if Tok_Low = "solid" then
+               Style_Val := Outline_Solid; Has_Style := True;
+            elsif ... --  the other keywords
+            elsif Parse_Color (Tok, Color_Val) then
+               Has_Color := True;
+            elsif Parse_Length (Tok, Width_Val) then
+               Has_Width := True;
+            else
+               Read_All := False;
             end if;
          end;
       end loop;
+
+      if Read_All and then (Has_Style or else Has_Width or else Has_Color) then
+         if Has_Style then Take (Prop_Outline_Style, Intern (Style_Val)); end if;
+         if Has_Width then Take (Prop_Outline_Width, Intern (To_Length (Width_Val))); end if;
+         if Has_Color then Take (Prop_Outline_Color, Intern (Color_Val)); end if;
+      else
+         Bad_Value;
+      end if;
    end;
 ```
 
@@ -367,7 +384,7 @@ The parser provides these helpers for value parsing:
 | `Parse_Length_List (V, Ls)` | `Boolean` | 1-4 whitespace-separated lengths |
 | `Split_Whitespace_Tokens (V, Toks)` | (proc) | Splits respecting parens/quotes |
 
-The property name is in `P` (original case), the value string in `V`, and `LV` is the lowercased value.
+The declaration key is in `Key`, the value string in `V`, and `LV` is the lowercased value.
 
 ---
 
@@ -429,22 +446,22 @@ elif prop == "outline-style":
 elif prop == "outline-offset":
     length = parse_length(value)
     if length:
-        ada_field = f"Outline_Offset => Set_Outline_Offset ({generate_length_ada(length)})"
+        ada_field = f"Outline_Offset ({generate_length_ada(length)})"
 
 # Shorthand
 elif prop == "outline":
     parts = split_css_whitespace_tokens(value)
     for part in parts:
         if part.lower() in OUTLINE_STYLE_MAP:
-            fields.append(f"{indent}Outline_Style => Set ({OUTLINE_STYLE_MAP[part.lower()]})")
+            fields.append(f"Outline_Style ({OUTLINE_STYLE_MAP[part.lower()]})")
             continue
         color = parse_color(part)
         if color:
-            fields.append(f"{indent}Outline_Color => Set_Outline_Color ({generate_color_ada(color)})")
+            fields.append(f"Outline_Color ({generate_color_ada(color)})")
             continue
         length = parse_length(part)
         if length:
-            fields.append(f"{indent}Outline_Width => Set_Outline_Width ({generate_length_ada(length)})")
+            fields.append(f"Outline_Width ({generate_length_ada(length)})")
     continue  # Skip ada_field since we appended directly
 ```
 
@@ -545,7 +562,7 @@ When adding a new CSS property, touch these files:
 | 2b | `src/adi-css_styles.ads` + `src/adi-animation.adb` | `Layout_Affecting_Properties` and `Snaps_At_Midpoint` entries |
 | 2c | `src/adi-resolved_styles.adb` | `Hash` line, for the store to tell two styles apart on it |
 | 2d | `src/adi-css_styles` + `src/adi-widget_styles` | `Intern`/`_Of` pair, `Apply_Property` and `Clear_Property` branches, `Composer` setter |
-| 3 | `src/adi-css_parser.adb` | `elsif P = "..."` branch in `Apply_Property`, and a `Wide_Target_Of` arm naming the keys the declaration reaches |
+| 3 | `src/adi-css_parser.adb` | `Decl_Name` literal, `Decl_Table` row, `elsif Key = D_...` branch in `Apply_Declaration`, and a `Wide_Target_Of` arm naming the keys the declaration reaches |
 | 4 | `tools/css_spec.py` + `tools/css_to_ada.py` | Spec entry (`SUPPORTED_PROPERTIES`) + enum map/`elif prop == "..."` generation, and an `INITIAL_CLEARS` or `INITIAL_GROUPS` entry |
 | 5 | `src/adi-widget.adb` | Rendering code (if visual), or layout code (if layout-affecting) |
 | 6 | `tests/src/css_parser_test.adb` | CSS test input + assertions |

@@ -42,6 +42,7 @@ tools/configure.sh --source-dir /path/to/adi --build-dir /tmp/adi-build
 Generated files:
 - `<build-dir>/config/adi_linker_config.gpr` (link flags from pkg-config, with defaults if unavailable)
 - `<build-dir>/projects/adi_build.gpr`
+- `<build-dir>/projects/plutosvg_build.gpr` and `rlottie_build.gpr`, which it withs
 - `<build-dir>/projects/tests_build.gpr`
 - `<build-dir>/projects/examples_build.gpr`
 - `<build-dir>/build_all.sh` (full build command using configured paths/options)

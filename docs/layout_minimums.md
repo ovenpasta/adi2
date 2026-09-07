@@ -1,7 +1,6 @@
 # Layout Minimums
 
-Two different questions, two different primitives. Confusing them is
-what let flex containers crush labels until their text spilled out.
+Two different questions, two different primitives.
 
 | Primitive | Question it answers |
 |-----------|--------------------|
@@ -107,31 +106,26 @@ under visible overflow that carries the preferred width, and freezing on
 it would pin wrapping content at its full unwrapped width.
 
 When the floors together exceed the space available, every track freezes
-and **the grid overflows**. That is the point of a minimum — one that
-yields under pressure is not a minimum. `tests/src/min_size_test.adb`
-covers the cascade (three `1fr` tracks in 300px with floors 150/90/0
-settling at 150/90/60) and the overflow case.
+and **the grid overflows**. `tests/src/min_size_test.adb` covers the
+cascade (three `1fr` tracks in 300px with floors 150/90/0 settling at
+150/90/60) and the overflow case.
 
-Not yet implemented, and tracked as follow-up work:
+Where Adi parts from CSS Grid:
 
-- **Mixed-axis `overflow` normalisation depends on horizontal
-  scrolling.** CSS computes a `visible` axis to `auto` when the other
-  axis is not visible. Adi currently keeps both axes independent:
-  `Overflow_X` and `Overflow_Y` are honoured exactly as written, and
-  only the internal input clip (`Clips_Own_Content`, used by text
-  inputs) covers both axes. Normalising them now would make
-  `overflow-y: auto` discard the horizontal content minimum and clip
-  horizontally, while Adi has no horizontal offset, scrollbar, or input
-  path to reach that content. A probe reduced the minimum width from
-  523px to 48px. Do not implement normalisation until horizontal
-  scrolling exists end to end, or until a deliberately specified partial
-  policy preserves horizontal reachability.
-- Indefinite preferred sizing still measures `fr` tracks from their
-  minimum contribution, so a one-column `1fr` grid reports the same
-  preferred and min-content width. CSS derives a common flex fraction
-  from max-content contributions instead.
-- Weighted tracks (`1fr 2fr`) need that common fraction rather than
-  summing each track independently.
-- Items spanning several tracks still divide their contribution equally,
-  which breaks once tracks have different frozen bases.
-- `minmax(0, Nfr)` has no representation in `Grid_Track_Spec`.
+- **Both overflow axes are read as written.** CSS computes a `visible`
+  axis to `auto` when the other axis is `hidden`, `scroll` or `auto`;
+  Adi honours `Overflow_X` and `Overflow_Y` independently, and only the
+  internal input clip (`Clips_Own_Content`, used by text inputs) covers
+  both. Normalising the axes would make `overflow-y: auto` discard the
+  horizontal content minimum and clip content that nothing can scroll
+  to, so it waits on horizontal scrolling
+  ([`proposals/horizontal_scrolling.md`](proposals/horizontal_scrolling.md)).
+- Indefinite preferred sizing measures `fr` tracks from their minimum
+  contribution, so a one-column `1fr` grid reports the same preferred
+  and min-content width. CSS derives a common flex fraction from
+  max-content contributions.
+- Weighted tracks (`1fr 2fr`) sum each track independently rather than
+  through that common fraction.
+- An item spanning several tracks divides its contribution equally,
+  whatever the tracks' frozen bases.
+- `Grid_Track_Spec` has no representation for `minmax(0, Nfr)`.

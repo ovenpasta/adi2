@@ -15,7 +15,7 @@ at runtime.
 The app chooses one resolution strategy at startup via `Adi.Assets.Set_Mode`:
 
 - **`File_Mode`** (default) — resolve via registered search directories
-  (`Add_Path`). This is the existing behavior.
+  (`Add_Path`).
 - **`Bundle_Mode`** — resolve exclusively from the in-memory bundle registry.
   The filesystem is never consulted.
 
@@ -98,10 +98,8 @@ Adi.Font.Set_Default_Font
   (Adi.Font.Load_Asset ("OpenSans-Regular.ttf"));
 ```
 
-Note: Adi does not cascade `font-family` from parent to child widgets.
-Setting `font-family` on a container only affects that container's own
-text parts — child widgets still use the default. Use `Set_Default_Font`
-to set the app-wide font.
+`font-family` reaches a widget's own parts only; child widgets keep the
+default. `Set_Default_Font` is what sets the app-wide font.
 
 ## Build Integration
 

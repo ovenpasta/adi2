@@ -149,8 +149,8 @@ command = ["sh", "-c", "python3 \"$ADI2_TOOLS/xml_to_ada.py\" ui/main.xml --outp
 Actions run from the crate root with the Alire environment set, so
 `$ADI2_TOOLS` resolves there as it does under `alr exec`. They run on every
 build, and the generators overwrite their output unconditionally, so the
-generated sources cannot go stale. Note that a failing action only warns;
-the build then fails later when the missing source does not compile.
+generated sources cannot go stale. A failing action only warns; the build
+then fails when the missing source does not compile.
 
 ## 5. Write the program
 
@@ -574,7 +574,7 @@ stale rather than dangling, so operations on them fail cleanly. Use
 
 One hazard worth knowing before the program grows: a `Window` declared in a
 package that also declares widget types can be finalized in an order that
-breaks cleanup. See [`finalization_ordering.md`](finalization_ordering.md).
+breaks cleanup. See [`proposals/finalization_ordering.md`](proposals/finalization_ordering.md).
 
 ## Next
 

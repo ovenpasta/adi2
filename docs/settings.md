@@ -174,7 +174,7 @@ Store.Set ("meta.app\.name", "MyApp");
 
 ## JSON Backend
 
-`Adi.Settings.JSON_Backend` is the default (and currently only) backend. It serializes the setting tree as pretty-printed JSON via `Adi.JSON.JSON_Writer` and reads it back via `Adi.JSON.Parsers`.
+`Adi.Settings.JSON_Backend` is the default backend. It serializes the setting tree as pretty-printed JSON via `Adi.JSON.JSON_Writer` and reads it back via `Adi.JSON.Parsers`.
 
 ### Type Mapping
 
@@ -250,7 +250,7 @@ When providing an explicit backend, the caller owns it and must ensure it outliv
 | `src/adi-settings.adb` | Node tree, controlled ops, dot-path parsing, store logic |
 | `src/adi-settings-json_backend.ads` | `JSON_Settings_Backend` type |
 | `src/adi-settings-json_backend.adb` | JSON load/save, atomic file I/O |
-| `tests/src/settings_test.adb` | Test suite (86 tests) |
+| `tests/src/settings_test.adb` | Test suite |
 
 ## JSON Writer (`Adi.JSON`)
 

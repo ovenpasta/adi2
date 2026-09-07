@@ -1,6 +1,6 @@
 # Signals and Deferred Dispatch
 
-Adi provides two complementary mechanisms for decoupled communication between components:
+Two mechanisms for decoupled communication between components:
 
 - **Adi.Signal** — multi-subscriber signal/slot pattern for event callbacks
 - **Adi.Dispatch** — thread-safe deferred execution queue for the main thread
@@ -124,7 +124,7 @@ end Fire_Changed;
 - **Connect during emit**: new subscriber appends beyond the snapshot range and will not fire until the next emit.
 - **Disconnect during emit**: the slot is tombstoned immediately and skipped by the current iteration.
 
-This means signal handlers can safely connect or disconnect other handlers without corrupting iteration.
+A handler may therefore connect or disconnect other handlers during an emit.
 
 ### Subscriber Count
 
@@ -221,7 +221,7 @@ The `Close_Request` signal on `Window` demonstrates a vetoable pattern. The call
 
 ```ada
 procedure On_Close
-  (Win   : not null access Adi.Window.Window'Class;
+  (Win   : Adi.Window.Window_Handle;
    Allow : in out Boolean)
 is
 begin
@@ -237,78 +237,35 @@ Win.Connect_Close_Request (On_Close'Unrestricted_Access);
 
 The signal fires for both `SDL_EVENT_WINDOW_CLOSE_REQUESTED` (title-bar X) and `SDL_EVENT_QUIT` (Cmd+Q / Alt+F4). With no subscribers connected, close is allowed by default.
 
-### Confirmation dialog pattern and why Request_Quit is needed
+### Quitting from a dialog
 
-The common pattern — show a "Are you sure?" dialog, then quit when the user confirms — requires two separate close-request cycles and cannot be collapsed into one. Here is why, and how the pieces fit together.
+`Should_Quit`, the flag that ends `App.Run`, is local to `Run`, and
+`Handle_Close_Request` is the emit of `Close_Request`, so a callback
+running inside a dispatch — a dialog's result callback, say — reaches
+neither. `Adi.App.Request_Quit` pushes `SDL_EVENT_QUIT` instead, and the
+loop takes the quit path on its next poll, through `Close_Request` like
+any other quit.
 
-#### Why you cannot exit the loop directly from a dialog callback
-
-`Should_Quit`, the flag that terminates `App.Run`'s event loop, is a local variable inside `Run`. Dialog result callbacks (e.g. `On_Quit_Result`) are called deep inside the same event loop, on the call stack:
-
-```
-App.Run
-  └─ SDL_PollEvent  ← mouse-button-up for "Yes" button
-       └─ Window.On_Mouse_Up
-            └─ Dialog_Widget.On_Mouse_Up
-                 └─ On_Quit_Result   ← you are here
-```
-
-`On_Quit_Result` has no way to reach `Should_Quit` — it is a nested local in a different subprogram. There is no shared variable, no handle, no channel to write to. The callback can only act on its own state.
-
-#### Why the callback cannot call Handle_Close_Request directly
-
-`Handle_Close_Request` is the function that emits the `Close_Request` signal and checks whether any subscriber vetoed it. Calling it from inside a `Close_Request` subscriber would be a recursive signal emit — the `On_Close_Request` handler would fire again while it is already on the stack. The `Adi.Signal` implementation supports disconnect-during-emit safely, but re-entrant emission of the same signal from inside one of its own handlers is not a supported or intended pattern.
-
-#### The correct two-cycle sequence
-
-The solution is to post a new SDL event so that the event loop itself invokes the quit path on its own terms, in the next poll iteration. `Adi.App.Request_Quit` does exactly this:
-
-```ada
-procedure Request_Quit is
-   Event : aliased SDL_Event := (Event_Type => SDL_EVENT_QUIT);
-begin
-   if not Boolean (SDL_PushEvent (Event'Access)) then
-      Adi.Log.Error ("Request_Quit: SDL_PushEvent failed");
-   end if;
-end Request_Quit;
-```
-
-The full sequence for a confirmation dialog is:
+A confirmation dialog is therefore two close-request cycles:
 
 ```
-Cycle 1 — user clicks window X
-  SDL queues: SDL_EVENT_WINDOW_CLOSE_REQUESTED
-  App.Run picks it up → calls Handle_Close_Request
-    → On_Close_Request fires
-    → Quit_Confirmed = False, so: Allow := False, Show(Quit_Dialog)
-  Handle_Close_Request returns False → loop continues
+User clicks the window X
+  SDL queues SDL_EVENT_WINDOW_CLOSE_REQUESTED
+  App.Run → Handle_Close_Request → On_Close_Request
+    Quit_Confirmed is False: Allow := False, Show (Quit_Dialog)
+  loop continues, dialog visible
 
-  [dialog is visible, app keeps running normally]
-
-Cycle N — user clicks "Yes" in dialog
-  SDL queues: SDL_BUTTON_UP for "Yes"
-  App.Run picks it up → dispatches mouse event to Window → Dialog
-    → On_Quit_Result fires
-    → sets Quit_Confirmed := True
-    → calls Request_Quit → SDL_PushEvent(SDL_EVENT_QUIT)
-  Mouse event processing continues, loop continues to next event
-
-  SDL_PollEvent returns the just-pushed SDL_EVENT_QUIT
-  App.Run picks it up → calls Handle_Close_Request
-    → On_Close_Request fires
-    → Quit_Confirmed = True, so: Allow := True (no change needed)
-  Handle_Close_Request returns True → Should_Quit := True → loop exits
+User clicks "Yes"
+  App.Run → Window → Dialog → On_Quit_Result
+    Quit_Confirmed := True; Request_Quit
+  SDL_PollEvent returns the pushed SDL_EVENT_QUIT
+  App.Run → Handle_Close_Request → On_Close_Request
+    Quit_Confirmed is True: Allow stays True
+  Should_Quit := True, loop exits
 ```
 
-Each close attempt is a complete, independent event-loop cycle. The dialog callback's only job is to set the application-level `Quit_Confirmed` flag and re-enter the quit path via `Request_Quit`. The event loop then handles the quit the same way it would handle any other quit — through the `Close_Request` signal — and the handler allows it because the flag is set.
-
-#### Why not make Should_Quit a field on App
-
-An alternative would be to move `Should_Quit` out of `Run`'s locals and into the `App` record, then expose a `Quit` procedure that sets it. This would let callbacks quit directly. It is not done because:
-
-- It would require `Request_Quit` to take an `App` parameter (or use a global), adding coupling between the dialog callback and the App instance.
-- The SDL-event approach is already the idiomatic SDL pattern: SDL itself uses event queues for cross-component communication. Pushing a quit event means the quit goes through the same path as a real OS-initiated quit, exercising the same code.
-- The `Close_Request` signal fires on every quit attempt, so application-level guards (`Quit_Confirmed`, unsaved-changes checks, etc.) are always respected regardless of where the quit originates.
+The dialog callback sets the application's own flag and calls
+`Request_Quit`; the `Close_Request` handler reads the flag.
 
 ## Adi.Dispatch
 
@@ -359,7 +316,7 @@ Adi.Dispatch.Post (Update_UI'Access);
 
 ### Lifetime Requirement
 
-Callers must pass library-level `'Access`, not `'Unrestricted_Access` on local procedures. Ada accessibility rules enforce this at compile time.
+`Deferred_Proc` is a library-level access type, so `'Access` is legal on a library-level procedure only, and such a procedure is still there when `Drain` runs.
 
 ### Integration
 

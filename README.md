@@ -4,32 +4,32 @@
 [![Windows](https://github.com/ovenpasta/adi2/actions/workflows/windows.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/windows.yml)
 [![REUSE](https://github.com/ovenpasta/adi2/actions/workflows/reuse.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/reuse.yml)
 
-**A modern GUI library for Ada.**
+**A GUI library for Ada.**
 
-Adi2 gives you a real widget toolkit with the niceties developers expect from a modern UI stack — CSS-like styling with live reload, declarative XML layouts, animations, SVG and Lottie graphics, internationalization, and asset bundling — implemented natively in Ada on top of SDL3.
+A widget toolkit written in Ada on SDL3: CSS styling with live reload, XML layouts compiled to Ada, transitions, SVG and Lottie, internationalization, and asset bundling.
 
-> **Status:** in production use, but not yet a stable release — APIs may still change between versions.
+> **Status:** in production use, before a stable release; APIs still change between versions.
 
 ---
 
-## Why Adi2?
+## What it does
 
-- **Style your UI like the web.** Selectors, pseudo-classes, parts, transitions, gradients, box shadows — all in a familiar `.css` syntax. Edit the file, save, see the change. No recompile during development. Prefer pure Ada? CSS rules are just plain Ada aggregates of `Style_Rules` — write them by hand with no extra ceremony (see the snippet below).
-- **Describe UIs declaratively — or don't.** Write `<button>`, `<grid>`, `<text-editor>` in XML and let the toolchain emit clean Ada packages, *or* construct the same widget tree directly in Ada with handle-based builders. Both paths target the exact same API; the XML generator is a convenience, not a requirement.
-- **Render rich content.** A built-in lightweight HTML view widget renders documentation-style markup with cascading styles. Raster images through SDL3_image, SVG through the bundled plutosvg, Lottie animations through bundled rlottie.
-- **Ship a single binary.** Bundle every CSS file, font, image, translation, and SVG sprite into your executable. No filesystem dependencies at runtime.
-- **Speak the user's language.** Gettext-compatible i18n with plural forms, automatic locale detection, and `.po` → Ada compilation.
-- **Animate without boilerplate.** CSS transitions on `color`, `background-color`, `border-color`, `border-width`, `border-radius`, `padding`, `margin`, `opacity`, `box-shadow` and `font-size` — the framework handles interpolation and timing.
-- **Keyboard and clipboard out of the box.** Tab and Shift+Tab traverse focusable widgets, overlays trap focus, arrow keys drive lists, combos and sliders. Text inputs and editors take Ctrl+C/V/X/A and open a context menu. An application hook sees every key first, so shortcuts beat focus.
-- **HiDPI-ready units.** `dp`/`dip` for layout, `rem` for typography, `pix` when you mean one renderer pixel exactly, and `px` — which follows the display scale or not, depending on `Set_Px_Maps_To_Dip`. See [`docs/css_styling.md`](docs/css_styling.md).
-- **Built for tooling and automation.** A development-only MCP bridge lets editors and AI assistants screenshot the running app, walk the widget tree, *and* drive it — clicking buttons, typing into inputs, moving focus, reading performance counters. Great for end-to-end tests written by your AI of choice.
-- **Runs in the browser.** The examples compile to WebAssembly with GNAT-LLVM and Emscripten — [try them live](https://pizzahack.eu/adi2/demo/), or see [`wasm/`](wasm/) for the build.
+- **CSS.** Selectors, pseudo-classes, parts, transitions, gradients and box shadows in ordinary `.css`. Edit the file, save, and the running window restyles. The same rules are plain Ada aggregates of `Style_Rules`, written by hand where a stylesheet is unwanted (snippet below).
+- **XML, or Ada.** `<button>`, `<grid>`, `<text-editor>` in XML become typed Ada packages, or the same tree is built in Ada with handle-based constructors. Both reach one API.
+- **Rich content.** An HTML view widget renders documentation-style markup with cascading styles. Raster images through SDL3_image, SVG through the bundled plutosvg, Lottie animations through the bundled rlottie.
+- **One binary.** CSS, fonts, images, translations and SVG sprites bundle into the executable, so the program runs from any directory.
+- **Translation.** Gettext-compatible i18n with contexts, plural forms, locale detection, and `.po` to Ada compilation.
+- **Transitions.** CSS transitions on `color`, `background-color`, `border-color`, `border-width`, `border-radius`, `padding`, `margin`, `opacity`, `box-shadow` and `font-size`.
+- **Keyboard and clipboard.** Tab and Shift+Tab traverse focusable widgets, overlays trap focus, arrow keys drive lists, combos and sliders. Text inputs and editors take Ctrl+C/V/X/A and open a context menu. An application hook sees every key first, so shortcuts beat focus.
+- **HiDPI units.** `dp`/`dip` for layout, `rem` for typography, `pix` for one renderer pixel exactly, and `px`, which follows the display scale or not, as `Set_Px_Maps_To_Dip` says. See [`docs/css_styling.md`](docs/css_styling.md).
+- **Introspection.** A development-only MCP bridge lets an editor or an assistant screenshot the running app, walk the widget tree, and drive it: clicking buttons, typing into inputs, moving focus, reading performance counters.
+- **The browser.** The examples compile to WebAssembly with GNAT-LLVM and Emscripten: [live demos](https://pizzahack.eu/adi2/demo/), and [`wasm/`](wasm/) for the build.
 
-### What that costs to ship
+### What it costs to ship
 
-A release build links statically into a single executable under 10 MB —
-the widget toolkit, the CSS engine, SVG and Lottie rendering, all of it.
-Whatever assets you bundle add their own weight to that.
+A release build links statically into a single executable under 10 MB:
+the widget toolkit, the CSS engine, SVG and Lottie rendering. Bundled
+assets add their own weight.
 
 It draws through SDL's renderer, which binds to whatever the host offers:
 Direct3D on Windows, Metal on macOS, Vulkan or OpenGL where they exist,
@@ -48,8 +48,8 @@ Metal, from the same source.
 
 Sizes are for a minimal application; yours grows with your own code and
 assets. Each of the others buys its size with a large ecosystem and years
-of production use — the trade Adi2 offers is a single file you can hand to
-someone, on hardware the others have moved past.
+of production use; Adi2 offers a single file, on hardware the others have
+moved past.
 
 ---
 
@@ -76,7 +76,7 @@ Full gallery of every example: [`docs/gallery.md`](docs/gallery.md). Or run them
 
 ## A taste
 
-### Declarative path — XML + CSS
+### XML and CSS
 
 ```css
 /* examples/css/hello_example.css */
@@ -104,11 +104,11 @@ Full gallery of every example: [`docs/gallery.md`](docs/gallery.md). Or run them
 </adi>
 ```
 
-The toolchain emits a typed Ada package you instantiate from your `main` — see [`examples/hello_example.adb`](examples/hello_example.adb) for the full ~25-line program.
+The toolchain emits a typed Ada package that `main` instantiates; [`examples/hello_example.adb`](examples/hello_example.adb) is the full program.
 
-### Same thing, written by hand in Ada
+### The same, written in Ada
 
-The CSS rule above is just an aggregate. The XML widget tree is just a few constructor calls. Both paths land on the same API — see [`examples/hello_raw_example.adb`](examples/hello_raw_example.adb) for the full equivalent program. The shape of the styling code is:
+The CSS rule is an aggregate and the widget tree is a few constructor calls; [`examples/hello_raw_example.adb`](examples/hello_raw_example.adb) is the full equivalent program. The styling code has this shape:
 
 ```ada
 function Style return Style_Builder renames Adi.Widget_Styles.Create;
@@ -162,9 +162,9 @@ tools/build_examples.sh stack_example
 ./examples/bin/html_view_example
 ```
 
-To use Adi2 from your own project, `with "adi.gpr"` — SDL linker options come with it. The library's public specs use Ada 2022 constructs, so units that `with Adi.*` packages need `pragma Ada_2022;` or `-gnat2022`.
+To use Adi2 from your own project, `with "adi.gpr"`; the SDL linker options come with it. The library's public specs use Ada 2022 constructs, so units that `with Adi.*` packages need `pragma Ada_2022;` or `-gnat2022`.
 
-**Starting your own project?** [`docs/getting_started.md`](docs/getting_started.md) walks from an empty directory to a working window, in XML/CSS and again in plain Ada.
+[`docs/getting_started.md`](docs/getting_started.md) walks from an empty directory to a working window, in XML/CSS and again in plain Ada.
 
 Full build instructions, including building without Alire, in [`docs/build.md`](docs/build.md) and [`docs/gprbuild_without_alire.md`](docs/gprbuild_without_alire.md).
 
@@ -242,13 +242,13 @@ Direct3D, Vulkan, or plain CPU pixels — in
 - **Contracts** — `Pre`/`Post`/`Type_Invariant` and SPARK-mode subsets.
 - **C API** — a stable C-callable interface for non-Ada callers.
 
-Have an idea? Open an issue (see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the policy).
+Proposals go through an issue; [`CONTRIBUTING.md`](CONTRIBUTING.md) has the policy.
 
 ---
 
 ## Supported platforms
 
-Tested on **GNU/Linux**, **Windows** (XP, 7, 8, 10, 11, via MinGW), **macOS**, and **WebAssembly** (Emscripten). Anywhere else GNAT and SDL3 build should follow — the BSDs among them.
+Tested on **GNU/Linux**, **Windows** (XP, 7, 8, 10, 11, via MinGW), **macOS**, and **WebAssembly** (Emscripten). Anywhere else GNAT and SDL3 build should follow, the BSDs among them.
 
 Rendering goes through the SDL renderer abstraction, so it takes hardware acceleration where the machine offers it and falls back to software where it does not. That is what puts the same binary on Windows XP and on a current desktop.
 
@@ -256,8 +256,8 @@ Rendering goes through the SDL renderer abstraction, so it takes hardware accele
 
 ## Questions
 
-**Why "Adi2"? And why is the Ada package still `Adi.*`?**
-"adi" is too common a word for search engines — *Adi2* is findable. The in-code namespace stays `Adi.*` because `with Adi.Widget.Button;` reads better than `Adi2.Widget.Button` and renaming it would churn every source file for zero functional gain. Project = Adi2, package = `Adi`.
+**Why "Adi2", and why is the Ada package `Adi.*`?**
+"adi" is too common a word for search engines; *Adi2* is findable. The namespace stays `Adi.*` because `with Adi.Widget.Button;` reads better than `Adi2.Widget.Button`. Project = Adi2, package = `Adi`.
 
 ---
 

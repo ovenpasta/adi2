@@ -39,7 +39,7 @@
 - `Bind_Class` accepts space-separated class names; styles are merged left-to-right
 - Public `Merge_Part_Styles` for combining `Part_Style_Array` values outside the binding system
 - Composite specificity: tag < class < id
-- `Attach_Window(Source, Window_Handle)`: associates a window with the source so CSS metadata is applied to it automatically on every load/reload. Currently propagates `:root { font-size }` → `Window.Set_Root_Font_Size`. Properties absent from the CSS leave the window unchanged (no reset to defaults).
+- `Attach_Window(Source, Window_Handle)`: associates a window with the source so CSS metadata is applied to it on every load/reload: `:root { font-size }` → `Window.Set_Root_Font_Size`. Properties absent from the CSS leave the window unchanged.
 - `Begin_Update`/`End_Update` assemble a configuration without publishing it, so bound widgets are restyled once rather than once per step. `Update_Scope` is the scoped form, publishing on every exit path including an exception; generated `Build` procedures use it
 - `Tick` reloads dynamic files whose modification time changed. A sheet that fails to parse leaves the bound widgets styled from the last good one, reports through `Success`, and stays watched, so saving a correction reloads from it
 
@@ -76,7 +76,7 @@
 - Eviction takes only **idle** entries — unborrowed and undrawn for more than one frame. A texture the scene is using is never reclaimed: taking it would rebuild it next frame having freed nothing. Total residency therefore exceeds the budget by the working set
 - Box shadows are keyed `(Shadow_Texture, blur, corner radius)` — colour and offset are applied at draw time, so one texture serves every tint. Charged `Tex_Size²×4`; `Adi.Widget` times the whole build (mask, surface, upload, mode calls) and passes it as `Build_Time`
 
-`Adi.Widget.Update` calls `Collect` and then compares the generation against the tree it was given, marking the whole subtree dirty on a difference. An `Item` caches its style by handle and only `Apply_Styles_To_Items` refreshes it, which `Update` reaches through `Is_Dirty`; rendering reads those handles with nothing behind them, so without that comparison a widget that had gone clean would draw the default style after a clear. The comparison also puts the clear ahead of the frame's layout and draw, so no handle goes stale part-way through a frame.
+`Adi.Widget.Update` calls `Collect` and then compares the generation against the tree it was given, marking the whole subtree dirty on a difference. An `Item` caches its style by handle and only `Apply_Styles_To_Items` refreshes it, which `Update` reaches through `Is_Dirty`. Running the clear at the top of `Update` also puts it ahead of the frame's layout and draw, so no handle goes stale part-way through a frame.
 
 **Adi.Animation** (`adi-animation.ads`): CSS-like style transitions.
 - `Part_Transition`: per-widget-part animation state, holding handles and a scratch slot rather than styles by value
@@ -129,7 +129,7 @@
 - Rendering backend lives in `src/svg/plutosvg` and uses the vendored plutosvg / plutovg C libraries under `vendor/plutosvg/`
 - Public API surface: `Load_From_File`, `Load_From_String`, `Get_Size`, `Render_ARGB32`, `Destroy`, `Backend_Name`
 - The SVG path parser (`src/svg/adi-svg-parser.ads`) is shared and also drives `Adi.SVG_Sprites`
-- **`clip-path` is not supported.** plutosvg parses `clipPath` and `clip-path` and then ignores them (`TAG_CLIP_PATH, // TODO` in `vendor/plutosvg/source/plutosvg.c`), upstream included, so clipped content draws unclipped. An asset that relies on it must have the clip baked into its geometry; `examples/assets/tiger.svg` had its two clipped ear groups flattened for this reason. Implementing clipping in the vendored backend is open work
+- plutosvg parses `clipPath` and `clip-path` and ignores them (`TAG_CLIP_PATH` in `vendor/plutosvg/source/plutosvg.c`, upstream included), so clipped content draws unclipped. An asset that relies on a clip needs it baked into its geometry
 
 **Adi.SVG_Sprites** (`adi-svg_sprites.ads`): SVG sprite sheet loader for icon fonts (e.g. FontAwesome).
 - Parses `<symbol>` elements from SVG sprite files, keyed by `id`
@@ -192,7 +192,7 @@
 - `Font_Attributes` groups family/size/weight/style/decoration
 - Sized `TTF_Font` instances cached per `(handle, size)` pair
 - Variant-aware cache with `Register_Variant` and fallback probing
-- Platform font paths selected via `Adi.Build_Target.Is_Windows`
+- Platform font paths and generic-family candidates selected on `Adi.Build_Target.Platform`, a per-platform spec under `config/`
 
 #### Sized-face budget
 
@@ -226,13 +226,9 @@ into one, and it says nothing about the descriptor each file-backed face
 also holds — the scarcer of the two resources, and one a charge uniform
 per face bounds alongside the bytes.
 
-**Why the default is 8 MB.** Read across the example corpus through
-`perf_stats`, residency runs from 2 faces (`hello_example`) to 43
-(`font_example`, 6.3 MB), with `html_view_example` at 23 and
-`material_demo` at 17; the mean is 6.4. Eight megabytes is about sixty
-faces, above the largest, so a program of that shape never pays a reopen
-and one sweeping a scale through its range settles here instead of
-climbing.
+**The default is 8 MB**, about sixty faces, above what any example
+holds, so a program of that shape never pays a reopen and one sweeping a
+scale through its range settles here instead of climbing.
 
 **What may be closed.** A face is a candidate only when nothing pins it
 *and* it was handed out neither in this render nor the one before. The
@@ -248,10 +244,8 @@ deliberately from `Adi.Texture_Cache`, where a pin held across frames is
 a documented misuse; a face behind a live text object genuinely cannot be
 reclaimed, which is why the budget governs idle residency alone.
 
-The distinction between the two matters: pins alone are not enough.
-Building with the frame distance removed and a one-byte budget, every
-example fails to start, because layout measures through one face while
-opening another and nothing has yet pinned either.
+The render distance is what keeps a face layout measures through alive
+while it opens another, before anything has pinned either.
 
 **When.** `Adi.Window.Render` calls `Advance_Frame` beside
 `Adi.Render.Advance_Frame` and before anything reads a face. That is
@@ -286,7 +280,7 @@ opened later and landing on the recycled address reads a stale line skip.
 - Box model, edge/border extraction, alignment
 - Flexbox and grid layout (`Compute_Grid_Layout` / `Grid_To_Rectangles`)
 - Grid track sizing: `Grid_Track_List` carries per-column `auto`/`fr`/`px`/`pix` specs (up to 16 tracks). `Compute_Grid_Layout` implements a 5-pass algorithm: (1) size `auto` columns to max child preferred width, (2) assign initial widths from track specs (`px` and `pix` fixed, `fr` = 0), (3) distribute remaining space to `fr` columns, (4) expand `auto`/`px`/`pix` columns and rows for `min-width`/`min-height`, and record a floor for each `fr` column from its items' minimum contribution, (5) re-distribute `fr` columns by flex factor, freezing any that fall below their floor and resharing among the rest until stable — the grid overflows when the floors alone exceed the space. Rows use an analogous 2-pass scheme: Pass 4 expands to content minimums, then remaining height is shared equally. When `overflow: visible` and rows overflow the allocated height (e.g. after text-wrap discovery), the grid container grows to fit.
-- `fr` measurement in `Measure_Content` (`Adi.Widget.Box`): `fr` columns contribute their children's intrinsic **minimum** width to the grid's content size, so `fr` columns stay shrinkable and text wraps when the container is constrained. `auto` columns contribute their full preferred width. Known deviation: this also makes a grid whose only column is `fr` report the same preferred and min-content width — CSS would derive a common flex fraction from max-content contributions. See `docs/layout_minimums.md`.
+- `fr` measurement in `Measure_Content` (`Adi.Widget.Box`): `fr` columns contribute their children's intrinsic **minimum** width to the grid's content size, so `fr` columns stay shrinkable and text wraps when the container is constrained. `auto` columns contribute their full preferred width. A grid whose only column is `fr` therefore reports the same preferred and min-content width, where CSS derives a common flex fraction from max-content contributions. See `docs/layout_minimums.md`.
 - Low-level unit conversion state: `Length_To_Px` scales `dip` by OS DIP scale plus active user UI scale; `Font_Length_To_Px` also applies active text scale. App code should normally change user scaling through `Adi.Window`, not by mutating `Layout_Util` directly.
 
 **Adi.Window** (`adi-window.ads`): Window management.
@@ -327,7 +321,7 @@ opened later and landing on the recycled address reads a stale line skip.
 - `Widget_Access` and `Resolve_Handle` are private to `Adi.Widget`. Outside code holds handles and reaches a widget through `Borrow`; a widget type defined outside the library is registered through `Adi.Widget.Extension`.
 - `Adi.Widget.Window_Bridge` carries the destroy notification to `Adi.Window`, which `Adi.Widget` cannot name directly.
 - An operation reached through a handle borrows for the length of its own call when that call can reach an application callback, so a callback is free to destroy the widget whose call it is running under: the slot is retired when the call unwinds. `docs/handle_ownership.md` lists which operations pin and why the rest do not need to.
-- Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Text_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`
+- Part system: `Main_Part`, `Indicator_Part`, `Label_Part`, `Text_Part`, `Icon_Part`, `Cursor_Part`, `Selected_Part`, `Scroll_Part`, `Knob_Part`, `Items_Part`, `Any_Part` (the fallback a part with a style of its own overrides) and `Custom_Part` (one slot for a widget outside the library)
 - Item system: `Panel_Item`, `Text_Item`, `Image_Item`
 - Flags: `Clickable`, `Focusable`, `Scrollable`, `Draggable`, `Visible`. Each is a declaration its owner makes and only its owner changes; layout and rendering read them. Whether a widget scrolls is `Is_Scroll_Enabled`, which answers from the `Scrollable` flag its type or its application gave it — `List_Box` and `Text_Editor` set it at construction — or from an `overflow-y` its stylesheet scrolls, so a sheet that changes what it says changes what the widget does. That is the question the wheel routing, the scrollbar geometry and the sizing paths all ask. A separate private dispatching primitive, `Clips_Own_Content`, marks widgets that scroll their own content without being scroll containers — text inputs, and value inputs by inheritance. It clips only the parts the widget scrolls (`Text_Part`, `Cursor_Part`, `Selected_Part`) on both axes, so a floating `Label_Part` sitting above the border still draws. It is the equivalent of a browser's user-agent `overflow: hidden` on an input, and being private a stylesheet cannot switch it off.
 - Visibility model:
@@ -350,8 +344,8 @@ opened later and landing on the recycled address reads a stale line skip.
 - `On_Tick(DT)` per-frame hook
 - Image rendering: `object-fit` modes (Fill, Cover, Contain, None, Scale_Down), rounded clipping
 - Label icon sizing honors `Icon_Part` `width`/`height` styles in both measurement and layout
-- Label text Y-offset honours CSS `vertical-align` on the label part: `baseline`/`top` (default) pins text to the top of the assigned slot, `middle` centres it, `bottom`/`text-bottom` pins it to the bottom. The slack is `slot_height − measured_text_height`; the default keeps historical top-aligned rendering so existing layouts are unaffected
-- **No hardcoded sizing fallbacks.** Widgets that have no inherent content size (e.g. `Adi.Widget.Button.Switch`) return `(0, 0)` from `Measure_Content` instead of a hardcoded pixel constant. CSS class rules must set `width`/`height` on the widget and `::knob`/`::indicator`/etc. on the moving parts; a class that forgets to size the switch produces a 0×0 widget — loud failure, surfaces the missing CSS rule. Avoids the trap where a hardcoded fallback rendered at "physical pixels regardless of DIP scale" — looking microscopic on Retina even though CSS lengths around it scaled correctly
+- Label text Y-offset honours CSS `vertical-align` on the label part: `baseline`/`top` (default) pins text to the top of the assigned slot, `middle` centres it, `bottom`/`text-bottom` pins it to the bottom. The slack is `slot_height − measured_text_height`
+- A widget with no inherent content size (`Adi.Widget.Button.Switch`, say) returns `(0, 0)` from `Measure_Content`. CSS sizes the widget (`width`/`height`) and its moving parts (`::knob`, `::indicator`); a class that leaves the switch unsized produces a 0×0 widget, which is what makes the missing rule visible
 
 **Text_Input**: Single-line editor using `Text_Buffer`. Horizontal scroll, caret, selection, context menu. Double-click word select, triple-click select all.
 - `Min_Visible_Chars` (default 20): controls the preferred width as a character count. The input does not grow with its text content; long text scrolls horizontally. Set via `Set_Min_Visible_Chars`, query via `Get_Min_Visible_Chars`. Width is computed as `char_width("M") × Min_Visible_Chars` plus padding/border.
@@ -365,7 +359,7 @@ opened later and landing on the recycled address reads a stale line skip.
 **List_Box** (generic over row widget): Selection modes (None/Single/Multi/Range), anchor-based range, inertial scrolling, style-driven scrollbar; a row hidden with `Set_Visible` takes no height, no gap, no hit target and no keyboard stop.
 - **Grid layout mode**: CSS `grid-template-columns` activates grid layout (e.g., `repeat(3, 1fr)` for 3 columns). Gap between rows/columns comes from CSS `gap`/`row-gap`/`column-gap`. Layout uses `Compute_Grid_Layout` from `Adi.Layout_Util`.
 - **Grid keyboard navigation**: Left/Right arrows move between columns (±1 item), Up/Down move between rows (±N items). PageUp/PageDown jump by visible-rows × columns. Home/End go to first/last item.
-- **Grid hit-testing**: Click detection uses cached cell rectangles (both X and Y), so clicks map correctly to grid cells. Cell positions are computed during layout and cached in `Cell_Rects` for O(N) lookup.
+- **Grid hit-testing**: Click detection uses the cell rectangles layout cached in `Cell_Rects`.
 - **Scrolling**: Vertical scrolling works in both modes. `Ensure_Row_Visible` uses cached cell positions to scroll the correct row into view.
 - **Preferred height policy**: With auto height, preferred height is bounded by min-height + chrome floor (not total row content height), since list-box scrolling is internal.
 
@@ -375,7 +369,7 @@ opened later and landing on the recycled address reads a stale line skip.
   `Data` is an `Item_Data_Access` — a borrowed reference to any user-defined tagged type derived
   from `Item_Data`; the combo box never frees it.
 - **`Add_Item`**: `Add_Item (W, Text [, Icon] [, Data])` — both widget and handle overloads;
-  `Icon` and `Data` default to `null` so existing callers compile unchanged.
+  `Icon` and `Data` default to `null`.
 - **Read accessors**: `Get_Item_Icon (W, Index)`, `Get_Item_Data (W, Index)` index into the
   stored vector (1-based; out-of-range returns `null`). `Get_Selected_Data (W)` returns
   `Data` for the currently selected item (`null` when nothing is selected). All have
@@ -420,13 +414,15 @@ opened later and landing on the recycled address reads a stale line skip.
 - Optional content scale API (`Set/Get_Content_Scale`) scales absolute/content units without changing `%`/`vw`/`vh` fit semantics
 - Html `vw`/`vh` resolve against the html content viewport (normal widget `vw`/`vh` resolve against SDL window size)
 - `:root` metadata is host-scoped to each `Html_View`: the widget stores its own root font size for `rem`, and parsing embedded/linked css does not mutate global parser root-font state
-- Hyperlink interaction via `Set_On_Link_Click` with clipping-aware hit regions from final laid-out runs
+- Hyperlink interaction through the `Link_Click` signal (`Connect_Link_Click`) with clipping-aware hit regions from final laid-out runs
 - Resource loading is callback-driven: `Set_On_Load_Asset` for `img`, `Set_On_Load_Resource` for linked stylesheets
 - Embedded `<style>` and callback-loaded `<link rel="stylesheet">` are parsed with `Adi.CSS_Parser`
 - Standard inline SVG blocks are supported (`<svg ...><path .../></svg>`) and rendered as inline image items
 - Block elements emit styled panel items, so element `background`/`border` styles are visible in Html_View output
 
 **Context_Menu** / **Text_Context_Menu**: Popup overlay menu; shared factory for Undo/Redo/Cut/Copy/Paste/Select All.
+
+**Texture_View**: Blits a texture the application drew with OpenGL, Direct3D, Vulkan or the CPU, adopted by name or address or uploaded from pixels. `docs/texture_view.md`.
 
 ## Widget Rendering Pipeline
 
@@ -440,17 +436,15 @@ opened later and landing on the recycled address reads a stale line skip.
    - For clipped containers, descendants are skipped when the effective clip region is non-positive
    - Text positions snapped to integer pixels
    - Font hinting: `TTF_HINTING_LIGHT_SUBPIXEL`
-   - Temporary decoration workaround: `underline`/`line-through`/`overline` are drawn manually in `Adi.Widget` to avoid SDL_ttf renderer text-engine white-line color behavior; upstream patch draft is stored in `deps/issues/`
+   - `underline`/`line-through`/`overline` are drawn by `Adi.Widget` rather than SDL_ttf's renderer text engine, which fills them white; the upstream patch is under `deps/issues/`
 
 Render scheduling note: relayout runs only when layout/geometry is dirty (`Mark_Dirty`); pure visual updates (state changes, scroll-offset, visual-only animations) use `Mark_Render_Dirty` for repaint without forcing full tree relayout.
 
-**State-change dirty classification** (`Set_State` / `Set_Part_State`): when a state flips, the runtime compares the old and new resolved styles via `Widget_State_Style_Effect` / `Part_State_Style_Effect`, which return `Diff_None` / `Diff_Render_Only` / `Diff_Layout_Affecting`. The comparison is on handles: equal handles are equal styles, and `Adi.Resolved_Styles.Layout_Affecting_Diff` is one equality on the layout handle behind each. The result picks the cheapest valid invalidation: `Diff_None` → no work; `Diff_Render_Only` → `Mark_Render_Dirty`; `Diff_Layout_Affecting` → `Mark_Dirty`. `Adi.CSS_Styles.Layout_Affecting_Properties` covers the layout surface (border, padding, margin, width/height, min/max, font, line-height, text wrap, white-space, display, position, inset, overflow, flex-*, grid-*, gap). Without this classification, a `:selected` rule that toggles only `display: none ↔ block` (a layout-affecting change) would only mark render-dirty and the bullet's new size wouldn't be assigned until the next genuine layout invalidation — the cause of the "first reveal step shows nothing" bug we hit on the workshop deck.
+**State-change dirty classification** (`Set_State` / `Set_Part_State`): when a state flips, the runtime compares the old and new resolved styles via `Widget_State_Style_Effect` / `Part_State_Style_Effect`, which return `Diff_None` / `Diff_Render_Only` / `Diff_Layout_Affecting`. The comparison is on handles: equal handles are equal styles, and `Adi.Resolved_Styles.Layout_Affecting_Diff` is one equality on the layout handle behind each. The result picks the cheapest valid invalidation: `Diff_None` → no work; `Diff_Render_Only` → `Mark_Render_Dirty`; `Diff_Layout_Affecting` → `Mark_Dirty`. `Adi.CSS_Styles.Layout_Affecting_Properties` covers the layout surface (border, padding, margin, width/height, min/max, font, line-height, text wrap, white-space, display, position, inset, overflow, flex-*, grid-*, gap).
 
 **Debug stats overlay**: `Set_Debug_Stats(True)` enables a 2-line HUD showing frame number, FPS, per-stage timing (Update/Layout/Draw/Present in microseconds), layout count, layout trigger reason, style cache hit ratio, per-widget and global memo (`S:hits+memo/total`), layout call/skip counts (`LC:calls+skips`), and preferred-size cache ratio (`P:hits/total`). Renders only when the scene is already being redrawn — does not force extra frames.
 
-### Layout Performance Optimizations
-
-Three optimizations reduce layout cost for large widget trees (e.g. 280+ widgets in list_box_example):
+### Layout Caches
 
 **Resolved style caching and evaluation** (`Get_Resolved_Part_Style` / `Get_Part_Style_Rules`):
 - A `Widget_Style` is a four-byte handle into the store `Adi.Widget_Styles` keeps, so a widget's twelve part styles are 96 bytes and every layer above carries handles rather than rule sets.
@@ -464,13 +458,13 @@ Three optimizations reduce layout cost for large widget trees (e.g. 280+ widgets
   - packed part states
   - packed main-part states
 - On global-cache overflow (`32k` entries), the cache is cleared (deterministic bounded-memory policy). It is cleared too when the store's generation moves, since its handles then name entries the store has let go.
-- Cache writes use `'Unrestricted_Access` on the read-only `Widget'Class` parameter (safe because caches are internal memoization only).
+- Cache writes use `'Unrestricted_Access` on the read-only `Widget'Class` parameter; the caches are memoization and change nothing observable.
 
-**Epoch-based layout deduplication** (`Layout_Tree` / `Layout_Child`): A global `Current_Layout_Epoch` counter increments once per `Layout_Tree` call via `Bump_Layout_Epoch`. The public `Layout_Tree` bumps the epoch then delegates to a private `Layout_Tree_Impl` for recursive descent — this ensures every external call (root, overlay, or dialog subtree) gets a fresh epoch while recursive children share the same epoch for dedup. Containers (flex, grid, list_box, stack) call `Layout_Child(Child)` instead of bare `Layout(Child)` — this stamps `Child.Last_Layout_Epoch := Current_Layout_Epoch`. When `Layout_Tree_Impl` later recurses into those children, it skips the redundant `Layout` call if the epoch matches. `Bump_Layout_Epoch` wraps to 1 (not 0) at `Natural'Last` to avoid matching the default `Last_Layout_Epoch := 0` init value. This eliminates ~50% of layout calls in container-heavy trees.
+**Epoch-based layout deduplication** (`Layout_Tree` / `Layout_Child`): A global `Current_Layout_Epoch` counter increments once per `Layout_Tree` call via `Bump_Layout_Epoch`. The public `Layout_Tree` bumps the epoch then delegates to a private `Layout_Tree_Impl` for the recursive descent, so every external call (root, overlay, or dialog subtree) gets a fresh epoch and recursive children share it. Containers (flex, grid, list_box, stack) call `Layout_Child (Child)` rather than bare `Layout (Child)`, which stamps `Child.Last_Layout_Epoch := Current_Layout_Epoch`; when `Layout_Tree_Impl` later recurses into those children, it skips the `Layout` call if the epoch matches. `Bump_Layout_Epoch` wraps to 1 at `Natural'Last`, past the default `Last_Layout_Epoch := 0`.
 
-**Preferred size cache** (`Get_Preferred_Size`): Each widget caches its computed preferred size, keyed on `(Current_Layout_Epoch, Style_Version, Content_Version, Get_States(W), Geometry.Width, Geometry.Height)`. The cache is pass-scoped (valid within one layout epoch) and mutation-keyed (invalidated by style changes, content changes, state changes, or geometry changes). `Content_Version` is a per-widget counter bumped by `Mark_Dirty` (which is called by `Set_Text`, `Add_Child`, etc.) — it detects content mutations that don't affect `Style_Version`. `Cached_Pref_Epoch` is initialized to `Natural'Last` to prevent false hits before the first `Layout_Tree` call. Achieves ~56% hit rate in list_box_example (280+ widgets).
+**Preferred size cache** (`Get_Preferred_Size`): Each widget caches its computed preferred size, keyed on `(Current_Layout_Epoch, Style_Version, Content_Version, Get_States(W), Geometry.Width, Geometry.Height)`. The cache is pass-scoped (valid within one layout epoch) and mutation-keyed (invalidated by style changes, content changes, state changes, or geometry changes). `Content_Version` is a per-widget counter bumped by `Mark_Dirty` (which `Set_Text`, `Add_Child` and the like call), so it catches content mutations that leave `Style_Version` alone. `Cached_Pref_Epoch` starts at `Natural'Last`, so nothing hits before the first `Layout_Tree` call.
 
-**Version bump helpers**: `Bump_Style_Version`, `Bump_Layout_Epoch`, and `Bump_Content_Version` are private auxiliary procedures that handle `Natural'Last` wraparound consistently. Layout epoch and content version wrap to 1 (not 0) to avoid matching default init values.
+**Version bump helpers**: `Bump_Style_Version`, `Bump_Layout_Epoch`, and `Bump_Content_Version` are private procedures that handle `Natural'Last` wraparound; layout epoch and content version wrap to 1, past their default init values.
 
 **Performance counters**: `Reset_Perf_Counters` / `Get_Perf_*` functions in `Adi.Widget` track style resolves, layout calls, layout skips, preferred-size calls, preferred-size cache hits, and the widgets a tick reached, per frame. A style resolve ends in exactly one of three counters — a per-widget cache hit, a global memo hit, or a full cascade — which together partition `Get_Perf_Style_Resolves`. A frame's counters open where the frame before it closed, so its figures cover the events dispatched between the two draws and the animation tick as well as its own update, layout and drawing — a state change resolves two styles per part it touches, and belongs to the frame that draws its result. A tick that draws nothing closes its own window, so an application that redraws on demand does not hand the next frame it draws every idle tick it spent. `Frame_Stats` and the MCP `perf_stats` command report the same numbers as the debug stats overlay.
 
@@ -516,9 +510,7 @@ Wrapping itself never breaks a word: `Effective_Wrap_Width` floors the wrap widt
 - **Box** aggregating child minimums asks each child at the width that child will be laid out at. On a row that is whatever the distribution hands it — a declared width is the item's *basis* there and still grows or shrinks from it, so two `width: 200px` items in a 300px row are measured at 150, not 200. On a column it is the declared width, or the line when the child stretches, so a `width: 100px` wrapping label in a 300px column is not measured at 300. Block stacking is the column rule without the stretch: the declared width, clamped by `min-width`/`max-width`, or the content area less the child's margins (`Block_Child_Width`). A non-shrinkable child is floored at its resolved flex base, capped by `max-width` — a floor above the ceiling is a size the item can never take.
 - **Grid** asks at the width the cell will actually render at — the child's own declared width when it has one, the track width otherwise (`Grid_Child_Width`), so a `width: 100px` label in a 300px cell is not measured at 300.
 
-**Implemented for**: `Label` (wrapping, icon column, padding/border), `Box`, `Stack`. One deliberate fallback returns the unconstrained preference instead:
-
-- `Html_View` — its layout writes into the widget (cached document size, block rectangles, scroll content height), so it cannot answer without mutating state. Refactoring it to measure purely is a follow-up.
+**Implemented for**: `Label` (wrapping, icon column, padding/border), `Box`, `Stack`. `Html_View` answers with the unconstrained preference: its layout writes into the widget (cached document size, block rectangles, scroll content height), so measuring at a width would mutate state.
 
 A **multi-child row** is answered by running the distribution itself: `Flex_Row_Child_Widths` builds each child's `Flex_Child_Info` through the same `Make_Flex_Child_Info` the layout uses, calls `Distribute_Main_Sizes`, and reports the resulting widths. Only the main axis is resolved — cross sizing would stretch the children and contaminate an answer that was asked how wide they are — and nothing is written back, so measurement stays a query.
 
@@ -528,9 +520,17 @@ A **multi-child row** is answered by running the distribution itself: `Flex_Row_
 
 **Adi.JSON** (`adi-json.ads`): JSON support — wraps the vendor parser (`json-ada`) for reading and provides `JSON_Writer` (streaming builder with automatic comma tracking, pretty-printing, depth tracking) and `Escape_String` (UTF-8 safe) for writing. Used by both `Adi.Settings.JSON_Backend` and `Adi.MCP`.
 
+## OS and Locale
+
+**Adi.OS** (`adi-os.ads`): native file and folder dialogs, base/pref/user paths, file operations, URL launching and the clipboard, over `Adi.SDL.Dialog`, `Adi.SDL.Filesystem` and `Adi.SDL.Misc`. `docs/os_integration.md`.
+
+**Adi.I18N** (`adi-i18n.ads`): gettext-style translation with contexts and plural forms, registered from packages `tools/po_to_ada.py` generates, with the language auto-detected through `Adi.SDL.Locale`. `docs/i18n.md`.
+
+**Adi.Screenshot** (`adi-screenshot.ads`): `Capture` writes the renderer's contents to a PNG.
+
 ## SDL Bindings
 
 Hand-crafted Ada bindings in `adi-sdl*.ads`:
-- `Adi.SDL` (core, clipboard), `.Video`, `.Render`, `.Events`, `.Mouse`, `.TTF`, `.TTF.TextEngine`, `.Image`, `.Surface`, `.PixelFormat`, `.IO`, `.Dialog`, `.Filesystem`, `.Locale`, `.Misc`
+- `Adi.SDL` (core, clipboard), `.Video`, `.Render`, `.Events`, `.Mouse`, `.TTF`, `.TTF.TextEngine`, `.Image`, `.Surface`, `.PixelFormat`, `.IO`, `.Dialog`, `.Filesystem`, `.Locale`, `.Misc`, `.Properties`
 - Native Ada types, incomplete types for opaque C structs, proper enumerations
-- `adi.gpr` exports `-lSDL3 -lSDL3_ttf -lSDL3_image` as `Linker_Options`, so any project withing it links them without repeating the switches
+- `adi.gpr` exports `-lSDL3 -lSDL3_ttf -lSDL3_image -lm`, plus the macOS SDK and Homebrew switches, as `Linker_Options`, so any project withing it links them without repeating the switches

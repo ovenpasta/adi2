@@ -486,9 +486,9 @@ A flex container whose own main size is still being decided — the question a p
 
 Runtime (`Adi.CSS_Parser`) and compile-time (`css_to_ada.py`) both support `border` shorthand and side/corner longhands with standard declaration order semantics (later declarations win).
 For asymmetric corners, prefer `border-radius` shorthand when possible (for example, top-only rounding: `border-radius: 8px 8px 0px 0px;`) and use corner longhands only for targeted overrides.
-Corner radius longhands currently accept a single value only (elliptical two-value corner syntax is not supported yet).
+A corner longhand takes one length.
 
-> **Border-radius resolution**: each corner length is resolved through `Adi.Layout_Util.Resolve_Border_Radius_Px`, which routes the value through `Length_To_Px`. That means `border-radius: 8px` honours the `Set_Px_Maps_To_Dip` convention and the active DIP scale exactly like every other length property — `8px` on a Retina display where `Set_Px_Maps_To_Dip` is on resolves to `16` physical pixels, the same way `width: 8px` would. (The plain `Adi.CSS_Styles.Get_Border_Radius_Px` returns raw `.Amount` values and bypasses unit handling — don't use it for rendering; it exists only for legacy callers.)
+> **Border-radius resolution**: each corner length is resolved through `Adi.Layout_Util.Resolve_Border_Radius_Px`, which routes the value through `Length_To_Px`. That means `border-radius: 8px` honours the `Set_Px_Maps_To_Dip` convention and the active DIP scale exactly like every other length property — `8px` on a Retina display where `Set_Px_Maps_To_Dip` is on resolves to `16` physical pixels, the same way `width: 8px` would. (`Adi.CSS_Styles.Get_Border_Radius_Px` returns raw `.Amount` values and bypasses unit handling; rendering goes through `Resolve_Border_Radius_Px`.)
 
 ### Colors
 
@@ -510,9 +510,9 @@ Corner radius longhands currently accept a single value only (elliptical two-val
 | `text-align` | `left`, `right`, `center`, `justify`, `start`, `end` | `text-align: center;` |
 | `vertical-align` | `baseline`, `top`, `middle`, `bottom`, `text-top`, `text-bottom` | `vertical-align: middle;` |
 
-> **Label horizontal alignment**: `Adi.Widget.Label` honours `text-align` by shifting the whole text block within its label-part slot, so it only shows where the slot is wider than the text. A label sized by its own padding has no spare room and is unaffected; a label with a declared width has. `justify` renders as `left`, and `end` as `right` — there is no RTL support yet. Wrapped text takes a different route: it has a wrap width, which is a box SDL understands, so the item asks the font cache for a variant carrying that alignment and SDL positions each line within the wrap width. A block offset could not do that, since the lines need moving independently. The two paths never overlap — the offset is zero whenever the item wraps.
+> **Label horizontal alignment**: `Adi.Widget.Label` honours `text-align` by shifting the whole text block within its label-part slot, so it only shows where the slot is wider than the text. A label sized by its own padding has no spare room and is unaffected; a label with a declared width has. `justify` renders as `left`, and `end` as `right`. Wrapped text takes a different route: it has a wrap width, which is a box SDL understands, so the item asks the font cache for a variant carrying that alignment and SDL positions each line within the wrap width. The two paths never overlap — the offset is zero whenever the item wraps.
 
-> **Label vertical alignment**: `Adi.Widget.Label` honours `vertical-align` for positioning text within the assigned label-part slot. When a label sits in a flex-row container that stretches its slot taller than the text — the common case for a fixed-height button (`height: 36px; padding: 7px 16px; font-size: 13px` leaves the label slot taller than a single line of text) — the default `baseline` / `top` keeps text at the top of the slot (historical behaviour), `middle` centres it (typical button styling), and `bottom` / `text-bottom` pins it to the bottom. Add `vertical-align: middle` to your button's `::label` rule if the text otherwise looks "high".
+> **Label vertical alignment**: `Adi.Widget.Label` honours `vertical-align` for positioning text within the assigned label-part slot. When a label sits in a flex-row container that stretches its slot taller than the text — a fixed-height button, say (`height: 36px; padding: 7px 16px; font-size: 13px` leaves the label slot taller than a line of text) — the default `baseline` / `top` keeps text at the top of the slot, `middle` centres it, and `bottom` / `text-bottom` pins it to the bottom. A button label that looks high wants `vertical-align: middle` on its `::label` rule.
 | `text-decoration` | `none`, `underline`, `overline`, `line-through` | `text-decoration: underline;` |
 | `line-height` | `normal`, number, length | `line-height: 1.5;` |
 | `white-space` | `normal`, `nowrap`, `pre`, `pre-wrap`, `pre-line` | `white-space: nowrap;` |
@@ -523,7 +523,7 @@ Corner radius longhands currently accept a single value only (elliptical two-val
 
 Lines break at whitespace only. A box narrower than the widest word does not stack that word into fragments — the word is drawn past the edge, and clipping is then whatever `overflow` says. Every path agrees on this: `Adi.Widget.Effective_Wrap_Width` floors the wrap width at the widest word, and measurement, layout's re-measure pass and the renderer all wrap through it, so a container reserves the room the text will actually occupy.
 
-There is no `overflow-wrap` or `word-break` property yet, so the behaviour cannot be opted out of. It approximates CSS `overflow-wrap: normal` rather than implementing it: flooring the whole column at the widest word also lets *shorter* words share a line wider than the box really is. Exact behaviour requires whitespace-aware line breaking and those two properties.
+The policy approximates CSS `overflow-wrap: normal`: flooring the whole column at the widest word also lets *shorter* words share a line wider than the box really is. `overflow-wrap` and `word-break` would need whitespace-aware line breaking.
 
 ### Layout & Display
 
@@ -551,7 +551,7 @@ Resolved styles store only axis values (`Overflow_X`, `Overflow_Y`), and normal 
 
 `position: absolute` — child is removed from flow (excluded from flex/grid sizing and placement). The containing block is the direct parent's content box. Inset offsets position the child within that box. If both horizontal insets are set and width is not explicit, width is derived as `content_width - left - right`. Same for vertical. If only `right` (or `bottom`) is set with a known size, the child anchors from that edge.
 
-`fixed` and `sticky` are parsed but have no layout effect (deferred).
+`fixed` and `sticky` are parsed and have no layout effect.
 
 Inset properties (`top`, `right`, `bottom`, `left`) default to `auto` (meaning "not set"). The `auto` keyword is supported and parsed explicitly. An inset set to `auto` has no positional effect; only `Fixed` insets (concrete lengths or percentages) participate in offset and sizing calculations.
 
@@ -605,10 +605,10 @@ Building rules in Ada follows the same shape: `Gap (L)` and `Gap (Row, Column)` 
 
 `margin: auto` parses on a flex child but does nothing there: the side counts as zero. Flexbox [§8.1](https://www.w3.org/TR/css-flexbox-1/#auto-margins) has an auto margin absorb all free space *before* `justify-content` runs and suppress it entirely, which the distribution pass does not implement. Reach for `justify-content`, a `flex-grow: 1` spacer, or a nested flex box instead. Block layout does distribute auto margins — see the box-model section.
 
-Two of those values are accepted but not yet acted on:
+Two values are read and have no effect:
 
-- **`baseline`** (on `align-items` and `align-self`) falls back to `flex-start`. Aligning to a shared baseline needs per-item text metrics the flex pass does not collect.
-- **`order`** is parsed and resolved but never reorders anything; items lay out in document order.
+- **`baseline`** (on `align-items` and `align-self`) falls back to `flex-start`. Aligning to a shared baseline needs per-item text metrics the flex pass leaves uncollected.
+- **`order`** is parsed and resolved; items lay out in document order.
 
 ### Grid
 
@@ -645,7 +645,7 @@ grid-template-columns: repeat(2, 1fr);
 /* Fixed sidebar + content area */
 grid-template-columns: 200px 1fr;
 
-/* Uniform 3-column grid (legacy form, same as repeat(3,1fr)) */
+/* Uniform 3-column grid, same as repeat(3, 1fr) */
 grid-template-columns: 3;
 ```
 
@@ -768,7 +768,7 @@ SVG sprite images are tintable by default — CSS `color` applies as a tint. Ras
 | `object-fit` | `fill`, `contain`, `cover`, `none`, `scale-down` | `object-fit: cover;` |
 | `object-position` | `center`, keyword pairs (`left top`, `top center`, ...), or 1-2 length/percent offsets | `object-position: center center;` |
 
-`object-position` intentionally supports the common forms above; advanced mixed edge-offset forms are currently rejected.
+`object-position` reads the forms above; a mixed edge-offset form is rejected.
 
 #### Tintable images
 
@@ -861,16 +861,13 @@ That makes the unit story simple:
 
   The root font size is `dp`, so it scales with display density, and every `rem`-based size inherits that scale automatically.
 
-**Static-styles caveat.** When CSS is consumed via `tools/css_to_ada.py` and applied through generated `*_Styles` packages (rather than `Adi.CSS_Source.Set_CSS_File` at runtime), `:root { font-size }` is **not** auto-applied to the window — the runtime `CSS_Source` attach path is what wires that up. Until that gap is closed at the codegen level, examples that rely on `rem` and use static styles must call `Adi.Window.Set_Root_Font_Size (W, <Pkg>.Root_Font_Size)` themselves before the first frame. Generated packages expose `Has_Root_Font_Size` / `Root_Font_Size` for exactly this purpose.
+**Static styles.** Styles applied through a generated `*_Styles` package, with `Adi.CSS_Source` never attached to the window, leave the window's root font size alone. A program that relies on `rem` there calls `Adi.Window.Set_Root_Font_Size (W, <Pkg>.Root_Font_Size)` before the first frame; generated packages expose `Has_Root_Font_Size` / `Root_Font_Size` for it.
 
-### Why `px` is honest (≠ browser/Qt/GTK)
+### Physical `px` against logical `px`
 
-Browsers, Qt and GTK all redefine `px` to mean a *logical* pixel that the renderer scales by the display ratio. This works cleanly on Apple's 2× and 3× integer Retina scales — `1 logical px` always lands on a device-pixel boundary. It falls apart on **fractional** scales (Windows 125 % / 150 % / 175 %, mid-range Android densities, some Linux setups):
+Browsers, Qt and GTK define `px` as a *logical* pixel the renderer scales by the display ratio. On an integer scale (Apple's 2× and 3×) a logical pixel lands on a device-pixel boundary; on a fractional one (Windows 125 % / 150 % / 175 %, mid-range Android densities) a `1px` border rounds to 1 or 2 device pixels, and pixel-snapped drawing (charts, grids, icon strokes) shifts off the device grid.
 
-- A `1px` border rounds to 1 or 2 device pixels — neither is the intended hairline. Stack three and you get 4.5 → uneven edges depending on rounding.
-- Snap-to-pixel rendering (charts, grids, alignment lines, icon strokes) becomes impossible without escape hatches, because every `px` silently shifts off the device-pixel grid. This is the "blurry borders on Windows @ 125 %" problem that Qt and browsers paper over with subpixel positioning and snap heuristics.
-
-Adi's split makes the contract unambiguous per property: `border: 1pix;` is *one device pixel, snapped to the grid* on every display and under every scale setting; `padding: 16dp;` is *approximate physical size, OK with rounding*; `px` sits between them, following the application's `Set_Px_Maps_To_Dip` choice. No global mode switches, no per-display surprises. The cost is a muscle-memory mismatch for web/Qt refugees — `1px` looks hairline-thin on Retina until you reach for `dp` instead.
+Adi's split states the contract per property: `border: 1pix;` is *one device pixel, snapped to the grid* on every display and under every scale setting; `padding: 16dp;` is *approximate physical size, OK with rounding*; `px` sits between them, following the application's `Set_Px_Maps_To_Dip` choice.
 
 ### Treating CSS `px` as logical pixels
 
@@ -892,7 +889,7 @@ The two designs are equally specific — pick one per app:
 | Design | CSS spells it as | Mental model |
 |---|---|---|
 | Physical `px` + explicit `dp` | `border: 1px;` `padding: 16dp;` | Each property states the convention it wants; hairlines stay hairline on every display. `material_demo` and `font_example` use this style. |
-| Logical `px` only (toggle on) | `border: 1px;` `padding: 16px;` | Browser/Qt-style; CSS reads naturally to web refugees; everything scales together. The other ~20 bundled examples use this style. |
+| Logical `px` only (toggle on) | `border: 1px;` `padding: 16px;` | Browser/Qt-style; everything scales together. The other bundled examples use this style. |
 
 The toggle is a process-global call — there is no per-widget or per-stylesheet switch — so the convention is chosen once at startup and applies to every `px` value the runtime resolves from then on. The visible consequence is that `1px` and `1dp` become equivalent: any CSS or Ada code that relies on the distinction (e.g. `font_example`'s side-by-side `Px(18)` "fixed pixels" vs `Dip(18)` "display-scale aware" samples) renders identically once the toggle is on, which is why `font_example` deliberately leaves it off.
 
@@ -948,7 +945,7 @@ and remember nothing, so they are unaffected by the limit.
 
 ## Custom Properties
 
-Adi supports a simplified CSS custom property model for DRY token authoring. Custom properties are resolved at parse time (in both the Python generator and the Ada runtime parser) before any rule processing occurs.
+Custom properties are resolved at parse time, in both the Python generator and the Ada runtime parser, before any rule processing.
 
 ### `@property` — Defaults
 
@@ -1740,7 +1737,7 @@ H : Font_Handle := Adi.Font.Load_Asset ("fonts/OpenSans-Regular.ttf");
 H : Font_Handle := Adi.Font.Load_Asset ("fonts/custom.ttf", Name => "My Font");
 ```
 
-> **Note:** `Load` may return an existing handle if the font file's family name matches a previously loaded font. This is intentional — it merges the file as a weight/style variant of the existing family. Use the `Name` parameter to force a distinct registry entry.
+> `Load` returns the existing handle when the font file's family name matches a loaded font, merging the file in as a weight/style variant of that family. The `Name` parameter forces a distinct registry entry.
 
 #### System Font Search
 
@@ -1817,16 +1814,15 @@ the default face.
 
 ## Limitations
 
-- **No descendant/child combinators** — `.parent .child` and `.parent > .child` are not supported
-- **No attribute selectors** — `[type="text"]` is not supported
-- **No `@media` queries** — No responsive breakpoints
-- **No multiple box-shadows** — Only one shadow per rule
-- **Grid rows not track-sized** — `grid-template-rows` sets an explicit row count; per-row sizing tokens (`auto`, `fr`, `px`) are not yet supported for rows
-- **No named grid lines** — `[line-name]` syntax is not supported
-- **Max 16 tracks** — `grid-template-columns` track lists are capped at 16 entries; wider grids fall back to equal-column distribution
+- **Selectors are one compound** — a widget's tag, classes, id, `[property]` conditions and pseudo-classes. Descendant and child combinators (`.parent .child`, `.parent > .child`) are outside the grammar
+- **`@media`** is outside the grammar
+- **One `box-shadow` per rule**
+- **Grid rows are counted** — `grid-template-rows` yields a row count; rows share the height equally
+- **Named grid lines** (`[line-name]`) are outside the grammar
+- **16 tracks** — a `grid-template-columns` list past `Max_Grid_Tracks` keeps its count and drops its sizes, leaving the tracks to a less specific rule
 - **First transition wins** — Comma-separated transitions use the first entry's timing for all properties
-- **No `!important`** — Specificity follows tag < class < id ordering only
-- **Multi-class conflict resolution deviates from CSS spec** — When a widget has multiple classes (e.g. `class="foo bar"`), conflicts between rules of equal specificity are resolved by **class-attribute order** (last class wins), not by stylesheet declaration order as the CSS spec requires. This applies consistently to both dynamic mode (`Multi_Class_Styles` in `src/adi-css_source.adb`) and static/codegen mode (`xml_to_ada.py` builds nested `Merge_Part_Styles` calls left-to-right). Manual `Set_Part_Styles` calls are unaffected — they fully replace and don't merge. Workaround: put the base/shared class first and the specific/overriding class last in the `class` attribute. To fix properly: `Multi_Class_Styles` should merge all matching rules sorted by their stylesheet position before applying.
+- **`!important`** is outside the grammar; specificity follows tag < class < id
+- **Multi-class conflict resolution parts from CSS** — When a widget has multiple classes (`class="foo bar"`), conflicts between rules of equal specificity are resolved by **class-attribute order** (last class wins), where CSS resolves them by stylesheet order. This holds in both dynamic mode (`Multi_Class_Styles` in `src/adi-css_source.adb`) and static mode (`xml_to_ada.py` nests `Merge_Part_Styles` calls left to right). `Set_Part_Styles` replaces rather than merges, so it is unaffected. Put the shared class first and the overriding class last in the `class` attribute.
 
 - **Fonts are keyed by their layout state** — `Sized_Font_Key` covers family, size, weight, style and decoration, plus the resolved line skip and wrap alignment. Both of the latter are font-level state in SDL, applying to every `TTF_Text` built from the font, so each combination is a separate instance with them set once at open and never mutated. Two widgets sharing a family and size at different `line-height` values get different instances rather than fighting over one. The cost is cardinality: alignment × distinct line skips, which is why the skip is stored as the exact integer SDL receives rather than a finer-grained pixel value.
 

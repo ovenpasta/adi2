@@ -20,8 +20,7 @@ package body Adi.Playback_Clock is
 
       Step := Adi.Clock.To_Duration (At_Time - State.Last);
 
-      --  Not merely nothing to charge: moving the anchor backwards would
-      --  make the next sample charge for the interval twice.
+      --  Step <= 0 also catches a rewound anchor, avoiding a double charge next sample.
       if Step <= 0.0 then
          return (Kind => Ignored);
       end if;

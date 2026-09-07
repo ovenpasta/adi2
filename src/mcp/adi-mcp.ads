@@ -24,7 +24,6 @@ package Adi.MCP is
    --  Shut down and clean up the MCP directory.
    procedure Finalize;
 
-   --  Whether MCP has been initialized and is active.
    function Is_Active return Boolean;
 
 

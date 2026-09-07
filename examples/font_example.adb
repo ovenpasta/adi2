@@ -67,9 +67,6 @@ procedure Font_Example is
    function Load_Font_With_Variants return Font_Handle is
       use Ada.Directories;
 
-      --  The vendored family rather than an installed one: a system path
-      --  is a different file on each distribution, and the four faces are
-      --  what this example is about.
       Vendor_Dir   : constant String := "vendor/open-sans/static/";
       Base_Regular : constant String := Vendor_Dir & "OpenSans-Regular.ttf";
       Base_Bold    : constant String := Vendor_Dir & "OpenSans-Bold.ttf";
@@ -192,8 +189,6 @@ begin
         & "the ragged edge falls on a different side in each of these "
         & "three boxes.";
 
-      --  Long enough to take three lines, which is where the spacing
-      --  between them becomes visible at all.
       LH_Text : constant String :=
         "Line height sets the distance from one baseline to the next. "
         & "Normal is whatever the font itself asks for; a number "

@@ -83,11 +83,9 @@ procedure Window_Resize_Safety_Test is
       Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
       Adi.Window.Set_Root (W, +Root);
 
-      --  Baseline render.
       Adi.Window.Render (W);
 
-      --  Regression case: zero-height geometry must not trigger range checks
-      --  in rounded rendering paths.
+      --  Zero-height geometry must not trigger range checks in rounded rendering paths.
       Adi.Window.Handle_Resize (W, (Width => 320.0, Height => 0.0));
       Adi.Window.Render (W);
 
@@ -95,7 +93,6 @@ procedure Window_Resize_Safety_Test is
       Adi.Window.Handle_Resize (W, (Width => 0.0, Height => 0.0));
       Adi.Window.Render (W);
 
-      --  Recover to non-zero size and render again.
       Adi.Window.Handle_Resize (W, (Width => 320.0, Height => 1.0));
       Adi.Window.Render (W);
 
@@ -568,8 +565,6 @@ procedure Window_Resize_Safety_Test is
       Before_W := Get_Geometry (Panel_H).Width;
       Assert (Before_W > 0.0, "Dialog panel width should be initialized");
 
-      --  Resize and render once. Regression: panel used to reflow only after
-      --  a later hover/state dirtied frame.
       Adi.Window.Handle_Resize (W, (Width => 520.0, Height => 420.0));
       Adi.Window.Render (W);
 
@@ -608,7 +603,6 @@ procedure Window_Resize_Safety_Test is
          return;
       end if;
 
-      --  Ensure no package-level normal/primary style masks this regression.
       Adi.Widget.Dialog.Set_Default_Button_Style (Empty_Part_Styles);
       Adi.Widget.Dialog.Set_Default_Primary_Button_Style (Empty_Part_Styles);
 
@@ -815,16 +809,13 @@ procedure Window_Resize_Safety_Test is
       Adi.Window.Set_Root (W, +Root);
       Adi.Window.Render (W);
 
-      --  Verify wheel scrolls root when no overlay is present.
       Adi.Window.On_Mouse_Wheel (W, 160.0, 120.0, 0.0, -30.0);
       Assert
         (Get_Scroll_Offset_Y (+Root) > 0.0,
          "Root should scroll without overlay");
 
-      --  Reset scroll position.
       Set_Scroll_Offset_Y (+Root, 0.0);
 
-      --  Show dialog overlay and render so it gets laid out.
       Adi.Widget.Dialog.Attach_Window (Dlg, W);
       Adi.Widget.Dialog.Set_Title (Dlg, "Probe");
       Adi.Widget.Dialog.Set_Message (Dlg, "blocking");
@@ -849,11 +840,7 @@ procedure Window_Resize_Safety_Test is
             "Unexpected exception: " & Exception_Name (E));
    end Test_Wheel_Blocked_By_Overlay_Backdrop;
 
-   --  A dialog covering the window must swallow the click even where it
-   --  has nothing focusable of its own. The flag-filtered search used to
-   --  give up on the overlay and start again at the root, so a button
-   --  underneath took the focus -- visibly, as its focus ring lighting
-   --  up through the dialog.
+   --  A dialog covering the window must swallow the click even where it has nothing focusable of its own.
    procedure Test_Overlay_Blocks_Focus_Underneath is
       Ready : Boolean := False;
       W : Adi.Window.Window_Handle;
@@ -946,9 +933,7 @@ procedure Window_Resize_Safety_Test is
       Dlg : constant Adi.Widget.Dialog.Dialog_Handle :=
         Adi.Widget.Dialog.Create_Handle;
 
-      --  A button with a height of its own, the way a themed dialog gives
-      --  it one: the row has to grow to hold it. Measured from its text
-      --  instead, the row stayed short and the button hung out of it.
+      --  A button with a height of its own, the way a themed dialog gives it one: the row has to grow to hold it.
       Btn_Rules : constant Style_Rules :=
         (Height => Set (Size (Px (64.0))), others => <>);
 
@@ -1409,9 +1394,6 @@ procedure Window_Resize_Safety_Test is
          Text_Wrap_Mode => Set (TWM_Nowrap),
          others         => <>);
 
-      --  Deep into the scrolled button, well past where the first item
-      --  used to sit: the case where a control that started below the
-      --  viewport stops responding.
       Probe_Y   : constant Pixel_Type := 70.0;
       Scroll_By : constant Pixel_Type := 80.0;
    begin
@@ -1563,10 +1545,7 @@ procedure Window_Resize_Safety_Test is
          Assert (False, "Unexpected exception: " & Exception_Name (E));
    end Test_Pages_Keep_Their_Own_Scroll_Offset;
 
-   --  Overlays are placed in window space, so anything anchored to a
-   --  widget's geometry has to be converted first — the geometry is
-   --  stored unshifted. A combo box's dropdown inside a scrolled page
-   --  was appearing where the combo would be if nothing had scrolled.
+   --  Overlays are placed in window space, so anything anchored to a widget's geometry has to be converted first — the geometry is stored unshifted.
    procedure Test_Overlay_Anchor_Follows_Scroll is
       Ready : Boolean;
       W     : Adi.Window.Window_Handle;

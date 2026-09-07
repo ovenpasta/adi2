@@ -36,7 +36,6 @@ PROJECT_ROOT = os.environ.get(
 GPR_FILE = os.environ.get("ALS_GPR_FILE", "adi.gpr")
 
 # ---------------------------------------------------------------------------
-# LSP client – minimal, just enough for the operations we need
 # ---------------------------------------------------------------------------
 
 
@@ -106,7 +105,6 @@ class ALSClient:
         reader = self._proc.stdout
         try:
             while True:
-                # Read headers
                 content_length = 0
                 while True:
                     line = await reader.readline()
@@ -124,7 +122,6 @@ class ALSClient:
                 body = await reader.readexactly(content_length)
                 msg = json.loads(body)
 
-                # Dispatch responses
                 if "id" in msg and msg["id"] in self._pending:
                     fut = self._pending.pop(msg["id"])
                     if "error" in msg:

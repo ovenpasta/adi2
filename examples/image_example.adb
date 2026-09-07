@@ -54,7 +54,6 @@ begin
    A.Set_Target_FPS (60);
    W := UI.Build;
 
-   --  Load SVG path image
    Svg_Path_Img := Adi.Image.Load_SVG_Path
           (Path_Data => Star_Path,
            Size      => (Width => 128.0, Height => 128.0),
@@ -63,25 +62,21 @@ begin
       Set_Image (UI.Img_Svg_Path, Adi.Image.To_Handle (Svg_Path_Img));
    end if;
 
-   --  Load SVG file
    Svg_Img := Adi.Image.Load_From_File ("examples/assets/tiger.svg");
    if Adi.Image.Is_Owned (Svg_Img) then
       Set_Image (UI.Img_Svg, Adi.Image.To_Handle (Svg_Img));
    end if;
 
-   --  Load PNG file
    Png_Img := Adi.Image.Load_From_File ("examples/assets/happycat.png");
    if Adi.Image.Is_Owned (Png_Img) then
       Set_Image (UI.Img_Png, Adi.Image.To_Handle (Png_Img));
    end if;
 
-   --  Load JPG file
    Jpg_Img := Adi.Image.Load_From_File ("examples/assets/bg.jpg");
    if Adi.Image.Is_Owned (Jpg_Img) then
       Set_Image (UI.Img_Jpg, Adi.Image.To_Handle (Jpg_Img));
    end if;
 
-   --  Load happycat.png for all object-fit mode demos
    Cat := Adi.Image.Load_From_File ("examples/assets/happycat.png");
    if Adi.Image.Is_Owned (Cat) then
       Set_Image (UI.Fit_Fill, Adi.Image.To_Handle (Cat));
@@ -91,7 +86,6 @@ begin
       Set_Image (UI.Fit_Scale_Down, Adi.Image.To_Handle (Cat));
    end if;
 
-   --  Load tintable SVG path icons (white on transparent, tinted by CSS color)
    Heart := Load_SVG_Path
         (Heart_Path, Icon_Size,
          Fill => White, Tintable => True);

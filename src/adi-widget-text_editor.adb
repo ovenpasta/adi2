@@ -685,7 +685,6 @@ package body Adi.Widget.Text_Editor is
       Row_It       : Visual_Row;
       Desired_Row_Items : Natural;
    begin
-      --  Compute line skip
       if Font /= null then
          LS := Pixel_Type (TTF_GetFontLineSkip (Font));
       else
@@ -702,7 +701,6 @@ package body Adi.Widget.Text_Editor is
          Total_Rows := 1;
       end if;
 
-      --  Total content height and scroll metrics
       W.Scroll_Content_H := Pixel_Type'Max (Pixel_Type (Total_Rows) * LS, Content.Height);
       W.Scroll_Viewport_H := Content.Height;
 
@@ -720,7 +718,6 @@ package body Adi.Widget.Text_Editor is
          Ensure_Caret_Visible (W, Caret_Row, Content);
       end if;
 
-      --  Selection info
       Get_Selection_Range (W.Buffer, Sel_Start, Sel_Stop, Has_Sel);
 
       for I in 1 .. Row_Count (W.Layout) loop
@@ -1337,11 +1334,9 @@ package body Adi.Widget.Text_Editor is
    overriding procedure On_Destroy (W : in out Text_Editor_Widget) is
    begin
       if Adi.Widget.Context_Menu.Is_Valid (W.Context_Menu) then
-         --  Unbind from Text_Context_Menu binding tables
          Adi.Widget.Text_Context_Menu.Unbind_Menu
            (W.Context_Menu);
 
-         --  Remove from local Menu_Bindings table
          for I in reverse 1 .. Natural (Menu_Bindings.Length) loop
             if Menu_Bindings.Element (I).Owner = W'Unchecked_Access then
                Menu_Bindings.Delete (I);
@@ -1349,7 +1344,6 @@ package body Adi.Widget.Text_Editor is
             end if;
          end loop;
 
-         --  Destroy the context menu via handle
          declare
             H : Adi.Widget.Context_Menu.Menu_Handle := W.Context_Menu;
          begin

@@ -8,52 +8,9 @@ with Ada.Finalization;
 with Adi.Clock;
 with Adi.SDL.Render;
 
---  GPU textures belonging to one renderer, held under one memory budget.
---
---  Producer-agnostic rather than renderer-agnostic: the keys say nothing
---  about what built a texture, but every texture in one cache belongs to
---  the renderer that created it and dies with it.
---
---  Textures are cached because rebuilding them costs time and evicted
---  because holding them costs memory. Counting entries measures neither: a
---  blurred shadow runs from under two kilobytes to several megabytes, so a
---  fixed entry count permits either a gigabyte or a megabyte of residency.
---
---  An entry wrapping memory the application owns is the exception, and it
---  is one the argument above makes rather than breaks: it holds none of
---  ours, so no byte figure describes it, and a count is all there is to
---  bound it by. That is what Borrowed_Slots is.
---
---  Eviction ranks entries by the rebuilding time each byte of them buys.
---  Building costs roughly per pixel, so that ratio is about what a pixel
---  cost to make, which is what separates rasterised vector art from an
---  uploaded bitmap of the same dimensions. The cost is measured by the
---  caller rather than guessed: a fixed guess would not scale with size,
---  and dividing it by size would charge an entry for being large twice.
---
---  How often an entry is used counts as well as what it cost, and that
---  is what earns the policy its keep. An animation draws its frames in a
---  cycle; when the cycle is longer than the cache, ranking by recency
---  alone evicts precisely the frame wanted next, and every frame is
---  rebuilt every loop. Weighting by use retains a stable subset instead.
---  Measured against plain recency on mixed shadow, raster and vector
---  workloads, no regression was observed. That is the extent of the
---  claim: those workloads, that harness, which is not kept.
---
---  Entries lose ground as the cache works rather than as the clock runs.
---  Each eviction raises a floor that later arrivals are measured from, so
---  a once-popular entry falls behind whatever has been used since, without
---  a wall-time constant deciding how fast. A cache under no pressure ages
---  nobody, which is the behaviour worth having: nothing is discarded while
---  there is room for it.
---
---  What a caller keeps is a handle, not a pointer. A cache that evicts
---  cannot also hand out durable pointers -- the next eviction would leave
---  the holder dereferencing freed GPU memory -- so the pointer is reachable
---  only inside a scoped borrow, which pins the entry for as long as it
---  lasts. An evicted entry that is still borrowed is unfindable at once and
---  destroyed when the last borrow ends. A handle to it simply stops being
---  valid, which a caller discovers by looking rather than by crashing.
+--  GPU textures of one renderer under one byte budget. Eviction ranks
+--  by rebuilding time per byte held, weighted by use, on a floor that
+--  rises to whatever was last evicted.
 
 package Adi.Texture_Cache is
 

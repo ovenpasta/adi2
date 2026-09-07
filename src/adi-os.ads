@@ -85,7 +85,6 @@ package Adi.OS is
    --  Returns the path to a well-known user folder, or "" if unavailable.
    function Get_User_Folder (Folder : User_Folder) return String;
 
-   --  Returns the current working directory.
    function Current_Directory return String;
 
    --  The character that separates path components on this platform.
@@ -146,7 +145,6 @@ private
          when Adi.Build_Target.Windows => '\',
          when others                   => '/');
 
-   --  Maps Ada User_Folder to SDL SDL_Folder
    function To_SDL_Folder
      (Folder : User_Folder) return Adi.SDL.Filesystem.SDL_Folder;
 

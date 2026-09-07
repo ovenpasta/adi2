@@ -152,13 +152,9 @@ package Adi.Image is
    -- color via SDL color modulation).
    procedure Set_Tintable (H : Image_Handle; Value : Boolean := True);
 
-   -- The texture scaling mode for this image.
    function Get_Scale_Mode (H : Image_Handle) return Image_Scale_Mode;
 
-   -- Set the texture scaling mode. The mode identifies a texture rather
-   -- than being applied to one, so a lease taken after this finds or
-   -- builds a texture made for it; textures built for the old mode stay
-   -- cached under their own key until the budget reclaims them.
+   --  The mode is part of a texture's cache key; a lease taken after this builds or finds a texture for the new mode, while old-mode textures stay cached until reclaimed.
    procedure Set_Scale_Mode
      (H    : Image_Handle;
       Mode : Image_Scale_Mode);

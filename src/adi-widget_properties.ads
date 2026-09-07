@@ -217,7 +217,6 @@ private
       Resolver : Ordinal_Resolver;
       Namer    : Ordinal_Namer) return Property;
 
-   --  The value at a position of a property's enumeration.
    function Value_At (Owner : Property; Ordinal : Natural)
      return Property_Value;
 

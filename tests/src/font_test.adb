@@ -140,10 +140,7 @@ begin
                    & " x" & Fell_Back.Height'Image
                    & "   pinned " & Asked_For.Width'Image
                    & " x" & Asked_For.Height'Image);
-         --  Asserted before the comparison, because a path this test
-         --  failed to find would make both sides measure through the
-         --  platform fallback, agree, and read as a pass -- the exact
-         --  outcome the section exists to rule out.
+         --  Asserted before the comparison: a path this test failed to find would let both sides fall through to the platform fallback and agree, passing without proving anything.
          Test_Support.Assert
            (Explicit /= Null_Font,
             "the pinned file loads, relative to the repository root");
@@ -324,9 +321,7 @@ begin
          Adi.Font.Testing.Forget_Name (Name.all);
       end loop;
 
-      --  The reason the vocabulary is worth carrying: with the search
-      --  open, a name the resolver leaves unplaced walks every font
-      --  directory for a family that lives only in the stylesheet.
+      --  With the search open, a name the resolver leaves unplaced walks every font directory for a family that lives only in the stylesheet.
       for Name of CSS_Generics loop
          Ignored := Resolved_Family (Name.all);
          Test_Support.Assert
@@ -508,10 +503,7 @@ begin
 
    New_Line;
 
-   --  Two widgets sharing a family and size but wanting different line
-   --  heights or wrap alignments must get different font instances.
-   --  Sharing one meant whichever rendered last left its line skip on the
-   --  font and silently re-laid the other's text.
+   --  Two widgets sharing a family and size but wanting different line heights or wrap alignments must get different font instances.
    Put_Line ("=== layout state makes distinct font instances ===");
    declare
       use Adi.Core;
@@ -545,9 +537,7 @@ begin
       if Fam = Null_Font then
          Put_Line ("  [SKIP] no system font to open variants of");
       elsif Tight = null or else Loose = null or else Centred = null then
-         --  Not a skip: the family resolved, so every variant of it owes
-         --  us an instance. Failing here also keeps the getters below
-         --  away from a null font.
+         --  Not a skip: the family resolved, so every variant of it must have an instance, or the getters below hit a null font.
          Test_Support.Assert
            (False, "a resolvable family opens every layout variant");
       else
@@ -558,9 +548,7 @@ begin
            (Tight /= Centred,
             "wrap alignment separates instances the same way");
 
-         --  Distinct keys are only half of it: the instance must also
-         --  carry the state its key promises. Deleting both setters would
-         --  leave every assertion above passing.
+         --  Distinct keys are only half of it: the instance must also carry the state its key promises.
          Put_Line
            ("  applied skip: tight="
             & Interfaces.C.int'Image (TTF_GetFontLineSkip (Tight))
@@ -588,8 +576,7 @@ begin
                    - Adi.Font.Natural_Line_Skip_Px (Loose)) < 0.001,
             "an opened override does not become the face's natural spacing");
 
-         --  Alternating use is the case that used to corrupt: each call
-         --  must keep returning its own instance, never the other's.
+         --  Each call must keep returning its own instance, never the other's, when alternated.
          for Round in 1 .. 3 loop
             Test_Support.Assert
               (Variant (26) = Tight and then Variant (40) = Loose,

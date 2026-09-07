@@ -14,7 +14,6 @@ procedure Settings_Test is
    procedure Assert (Cond : Boolean; Msg : String)
      renames Test_Support.Assert;
 
-   --  Temporary directory for test files
    Tmp_Dir : constant String :=
      Adi.OS.Temp_Path ("adi_settings_test") & Adi.OS.Path_Separator;
 
@@ -71,7 +70,6 @@ procedure Settings_Test is
          Assert (As_Integer (V) = 42, "Integer value");
       end;
 
-      --  Negative integer
       declare
          V : constant Setting_Value := To_Value (Long_Integer (-99));
       begin
@@ -179,7 +177,6 @@ procedure Settings_Test is
          Assert (Kind (Get (M, "missing")) = Null_Kind,
                  "Map get missing returns Null");
 
-         --  Insert replacing existing key
          Insert (M, "name", To_Value ("Adi2"));
          Assert (As_String (Get (M, "name")) = "Adi2",
                  "Map replace existing key");
@@ -194,19 +191,16 @@ procedure Settings_Test is
    begin
       Put_Line ("-- Deep Copy Tests --");
 
-      --  Scalar copy independence
       declare
          A : constant Setting_Value := To_Value ("original");
          B : Setting_Value := A;
          pragma Unreferenced (B);
       begin
-         --  B is a copy; modifying B doesn't affect A
          B := To_Value ("modified");
          Assert (As_String (A) = "original",
                  "Scalar assignment produces independent copy");
       end;
 
-      --  Map copy independence
       declare
          M1 : Setting_Value := Empty_Map;
          M2 : Setting_Value;
@@ -220,7 +214,6 @@ procedure Settings_Test is
                  "Map copy has new value");
       end;
 
-      --  List copy independence
       declare
          L1 : Setting_Value := Empty_List;
          L2 : Setting_Value;
@@ -246,7 +239,6 @@ procedure Settings_Test is
       Store.Initialize ("test_org", "test_app",
                         Backend => B'Unchecked_Access);
 
-      --  Set and get scalar types
       Store.Set ("name", "Adi");
       Store.Set ("width", Long_Integer (800));
       Store.Set ("scale", Long_Float (1.5));
@@ -258,7 +250,6 @@ procedure Settings_Test is
               "Store get float");
       Assert (Store.Get_Boolean ("fullscreen") = True, "Store get boolean");
 
-      --  Defaults for missing keys
       Assert (Store.Get_String ("missing", "def") = "def",
               "Default string");
       Assert (Store.Get_Integer ("missing", 99) = 99,
@@ -297,7 +288,6 @@ procedure Settings_Test is
       Store.Initialize ("test_org", "test_app",
                         Backend => B'Unchecked_Access);
 
-      --  Set creates intermediate maps
       Store.Set ("window.width", Long_Integer (1024));
       Store.Set ("window.height", Long_Integer (768));
       Store.Set ("window.title", "My App");
@@ -307,12 +297,10 @@ procedure Settings_Test is
       Assert (Store.Get_String ("window.title") = "My App",
               "Dot-path get nested string");
 
-      --  Deeper nesting
       Store.Set ("ui.theme.name", "dark");
       Assert (Store.Get_String ("ui.theme.name") = "dark",
               "Dot-path 3-level nesting");
 
-      --  The parent should be a map
       declare
          Window_Val : constant Setting_Value := Store.Get ("window");
       begin
@@ -322,7 +310,6 @@ procedure Settings_Test is
                  "Dot-path parent map contents");
       end;
 
-      --  Remove nested key
       Store.Remove ("window.title");
       Assert (not Store.Contains ("window.title"),
               "Remove nested key");
@@ -369,13 +356,11 @@ procedure Settings_Test is
          Path : constant String := Tmp_Dir & "settings.json";
          Data : Setting_Value := Empty_Map;
       begin
-         --  Build a value tree
          Insert (Data, "name", To_Value ("TestApp"));
          Insert (Data, "count", To_Value (Long_Integer (42)));
          Insert (Data, "ratio", To_Value (Long_Float (2.5)));
          Insert (Data, "enabled", To_Value (True));
 
-         --  Nested map
          declare
             Window : Setting_Value := Empty_Map;
          begin
@@ -399,11 +384,9 @@ procedure Settings_Test is
          --  Save
          B.Save (Path, Data);
 
-         --  Verify file was created
          Assert (Ada.Directories.Exists (Path),
                  "JSON file created");
 
-         --  Load into fresh value
          declare
             Loaded : constant Setting_Value := B.Load (Path);
          begin
@@ -419,7 +402,6 @@ procedure Settings_Test is
             Assert (Kind (Get (Loaded, "optional")) = Null_Kind,
                     "Round-trip null");
 
-            --  Nested map
             declare
                W : constant Setting_Value := Get (Loaded, "window");
             begin
@@ -457,7 +439,6 @@ procedure Settings_Test is
       begin
          Ensure_Tmp_Dir;
 
-         --  Strings with JSON-special characters
          Insert (Data, "quotes", To_Value ("He said ""hello"""));
          Insert (Data, "backslash", To_Value ("path\to\file"));
          Insert (Data, "newlines", To_Value ("line1" & ASCII.LF & "line2"));
@@ -508,8 +489,6 @@ procedure Settings_Test is
 
    ---------------------------------------------------------------------------
    --  Test: Save to an unwritable path propagates the failure
-   --  (regression: write errors used to be swallowed, so disk-full and
-   --  permission failures looked like successful saves)
    ---------------------------------------------------------------------------
 
    procedure Test_Save_Failure_Raises is
@@ -559,7 +538,6 @@ procedure Settings_Test is
       Store.Initialize ("test_org", "test_app",
                         Backend => B'Unchecked_Access);
 
-      --  Set a complex nested value via Setting_Value
       declare
          Servers : Setting_Value := Empty_List;
          S1      : Setting_Value := Empty_Map;
@@ -574,7 +552,6 @@ procedure Settings_Test is
          Store.Set ("network.servers", Servers);
       end;
 
-      --  Retrieve and check
       declare
          V : constant Setting_Value := Store.Get ("network.servers");
       begin
@@ -605,18 +582,14 @@ procedure Settings_Test is
       Store.Initialize ("test_org", "test_app",
                         Backend => B'Unchecked_Access);
 
-      --  Set a key to Null_Value explicitly
       Store.Set ("explicit_null", Null_Value);
 
-      --  Contains should report the key as present even though value is null
       Assert (Store.Contains ("explicit_null"),
               "Contains returns True for explicitly-set null key");
 
-      --  Get should return Null_Kind
       Assert (Kind (Store.Get ("explicit_null")) = Null_Kind,
               "Get returns Null_Kind for null-valued key");
 
-      --  A key that was never set should still be absent
       Assert (not Store.Contains ("never_set"),
               "Contains returns False for never-set key");
    end Test_Null_Value_Contains;
@@ -633,7 +606,6 @@ procedure Settings_Test is
       --  Initialize with no backend argument (defaults to null -> JSON)
       Store.Initialize ("test_org", "test_app");
 
-      --  Store should work without explicit backend
       Store.Set ("key", "value");
       Assert (Store.Get_String ("key") = "value",
               "Default backend: set/get works");
@@ -696,7 +668,6 @@ begin
    Test_Default_Backend;
    Test_Long_Lines;
 
-   --  Cleanup temp files
    Cleanup;
 
    Test_Support.Finish;

@@ -1432,8 +1432,7 @@ procedure Style_Composer_Test is
               "and the chain it took the buffer from can see it is gone");
       Assert (Is_Live (Extra), "while the chain that took it holds one");
 
-      --  The answer is plausible rather than wrong, which is why the
-      --  predicate above and the report at .Build both exist.
+      --  The answer below is plausible rather than wrong: Is_Live catches the reclaim that .Build's return value alone would not show as different.
       Answer := Held (1).Background (Danger).Build;
       Assert (Answer = Primary,
               "its .Build answers the style it opened on");

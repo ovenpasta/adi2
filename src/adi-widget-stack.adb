@@ -79,7 +79,6 @@ package body Adi.Widget.Stack is
          return;
       end if;
 
-      --  Hide current active page
       if W.Has_Active then
          Old_Page := W.Pages (W.Active);
          if Old_Page /= null then
@@ -87,7 +86,6 @@ package body Adi.Widget.Stack is
          end if;
       end if;
 
-      --  Show new active page
       W.Active := Id;
       W.Has_Active := True;
       Set_Flag (New_Page.all, Visible, True);
@@ -323,10 +321,6 @@ package body Adi.Widget.Stack is
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
    end Build_Items;
 
-   ---------------------------------------------------------------------------
-   --  Layout - All children get the full content area
-   ---------------------------------------------------------------------------
-
    overriding procedure Layout (W : in out Stack_Widget) is
       Style   : Resolved_Style renames
         Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
@@ -358,9 +352,6 @@ package body Adi.Widget.Stack is
          Warn_Unsupported_Stack_Scrolling;
       end if;
 
-      --  Each page gets the stack's content box. A page that needs to
-      --  scroll declares its own overflow and becomes its own viewport,
-      --  which keeps a separate offset per page.
       for I in 1 .. Child_Count (W) loop
          declare
             Child_H : constant Widget_Handle := Get_Child_Handle (W, I);

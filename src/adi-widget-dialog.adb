@@ -120,7 +120,6 @@ package body Adi.Widget.Dialog is
             end if;
          end;
       end if;
-      --  Delegate Return/Space to parent Button_Widget
       On_Key_Down (Button_Widget (W), Scancode, Key_Mod, Repeat);
    end On_Key_Down;
 
@@ -245,11 +244,9 @@ package body Adi.Widget.Dialog is
       --  buttons in block flow until the application styles it.
       Result.Content_Panel := Adi.Widget.Box.Create_Handle;
 
-      --  Title label
       Result.Title_Label := Adi.Widget.Label.Create_Handle ("");
       Add_Child (+Result.Content_Panel, +Result.Title_Label);
 
-      --  Message label
       Result.Message_Label := Adi.Widget.Label.Create_Handle ("");
       Add_Child (+Result.Content_Panel, +Result.Message_Label);
 
@@ -262,7 +259,6 @@ package body Adi.Widget.Dialog is
       --  traverses and draws title/message/buttons above the backdrop.
       Add_Child (Get_Handle (Result.all), +Result.Content_Panel);
 
-      --  Apply package-level default styles if set
       if not Default_Panel_Styles.Is_Empty then
          Set_Part_Styles (+Result.Content_Panel, Default_Panel_Styles.Element);
       end if;
@@ -371,21 +367,17 @@ package body Adi.Widget.Dialog is
       Had_Custom : constant Boolean :=
         W.Custom_Content /= Null_Handle;
    begin
-      --  Remove previous custom content if any
       if W.Custom_Content /= Null_Handle then
          Remove_Child (+W.Content_Panel, W.Custom_Content);
          W.Custom_Content := Null_Handle;
       end if;
 
       if Content /= null then
-         --  Remove message label from tree only if it is currently attached
-         --  (i.e. we were not already in custom-content mode).
          if not Had_Custom
            and then Adi.Widget.Label.Is_Valid (W.Message_Label)
          then
             Remove_Child (+W.Content_Panel, +W.Message_Label);
          end if;
-         --  Remove button row so we can re-add after content
          Remove_Child (+W.Content_Panel, +W.Button_Row);
 
          --  Detach from any existing parent before adopting
@@ -405,7 +397,6 @@ package body Adi.Widget.Dialog is
          end;
          Add_Child (+W.Content_Panel, +W.Button_Row);
       else
-         --  Restore message label only if we were in custom-content mode
          if Had_Custom
            and then Adi.Widget.Label.Is_Valid (W.Message_Label)
          then
@@ -746,10 +737,8 @@ package body Adi.Widget.Dialog is
          Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));
       end if;
 
-      --  Update backdrop to full widget geometry (= window size)
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
 
-      --  Layout content panel within our bounds
       if Adi.Widget.Box.Is_Valid (W.Content_Panel)
         and then Adi.Window.Is_Valid (W.Host_Window)
       then
@@ -772,11 +761,9 @@ package body Adi.Widget.Dialog is
             Min_H    : Pixel_Type := 0.0;
             Max_H    : Pixel_Type := Viewport.Height;
          begin
-            --  Resize dialog to current window
             Set_Geometry (W, (0.0, 0.0, Win_Size.Width, Win_Size.Height));
             W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
 
-            --  Resolve min/max width from panel style
             case Panel_Style.Min_Width.Kind is
                when Fixed =>
                   Min_W := Size_To_Px (Panel_Style.Min_Width, Win_Size.Width);
@@ -789,7 +776,6 @@ package body Adi.Widget.Dialog is
                when others => null;
             end case;
 
-            --  Resolve min/max height from panel style
             case Panel_Style.Min_Height.Kind is
                when Fixed =>
                   Min_H := Size_To_Px (Panel_Style.Min_Height, Win_Size.Height);
@@ -802,7 +788,6 @@ package body Adi.Widget.Dialog is
                when others => null;
             end case;
 
-            --  Measure content preferred size
             Rebuild_All_Items (CP);
             Pref := Get_Preferred_Size (CP);
 
@@ -907,7 +892,6 @@ package body Adi.Widget.Dialog is
          return;
       end if;
 
-      --  Check if click is outside the content panel
       if Adi.Widget.Box.Is_Valid (W.Content_Panel) then
          declare
             Panel_G : constant Rectangle := Get_Geometry (+W.Content_Panel);

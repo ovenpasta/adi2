@@ -111,7 +111,6 @@ package body Adi.Widget.Box is
 
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
 
-      --  Update background image from resolved style
       declare
          Bg_It : Item renames W.Items.Reference (Bg_Image_Idx).Element.all;
          Style : Resolved_Style renames
@@ -490,7 +489,6 @@ package body Adi.Widget.Box is
                   Child_Style : Resolved_Style renames
                     Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).all;
                begin
-                  --  Absolute children do not contribute to intrinsic size
                   if Child_Style.Position /= Absolute then
                      declare
                         Margin : constant Edge_Pixels :=
@@ -560,7 +558,6 @@ package body Adi.Widget.Box is
                            Child_Style : constant Resolved_Style :=
                              Get_Resolved_Part_Style (Child.all, Main_Part);
                         begin
-                           --  Absolute children do not contribute to grid sizing
                            if Child_Style.Position /= Absolute then
                               declare
                                  Margin : constant Edge_Pixels :=
@@ -739,9 +736,6 @@ package body Adi.Widget.Box is
       return Outer_Size (Result, Style);
    end Measure_Content;
 
-   --  Shared by Get_Min_Size and Get_Content_Min_Size: identical
-   --  aggregation over the children, differing only in which child
-   --  measurement it sums. Content_Min selects Get_Content_Min_Size.
    --  What a grid item contributes to its track's minimum. Placement
    --  honours a definite width or height unconditionally, so a track
    --  sized from the item's minimum alone would leave the item hanging
@@ -1170,13 +1164,8 @@ package body Adi.Widget.Box is
          end loop;
       end if;
 
-      --  A box that does not show its overflow — scrolled, or simply
-      --  clipped — does not inherit its content's minimum in that axis.
-      --  Scrolling shows the content a piece at a time and hiding drops
-      --  the excess, so neither needs room for all of it. This matches
-      --  the automatic minimum the parent computes for the same box.
-      --  Without it a scrollable viewport is forced as tall as
-      --  everything inside, so nothing overflows and it never scrolls.
+      --  An axis that hides or scrolls its overflow carries no content minimum,
+      --  as in the automatic minimum the parent computes for this box.
       if Style.Overflow_Y /= Overflow_Visible then
          Result.Height := 0.0;
       end if;
@@ -1214,9 +1203,7 @@ package body Adi.Widget.Box is
 overriding procedure Layout (W : in out Box_Widget) is
       Style : constant Resolved_Style := Get_Resolved_Part_Style (W, Main_Part);
    begin
-      --  Check if this is a flex container
       if Style.Display = Flex or Style.Display = Inline_Flex then
-         --  Use flex layout algorithm
          Perform_Flex_Layout(Widget'Class(W));
       elsif Style.Display = Grid or else Style.Display = Inline_Grid then
          declare
@@ -1260,7 +1247,6 @@ overriding procedure Layout (W : in out Box_Widget) is
                            Child_Min  : constant Size_2D :=
                              Grid_Min_Contribution (Child.all);
                         begin
-                           --  Absolute children are out of flow
                            if Child_Style.Position = Absolute then
                               Children_Info (Positive (I)) :=
                                 (Active => False, others => <>);
@@ -1373,12 +1359,10 @@ overriding procedure Layout (W : in out Box_Widget) is
                            --  Respect explicit width, the same way the
                            --  measuring pass above did.
                            CW := Grid_Child_Width (Child.all, Cell.Width);
-                           --  Respect explicit height
                            if CS.Height.Kind = Fixed then
                               CH := Size_To_Px (CS.Height, Cell.Height);
                            end if;
 
-                           --  Align horizontally within cell
                            if CW < Cell.Width then
                               case CS.Align_Self is
                                  when Adi.CSS_Styles.Center =>
@@ -1392,7 +1376,6 @@ overriding procedure Layout (W : in out Box_Widget) is
                               end case;
                            end if;
 
-                           --  Align vertically within cell
                            if CH < Cell.Height then
                               case CS.Align_Self is
                                  when Adi.CSS_Styles.Center =>
@@ -1411,7 +1394,6 @@ overriding procedure Layout (W : in out Box_Widget) is
                            Set_Geometry (Child.all, Cell);
                            Layout_Child (Child.all);
 
-                           --  Apply relative offset after flow placement
                            Apply_Relative_Offset (Child.all, Content);
                         end;
                      end if;
@@ -1451,7 +1433,6 @@ overriding procedure Layout (W : in out Box_Widget) is
       else
          --  Simple block layout: stack children down the content area
          declare
-            --  Get padding values from style
             Pad : constant Edge_Pixels := Get_Padding_Px(Style);
             Border : constant Edge_Pixels := Get_Border_Width_Px(Style);
 
@@ -1468,14 +1449,12 @@ overriding procedure Layout (W : in out Box_Widget) is
 
             Current_Y : Pixel_Type := Content_Y;
          begin
-            --  Simple vertical stacking for block layout
             for Child of W.Children loop
                if Child_Participates (Child) then
                   declare
                      Child_Style : Resolved_Style renames
                        Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).all;
                   begin
-                     --  Skip absolute children from normal flow
                      if Child_Style.Position /= Absolute then
                         declare
                            Margin : constant Edge_Pixels :=
@@ -1529,7 +1508,6 @@ overriding procedure Layout (W : in out Box_Widget) is
                end if;
             end loop;
 
-            --  Position absolute children against content box
             for Child of W.Children loop
                if Child_Participates (Child) then
                   declare

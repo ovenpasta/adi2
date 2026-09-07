@@ -9,7 +9,6 @@ with Test_Support;     use Test_Support;
 
 procedure Value_Input_Test is
 
-   --  Helper: get the text from a Value_Input via its Text_Input handle API
    function Get_Text_Via_Handle (H : Widget_Handle) return String is
       TI : constant Adi.Widget.Text_Input.Text_Input_Handle :=
         Adi.Widget.Text_Input.Try_As_Text_Input (H);
@@ -17,7 +16,6 @@ procedure Value_Input_Test is
       return Adi.Widget.Text_Input.Get_Text (TI);
    end Get_Text_Via_Handle;
 
-   --  Helper: set the text on a Value_Input via its Text_Input handle API
    procedure Set_Text_Via_Handle (H : Widget_Handle; Text : String) is
       TI : constant Adi.Widget.Text_Input.Text_Input_Handle :=
         Adi.Widget.Text_Input.Try_As_Text_Input (H);
@@ -191,14 +189,12 @@ procedure Value_Input_Test is
       end;
    end Test_Text_After_Set_Value_Clamped;
 
-   --  Simulate: clear text, type new text, then lose focus
    procedure Test_Text_After_Type_And_Focus_Lost is
       V : constant Float_Input.Value_Input_Handle :=
         Float_Input.Create_Handle (Min => 0.0, Max => 100.0, Value => 10.0);
    begin
       Put_Line ("Test: Value after typing and focus lost");
 
-      --  Simulate clearing and typing "42.5"
       Set_Text_Via_Handle (+V, "42.5");
 
       --  Value should NOT have changed yet (text was set directly)
@@ -281,7 +277,6 @@ procedure Value_Input_Test is
       Float_Input.Connect_Value_Changed
         (V, On_Val_Changed'Unrestricted_Access);
 
-      --  Type "33.3" and lose focus
       Set_Text_Via_Handle (+V, "33.3");
       Callback_Fired := False;
       On_Focus_Lost (+V);
@@ -490,7 +485,6 @@ procedure Value_Input_Test is
       Rebuild_All_Items (+W);
       Assert (Item_Count (+W) = 6,
               "Should have exactly 6 items, got" & Item_Count (+W)'Image);
-      --  Second call should not add more
       Rebuild_All_Items (+W);
       Assert (Item_Count (+W) = 6,
               "Should still have 6 items after second Rebuild_All_Items");
@@ -529,7 +523,6 @@ procedure Value_Input_Test is
       begin
          Assert (Natural (Label_Items.Length) = 2,
                  "Should have exactly 2 label-part items");
-         --  First should be panel (background), second should be text
          Assert (Label_Items.Element (1).Kind = Panel_Item,
                  "Label item 1 should be Panel_Item");
          Assert (Label_Items.Element (2).Kind = Text_Item,

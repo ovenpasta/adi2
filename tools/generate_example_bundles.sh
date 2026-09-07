@@ -10,14 +10,12 @@ mkdir -p "$OUT_DIR"
 
 OUT_FILE="$OUT_DIR/assets_example_bundle.adb"
 
-# Check if regeneration is needed
 needs_regen=0
 if [[ ! -f "$OUT_FILE" ]]; then
   needs_regen=1
 elif [[ "$GENERATOR" -nt "$OUT_FILE" ]]; then
   needs_regen=1
 else
-  # Check if any asset file is newer than the output
   for f in "$ASSETS_DIR"/icons.svg "$ASSETS_DIR"/happycat.png "$ASSETS_DIR"/OpenSans-Regular.ttf; do
     if [[ -f "$f" && "$f" -nt "$OUT_FILE" ]]; then
       needs_regen=1

@@ -86,11 +86,9 @@ package body Adi.App is
         Next_Frame : Time;
         DT         : Duration;
 
-        --  macOS convention: Control+left-click is the secondary click.
-        --  We latch the translation on DOWN so that releasing Ctrl before
-        --  UP still produces a matched right-button pair -- otherwise the
-        --  window's pressed-state tracking would be left with a stuck
-        --  Right_Button press.
+        --  macOS: Control+left-click is the secondary click. The translation
+        --  latches on DOWN, so a release with Ctrl already up still pairs with the
+        --  right button.
         Left_Ctrl_Translated : Boolean := False;
 
         --  A handle rather than a cached pointer or a borrow held across
@@ -331,7 +329,6 @@ package body Adi.App is
                end if;
             end;
 
-            --  Drain deferred handle-store destroys.
             Adi.Widget.Pump_Widget_Store;
             Adi.Widget.Context_Menu.Pump_Menu_Store;
             Adi.Window.Pump_Window_Store;
@@ -342,23 +339,19 @@ package body Adi.App is
                exit;
             end if;
 
-            --  Compute delta time
             Frame_Start := Now;
             DT := To_Duration (Frame_Start - A.Last_Frame);
             A.Current_Delta := DT;
             A.Last_Frame := Frame_Start;
 
-            --  Tick animations before rendering
             if Have_Main then
                 Adi.Window.Tick (Main, DT);
             end if;
 
-            --  Render the main window
             if Have_Main then
                 Adi.Window.Render (Main);
             end if;
 
-            --  Frame rate limiting: delay until next frame
             Next_Frame := Frame_Start + A.Frame_Period;
             Sleep_Until (Next_Frame);
         end loop;

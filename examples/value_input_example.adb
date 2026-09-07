@@ -36,7 +36,6 @@ procedure Value_Input_Example is
       return Trim (Buf, Both);
    end Float_Str;
 
-   --  Widgets that callbacks reference
    Float_Echo : Adi.Widget.Label.Label_Handle;
    Int_Echo   : Adi.Widget.Label.Label_Handle;
    Range_Echo : Adi.Widget.Label.Label_Handle;
@@ -68,7 +67,6 @@ begin
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
 
-   --  Set context menu styles
    Adi.Widget.Context_Menu.Set_Default_Menu_Styles
      (Value_Input_Example_Styles.Context_Menu_Class_Part_Styles);
    Adi.Widget.Context_Menu.Set_Default_Item_Styles
@@ -81,7 +79,6 @@ begin
       Root : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
 
-      --  Section 1: Float value input
       Section1 : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Heading1 : constant Adi.Widget.Label.Label_Handle :=
@@ -93,7 +90,6 @@ begin
       Input1   : constant Float_Input.Value_Input_Handle :=
         Float_Input.Create_Handle (Min => -40.0, Max => 100.0, Value => 22.5);
 
-      --  Section 2: Integer value input
       Section2 : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Heading2 : constant Adi.Widget.Label.Label_Handle :=
@@ -105,7 +101,6 @@ begin
       Input2   : constant Int_Input.Value_Input_Handle :=
         Int_Input.Create_Handle (Min => 1, Max => 65535, Value => 8080);
 
-      --  Section 3: Stepped float input with large range
       Section3 : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Heading3 : constant Adi.Widget.Label.Label_Handle :=
@@ -117,7 +112,6 @@ begin
       Input3   : constant Float_Input.Value_Input_Handle :=
         Float_Input.Create_Handle (Min => -20.0, Max => 20.0, Value => 0.0);
 
-      --  Section 4: Multiple inputs in a row
       Section4 : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Heading4 : constant Adi.Widget.Label.Label_Handle :=
@@ -141,7 +135,6 @@ begin
       Int_Echo   := Adi.Widget.Label.Create_Handle ("8080");
       Range_Echo := Adi.Widget.Label.Create_Handle (Float_Str (0.0));
 
-      --  Configure steps
       Float_Input.Set_Step (Input1, 0.5);
       Int_Input.Set_Step (Input2, 1);
       Float_Input.Set_Step (Input3, 0.25);
@@ -149,7 +142,6 @@ begin
       Int_Input.Set_Step (Input_G, 1);
       Int_Input.Set_Step (Input_B, 1);
 
-      --  Wire callbacks
       Float_Input.Connect_Value_Changed
         (Input1, On_Float_Changed'Unrestricted_Access);
       Int_Input.Connect_Value_Changed
@@ -157,7 +149,6 @@ begin
       Float_Input.Connect_Value_Changed
         (Input3, On_Range_Changed'Unrestricted_Access);
 
-      --  Apply styles
       Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
       Adi.Widget.Box.Set_Part_Styles (Section1, Section_Class_Part_Styles);
       Adi.Widget.Box.Set_Part_Styles (Section2, Section_Class_Part_Styles);
@@ -190,7 +181,6 @@ begin
       Int_Input.Set_Part_Styles (Input_G, Int_Input_Class_Part_Styles);
       Int_Input.Set_Part_Styles (Input_B, Int_Input_Class_Part_Styles);
 
-      --  Build hierarchy
       Add_Child (+Section1, +Heading1);
       Add_Child (+Row1, +Label1);
       Add_Child (+Row1, +Input1);

@@ -108,10 +108,8 @@ package Adi.Window is
 
     procedure Update (W : in out Window);
 
-    --  Render the window (draws all widgets)
     procedure Render (W : in out Window);
 
-    --  Set the root widget for this window
     procedure Set_Root (W : in out Window; Root : Widget_Handle);
     procedure Set_Root (H : Window_Handle; Root : Widget_Handle);
     function Get_Root_Handle (W : Window) return Widget_Handle;
@@ -121,7 +119,6 @@ package Adi.Window is
     function Find_Host_Window
       (Node : Widget_Handle) return Window_Handle;
 
-    --  Optional policy: derive window minimum size from root layout preferred size.
     procedure Set_Enforce_Layout_Min_Size
       (W       : in out Window;
        Enabled : Boolean := True);
@@ -244,10 +241,8 @@ package Adi.Window is
       (W      : in out Window;
        Target : Widget_Handle);
 
-    --  Get the underlying SDL window pointer (for dialog calls, etc.)
     function Get_SDL_Window (W : Window) return SDL_Window_Ptr;
 
-    --  Get the SDL renderer for direct rendering
     function Get_Renderer (W : in out Window) return SDL_Renderer_Ptr;
 
     --  Mouse event handling
@@ -360,7 +355,6 @@ package Adi.Window is
     procedure Disconnect_Key_Down
       (H : Window_Handle; Id : Key_Down_Signals.Connection_Id);
 
-    --  Advance animations by DT seconds on all widgets in this window
     procedure Tick (W : in out Window; DT : Duration);
 
     --  Destroy overlay and root widget trees eagerly.
@@ -383,7 +377,6 @@ package Adi.Window is
     procedure Set_Focus (W : in out Window; Target : Widget_Handle);
     procedure Set_Focus (H : Window_Handle; Target : Widget_Handle);
 
-    --  Force a full re-render on the next frame (e.g. after window exposed).
     procedure Request_Redraw (W : in out Window);
 
     --  On-screen debug stats overlay (frame count, FPS, render time, layout count)
@@ -536,7 +529,7 @@ private
         Ctx            : Render_Context;
         Root           : Widget_Handle := Null_Handle;
         Geometry       : Rectangle;
-        Size           : Size_2D;  -- NEW: Track current size
+        Size           : Size_2D;
         --  Track mouse state
         Mouse_X        : Pixel_Type    := 0.0;
         Mouse_Y        : Pixel_Type    := 0.0;
@@ -598,7 +591,6 @@ private
     overriding procedure Initialize (w : in out Window);
     overriding procedure Finalize (W : in out Window);
 
-    --  Helper to find widget at position
     function Find_Widget_At
        (W : Window; X, Y : Pixel_Type) return Widget_Handle;
     function Point_In_Widget

@@ -76,7 +76,6 @@ package Adi.Assets is
    --  False will not match a flattened entry.
 
    procedure Clear_Paths;
-   --  Remove all search directories.
 
    ---------------------------------------------------------------------------
    --  Path Resolution
@@ -134,9 +133,7 @@ package Adi.Assets is
    ---------------------------------------------------------------------------
 
    procedure Mark_Asset_Loaded;
-   --  Signal that an asset has been loaded.  After this call, Set_Mode
-   --  will raise Program_Error.  Called internally by Get_Image, Get_String,
-   --  Get_Animated_Image, and Font.Load_Asset.
+   --  Signal that an asset has been loaded; after this, Set_Mode raises Program_Error.
 
    procedure Clear_Cache;
    --  Drop all cached strings, images, and animated images. Every handle
@@ -144,15 +141,12 @@ package Adi.Assets is
    --  nothing until the asset is reacquired.
 
    procedure Clear_String_Cache;
-   --  Drop cached strings only.
 
    procedure Clear_Image_Cache;
-   --  Drop cached images only. Handles previously returned by Get_Image
-   --  go stale and must be reacquired.
+   --  Handles previously returned by Get_Image go stale and must be reacquired.
 
    procedure Clear_Animated_Image_Cache;
-   --  Drop cached animated images only. Handles to them, and to the
-   --  frames a widget has drawn, go stale together.
+   --  Handles to them, and to the frames a widget has drawn, go stale together.
 
    procedure Invalidate (Path : String);
    --  Remove one entry (matching Path key) from all caches. Handles

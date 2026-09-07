@@ -124,7 +124,6 @@ def find_mcp_dir(pid: int | None = None) -> Path:
             return d
         raise RuntimeError(f"No Adi MCP directory for PID {pid}")
 
-    # Auto-discover: find any <parent>/*/ready
     if not parent.exists():
         raise RuntimeError(
             "No running Adi application found. "
@@ -178,7 +177,6 @@ def send_command(cmd: dict, pid: int | None = None,
     """
     mcp_dir = find_mcp_dir(pid)
 
-    # Resolve actual PID from directory name for lock keying
     actual_pid = pid if pid is not None else int(mcp_dir.name)
     lock = _get_pid_lock(actual_pid)
 
@@ -200,7 +198,6 @@ def send_command(cmd: dict, pid: int | None = None,
             #  the shutdown that the command asked for.
             return {"status": "ok", "req_id": req_id}
 
-        # Poll for response
         deadline = time.monotonic() + TIMEOUT
         while time.monotonic() < deadline:
             if resp_path.exists():
@@ -212,7 +209,6 @@ def send_command(cmd: dict, pid: int | None = None,
                     pass  # File might be partially written, retry
             time.sleep(POLL_INTERVAL)
 
-        # Cleanup stale command file
         cmd_path.unlink(missing_ok=True)
         raise RuntimeError(f"Timeout waiting for response (req_id={req_id})")
 
@@ -308,7 +304,6 @@ def perf_stats() -> str:
     result = send_command({"command": "perf_stats"}, _target_pid)
     if result.get("status") != "ok":
         raise RuntimeError(result.get("error", "perf_stats failed"))
-    # Return all fields except status/req_id
     stats = {k: v for k, v in result.items() if k not in ("status", "req_id")}
     return json.dumps(stats, indent=2)
 

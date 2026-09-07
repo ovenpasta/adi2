@@ -75,7 +75,6 @@ begin
          "nowrap leaves every item on the same line");
    end;
 
-   --  wrap breaks where the next item no longer fits.
    Ada.Text_IO.Put_Line ("--- wrap forms lines ---");
    declare
       Ctx : constant Flex_Layout_Context := Context (100.0, 100.0);

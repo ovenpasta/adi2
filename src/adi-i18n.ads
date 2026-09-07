@@ -39,7 +39,6 @@ package Adi.I18N is
    --  Context corresponds to gettext's msgctxt.
 
    function T (Msg_Id : String) return String renames Translate;
-   --  Short alias for Translate.
 
    ---------------------------------------------------------------------------
    --  Plural Translation
@@ -64,7 +63,6 @@ package Adi.I18N is
      (Msg_Id        : String;
       Msg_Id_Plural : String;
       N             : Natural) return String renames Translate_Plural;
-   --  Short alias for Translate_Plural.
 
    ---------------------------------------------------------------------------
    --  Explicit-Language Translation
@@ -83,7 +81,6 @@ package Adi.I18N is
 
    function TL (Language : String; Msg_Id : String) return String
      renames Translate_Language;
-   --  Short alias for Translate_Language (no-context form).
 
    function Translate_Plural_Language
      (Language      : String;
@@ -106,7 +103,6 @@ package Adi.I18N is
       Msg_Id_Plural : String;
       N             : Natural) return String
      renames Translate_Plural_Language;
-   --  Short alias for Translate_Plural_Language (no-context form).
 
    ---------------------------------------------------------------------------
    --  Registration (called from generated packages)

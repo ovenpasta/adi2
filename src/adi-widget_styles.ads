@@ -47,7 +47,6 @@ package Adi.Widget_Styles is
         Adi.Widget_Properties.No_Conditions;
    end record;
 
-   --  Match any state (always matches)
    Any_State : constant State_Selector := (others => <>);
 
 
@@ -234,7 +233,6 @@ package Adi.Widget_Styles is
    --  The store index a handle carries, for a caller that keys on it.
    function Index (S : Widget_Style) return Natural;
 
-   --  Check if any rule references a given widget/part state
    function Uses_Widget_State
      (WS : Widget_Style; S : Widget_State) return Boolean;
    function Uses_Part_State
@@ -293,14 +291,11 @@ package Adi.Widget_Styles is
 
    type Style_Builder is tagged private;
 
-   --  Start building
    function Create return Style_Builder;
    function From (Base : Style_Rules) return Style_Builder;
 
-   --  Set base style
    function Base (B : Style_Builder; S : Style_Rules) return Style_Builder;
 
-   --  Common state shortcuts
    function On_Normal (B : Style_Builder; S : Style_Rules) return Style_Builder;
    function On_Hover (B : Style_Builder; S : Style_Rules) return Style_Builder;
    function On_Press (B : Style_Builder; S : Style_Rules) return Style_Builder;
@@ -308,14 +303,12 @@ package Adi.Widget_Styles is
    function On_Disabled (B : Style_Builder; S : Style_Rules) return Style_Builder;
    function On_Selected (B : Style_Builder; S : Style_Rules) return Style_Builder;
 
-   --  Generic state rule
    function On (B : Style_Builder; Sel : State_Selector; S : Style_Rules) return Style_Builder;
    function On (B : Style_Builder; 
                 Sel : State_Selector; 
                 S : Style_Rules;
                 Priority : Natural) return Style_Builder;
 
-   --  Compound state shortcuts
    function On_Hover_And_Focus (B : Style_Builder; S : Style_Rules) return Style_Builder;
    function On_Press_And_Focus (B : Style_Builder; S : Style_Rules) return Style_Builder;
    function On_Hover_Not_Disabled (B : Style_Builder; S : Style_Rules) return Style_Builder;
@@ -332,7 +325,6 @@ package Adi.Widget_Styles is
                              Properties : Property_Set;
                              Easing     : Easing_Kind := Ease_In_Out) return Style_Builder;
 
-   --  Finalize
    function Build (B : Style_Builder) return Widget_Style;
 
    -------------------------------------------------

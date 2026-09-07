@@ -121,7 +121,6 @@ package body Adi.SVG_Sprites is
       Height := 0;
 
       while I <= VB'Last and then Num < 4 loop
-         --  Skip whitespace and commas
          while I <= VB'Last
            and then (VB (I) = ' ' or else VB (I) = ',' or else VB (I) = ASCII.HT)
          loop
@@ -158,15 +157,12 @@ package body Adi.SVG_Sprites is
       Tag_End  : Natural;
    begin
       while I <= Source'Last loop
-         --  Find next '<'
          while I <= Source'Last and then Source (I) /= '<' loop
             I := I + 1;
          end loop;
          exit when I > Source'Last;
 
-         --  Skip comments and processing instructions
          if I + 3 <= Source'Last and then Source (I .. I + 3) = "<!--" then
-            --  Find end of comment
             declare
                J : Integer := I + 4;
             begin
@@ -177,7 +173,6 @@ package body Adi.SVG_Sprites is
                I := J + 3;
             end;
          elsif I + 1 <= Source'Last and then Source (I + 1) = '?' then
-            --  Processing instruction: skip to ?>
             declare
                J : Integer := I + 2;
             begin
@@ -188,7 +183,6 @@ package body Adi.SVG_Sprites is
                I := J + 2;
             end;
          else
-            --  Regular tag
             Tag_End := Find_Tag_End (Source, I);
             exit when Tag_End = 0;
 
@@ -203,10 +197,8 @@ package body Adi.SVG_Sprites is
                   begin
                      if Id'Length > 0 then
                         if Is_Self_Closing_Tag (Tag_Content) then
-                           --  Self-closing <symbol .../> (unlikely but handle it)
                            Insert (Sheet, Id, VB, "");
                         else
-                           --  Find matching </symbol>
                            declare
                               Content_Start : constant Integer := Tag_End + 1;
                               J : Integer := Content_Start;
@@ -239,14 +231,10 @@ package body Adi.SVG_Sprites is
                                  J := Inner_Tag_End + 1;
                               end loop;
 
-                              --  Content is everything between <symbol...> and </symbol>
-                              --  J points past the '>' of </symbol>, so content ends
-                              --  at the '<' of </symbol>.
+                              --  J is left just past '>' of </symbol>; the loop below walks back from J-1 to its '<'.
                               declare
-                                 --  Find the '<' of the closing </symbol> tag
                                  Close_Start : Integer := J - 1;
                               begin
-                                 --  J is past '>'; go back to find '<'
                                  while Close_Start >= Content_Start
                                    and then Source (Close_Start) /= '<'
                                  loop
@@ -349,7 +337,6 @@ package body Adi.SVG_Sprites is
       VB := E.View_Box;
       Parse_View_Box (To_String (VB), W, H);
 
-      --  Fall back to reasonable defaults
       if W = 0 then
          W := 512;
       end if;

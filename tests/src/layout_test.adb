@@ -19,7 +19,6 @@ procedure Layout_Test is
       Put_Line ("TEST: Horizontal Icon + Text Layout");
       Put_Line ("==================================================");
 
-      --  Setup container style (Row direction, centered)
       Style := (
          Display => Flex,
          Flex_Direction => Row,
@@ -29,7 +28,6 @@ procedure Layout_Test is
          others => <>
       );
 
-      --  Icon: 24x24, fixed size
       Icon_Item := (
          Part => Icon_Part,
          Min_Width => 24.0,
@@ -48,7 +46,6 @@ procedure Layout_Test is
          Index => 1
       );
 
-      --  Text: flexible width, 20px height
       Text_Item := (
          Part => Label_Part,
          Min_Width => 0.0,
@@ -70,10 +67,8 @@ procedure Layout_Test is
       Items.Append (Icon_Item);
       Items.Append (Text_Item);
 
-      --  Run layout
       Perform_Item_Flex_Layout (Container, Style, Items);
 
-      --  Verify results
       declare
          Icon_Result : constant Layout_Item := Items.Element (1);
          Text_Result : constant Layout_Item := Items.Element (2);
@@ -83,7 +78,6 @@ procedure Layout_Test is
          Put_Line ("  Text: X=32 (24+8gap), Y=10 (centered), W=168, H=20");
          Put_Line ("");
 
-         --  Check icon
          Test_Support.Assert (Icon_Result.Geometry.X = 0.0,
             "Icon X=" & Icon_Result.Geometry.X'Image & " (expected 0.0)");
          Test_Support.Assert (Icon_Result.Geometry.Width = 24.0,
@@ -91,7 +85,6 @@ procedure Layout_Test is
          Test_Support.Assert (Icon_Result.Geometry.Height = 24.0,
             "Icon Height=" & Icon_Result.Geometry.Height'Image & " (expected 24.0)");
 
-         --  Check text
          Test_Support.Assert (Text_Result.Geometry.Height = 20.0,
             "Text Height=" & Text_Result.Geometry.Height'Image & " (expected 20.0)");
 
@@ -111,7 +104,6 @@ procedure Layout_Test is
       Put_Line ("TEST: Vertical Icon + Text Layout");
       Put_Line ("==================================================");
 
-      --  Setup container style (Column direction, centered)
       Style := (
          Display => Flex,
          Flex_Direction => Column,
@@ -121,7 +113,6 @@ procedure Layout_Test is
          others => <>
       );
 
-      --  Icon: 48x48, fixed size
       Icon_Item := (
          Part => Icon_Part,
          Min_Width => 48.0,
@@ -140,7 +131,6 @@ procedure Layout_Test is
          Index => 1
       );
 
-      --  Text: flexible, 20px height
       Text_Item := (
          Part => Label_Part,
          Min_Width => 0.0,
@@ -162,10 +152,8 @@ procedure Layout_Test is
       Items.Append (Icon_Item);
       Items.Append (Text_Item);
 
-      --  Run layout
       Perform_Item_Flex_Layout (Container, Style, Items);
 
-      --  Verify results
       declare
          Icon_Result : constant Layout_Item := Items.Element (1);
          Text_Result : constant Layout_Item := Items.Element (2);
@@ -175,7 +163,6 @@ procedure Layout_Test is
          Put_Line ("  Text: Y=56 (48+8gap), W=80, H=20");
          Put_Line ("");
 
-         --  Check icon
          Test_Support.Assert (Icon_Result.Geometry.Y = 0.0,
             "Icon Y=" & Icon_Result.Geometry.Y'Image & " (expected 0.0)");
          Test_Support.Assert (Icon_Result.Geometry.Width = 48.0,
@@ -183,7 +170,6 @@ procedure Layout_Test is
          Test_Support.Assert (Icon_Result.Geometry.Height = 48.0,
             "Icon Height=" & Icon_Result.Geometry.Height'Image & " (expected 48.0)");
 
-         --  Check text
          Test_Support.Assert (Text_Result.Geometry.Height = 20.0,
             "Text Height=" & Text_Result.Geometry.Height'Image & " (expected 20.0)");
 
@@ -202,7 +188,6 @@ procedure Layout_Test is
       Put_Line ("TEST: Text Only Layout");
       Put_Line ("==================================================");
 
-      --  Setup container style
       Style := (
          Display => Flex,
          Flex_Direction => Row,
@@ -212,7 +197,6 @@ procedure Layout_Test is
          others => <>
       );
 
-      --  Text: fills container
       Text_Item := (
          Part => Label_Part,
          Min_Width => 0.0,
@@ -233,10 +217,8 @@ procedure Layout_Test is
 
       Items.Append (Text_Item);
 
-      --  Run layout
       Perform_Item_Flex_Layout (Container, Style, Items);
 
-      --  Verify results
       declare
          Text_Result : constant Layout_Item := Items.Element (1);
       begin
@@ -244,7 +226,6 @@ procedure Layout_Test is
          Put_Line ("  Text: X=10, Y=21 (centered), W=300, H=18");
          Put_Line ("");
 
-         --  Check text
          Test_Support.Assert (Text_Result.Geometry.X = 10.0,
             "Text X=" & Text_Result.Geometry.X'Image & " (expected 10.0)");
          Test_Support.Assert (Text_Result.Geometry.Width = 300.0,

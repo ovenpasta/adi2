@@ -207,11 +207,7 @@ procedure Grid_Tracks_Test is
    --  The two pipelines over one corpus
    ---------------------------------------------------------------------
 
-   --  tools/css_to_ada.py compiles at build time and Adi.CSS_Parser
-   --  reads at run time. A sheet that resolves differently depending on
-   --  which read it is what this section is for, so the two are driven
-   --  from one file: tests/generated/grid_tracks_styles.ads is generated
-   --  from tests/css/grid_tracks.css, which the dynamic source reads.
+   --  tools/css_to_ada.py compiles at build time and Adi.CSS_Parser reads at run time, so the two are driven from one file: tests/generated/grid_tracks_styles.ads is generated from tests/css/grid_tracks.css.
    Corpus_Path : constant String := "tests/css/grid_tracks.css";
 
    procedure Test_Pipeline_Agreement is

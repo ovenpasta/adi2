@@ -437,7 +437,6 @@ package body Adi.RLottie is
          return;
       end if;
 
-      --  Already at the wanted extent.
       if Anim.Active /= null
         and then Anim.Active.Width = Anim.Pending_W
         and then Anim.Active.Height = Anim.Pending_H
@@ -473,7 +472,6 @@ package body Adi.RLottie is
          return;
       end if;
 
-      --  Already rasterising at this extent.
       if Anim.Active /= null
         and then Anim.Active.Width = Pixel_Width
         and then Anim.Active.Height = Pixel_Height
@@ -497,11 +495,7 @@ package body Adi.RLottie is
       Service_Pending (Anim);
    end Prepare;
 
-   --  A set that can be drawn from, not one that is being built: an
-   --  empty allocation is not something to show.
-   --  Drawable, not merely sized. A set holds no frames until playback
-   --  reaches them, so an accepted extent is not on its own something to
-   --  draw.
+   --  Drawable, not merely allocated: a set holds no frames until playback reaches them.
    function Is_Prepared (Anim : RLottie_Animation) return Boolean is
      (Anim.Active /= null
       and then Anim.Current_Frame in 1 .. Anim.Active.Images'Last

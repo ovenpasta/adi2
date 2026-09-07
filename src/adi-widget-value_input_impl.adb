@@ -316,7 +316,6 @@ package body Adi.Widget.Value_Input_Impl is
       Filtered : String (Text'Range);
       Len      : Natural := 0;
    begin
-      --  Filter: only pass numeric characters to the parent
       for C of Text loop
          if Is_Numeric_Char (C) then
             Len := Len + 1;
@@ -355,7 +354,6 @@ package body Adi.Widget.Value_Input_Impl is
             return;
 
          when SDL_SCANCODE_RETURN =>
-            --  Commit on Enter: parse, clamp, reformat
             declare
                Text : constant String := Get_Text (W);
             begin
@@ -380,7 +378,6 @@ package body Adi.Widget.Value_Input_Impl is
 
    overriding procedure On_Focus_Lost (W : in out Value_Input_Widget) is
    begin
-      --  Parse current text, clamp, and reformat
       declare
          Text : constant String := Get_Text (W);
       begin
@@ -393,7 +390,6 @@ package body Adi.Widget.Value_Input_Impl is
       Update_Text_From_Value (W);
       Fire_Value_Changed (W);
 
-      --  Call parent On_Focus_Lost
       Text_Input_Widget (W).On_Focus_Lost;
    end On_Focus_Lost;
 

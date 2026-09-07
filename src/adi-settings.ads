@@ -89,7 +89,6 @@ package Adi.Settings is
    --  Load settings from disk. Replaces any in-memory settings.
    procedure Load (Store : in out Settings_Store);
 
-   --  Save current settings to disk.
    procedure Save (Store : in out Settings_Store);
 
    --  Typed getters with defaults.
@@ -132,7 +131,6 @@ package Adi.Settings is
    --  Remove a key. Does nothing if key not found.
    procedure Remove (Store : in out Settings_Store; Key : String);
 
-   --  Clear all settings.
    procedure Clear (Store : in out Settings_Store);
 
    --  Query

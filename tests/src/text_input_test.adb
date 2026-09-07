@@ -58,7 +58,6 @@ procedure Text_Input_Test is
       Set_Password_Character (W, "*");
       Test_Support.Assert (Get_Password_Character (W) = "*",
               "password character is now '*'");
-      --  Multi-byte UTF-8 codepoint round-trips as a String
       Set_Password_Character (W, Bullet_UTF8);
       Test_Support.Assert (Get_Password_Character (W) = Bullet_UTF8,
               "password character round-trips multi-byte UTF-8");
@@ -111,7 +110,6 @@ procedure Text_Input_Test is
    begin
       Put_Line ("Test: Ctrl+X is a no-op when password mode is on");
       Set_Password_Mode (W, True);
-      --  Select all then attempt Cut
       On_Key_Down (+W, SDL_SCANCODE_A, SDL_KMOD_CTRL, False);
       On_Key_Down (+W, SDL_SCANCODE_X, SDL_KMOD_CTRL, False);
       Test_Support.Assert (Get_Text (W) = "hello",
@@ -228,7 +226,6 @@ procedure Text_Input_Test is
       Add_Child (Adi.Widget.Box.To_Widget_Handle (Root), Kept);
       Adi.Window.Set_Root (Win, Adi.Widget.Box.To_Widget_Handle (Root));
 
-      --  Give the buffer something for Undo to change.
       On_Text_Input (Kept, "abc");
       Test_Support.Assert (Get_Text (W) = "abc", "the buffer took the text");
 

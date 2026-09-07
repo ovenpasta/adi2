@@ -6,14 +6,7 @@ with Adi.MCP;
 with Adi.Window; use Adi.Window;
 with Transition_Example_UI;
 
---  Demonstrates the transition capabilities:
---    1. Background color transitions with each easing curve
---    2. Individual properties: color, border, radius, shadow, opacity
---    3. Several named properties at once, and the default of all of them
---    4. The same transition at different durations
---
---  Every button's transition and hover live in examples/css/transition_example.css,
---  so the curves and timings can be edited while the program runs.
+--  Every button's transition and hover live in examples/css/transition_example.css, editable while the program runs.
 
 procedure Transition_Example is
    A : Adi.App.App;

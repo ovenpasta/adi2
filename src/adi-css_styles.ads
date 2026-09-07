@@ -75,11 +75,9 @@ package Adi.CSS_Styles is
    -- Units
    -------------------------------------------------
 
-   --  Pix is an Adi extension, not CSS: one renderer pixel, always.
-   --  It ignores the DIP and UI scales and the px -> dip mapping, which
-   --  is what makes it the unit for a guaranteed hairline. Font sizes in
-   --  pix still take the accessibility text scale.
-   --  Appended so the existing positions keep their values.
+   --  Pix is an Adi extension: one renderer pixel, outside the DIP and UI
+   --  scales and the px -> dip mapping. A font size in pix still takes
+   --  the accessibility text scale.
    type CSS_Unit is (Px, Dip, Em, Root_Em, Pct, Vw, Vh, Pix);
 
    type Length_Value is record
@@ -301,9 +299,6 @@ package Adi.CSS_Styles is
       Stops      : Gradient_Stop_Array;
    end record;
 
-   --  Heap-allocated reference to a gradient value.  Stored by pointer in
-   --  Background_Image_Value so that Style_Rules / Widget_Style stay thin
-   --  even when many state-rule slots are present.
    type Linear_Gradient_Ref is access Linear_Gradient_Value;
 
    function Gradient_Stop_At
@@ -584,7 +579,6 @@ end record;
 Default_Font_Family : constant Font_Family_Value :=
   (Kind => By_Handle, Handle => Default_Font);
 
---  Font weight (CSS font-weight)
 type Font_Weight_Value is (
    Weight_Thin,       -- 100
    Weight_Extra_Light,-- 200
@@ -598,11 +592,9 @@ type Font_Weight_Value is (
 );
 Default_Font_Weight : constant Font_Weight_Value := Weight_Normal;
 
---  Font style (CSS font-style)
 type Font_Style_Value is (Style_Normal, Style_Italic, Style_Oblique);
 Default_Font_Style : constant Font_Style_Value := Style_Normal;
 
---  Text decoration (CSS text-decoration)
 type Text_Decoration_Value is (
    Decoration_None,
    Decoration_Underline,
@@ -611,7 +603,6 @@ type Text_Decoration_Value is (
 );
 Default_Text_Decoration : constant Text_Decoration_Value := Decoration_None;
 
---  List style (CSS list-style-*)
 type List_Style_Type_Kind is (
    List_Style_None,
    List_Style_Disc,
@@ -664,7 +655,6 @@ type List_Style_Position_Value is (
 
 Default_List_Style_Position : constant List_Style_Position_Value := List_Outside;
 
---  White space handling (CSS white-space)
 type White_Space_Value is (
    WS_Normal,
    WS_Nowrap,
@@ -674,21 +664,18 @@ type White_Space_Value is (
 );
 Default_White_Space : constant White_Space_Value := WS_Normal;
 
---  Text overflow (CSS text-overflow)
 type Text_Overflow_Value is (
    Overflow_Clip,
    Overflow_Ellipsis
 );
 Default_Text_Overflow : constant Text_Overflow_Value := Overflow_Clip;
 
---  Text wrap mode (CSS text-wrap-mode)
 type Text_Wrap_Mode_Value is (
    TWM_Wrap,       --  text-wrap-mode: wrap (text wraps at soft wrap opportunities)
    TWM_Nowrap      --  text-wrap-mode: nowrap (text does not wrap)
 );
 Default_Text_Wrap_Mode : constant Text_Wrap_Mode_Value := TWM_Wrap;
 
---  Line height can be a number (multiplier) or length
 type Line_Height_Kind is (LH_Normal, LH_Number, LH_Length);
 
 type Line_Height_Value (Kind : Line_Height_Kind := LH_Normal) is record
@@ -712,12 +699,12 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    -------------------------------------------------
 
    type Text_Align_Value is (
-      Text_Left,      --  text-align: left
-      Text_Right,     --  text-align: right
-      Text_Center,    --  text-align: center
-      Text_Justify,   --  text-align: justify
-      Text_Start,     --  text-align: start (locale-aware)
-      Text_End        --  text-align: end (locale-aware)
+      Text_Left,
+      Text_Right,
+      Text_Center,
+      Text_Justify,
+      Text_Start,
+      Text_End
    );
 
    Default_Text_Align : constant Text_Align_Value := Text_Start;
@@ -818,7 +805,6 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
 
    type Easing_Kind is (Linear, Ease_In, Ease_Out, Ease_In_Out);
 
-   --  Animatable properties that can be individually targeted
    type Animatable_Property is (
       Prop_Color,
       Prop_Background_Color,
@@ -836,7 +822,6 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    All_Properties : constant Property_Set := [others => True];
    No_Properties  : constant Property_Set := [others => False];
 
-   --  Helpers to build property sets
    function Props (P : Animatable_Property) return Property_Set is
       ([for I in Animatable_Property => I = P]);
    function "+" (L, R : Property_Set) return Property_Set is
@@ -847,7 +832,7 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    type Transition_Spec is record
       Duration   : Float := 0.0;          --  Duration in seconds
       Easing     : Easing_Kind := Linear;
-      Properties : Property_Set := All_Properties;  --  Which properties to animate
+      Properties : Property_Set := All_Properties;
    end record;
 
    No_Transition : constant Transition_Spec := (0.0, Linear, All_Properties);
@@ -918,8 +903,6 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    );
 
    type Align_Self_Value is (
-   --  Note: Align_Self_Value reuses the same values as Align_Items_Value
-   --  but with an additional 'Auto' option
       Auto, Flex_Start, Flex_End, Center, Baseline, Stretch
    );
 
@@ -1109,7 +1092,6 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    package Opt_Grid_Col_Span is new Optional_Values (Grid_Column_Span_Value, Default_Grid_Column_Span);
    package Opt_Grid_Row_Span is new Optional_Values (Grid_Row_Span_Value, Default_Grid_Row_Span);
 
-   --  New optional wrappers
    package Opt_Text_Align    is new Optional_Values (Text_Align_Value, Default_Text_Align);
    package Opt_Vertical_Align is new Optional_Values (Vertical_Align_Value, Default_Vertical_Align);
    package Opt_Object_Fit    is new Optional_Values (Object_Fit_Value, Default_Object_Fit);
@@ -1178,7 +1160,6 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Merge (Base, Override : Opt_Margin_Sides) return Opt_Margin_Sides is
      ([for E in Edge => Opt_Margin.Merge (Base (E), Override (E))]);
 
-   --  Concrete group values for rendering and layout.
    function To_Box           (O : Opt_Edge_Lengths)   return CSS_Box_Value;
    function To_Border_Width  (O : Opt_Edge_Lengths)   return Border_Width_Value;
    function To_Border_Color  (O : Opt_Edge_Colors)    return Border_Color_Value;
@@ -2025,7 +2006,6 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
      renames Opt_Margin.Val;
    function Set_Margin_Side (V : Length_Value) return Opt_Margin.Optional is
      (Opt_Margin.Val (Margin (V)));
-   --  Shorthand helpers that expand a CSS_Box_Value to margin sides.
    function Set_Margin (V : CSS_Box_Value) return Opt_Margin_Sides;
    --  The mixed shorthand: any side may be auto. A formal hides the Edge
    --  literal of the same name, so the choices name it by package.
@@ -2076,8 +2056,6 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
    function Set_Right  (V : Inset_Value) return Opt_Right.Optional  renames Opt_Right.Val;
    function Set_Bottom (V : Inset_Value) return Opt_Bottom.Optional renames Opt_Bottom.Val;
    function Set_Left   (V : Inset_Value) return Opt_Left.Optional   renames Opt_Left.Val;
-   --  Convenience helper for axis assignments.
-   --  Style_Rules/Resolved_Style do not store a standalone `Overflow` field.
    function Set (V : Overflow_Value) return Opt_Overflow.Optional renames Opt_Overflow.Val;
 
    --  `overflow: V`, which is both axes and nothing else. The one

@@ -69,8 +69,6 @@ package body Adi.Widget.Context_Menu is
 
    Menu_Bindings : Menu_Binding_Vectors.Vector;
 
-   --  (Popup_Handle helper removed — Menu.Popup is now a List_Box_Handle directly)
-
    procedure Destroy (H : in out Menu_Handle) is
       Obj : constant Context_Menu_Access := Menu_Stores.Get (H.Id);
    begin
@@ -92,12 +90,10 @@ package body Adi.Widget.Context_Menu is
             declare
                Binding : Menu_Binding := Menu_Bindings.Element (I);
             begin
-               --  Destroy popup (registered List_Box widget)
                if Is_Valid (Binding.Popup_WH) then
                   Destroy (Binding.Popup_WH);
                end if;
 
-               --  Destroy dismiss layer (registered widget)
                if Is_Valid (Binding.Dismiss_WH) then
                   Destroy (Binding.Dismiss_WH);
                end if;

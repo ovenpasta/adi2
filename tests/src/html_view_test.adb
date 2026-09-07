@@ -368,9 +368,7 @@ procedure Html_View_Test is
       First_Seen := Adi.Image.To_Handle (Reload_Owner);
       Assert (Adi.Image.Is_Valid (First_Seen), "with a live image");
 
-      --  Built again while it is still owned. Re-laid out first, so
-      --  that this really re-resolves rather than reusing a clean
-      --  layout and telling us nothing.
+      --  Built again while it is still owned; re-laid out first so this actually re-resolves rather than reusing a clean layout.
       Adi.Widget.Set_Geometry
         (+W, (X => 0.0, Y => 0.0, Width => 220.0, Height => 100.0));
       Adi.Widget.Build_Items (+W);
@@ -596,11 +594,7 @@ procedure Html_View_Test is
       New_Line;
    end Test_Inline_SVG_Element;
 
-   --  Regression: Sync_Line_Heights used to floor every run's geometry
-   --  height at the line height. Images fill their geometry, so any
-   --  image smaller than the line box was stretched vertically
-   --  (requested width x floored height). Standard CSS never stretches
-   --  replaced content to the line box.
+   --  Standard CSS never stretches replaced content (e.g. an image) to the line box height.
    procedure Test_Image_Not_Stretched_To_Line_Height is
       Tol : constant := 0.5;
    begin
@@ -795,8 +789,6 @@ procedure Html_View_Test is
               "the document is gone");
       Assert (Adi.Widget.Get_Scroll_Offset_Y (+W) = 0.0,
               "the scroll offset goes with it");
-      --  Back to what a view with no document reports, rather than the
-      --  size of the one it used to hold.
       declare
          Fresh : constant Adi.Widget.Html_View.Html_View_Handle :=
            Adi.Widget.Html_View.Create_Handle;
@@ -1531,9 +1523,7 @@ procedure Html_View_Test is
      "a { text-decoration: underline; }";
 
    procedure Test_Line_Height_Number_Uses_Font_Size is
-      --  Verify that line-height: <number> multiplies font-size, not line-skip.
-      --  font-size: 20px with line-height: 2 should produce ~40px line advance.
-      --  Before the fix, it was ~20 * 1.2 * 2 = ~48px (line-skip based).
+      --  line-height: <number> multiplies font-size, not line-skip: font-size 20px with line-height 2 should produce ~40px line advance.
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
       A_Idx : Natural := 0;
@@ -1563,7 +1553,6 @@ procedure Html_View_Test is
             --  Allow +-4px tolerance for font metrics rounding.
             Assert (Advance >= 36.0 and then Advance <= 44.0,
                     "line-height number: advance ~40px (got" & Advance'Image & ")");
-            --  Old bug would give ~48px (line-skip * 2).
             Assert (Advance < 46.0,
                     "line-height number: not inflated by line-skip");
          end;
@@ -1679,8 +1668,7 @@ procedure Html_View_Test is
             --  center: max(30, 30) = 30, not 30 + 30 = 60.
             Assert (Gap_AB >= 26.0 and then Gap_AB <= 34.0,
                     "collapse-through: h1->h1 gap ~30px (got" & Gap_AB'Image & ")");
-            --  h1 #2 -> p collapse-through center's last-child boundary:
-            --  max(30, 10) = 30, not 10 (current bug drops 30).
+            --  h1 #2 -> p collapse-through center's last-child boundary: max(30, 10) = 30.
             Assert (Gap_BC >= 26.0 and then Gap_BC <= 34.0,
                     "collapse-through last child: h1->p gap ~30px (got" & Gap_BC'Image & ")");
             Assert (Gap_BC > 16.0,
@@ -2030,8 +2018,7 @@ procedure Html_View_Test is
               (Ref (H1_It.Computed_Style).Font_Size.Amount >
                Ref (P_It.Computed_Style).Font_Size.Amount,
                "default stylesheet h1 font-size > p font-size");
-            --  h1 is 2em with body 16px = 32px; verify it's near 32px
-            --  (catches the old bug where em resolved against viewport height)
+            --  h1 is 2em with body 16px = 32px; verify it's near 32px.
             Assert
               (Nearly_Equal
                  (Adi.Core.Pixel_Type (Ref (H1_It.Computed_Style).Font_Size.Amount),

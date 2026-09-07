@@ -1129,7 +1129,6 @@ package body Adi.Window is
        Append ("/");
        Append_Nat (W.Stats_Sel_Memo_Misses, 3);
 
-       --  Draw background bar
        Dummy := SDL_SetRenderDrawBlendMode
          (W.Internal.ren, SDL_BLENDMODE_BLEND);
        Dummy := SDL_SetRenderDrawColor (W.Internal.ren, 0, 0, 0, 200);
@@ -1148,7 +1147,6 @@ package body Adi.Window is
        Interfaces.C.Strings.Free (C_Str);
        Dummy := SDL_SetRenderScale (W.Internal.ren, 1.0, 1.0);
 
-       --  Restore blend mode
        Dummy := SDL_SetRenderDrawBlendMode
          (W.Internal.ren, SDL_BLENDMODE_NONE);
     end Render_Debug_Stats;
@@ -1206,17 +1204,14 @@ package body Adi.Window is
              & " overlay_dirty=" & Boolean'Image (Overlay_Dirty)
              & " needs_relayout=" & Boolean'Image (Needs_Relayout));
 
-          --  Clear the screen
           SDL_Assert (SDL_SetRenderDrawColor (W.Internal.ren, 255, 255, 255, 255), "SDL_SetRenderDrawColor");
           SDL_Assert (SDL_RenderClear (W.Internal.ren), "SDL_RenderClear");
 
-          --  Rebuild dirty items first.
           Stage_Start := Now;
           Update (W);
           W.Stats_Update_Us := Natural
             (To_Duration (Now - Stage_Start) * 1_000_000.0);
 
-          --  Relayout only when required by geometry-affecting changes.
           Stage_Start := Now;
           if W.Needs_Layout then
              W.Stats_Layout_Reason := 'W';
@@ -1254,7 +1249,6 @@ package body Adi.Window is
           W.Stats_Layout_Us := Natural
             (To_Duration (Now - Stage_Start) * 1_000_000.0);
 
-          --  Draw all widget trees
           Stage_Start := Now;
           if Root_Valid then
              Render_Tree (W.Root, W.Ctx);
@@ -1306,7 +1300,6 @@ package body Adi.Window is
           --  the place the counters were reset for.
           Adi.Widget.Reset_Perf_Counters;
 
-          --  Compute total render time (before present)
           W.Stats_Render_Us := Natural
             (To_Duration (Now - Render_Start) * 1_000_000.0);
 
@@ -1315,7 +1308,6 @@ package body Adi.Window is
              Render_Debug_Stats (W);
           end if;
 
-          --  Post-render callback (MCP introspection, etc.)
           declare
              Win_H : constant Window_Handle := Get_Handle (W);
              Ren   : constant Adi.SDL.Render.SDL_Renderer_Ptr := W.Internal.ren;
@@ -1326,7 +1318,6 @@ package body Adi.Window is
              Emit (W.Post_Render);
           end;
 
-          --  Present the rendered frame
           Stage_Start := Now;
           SDL_Assert (SDL_RenderPresent (W.Internal.ren), "SDL_RenderPresent");
           W.Stats_Present_Us := Natural
@@ -1354,7 +1345,7 @@ package body Adi.Window is
       W.Root := Root;
       if Is_Valid (W.Root) then
          Set_Geometry (W.Root, W.Geometry);
-         W.Needs_Layout := True;  -- Initial layout needed
+         W.Needs_Layout := True;
          W.Resize_Triggered_Layout := False;
       end if;
       Apply_Window_Min_Size_From_Layout (W);
@@ -1393,7 +1384,6 @@ package body Adi.Window is
       if Enabled then
          Apply_Window_Min_Size_From_Layout (W);
       elsif W.Internal /= null and then W.Internal.win /= null then
-         --  Restore permissive minimum when enforcement is disabled.
          Success := Adi.SDL.Video.SDL_SetWindowMinimumSize (W.Internal.win, 1, 1);
          SDL_Assert (Success, "SDL_SetWindowMinimumSize");
       end if;
@@ -1696,7 +1686,6 @@ package body Adi.Window is
          return;
       end if;
 
-      --  Clear refs if they point into the removed overlay subtree
       if Is_Valid (W.Focused_Widget)
         and then Is_In_Subtree (Overlay, W.Focused_Widget)
       then
@@ -1728,7 +1717,6 @@ package body Adi.Window is
          return;
       end if;
 
-      --  Clear refs if they point into any overlay subtree
       for I in 1 .. Natural (W.Overlays.Length) loop
          declare
             OH : constant Widget_Handle := W.Overlays.Element (I);
@@ -2057,7 +2045,6 @@ package body Adi.Window is
          Node_Visibility :=
            Resolve_Effective_Visibility (Parent, Parent_Visibility);
 
-         --  Check if point is in parent first
          if not Point_In_Widget (Parent, Hit_X, Hit_Y) then
             return Null_Handle;
          end if;
@@ -2226,14 +2213,12 @@ package body Adi.Window is
       Build_Hover_Chain (Old_Node, Old_Chain, Old_Count);
       Build_Hover_Chain (New_Node, New_Chain, New_Count);
 
-      --  Clear hover only for nodes that are not common ancestors anymore.
       for I in 1 .. Old_Count loop
          if not In_Chain (Old_Chain (I), New_Chain, New_Count) then
             Set_Hovered (Old_Chain (I), False);
          end if;
       end loop;
 
-      --  Set hover for newly entered nodes.
       for I in 1 .. New_Count loop
          if not In_Chain (New_Chain (I), Old_Chain, Old_Count) then
             Set_Hovered (New_Chain (I), True);
@@ -2380,22 +2365,18 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
       W.Mouse_X := X;
       W.Mouse_Y := Y;
 
-      --  Find widget under cursor
       New_Hovered := Find_Scroll_Widget_At (W, X, Y);
       if not Is_Valid (New_Hovered) then
          New_Hovered := Find_Widget_At (W, X, Y);
       end if;
 
-      --  Handle hover state changes
       if New_Hovered /= W.Hovered_Widget then
-         --  Update widget hover state across ancestor chains.
          Update_Hover_Ancestors (W.Hovered_Widget, New_Hovered);
 
          if Is_Valid (W.Hovered_Widget) then
             Clear_Hover_For_Part (W.Hovered_Widget, W.Hovered_Part);
          end if;
 
-         --  Set hover on new widget
          if Is_Valid (New_Hovered) then
             New_Part := Get_Part_At (New_Hovered, X,
                                      Mapped_Y (New_Hovered, X, Y));
@@ -2416,7 +2397,6 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
          end if;
       end if;
 
-      --  Route drag motion to the pressed widget (for text selection, etc.)
       if W.Mouse_Down and then Is_Valid (W.Pressed_Widget)
         and then not Is_Disabled (W.Pressed_Widget)
       then
@@ -2560,7 +2540,6 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
       W.Mouse_X := X;
       W.Mouse_Y := Y;
 
-      --  Release pressed widget and dispatch click if applicable
       if Is_Valid (PW) then
          if W.Scroll_Claimed then
             Handle_Scroll_Mouse_Up (PW, Button);
@@ -2909,7 +2888,6 @@ function Get_Size (W : in out Window) return Size_2D is
          end loop;
       end;
 
-      --  Destroy root widget tree
       if Is_Valid (W.Root) then
          declare
             H : Widget_Handle := W.Root;
@@ -2981,7 +2959,6 @@ function Get_Size (W : in out Window) return Size_2D is
           W.Size := New_Size;
           W.Geometry := (0.0, 0.0, New_Size.Width, New_Size.Height);
 
-          --  Re-layout root widget if exists
           if Is_Valid (W.Root) then
              Set_Geometry (W.Root, W.Geometry);
              Mark_Dirty (W.Root);
@@ -3000,7 +2977,7 @@ function Get_Size (W : in out Window) return Size_2D is
              end;
           end loop;
 
-          W.Needs_Layout := True;  -- Flag for layout recalculation
+          W.Needs_Layout := True;
           W.Resize_Triggered_Layout := True;
        end if;
 

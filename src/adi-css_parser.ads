@@ -113,7 +113,6 @@ package Adi.CSS_Parser is
                        Tag_Name : String;
                        W        : access Adi.Widget.Widget'Class);
 
-   --  Widget_Handle overloads
    procedure Bind (Sheet : in out Stylesheet;
                    Kind  : Selector_Kind;
                    Name  : String;

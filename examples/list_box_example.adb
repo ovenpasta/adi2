@@ -355,7 +355,6 @@ begin
       Label_List.Connect_Selection_Changed
         (Grid_Listbox, On_Grid_Selection_Changed'Unrestricted_Access);
 
-      --  Fill no/single/range label lists
       for I in 1 .. 40 loop
          declare
             Row       : constant Adi.Widget.Label.Label_Handle :=
@@ -375,7 +374,6 @@ begin
          end;
       end loop;
 
-      --  Fill box list with more complex row widgets
       for I in 1 .. 35 loop
          declare
             Row   : constant Adi.Widget.Box.Box_Handle :=
@@ -392,7 +390,6 @@ begin
          end;
       end loop;
 
-      --  Fill grid list
       for I in 1 .. 64 loop
          declare
             Cell : constant Adi.Widget.Label.Label_Handle :=
@@ -403,7 +400,6 @@ begin
          end;
       end loop;
 
-      --  Assemble hierarchy
       Add_Child (+Controls_Row, +Inertia_Switch_Label);
       Add_Child (+Controls_Row, +Inertia_Switch);
       Add_Child (+Controls_Row, +Debug_Overlay_Label);
@@ -443,13 +439,11 @@ begin
       Add_Child (+Root, +Controls_Row);
       Add_Child (+Root, +Panels);
 
-      --  Rows the list closes up over from the first frame.
       Set_Visible (Label_List.Get_Row_Handle (No_Listbox, 3), False);
       Set_Visible (Label_List.Get_Row_Handle (No_Listbox, 4), False);
       Set_Visible (Label_List.Get_Row_Handle (Grid_Listbox, 5), False);
       Set_Visible (Label_List.Get_Row_Handle (Grid_Listbox, 6), False);
 
-      --  Initial selection
       Label_List.Select_Row (Single_Listbox, 2);
       Box_List.Toggle_Row_Selected (Multi_Listbox, 1);
       Box_List.Toggle_Row_Selected (Multi_Listbox, 3);

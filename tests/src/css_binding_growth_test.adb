@@ -108,10 +108,7 @@ begin
         Natural (Adi.CSS_Source.Testing.Visit_Count);
       Applied : constant Natural :=
         Natural (Adi.CSS_Source.Testing.Reapply_Count);
-      --  Quadratic growth is what the bug looks like: every Build
-      --  re-styles every binding made so far.
-      --  Two walks per Build: Bind_Root_Metadata, then binding the root
-      --  itself. Build i walks 24i and then 24i+1.
+      --  Every Build re-styles every binding made so far: two walks per Build (Bind_Root_Metadata, then the root itself), so Build i walks 24i and 24i+1.
       Quadratic : constant Natural :=
         48 * (Builds * (Builds - 1) / 2) + Builds;
       --  A few re-applications per Build is fine -- changing the root
@@ -775,8 +772,6 @@ begin
       Assert (Adi.CSS_Source.Testing.Bindings_Held (S2) = 0,
               "reading through the copy answers empty");
 
-      --  The second destroy is the one that used to take the process
-      --  down: a double free through the copy.
       Adi.CSS_Source.Destroy (S2);
       Assert (Adi.CSS_Source.Testing.Live_Sources = Before_Sources,
               "destroying the copy as well changes nothing");
@@ -834,9 +829,6 @@ begin
       Adi.CSS_Source.Add_Dynamic_String (Src, ".c { opacity: 0.75; }", Ok);
       Adi.CSS_Source.Set_Mode (Src, Adi.CSS_Source.Dynamic_Mode, Ok);
 
-      --  Every budget above is an upper bound, and zero meets all of
-      --  them: without this the instrumentation could be deleted and
-      --  the whole suite would still pass.
       Assert (Adi.CSS_Source.Testing.Visit_Count > 0,
               "a real change is counted as a walk");
       Assert (Adi.CSS_Source.Testing.Reapply_Count > 0,

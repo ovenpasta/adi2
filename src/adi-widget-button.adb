@@ -299,10 +299,8 @@ package body Adi.Widget.Button is
       H : constant Widget_Handle := Get_Handle (W);
    begin
       if W.Group /= null then
-         --  Delegate toggle coordination to the group
          On_Button_Clicked (W.Group.all, H);
       elsif W.Toggleable then
-         --  Local toggle
          Set_Toggled (W, not Is_Toggled (W));
          declare
             Active : constant Boolean := Is_Toggled (W);

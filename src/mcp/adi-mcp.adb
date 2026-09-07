@@ -454,7 +454,6 @@ package body Adi.MCP is
               and then Path_Str (Path_Str'First .. Path_Str'First + 6)
                          = "overlay"
             then
-               --  Overlay path: "overlayN:subpath"
                declare
                   OV_Idx_Str : constant String :=
                     Path_Str (Path_Str'First + 7 .. Colon - 1);
@@ -517,7 +516,6 @@ package body Adi.MCP is
          return Null_Handle;
 
       else
-         --  No id or path: return root
          if Is_Valid (Root_H) then
             Result_Path := To_Unbounded_String ("");
          end if;
@@ -922,7 +920,6 @@ package body Adi.MCP is
    begin
       while I <= Keys'Last loop
          if Keys (I) = '{' then
-            --  Named key: find closing '}'
             declare
                Close : Natural := 0;
             begin
@@ -1005,7 +1002,6 @@ package body Adi.MCP is
                end if;
             end;
          else
-            --  Regular character: send as text input
             Adi.Window.On_Text_Input (Win.all, Keys (I .. I));
             I := I + 1;
          end if;
@@ -1177,7 +1173,6 @@ package body Adi.MCP is
                Results := Find_By_Text (Root, Query, Exact);
             end if;
 
-            --  Search overlays too
             for I in 1 .. Adi.Window.Overlay_Count (Win) loop
                declare
                   OV      : constant Widget_Handle :=

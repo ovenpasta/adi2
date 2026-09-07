@@ -11,8 +11,6 @@ package Adi.Layout_Util is
    Default_Root_Font_Size_Px : constant Pixel_Type :=
      Pixel_Type (Default_Font_Size.Amount);
 
-   --  Active DIP scale used by Length_To_Px for Dip units.
-   --  Window code updates this based on SDL window display scale.
    procedure Set_Active_DIP_Scale (Scale : Pixel_Type);
    function Get_Active_DIP_Scale return Pixel_Type;
 
@@ -67,12 +65,10 @@ package Adi.Layout_Util is
 
    Zero_Edges : constant Edge_Pixels := (0.0, 0.0, 0.0, 0.0);
 
-   --  Extract padding as pixels (converts Length to Pixel_Type)
    function Get_Padding_Px (Style : Resolved_Style) return Edge_Pixels;
    function Get_Margin_Px (Style : Resolved_Style) return Edge_Pixels;
    function Get_Border_Width_Px (Style : Resolved_Style) return Edge_Pixels;
 
-   --  Helper to convert CSS_Box_Value to Edge_Pixels
    function Box_To_Pixels (B : CSS_Box_Value) return Edge_Pixels;
    function Border_To_Pixels (B : Border_Width_Value) return Edge_Pixels;
 
@@ -88,21 +84,17 @@ package Adi.Layout_Util is
    function Padding_Box (Outer : Rectangle;
                          Style : Resolved_Style) return Rectangle;
 
-   --  Compute outer size from content size by adding padding + border
    function Outer_Size (Content : Size_2D;
                         Style   : Resolved_Style) return Size_2D;
 
-   --  Shrink rectangle by edge amounts
    function Shrink (R : Rectangle; Edges : Edge_Pixels) return Rectangle;
 
-   --  Expand rectangle by edge amounts
    function Expand (R : Rectangle; Edges : Edge_Pixels) return Rectangle;
 
    -------------------------------------------------
    -- Rectangle Alignment
    -------------------------------------------------
 
-   --  Align a sized item within a container
    function Align_In (Container : Rectangle;
                       Item_Size : Size_2D;
                       H : H_Alignment := H_Left;
@@ -115,10 +107,8 @@ package Adi.Layout_Util is
       Min_Size  : Size_2D;
       Max_Size  : Size_2D) return Rectangle;
 
-   --  Align using CSS text-align value
    function Align_H_From_CSS (Align : Text_Align_Value) return H_Alignment;
 
-   --  Align using CSS vertical-align value
    function Align_V_From_CSS (Align : Vertical_Align_Value) return V_Alignment;
 
    -------------------------------------------------
@@ -149,7 +139,6 @@ package Adi.Layout_Util is
 
    type Stack_Direction is (Dir_Horizontal, Dir_Vertical);
 
-   --  Calculate position for item N in a stack
    function Stack_Position (
       Container   : Rectangle;
       Item_Index  : Natural;        --  0-based
@@ -160,7 +149,6 @@ package Adi.Layout_Util is
       Main_Align  : H_Alignment := H_Left;   --  Along main axis
       Cross_Align : V_Alignment := V_Top) return Rectangle;
 
-   --  Get total size needed for stacked items
    function Stack_Total_Size (
       Item_Count : Positive;
       Item_Size  : Size_2D;
@@ -181,7 +169,6 @@ package Adi.Layout_Util is
    type Flex_Item_Array is array (Positive range <>) of Flex_Item_Info;
    type Pixel_Array is array (Positive range <>) of Pixel_Type;
 
-   --  Distribute space among flex items
    function Distribute_Flex (
       Available   : Pixel_Type;
       Items       : Flex_Item_Array;
@@ -191,7 +178,6 @@ package Adi.Layout_Util is
    -- Utility
    -------------------------------------------------
 
-   --  Convert Length to pixels (simplified - assumes Px or does basic conversion)
    function Length_To_Px (L : CSS_Styles.Length_Value;
                            Container_Size : Pixel_Type := 0.0;
                            Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
@@ -215,7 +201,6 @@ package Adi.Layout_Util is
                           Container_Size : Pixel_Type := 0.0)
        return Pixel_Type;
 
-   --  Get size from Size_Value
    function Size_To_Px (S : Size_Value;
                          Container_Size : Pixel_Type := 0.0;
                          Font_Size : Pixel_Type := Default_Root_Font_Size_Px;
@@ -352,7 +337,6 @@ package Adi.Layout_Util is
       Context   : Flex_Layout_Context;
       Children  : in out Flex_Child_Info_Array);
 
-   --  Convert computed flex results to rectangles
    function Flex_To_Rectangles(
       Context  : Flex_Layout_Context;
       Children : Flex_Child_Info_Array) return Rectangle_Array;
@@ -411,12 +395,10 @@ package Adi.Layout_Util is
 
    type Grid_Child_Info_Array is array (Positive range <>) of Grid_Child_Info;
 
-   -- Main entry point for grid layout
    procedure Compute_Grid_Layout(
       Context  : Grid_Layout_Context;
       Children : in out Grid_Child_Info_Array);
 
-   -- Convert computed grid results to rectangles
    function Grid_To_Rectangles(
       Children : Grid_Child_Info_Array) return Rectangle_Array;
 end Adi.Layout_Util;

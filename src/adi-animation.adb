@@ -77,7 +77,6 @@ package body Adi.Animation is
       end if;
    end Lerp_Length;
 
-   --  Expand CSS_Box_Value to per-side array
    function Expand_Box (V : CSS_Box_Value) return CSS_Box_Sides is
    begin
       case V.Kind is
@@ -100,7 +99,6 @@ package body Adi.Animation is
                            Lerp_Length (SA (E), SB (E), T)]);
    end Lerp_Box;
 
-   --  Expand Border_Width_Value to per-edge array
    function Expand_Border_Width (V : Border_Width_Value) return Edge_Lengths is
    begin
       case V.Kind is
@@ -120,7 +118,6 @@ package body Adi.Animation is
                            Lerp_Length (EA (E), EB (E), T)]);
    end Lerp_Border_Width;
 
-   --  Expand Border_Color_Value to per-edge array
    function Expand_Border_Color (V : Border_Color_Value) return Edge_Colors is
    begin
       case V.Kind is
@@ -140,7 +137,6 @@ package body Adi.Animation is
                            Lerp_Color (EA (E), EB (E), T)]);
    end Lerp_Border_Color;
 
-   --  Expand Border_Radius_Value to per-corner array
    function Expand_Border_Radius (V : Border_Radius_Value) return Corner_Radii is
    begin
       case V.Kind is
@@ -270,7 +266,6 @@ package body Adi.Animation is
          end loop;
       end if;
 
-      --  Keep transition spec from target
       Result.Transition := To.Transition;
 
       return Result;
@@ -331,7 +326,6 @@ package body Adi.Animation is
       PT.Elapsed := PT.Elapsed + DT;
 
       if PT.Elapsed >= PT.Duration then
-         --  Transition complete
          PT.Active := False;
          PT.Elapsed := PT.Duration;
          Release_Scratch (PT.Slot);

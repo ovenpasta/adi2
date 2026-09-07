@@ -23,7 +23,6 @@ procedure Label_Wrap_Test is
       Test_Support.Assert (Cond, Name);
    end Check;
 
-   --  Style helpers
    function Wrap_Label_Parts return Part_Style_Array is
       Lbl_Rules : constant Style_Rules :=
         (Text_Wrap_Mode => Set (TWM_Wrap),
@@ -175,12 +174,7 @@ begin
    New_Line;
 
    ----------------------------------------------------------------------
-   --  Reflow on widen.  A wrapping label in a row that is squeezed until
-   --  the text wraps must go back to one line when the row grows again.
-   --  It did not: the label measured itself at its own current width, so
-   --  the width it was given became the width it asked for next time --
-   --  a one-way ratchet. Shrinking fed itself and widening had no way
-   --  back, leaving the material demo's title stuck on two lines.
+   --  Reflow on widen: a wrapping label in a row that is squeezed until the text wraps must go back to one line when the row grows again.
    ----------------------------------------------------------------------
 
    Put_Line ("--- reflow when the row widens again ---");
@@ -380,9 +374,6 @@ begin
         Adi.Image.Is_Owned (Tall);
       Unconstrained, At_Width : Pixel_Type;
    begin
-      --  Without a real bitmap behind it there is nothing for the base
-      --  measurement to report, and the two answers would agree for the
-      --  wrong reason.
       Check ("the fixture image loaded", Loaded);
 
       if Loaded then
@@ -421,12 +412,7 @@ begin
 
    New_Line;
 
-   --  The same defect through the structure that showed it: a grid of
-   --  fixed height, each cell a column card holding scalable content
-   --  that grows and a caption that does not. The grid sizes rows by
-   --  asking each child its height at the cell width, so a card that
-   --  answers with its image's pixel height drags the row -- and the
-   --  whole grid -- to the size of the bitmap.
+   --  A grid of fixed height, each cell a column card holding scalable content that grows and a caption that does not: the grid sizes rows by asking each child's height at the cell width, so a card answering with its image's pixel height drags the row -- and the whole grid -- to the bitmap's size.
    Put_Line ("=== a card of scalable content stays in its grid cell ===");
    declare
       Grid : constant Adi.Widget.Box.Box_Handle :=
@@ -497,10 +483,7 @@ begin
          Layout_Tree (+Grid);
 
          declare
-            --  The box the grid was given, not the one it ended up
-            --  with: under the defect the grid grew to fit the bitmap,
-            --  so everything stayed nested inside a container that had
-            --  itself swollen off the screen.
+            --  The box the grid was given, not the one it ended up with.
             Given : constant Rectangle := (0.0, 0.0, 400.0, Grid_H);
             Grid_G : constant Rectangle := Get_Geometry (+Grid);
             Card_G : constant Rectangle := Get_Geometry (+Card);

@@ -122,7 +122,6 @@ package body Adi.Widget.Image is
       --  Otherwise report (0, 0): images are scalable content whose size is
       --  determined by the layout, not the intrinsic pixel dimensions.
       if Width_Fixed or Height_Fixed then
-         --  Get intrinsic image size for aspect ratio calculations
          if Adi.Image.Is_Valid (W.Img) then
             Adi.Image.Get_Size (W.Img, Img_Size.Width, Img_Size.Height);
          end if;
@@ -137,7 +136,6 @@ package body Adi.Widget.Image is
                Img_Size.Height := Size_To_Px (Icon_Style.Height, W.Geometry.Height);
             end if;
 
-            --  Preserve aspect ratio when only one dimension is fixed
             if Width_Fixed and then not Height_Fixed
               and then Intrinsic.Width > 0.0
             then
@@ -179,15 +177,12 @@ package body Adi.Widget.Image is
       Content    : constant Rectangle := Content_Box (W.Geometry, Main_Style);
    begin
       if Item_Count (W) = 0 then
-         --  First build: create items at fixed indices
          Add_Item (W, Make_Panel (Main_Part, W.Geometry, 0));          --  Panel_Idx
          Add_Item (W, Make_Image (Icon_Part, Content, W.Img, 1));      --  Img_Idx
       end if;
 
-      --  Update panel geometry
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
 
-      --  Update image item
       declare
          Img_It : Item renames W.Items.Reference (Img_Idx).Element.all;
       begin

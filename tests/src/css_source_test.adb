@@ -507,7 +507,6 @@ begin
       end;
    end;
 
-   --  Clear_Static_Entries should remove previously added entries
    declare
       Source : Adi.CSS_Source.Style_Source;
       Box    : constant Box_Handle := Create_Handle;

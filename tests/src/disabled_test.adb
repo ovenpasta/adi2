@@ -354,7 +354,6 @@ procedure Disabled_Test is
       Add_Child (Parent, Child);
       Set_Disabled (Child);
       Assert (Is_Disabled (Child), "Child should be disabled (own flag)");
-      --  Parent is enabled, child should stay disabled via own flag
       Assert (not Is_Disabled (Parent),
               "Parent should be enabled");
       Assert (Is_Disabled (Child),

@@ -41,13 +41,8 @@ package body Adi.Settings is
    procedure Free_Backend is new Ada.Unchecked_Deallocation
      (Settings_Backend'Class, Backend_Access);
 
-   --  Forward declarations
    procedure Deep_Free  (N : in out Node_Access);
    function  Deep_Clone (N : Node_Access) return Node_Access;
-
-   ---------------------------------------------------------------------------
-   --  Deep_Free - Recursively deallocate a node tree
-   ---------------------------------------------------------------------------
 
    procedure Deep_Free (N : in out Node_Access) is
    begin
@@ -83,10 +78,6 @@ package body Adi.Settings is
 
       Free_Node (N);
    end Deep_Free;
-
-   ---------------------------------------------------------------------------
-   --  Deep_Clone - Recursively copy a node tree
-   ---------------------------------------------------------------------------
 
    function Deep_Clone (N : Node_Access) return Node_Access is
    begin
@@ -344,7 +335,6 @@ package body Adi.Settings is
       Count : Natural := 1;
       I     : Positive := Key'First;
    begin
-      --  First pass: count segments
       while I <= Key'Last loop
          if Key (I) = '\' and then I < Key'Last
            and then Key (I + 1) = '.'
@@ -358,7 +348,6 @@ package body Adi.Settings is
          end if;
       end loop;
 
-      --  Second pass: extract segments
       declare
          Result : Segment_Array (1 .. Count);
          Seg    : Natural := 1;
@@ -458,10 +447,6 @@ package body Adi.Settings is
       return Current;
    end Resolve_Parent;
 
-   ---------------------------------------------------------------------------
-   --  Settings_Store - Setup
-   ---------------------------------------------------------------------------
-
    procedure Initialize
      (Store   : in out Settings_Store;
       Org     : String;
@@ -470,7 +455,6 @@ package body Adi.Settings is
    is
       Dir : constant String := Adi.OS.Pref_Path (Org, App);
    begin
-      --  Free previously owned backend if re-initializing
       if Store.Owns_Backend and then Store.Backend /= null then
          Free_Backend (Store.Backend);
       end if;
@@ -791,10 +775,6 @@ package body Adi.Settings is
    begin
       return To_String (Store.Path);
    end File_Path;
-
-   ---------------------------------------------------------------------------
-   --  Settings_Store - Finalize (free owned backend)
-   ---------------------------------------------------------------------------
 
    overriding procedure Finalize (Store : in out Settings_Store) is
    begin

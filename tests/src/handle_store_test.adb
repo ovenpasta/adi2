@@ -273,8 +273,6 @@ procedure Handle_Store_Test is
       Request_Destroy (Id);
       Assert (Get_Degrades (Id), "retired Id: Get null");
 
-      --  Request_Destroy on an Id the store no longer recognises is a
-      --  no-op, not a second free.
       Request_Destroy (Id);
       Request_Destroy (Beyond);
       Assert (True, "repeat Request_Destroy is inert");

@@ -42,7 +42,6 @@ procedure Slider_Example is
       return Trim (Buf, Both);
    end Float_Str;
 
-   --  Typed handles for cross-widget access in callbacks
    Slider1_H : Float_Slider.Slider_Handle;
    Value1_H  : Adi.Widget.Label.Label_Handle;
    Input1_H  : Float_Input.Value_Input_Handle;
@@ -100,7 +99,6 @@ begin
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
 
-   --  Set context menu styles
    Adi.Widget.Context_Menu.Set_Default_Menu_Styles
      (Slider_Example_Styles.Context_Menu_Class_Part_Styles);
    Adi.Widget.Context_Menu.Set_Default_Item_Styles
@@ -110,11 +108,9 @@ begin
       W : constant Window_Handle :=
         Create_Window_Handle ("Slider Example", Adi.Window.Extent (Px (411.0), Px (290.0)));
 
-      --  All widgets created via typed handles
       Root     : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
 
-      --  Section 1: Float slider + value input
       Section1 : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Heading1 : constant Adi.Widget.Label.Label_Handle :=
@@ -124,7 +120,6 @@ begin
       Label1   : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("Opacity:");
 
-      --  Section 2: Integer slider + value input
       Section2 : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Heading2 : constant Adi.Widget.Label.Label_Handle :=
@@ -134,7 +129,6 @@ begin
       Label2   : constant Adi.Widget.Label.Label_Handle :=
         Adi.Widget.Label.Create_Handle ("Red:");
 
-      --  Section 3: Stepped slider
       Section3 : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
       Heading3 : constant Adi.Widget.Label.Label_Handle :=
@@ -157,7 +151,6 @@ begin
 
       Value3_H  := Adi.Widget.Label.Create_Handle ("50");
 
-      --  Value inputs via typed handles
       Input1_H := Float_Input.Create_Handle
         (Min => 0.0, Max => 1.0, Value => 0.5);
       Input2_H := Int_Input.Create_Handle
@@ -174,12 +167,10 @@ begin
       Float_Input.Set_Part_Styles (Input1_H, Value_Input_Class_Part_Styles);
       Int_Input.Set_Part_Styles (Input2_H, Value_Input_Class_Part_Styles);
 
-      --  Configure steps via typed handles
       Float_Slider.Set_Step (Slider1_H, 0.01);
       Int_Slider.Set_Step (Slider2_H, 1);
       Int_Slider.Set_Step (Slider3_H, 10);
 
-      --  Wire callbacks via typed handles
       Float_Slider.Connect_Changed
         (Slider1_H, On_Slider1_Changed'Unrestricted_Access);
       Int_Slider.Connect_Changed
@@ -187,7 +178,6 @@ begin
       Int_Slider.Connect_Changed
         (Slider3_H, On_Slider3_Changed'Unrestricted_Access);
 
-      --  Apply styles via typed handles
       Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
       Adi.Widget.Box.Set_Part_Styles (Section1, Section_Class_Part_Styles);
       Adi.Widget.Box.Set_Part_Styles (Section2, Section_Class_Part_Styles);
@@ -215,7 +205,6 @@ begin
       Int_Slider.Set_Part_Styles
         (Slider3_H, Slider_Square_Class_Part_Styles);
 
-      --  Build hierarchy via "+" operator
       Add_Child (+Section1, +Heading1);
       Add_Child (+Row1, +Label1);
       Add_Child (+Row1, +Slider1_H);

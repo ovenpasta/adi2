@@ -483,9 +483,7 @@ procedure Auto_Margin_Test is
    end Test_Flex_Treats_Auto_As_Zero;
 
    ---------------------------------------------------------------------------
-   --  tools/css_to_ada.py merges at build time and Adi.CSS_Parser at run
-   --  time. A stylesheet whose margins resolve differently depending on
-   --  which loaded it is the failure this section exists to catch.
+   --  tools/css_to_ada.py merges at build time and Adi.CSS_Parser at run time; a stylesheet's margins must resolve the same regardless of which loaded it.
    ---------------------------------------------------------------------------
 
    Corpus_Path : constant String := "tests/css/auto_margin.css";

@@ -20,7 +20,6 @@ procedure Text_Editor_Test is
       Put_Line ("Test: Append_Text basic");
       Clear (B);
       Insert_Text (B, "Hello");
-      --  Move caret to beginning so we can verify it stays there
       Move_To_Start (B);
       declare
          V_Before : constant Natural := Content_Version (B);
@@ -81,13 +80,10 @@ procedure Text_Editor_Test is
       Put_Line ("Test: Append_Text is undoable");
       Clear (B);
       Insert_Text (B, "base");
-      --  Clear undo from Insert_Text by accepting it
       declare
          Dummy : Boolean;
       begin
-         --  Undo the insert
          Dummy := Undo (B);
-         --  Redo it back
          Dummy := Redo (B);
       end;
 
@@ -121,7 +117,6 @@ procedure Text_Editor_Test is
       B : Text_Buffer;
    begin
       Put_Line ("Test: Append_Text no-undo clears stale redo");
-      --  Set up: insert text, then undo so redo is available
       Insert_Text (B, "hello");
       Test_Support.Assert (Can_Undo (B), "can undo after insert");
       declare
@@ -132,7 +127,6 @@ procedure Text_Editor_Test is
       Test_Support.Assert (Get_Text (B) = "", "text empty after undo");
       Test_Support.Assert (Can_Redo (B), "redo available after undo");
 
-      --  Redo to restore, then undo again to get redo back
       declare
          Dummy : Boolean;
       begin
@@ -208,15 +202,12 @@ procedure Text_Editor_Test is
       On_Key_Down (+W, SDL_SCANCODE_V, SDL_KMOD_CTRL, False);
       Test_Support.Assert (Get_Text (W) = "hello", "ctrl+v blocked");
 
-      --  Ctrl+Z (undo)
       On_Key_Down (+W, SDL_SCANCODE_Z, SDL_KMOD_CTRL, False);
       Test_Support.Assert (Get_Text (W) = "hello", "ctrl+z blocked");
 
-      --  Ctrl+Y (redo)
       On_Key_Down (+W, SDL_SCANCODE_Y, SDL_KMOD_CTRL, False);
       Test_Support.Assert (Get_Text (W) = "hello", "ctrl+y blocked");
 
-      --  Ctrl+X (cut)
       On_Key_Down (+W, SDL_SCANCODE_X, SDL_KMOD_CTRL, False);
       Test_Support.Assert (Get_Text (W) = "hello", "ctrl+x blocked");
       New_Line;
@@ -231,9 +222,6 @@ procedure Text_Editor_Test is
       --  Caret starts at end of "hello" (line 1, col 5)
       --  Press Home to go to start
       On_Key_Down (+W, SDL_SCANCODE_HOME, 0, False);
-      --  The buffer's caret should be at the beginning now
-      --  We can't directly access W.Buffer from here, so check via
-      --  Ctrl+A (select all) + verify it doesn't crash
       On_Key_Down (+W, SDL_SCANCODE_A, SDL_KMOD_CTRL, False);
       Test_Support.Assert (Get_Text (W) = "hello",
               "navigation + select all works in read-only");

@@ -73,8 +73,7 @@ package Adi.Animated_Image is
 
    procedure Reset (H : Animation_Handle);
 
-   --  Advance playback by DT seconds.
-   --  Returns True when the current frame changed.
+   --  Returns True when the current frame changed, not just when time passed.
    function Advance
      (H : Animation_Handle; DT : Duration) return Boolean;
 

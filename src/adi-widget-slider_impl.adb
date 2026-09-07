@@ -62,7 +62,6 @@ package body Adi.Widget.Slider_Impl is
       Emit (W.Changed);
    end Fire_Changed;
 
-   --  Convert a pixel position along the track to a value.
    procedure Set_Value_From_Position
      (W   : in out Slider_Widget;
       Pos : Pixel_Type)

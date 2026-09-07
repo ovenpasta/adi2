@@ -217,18 +217,12 @@ package body Adi.Widget.Label is
       Gap : Pixel_Type := 0.0;
       Result : Size_2D;
    begin
-      --  Get gap
       Gap := Get_Main_Gap (Main_Style.Gap, Main_Style.Flex_Direction);
 
-      --  Get icon size
       if Has_Icon then
          Icon_Size := Resolved_Icon_Size (W);
       end if;
 
-      --  Get text size from TTF measurement.
-      --  When text-wrap is enabled and the widget already has a geometry width
-      --  (e.g. set by a parent's sizing pass), use Measure_Text_Wrapped so that
-      --  Get_Preferred_Size returns the correct multi-line height.
       if Has_Text then
          declare
             Font_Attrs : constant Adi.Font.Font_Attributes :=
@@ -284,7 +278,6 @@ package body Adi.Widget.Label is
          end;
       end if;
 
-      --  Calculate total size based on flex direction
       declare
          Dir : constant Flex_Direction_Value := Main_Style.Flex_Direction;
          Icon_Main  : constant Pixel_Type := Get_Main_Size (Icon_Size, Dir);
@@ -454,7 +447,6 @@ package body Adi.Widget.Label is
             Dir);
       end;
 
-      --  Include the padding + border chrome around the content.
       return Outer_Size (Result, Main_Style);
    end Content_Min_At;
 
@@ -491,10 +483,8 @@ package body Adi.Widget.Label is
       Has_Text : constant Boolean :=
         Length (W.Text) > 0 and then Label_Style.Display /= Display_None;
    begin
-      --  Clear previous layout items
       W.Layout_Items.Clear;
 
-      --  Build layout items list
       if Has_Icon then
          declare
             Icon_Item : Layout_Item;
@@ -512,8 +502,8 @@ package body Adi.Widget.Label is
                Content_Width  => Float (Icon_Size.Width),
                Content_Height => Float (Icon_Size.Height),
                Flex           => (
-                  Grow       => 0.0,   -- Don't grow
-                  Shrink     => 0.0,   -- Don't shrink
+                  Grow       => 0.0,
+                  Shrink     => 0.0,
                   Basis      => Float (Icon_Size.Width),
                   Align_Self => Icon_Style.Align_Self
                ),
@@ -570,9 +560,7 @@ package body Adi.Widget.Label is
          end;
       end if;
 
-      --  Run item-based flex layout
       if not W.Layout_Items.Is_Empty then
-         --  Use content box (geometry minus padding/border) for flex layout
          declare
             Content : constant Rectangle := Content_Box (W.Geometry, Main_Style);
             Pad : constant Edge_Pixels := Get_Padding_Px (Main_Style);
@@ -647,11 +635,9 @@ package body Adi.Widget.Label is
                         Needed    : Pixel_Type;
                         Reflow_Content : Rectangle;
                      begin
-                        --  Get gap between items
                         Item_Gap := Get_Main_Gap
                           (Main_Style.Gap, Main_Style.Flex_Direction);
 
-                        --  Sum content sizes based on direction
                         declare
                            Dir       : constant Flex_Direction_Value :=
                              Main_Style.Flex_Direction;
@@ -683,8 +669,6 @@ package body Adi.Widget.Label is
                            W.Geometry.Height := Needed;
                         end if;
 
-                        --  Re-run flex layout with updated content box
-                        --  so items get properly aligned (centered etc.)
                         Reflow_Content := Content_Box
                           (W.Geometry, Main_Style);
                         Perform_Item_Flex_Layout (
@@ -728,10 +712,8 @@ package body Adi.Widget.Label is
          Add_Item (W, Make_Image (Icon_Part, W.Geometry, Adi.Image.Null_Image_Handle, 1)); --  Icon_Idx
       end if;
 
-      --  Update panel geometry
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
 
-      --  Update text item
       declare
          Text_It : Item renames W.Items.Reference (Text_Idx).Element.all;
          Label_Style : Resolved_Style renames
@@ -748,12 +730,6 @@ package body Adi.Widget.Label is
          for L_Item of W.Layout_Items loop
             if L_Item.Part = Label_Part then
                Text_It.Geometry := Clamp_Horizontal_To_Content (L_Item.Geometry);
-               --  Honour CSS vertical-align on the label part.  When the
-               --  inner flex layout stretches the label slot taller than
-               --  the text (e.g. a fixed-height button), text would
-               --  otherwise render at the top of the slot.  Default
-               --  (VA_Baseline) preserves the historical top-aligned
-               --  rendering; VA_Middle / VA_Bottom adjust the offset.
                declare
                   Slack : constant Pixel_Type :=
                     Pixel_Type'Max
@@ -809,7 +785,6 @@ package body Adi.Widget.Label is
          end if;
       end;
 
-      --  Update icon item
       declare
          Icon_It : Item renames W.Items.Reference (Icon_Idx).Element.all;
          Found : Boolean := False;

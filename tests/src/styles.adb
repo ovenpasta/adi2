@@ -159,7 +159,6 @@ procedure Styles is
      .On_Hover_Not_Disabled ((Background_Color => Set_Bg (RGB (0, 120, 255)), others => <>))
      .Build;
 
-   --  The card this suite exercises.
    Card_Base : constant Style_Rules :=
      (Background_Color => Set_Bg (C (White)),
       Border_Width     => Set (Border_Width (Dip (1))),

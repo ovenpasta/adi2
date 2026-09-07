@@ -15,11 +15,6 @@ with Adi.Widget.Animated_Widget;
 with Adi.Widget.Animated_Widget.RLottie;
 with RLottie_Example_Styles;    use RLottie_Example_Styles;
 
---  Eight emoji, each its own animation, each drawn at a fixed 72x72.
---  That is the size rlottie is meant for: a frame set costs what it is
---  displayed at, so pinning the extent is what keeps eight concurrent
---  animations affordable.
-
 procedure RLottie_Example is
    A : Adi.App.App;
 
@@ -217,9 +212,7 @@ begin
          Adi.Widget.Label.Set_Part_Styles
            (Captions (E), Caption_Class_Part_Styles);
 
-         --  Belt and braces with the stylesheet: the measured size is what
-         --  decides the rasterised extent, and a cell that grew would
-         --  raster every frame larger for nothing.
+         --  Caps rasterised extent: raster cost tracks measured size, so an unbounded cell would re-raster larger every frame.
          Adi.Widget.Animated_Widget.Set_Max_Size
            (Viewers (E), Max_Width => 72.0, Max_Height => 72.0);
          Adi.Widget.Animated_Widget.Set_Looping (Viewers (E), True);

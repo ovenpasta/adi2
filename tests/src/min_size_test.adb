@@ -296,15 +296,7 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  Test 6: a flexible track may not shrink below its item's minimum;
-   --  when the minimums do not fit, the grid overflows.
-   --
-   --  Bare Nfr is minmax(auto, Nfr), so the track's floor is its items'
-   --  minimum contribution. Adi used to discard that floor to keep the
-   --  layout inside its container, which silently violated an explicit
-   --  min-width — the visible symptom being clipped button labels. A
-   --  minimum that yields under pressure is not a minimum: the correct
-   --  outcome is to honour it and overflow.
+   --  A flexible track may not shrink below its item's minimum: when the minimums do not fit, the grid overflows. Bare Nfr is minmax(auto, Nfr), so the track's floor is its items' minimum contribution.
    Ada.Text_IO.Put_Line ("=== fr column overflow regression (layout) ===");
    Ada.Text_IO.New_Line;
    declare
@@ -443,10 +435,7 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  Test 8: grid container grows when row content exceeds container height.
-   --  Regression for the vertical overflow bug: Pass 4 can expand row heights
-   --  beyond Available_H when content (e.g. wrapped text) is taller than the
-   --  equal-share Cell_H.  The container must grow to avoid clipping.
+   --  Grid container grows when row content exceeds container height: Pass 4 can expand row heights beyond Available_H when wrapped content is taller than the equal-share Cell_H.
    Ada.Text_IO.Put_Line ("=== Grid container grows for tall content ===");
    Ada.Text_IO.New_Line;
    declare
@@ -577,11 +566,7 @@ begin
           "overflow:hidden grid height unchanged (no growth)");
    end;
 
-   --  Test 10: fr column in a content-sized grid must not collapse to zero.
-   --  Regression: when a grid has no explicit width (content-sized via flex
-   --  parent with align-items:flex-start), Measure_Content must include fr
-   --  column content in the preferred size, and layout must give the fr
-   --  column a non-zero width.
+   --  fr column in a content-sized grid must not collapse to zero: with no explicit width, Measure_Content must include fr column content in the preferred size.
    Ada.Text_IO.Put_Line ("=== fr column content-sized grid regression ===");
    Ada.Text_IO.New_Line;
    declare
@@ -664,13 +649,7 @@ begin
           "Fr column width >= content min (200px)");
    end;
 
-   --  Test 11: fr column uses intrinsic minimum (not preferred) in measurement.
-   --  Regression: Measure_Content used Max(Pref, Min) for fr columns, which
-   --  is the full unwrapped text width for labels.  This inflated the grid's
-   --  preferred width, preventing the grid from shrinking when the parent
-   --  constrains width, and blocking text wrapping in the fr column.
-   --  The fix uses Min_Width only for fr columns (CSS minmax(auto, Xfr)
-   --  floor = intrinsic minimum, not preferred).
+   --  fr column uses intrinsic minimum, not preferred, in measurement: CSS minmax(auto, Xfr)'s floor is the intrinsic minimum.
    Ada.Text_IO.Put_Line
       ("=== fr column uses min (not pref) in measurement ===");
    Ada.Text_IO.New_Line;
@@ -1218,10 +1197,7 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  A grid inside a column that runs out of room must not be allocated
-   --  less than its rows need. When it is, the rows keep their own
-   --  minimums and simply render outside the grid box — the Controls
-   --  page showed exactly this, its value-input row hanging below the
+   --  A grid inside a column that runs out of room must not be allocated less than its rows need: rows keep their own minimums and render outside the grid box otherwise.
    --  card that was supposed to contain it.
    Ada.Text_IO.Put_Line ("=== grid inside a squeezed column ===");
    declare
@@ -1480,10 +1456,7 @@ begin
          (Get_Content_Min_Size (Flexible).Width
             < Get_Preferred_Size (Flexible).Width,
           "a wrappable label's minimum stays below its preferred width");
-      --  Compared against the child's preferred width, not the grid's:
-      --  a grid whose only column is 1fr currently reports the
-      --  min-content width as its preferred width too, so comparing the
-      --  two would pass for the wrong reason. Tracked separately.
+      --  Compared against the child's preferred width, not the grid's: a grid whose only column is 1fr currently reports its min-content width as its preferred width too, so comparing the two would pass for the wrong reason.
       Test_Support.Assert
          (Get_Content_Min_Size (Grid_Box).Width
             < Get_Preferred_Size (Flexible).Width,
@@ -2111,9 +2084,6 @@ begin
           & ", child unwrapped" & Pixel_Type'Image
              (Get_Content_Min_Size (Only).Height));
 
-      --  Aggregation is the path that used to count stored children
-      --  rather than in-flow ones, hand back Unknown, and fall through
-      --  to the unwrapped minimum.
       Test_Support.Assert
          (abs (Effective_Min_Size_At_Width (Row, Row_W).Height
                  - Measure_At_Width (Only, Row_W).Height) < 0.001,
@@ -2513,8 +2483,6 @@ begin
                                      others => <>))).Build,
               Enabled => True), others => <>]);
 
-      --  Between the first two tiles, so a regression in the filter
-      --  changes where the lines break rather than only their count.
       Add_Child (Row, A);
       Add_Child (Row, Hidden);
       Set_Visible (Hidden, False);
@@ -2891,12 +2859,7 @@ begin
 
    Ada.Text_IO.New_Line;
 
-   --  An icon beside wrapping text narrows the text column, and the
-   --  content minimum has to subtract the same column the preferred
-   --  path does. When only one icon dimension is definite the other
-   --  follows the aspect ratio, so resolving the icon differently in
-   --  the two paths made the minimum wrap at the wrong width and report
-   --  too few lines — the text would then be clipped vertically.
+   --  An icon beside wrapping text narrows the text column, and the content minimum must subtract the same column the preferred path does; when only one icon dimension is definite, the other follows the aspect ratio.
    Ada.Text_IO.Put_Line ("=== icon column matches in both measurements ===");
    declare
       L : constant Widget_Handle :=

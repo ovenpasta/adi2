@@ -125,7 +125,6 @@ package body Adi.Render is
          return;
       end if;
 
-      --  Destroy text engine
       if Ctx.Data.Text_Engine /= null then
          TTF_DestroyRendererTextEngine (Ctx.Data.Text_Engine);
          Ctx.Data.Text_Engine := null;
@@ -141,11 +140,7 @@ package body Adi.Render is
    -- Get_Renderer --
    ------------------
 
-   --  Null once the context is destroyed, so a caller that asks after
-   --  teardown gets an answer it can test rather than an exception. The
-   --  cache operations tolerate a destroyed context for the same reason,
-   --  and Adi.Image reaches the renderer through here on its way to a
-   --  lease. Get_Text_Engine does not, and would still raise.
+   --  Returns null once destroyed rather than raising; Get_Text_Engine still raises after teardown.
    function Get_Renderer
      (Ctx : Render_Context) return SDL_Renderer_Ptr
    is (if Ctx.Data = null then null else Ctx.Data.Renderer);

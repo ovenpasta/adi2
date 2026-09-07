@@ -835,14 +835,12 @@ def generate_spec(app: XmlApp, package_name: str,
     lines.append(f"package {package_name} is")
     lines.append("")
 
-    # Enum types
     for enum in app.enums:
         vals = ", ".join(enum.values)
         lines.append(f"   type {enum.name} is ({vals});")
     if app.enums:
         lines.append("")
 
-    # Generic instantiations
     for gen in app.generics:
         lines.append(
             f"   package {gen.name} is new {gen.package} ({gen.type_param});"
@@ -855,20 +853,17 @@ def generate_spec(app: XmlApp, package_name: str,
     lines.append("   package Instance is")
     lines.append("")
 
-    # Callback variables (inside Instance)
     for cb in app.callbacks:
         lines.append(f"      {cb.name} : {cb.cb_type} := null;")
     if app.callbacks:
         lines.append("")
 
-    # Exported widget variables (inside Instance)
     for w in exported:
         ada_type = widget_ada_type(w, generics_map)
         lines.append(f"      {w.wid} : {ada_type};")
     if exported:
         lines.append("")
 
-    # Exported option group variables (inside Instance)
     exported_ogs = [og for og in app.option_groups if og.id]
     for og in exported_ogs:
         group_var = f"{og.generic_name}_Group"
@@ -888,7 +883,6 @@ def generate_spec(app: XmlApp, package_name: str,
     if exported_ogs:
         lines.append("")
 
-    # Component nested instances (inside Instance)
     for comp_pkg in app.component_packages:
         inst_name = component_instance_name(comp_pkg)
         lines.append(
@@ -1069,7 +1063,6 @@ def generate_body(app: XmlApp, package_name: str,
             if prefix not in generic_alias_names:
                 spec_withs.add(prefix)
 
-    # Compile inline <style> CSS to Ada constants
     inline_stylesheet: Optional[css_to_ada.ParsedStylesheet] = None
     inline_groups: dict = {}
     inline_classes: set[str] = set()
@@ -1262,7 +1255,6 @@ def generate_body(app: XmlApp, package_name: str,
     for gu in sorted(generic_uses):
         lines.append(f"   use {gu};")
 
-    # Package-level state for live CSS mode
     if uses_css_source:
         lines.append("   Source : aliased Adi.CSS_Source.Style_Source;")
     if live_css:
@@ -1554,7 +1546,6 @@ def generate_body(app: XmlApp, package_name: str,
     helper_procs: list[str] = []
     build_start_idx = len(lines)
 
-    # Build procedure/function — clean signature
     if has_window:
         lines.append("   function Build")
         lines.append("      return Adi.Window.Window_Handle is")
@@ -1583,7 +1574,6 @@ def generate_body(app: XmlApp, package_name: str,
         lines.append("   function Build")
         lines.append("      return Adi.Widget.Widget_Handle is")
 
-    # Local declarations for internal widgets
     for w in internal:
         ada_type = widget_ada_type(w, generics_map)
         create = widget_create_expr(w, generics_map,
@@ -1592,7 +1582,6 @@ def generate_body(app: XmlApp, package_name: str,
 
     lines.append("   begin")
 
-    # Create exported widgets
     if exported:
         lines.append("      --  Create widgets")
         for w in exported:
@@ -1959,13 +1948,11 @@ def generate_body(app: XmlApp, package_name: str,
     hierarchy_lines: list[str] = []
 
     def emit_hierarchy(widget: XmlWidget):
-        # Recurse into children first
         for child in widget.children:
             emit_hierarchy(child)
         for page in widget.pages:
             if page.child is not None:
                 emit_hierarchy(page.child)
-        # Then wire this widget's children/pages
         children_mode = GRAMMAR.get(widget.tag, {}).get(
             "children_mode", "children"
         )
@@ -2017,7 +2004,6 @@ def generate_body(app: XmlApp, package_name: str,
         lines.extend(hierarchy_lines)
         lines.append("")
 
-    # Wire option groups
     og_lines = []
     for og in app.option_groups:
         group_var = f"{og.generic_name}_Group"
@@ -2042,7 +2028,6 @@ def generate_body(app: XmlApp, package_name: str,
         lines.extend(og_lines)
         lines.append("")
 
-    # Auto-wire CSS reload via Set_On_Tick
     if has_window and (live_css or app.component_packages):
         lines.append("      --  Auto-wire CSS live reload")
         lines.append(
@@ -2051,7 +2036,6 @@ def generate_body(app: XmlApp, package_name: str,
         )
         lines.append("")
 
-    # Set root / return
     if has_window:
         lines.append(f"      Adi.Window.Set_Root (W, +{root.wid});")
         lines.append("      return W;")
@@ -2241,7 +2225,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Merge extra grammar if provided
     if args.grammar:
         extra = load_widget_grammar(args.grammar)
         GRAMMAR.update(extra)

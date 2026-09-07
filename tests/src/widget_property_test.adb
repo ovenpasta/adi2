@@ -597,10 +597,7 @@ procedure Widget_Property_Test is
       Adi.CSS_Source.Destroy (Source);
    end Test_Unknown_Name_Rolls_Back;
 
-   --  tools/css_to_ada.py reads tests/css/widget_property.css at build
-   --  time and Adi.CSS_Parser reads it at run time. A file that resolves
-   --  differently depending on which pipeline loaded it is what this
-   --  section catches, so both are driven from the one file.
+   --  tools/css_to_ada.py reads tests/css/widget_property.css at build time and Adi.CSS_Parser reads it at run time; both are driven from one file so they resolve it the same way.
    procedure Test_Pipeline_Agreement is
       Generated : Adi.CSS_Source.Style_Source;
       Parsed    : Adi.CSS_Source.Style_Source;

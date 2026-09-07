@@ -42,18 +42,11 @@ package body Adi.OS is
       return Path (Path'First .. Last);
    end Trim_Separator;
 
-   ---------------------------------------------------------------------------
-   --  Dialog Callback Trampoline
-   ---------------------------------------------------------------------------
-   --  SDL3 dialog functions are asynchronous — they invoke a C callback with
-   --  results.  We store the user's Ada callback in a package-level variable,
-   --  provide a C-convention trampoline that converts the C strings into Ada
-   --  String_Array, then invokes the stored callback.
-   ---------------------------------------------------------------------------
+   --  SDL3 dialog callbacks arrive as C calls; Stored_Callback and this
+   --  trampoline carry them to the Ada callback.
 
    Stored_Callback : Dialog_Callback := null;
 
-   --  Read a chars_ptr from a pointer-sized slot at the given address.
    function Read_Chars_Ptr (Addr : System.Address) return chars_ptr is
       type Chars_Ptr_Ptr is access all chars_ptr with Convention => C;
       function To_Ptr is new Ada.Unchecked_Conversion
@@ -67,7 +60,6 @@ package body Adi.OS is
    Ptr_Size : constant Storage_Offset :=
      System.Address'Size / System.Storage_Unit;
 
-   --  Helper: count null-terminated array of chars_ptr at given address.
    function Count_File_List (Addr : System.Address) return Natural is
       use System;
       N    : Natural := 0;

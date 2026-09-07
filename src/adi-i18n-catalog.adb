@@ -26,7 +26,6 @@ package body Adi.I18N.Catalog is
    --  Plural Translation Maps
    ---------------------------------------------------------------------------
 
-   --  Fixed-size plural forms (up to 6 forms covers all known languages)
    Max_Plural_Forms : constant := 6;
 
    type Plural_Array is

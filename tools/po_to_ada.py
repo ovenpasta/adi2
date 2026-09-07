@@ -75,39 +75,31 @@ def parse_po(path: str) -> PoFile:
         current.fuzzy = is_fuzzy
         is_fuzzy = False
 
-        # Header entry (empty msgid)
         if current.msgid == "" and current.msgstr:
-            # Extract Plural-Forms from header
             for header_line in current.msgstr.split('\n'):
                 header_line = header_line.strip()
                 if header_line.lower().startswith('plural-forms:'):
                     rest = header_line[len('plural-forms:'):].strip()
-                    # Parse nplurals=N
                     m = re.search(r'nplurals\s*=\s*(\d+)', rest)
                     if m:
                         result.n_plurals = int(m.group(1))
-                    # Parse plural=EXPR
                     m = re.search(r'plural\s*=\s*(.+?)(?:\s*;|$)', rest)
                     if m:
                         result.plural_formula = m.group(1).strip()
-                        # Remove trailing semicolons
                         result.plural_formula = result.plural_formula.rstrip(';').strip()
             current = None
             return
 
-        # Skip fuzzy or empty translations
         if current.fuzzy:
             current = None
             return
 
         if current.msgid_plural:
-            # Plural entry — check all forms are non-empty
             if current.msgstr_plural and all(
                 v for v in current.msgstr_plural.values()
             ):
                 result.entries.append(current)
         else:
-            # Singular entry
             if current.msgstr:
                 result.entries.append(current)
 
@@ -116,22 +108,18 @@ def parse_po(path: str) -> PoFile:
     for raw_line in lines:
         line = raw_line.rstrip('\n')
 
-        # Flags line
         if line.startswith('#,'):
             if 'fuzzy' in line:
                 is_fuzzy = True
             continue
 
-        # Other comments
         if line.startswith('#'):
             continue
 
-        # Empty line = entry separator
         if not line.strip():
             finish_entry()
             continue
 
-        # msgctxt
         if line.startswith('msgctxt '):
             finish_entry()
             current = PoEntry()
@@ -141,7 +129,6 @@ def parse_po(path: str) -> PoFile:
             last_field = 'msgctxt'
             continue
 
-        # msgid_plural
         if line.startswith('msgid_plural '):
             s = _extract_string(line)
             if s is not None and current is not None:
@@ -149,7 +136,6 @@ def parse_po(path: str) -> PoFile:
             last_field = 'msgid_plural'
             continue
 
-        # msgid
         if line.startswith('msgid '):
             # If current already has a msgid, finish it and start fresh.
             # But if current has only a msgctxt (no msgid yet), keep it.
@@ -164,7 +150,6 @@ def parse_po(path: str) -> PoFile:
             last_field = 'msgid'
             continue
 
-        # msgstr[N]
         m_plural = re.match(r'msgstr\[(\d+)\]\s', line)
         if m_plural:
             idx = int(m_plural.group(1))
@@ -174,7 +159,6 @@ def parse_po(path: str) -> PoFile:
             last_field = f'msgstr_plural_{idx}'
             continue
 
-        # msgstr (singular)
         if line.startswith('msgstr '):
             s = _extract_string(line)
             if s is not None and current is not None:
@@ -182,7 +166,6 @@ def parse_po(path: str) -> PoFile:
             last_field = 'msgstr'
             continue
 
-        # Continuation line (starts with ")
         stripped = line.strip()
         if stripped.startswith('"') and current is not None:
             s = _extract_string(stripped)
@@ -201,7 +184,6 @@ def parse_po(path: str) -> PoFile:
                     current.msgstr_plural[idx] = \
                         current.msgstr_plural.get(idx, '') + val
 
-    # Finish last entry
     finish_entry()
 
     return result
@@ -215,7 +197,6 @@ def ada_escape(s: str) -> str:
 def generate(po_files: list[PoFile], package_name: str) -> tuple[str, str]:
     """Generate Ada spec and body source strings from parsed PO files."""
 
-    # Spec
     spec_lines = [
         'pragma Ada_2022;',
         f'package {package_name} is',
@@ -223,7 +204,6 @@ def generate(po_files: list[PoFile], package_name: str) -> tuple[str, str]:
         f'end {package_name};',
     ]
 
-    # Body.
     #  The translated msgstr are plain String literals holding raw UTF-8
     #  bytes (what Adi.I18N / the text renderer consume). They are only
     #  correct when NOT UTF-8-decoded at compile time: a project-wide
@@ -257,7 +237,6 @@ def generate(po_files: list[PoFile], package_name: str) -> tuple[str, str]:
     for po in po_files:
         lang = ada_escape(po.language)
 
-        # Register plural formula if non-default
         if po.plural_formula != "n != 1" or po.n_plurals != 2:
             formula = ada_escape(po.plural_formula)
             body_lines.append(
@@ -273,7 +252,6 @@ def generate(po_files: list[PoFile], package_name: str) -> tuple[str, str]:
                 ctx_param = f', Context => "{ctx}"'
 
             if entry.msgid_plural:
-                # Plural entry
                 forms = []
                 for idx in sorted(entry.msgstr_plural.keys()):
                     val = ada_escape(entry.msgstr_plural[idx])
@@ -289,7 +267,6 @@ def generate(po_files: list[PoFile], package_name: str) -> tuple[str, str]:
                 body_lines.append(
                     f'        {forms_str}{ctx_param});')
             else:
-                # Singular entry
                 msgstr = ada_escape(entry.msgstr)
                 body_lines.append(
                     f'      Register ("{lang}", "{msgid}",'
@@ -297,7 +274,6 @@ def generate(po_files: list[PoFile], package_name: str) -> tuple[str, str]:
 
         body_lines.append('')
 
-    # Remove trailing blank line if present
     if body_lines and body_lines[-1] == '':
         body_lines.pop()
 

@@ -346,13 +346,11 @@ package body Adi.CSS_Source is
       Last   : Natural;
    begin
       while First <= Names'Last loop
-         --  Skip leading spaces
          while First <= Names'Last and then Names (First) = ' ' loop
             First := First + 1;
          end loop;
          exit when First > Names'Last;
 
-         --  Find end of token
          Last := First;
          while Last < Names'Last and then Names (Last + 1) /= ' ' loop
             Last := Last + 1;
@@ -717,8 +715,6 @@ package body Adi.CSS_Source is
          end loop;
       end;
 
-      --  Apply :root { font-size } to the bound window, if any.
-      --  No else: when the CSS has no root font-size we leave the window alone.
       declare
          Meta : constant Adi.CSS_Parser.Stylesheet_Metadata :=
            Active_Metadata (Source);
@@ -1157,7 +1153,6 @@ package body Adi.CSS_Source is
          return;
       end if;
 
-      --  Check all file entries for modification time changes
       for I in 1 .. Natural (Impl_Of (Source).Entries.Length) loop
          declare
             E : constant Tracked_Entry := Impl_Of (Source).Entries (I);

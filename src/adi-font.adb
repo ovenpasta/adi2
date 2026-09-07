@@ -186,15 +186,8 @@ package body Adi.Font is
 
    Sized_Cache : Sized_Font_Maps.Map;
 
-   --  Per-font natural line-skip cache.  SDL3_ttf reports the original font
-   --  metrics via TTF_GetFontLineSkip, but any prior TTF_SetFontLineSkip call
-   --  overwrites it.  We snapshot the value the first time a font is queried
-   --  and serve subsequent queries from this cache so callers can always
-   --  recover the "use the font's default" pixel value.
-   --  Keyed by the font pointer's address.  An Ordered_Map (like the other
-   --  font caches in this package) rather than a Hashed_Map: the hashed
-   --  variant's first Insert deadlocked on 32-bit MinGW, while the ordered
-   --  maps used everywhere else here work fine.
+   --  Each font's natural line skip, read once: TTF_SetFontLineSkip later
+   --  overwrites what TTF_GetFontLineSkip answers. Keyed by pointer address.
    function Font_Addr_Lt (L, R : TTF_Font_Access) return Boolean is
      (System.Storage_Elements.To_Integer (L.all'Address) <
       System.Storage_Elements.To_Integer (R.all'Address));
@@ -597,7 +590,7 @@ package body Adi.Font is
       Lower_Prefix : constant String := Ada.Characters.Handling.To_Lower (Prefix);
    begin
       if Prefix'Length = 0 then
-         return True;  --  empty prefix matches everything
+         return True;
       end if;
       if Lower_Name'Length < Lower_Prefix'Length then
          return False;
@@ -606,8 +599,6 @@ package body Adi.Font is
         = Lower_Prefix;
    end Starts_With_Prefix;
 
-   --  Derive a filename prefix from a family name by removing spaces.
-   --  E.g. "Noto Sans" -> "NotoSans", "DejaVu Sans" -> "DejaVuSans"
    function Derive_File_Prefix (Family_Name : String) return String is
       Result : String (1 .. Family_Name'Length);
       Len    : Natural := 0;
@@ -647,7 +638,6 @@ package body Adi.Font is
          return;
       end if;
 
-      --  Scan files in this directory
       Start_Search
         (Search,
          Directory => Dir,
@@ -663,7 +653,6 @@ package body Adi.Font is
               and then Starts_With_Prefix (SN, Name_Prefix)
               and then State.Count < State.Candidates'Last
             then
-               --  Peek at metadata and verify family name matches
                declare
                   FP     : constant String := Dir & Sep & SN;
                   C_Path : chars_ptr := New_String (FP);
@@ -712,7 +701,6 @@ package body Adi.Font is
 
       End_Search (Search);
 
-      --  Recurse into subdirectories
       declare
          Sub_Search  : Search_Type;
          Sub_Dir_Ent : Directory_Entry_Type;
@@ -742,15 +730,13 @@ package body Adi.Font is
       end;
    end Scan_Dir;
 
-   --  Sort candidates by score and load them all.  Returns the handle
-   --  of the base (most-regular) face, or Null_Font if nothing matched.
+   --  Returns the base (most-regular) face's handle, or Null_Font if nothing matched.
    function Load_Scanned (State : in out Scan_State) return Font_Handle is
    begin
       if State.Count = 0 then
          return Null_Font;
       end if;
 
-      --  Sort by score (simple selection sort, small N)
       for I in 1 .. State.Count - 1 loop
          declare
             Min_J : Natural := I;
@@ -771,7 +757,6 @@ package body Adi.Font is
          end;
       end loop;
 
-      --  Load lowest-score (most regular) first as base
       declare
          H : constant Font_Handle :=
            Load_Internal (To_String (State.Candidates (1).Path), "");
@@ -792,10 +777,8 @@ package body Adi.Font is
       end;
    end Load_Scanned;
 
-   --  Search system font directories for a font family.
-   --  File_Prefix is used as a filename filter to avoid opening every font
-   --  file; Family_Name (lowercased) is the authoritative TTF metadata match.
-   --  Returns the loaded handle or Null_Font.
+   --  File_Prefix filters filenames; the lowercased Family_Name in the TTF
+   --  metadata is what matches. Null_Font when nothing matched.
    function Search_System_Font
      (Family_Name : String;
       File_Prefix : String) return Font_Handle
@@ -1136,15 +1119,7 @@ package body Adi.Font is
       Family_Generation.Replace_Element (Index, Value + 1);
    end Bump_Generation;
 
-   --  Quantization step used to key the sized-font cache.
-   --
-   --  FreeType internally uses 1/64-px precision but we don't need that
-   --  for caching — two sizes a fraction of a pixel apart look
-   --  indistinguishable.  We round to 1/2 px, which collapses adjacent
-   --  scale values to a single TTF_Font.  Critical for live UI-scale
-   --  sliders: at 1/64 step the cache grew unbounded under continuous
-   --  drag and every new TTF_Font kept an SDL_IO handle open, eventually
-   --  exhausting the process FD table.
+   --  Sizes are keyed to a half-pixel grid so nearby sizes share one face.
    Size_Quantum : constant := 2.0;  --  steps per pixel (1/2 px grain)
 
    function Quantize_Size (Size : Float) return Natural is
@@ -1267,7 +1242,6 @@ package body Adi.Font is
       Style_Matched      : Boolean := False;
    begin
       if H /= Null_Font then
-         --  Check memory variants first
          Mem_Cursor := Memory_Variants.Find ((Handle => H,
                                               Weight => Attrs.Weight,
                                               Style  => Attrs.Style));
@@ -1300,7 +1274,6 @@ package body Adi.Font is
             end if;
          end if;
 
-         --  If no memory variant, try filesystem variants
          if not Weight_Matched then
             Variant_Cursor := Variant_Registry.Find ((Handle => H,
                                                       Weight => Attrs.Weight,
@@ -1322,8 +1295,6 @@ package body Adi.Font is
             end if;
          end if;
 
-         --  If still no match, try the primary memory variant for this handle
-         --  (first registered memory entry) for synthetic fallback
          if not Weight_Matched and then not Memory_Variants.Is_Empty then
             for Pos in Memory_Variants.Iterate loop
                declare
@@ -1341,11 +1312,8 @@ package body Adi.Font is
             end loop;
          end if;
       else
-         --  Null handle: use default fallback
          Find_Fallback;
          if Default_Fallback_Handle /= Null_Font then
-            --  Try memory variants first (for Set_Default_Font with
-            --  a memory-loaded handle)
             Mem_Cursor := Memory_Variants.Find
               ((Handle => Default_Fallback_Handle,
                 Weight => Attrs.Weight,
@@ -1363,7 +1331,6 @@ package body Adi.Font is
                Style_Matched := True;
             end if;
 
-            --  Try filesystem variants
             if not Weight_Matched then
                Variant_Cursor := Variant_Registry.Find
                  ((Handle => Default_Fallback_Handle,
@@ -1386,7 +1353,6 @@ package body Adi.Font is
                end if;
             end if;
 
-            --  Last resort: any memory variant for this handle (synthetic)
             if not Weight_Matched and then not Memory_Variants.Is_Empty then
                for Pos in Memory_Variants.Iterate loop
                   declare
@@ -1502,7 +1468,6 @@ package body Adi.Font is
       Det_Weight : Font_Weight_Value := Weight_Normal;
       Det_Style  : Font_Style_Value  := Style_Normal;
    begin
-      --  Open font temporarily to read metadata
       C_Path := New_String (Path);
       F := TTF_OpenFont (C_Path, Default_Font_Size_Px);
       Free (C_Path);
@@ -1517,7 +1482,6 @@ package body Adi.Font is
          return Null_Font;
       end if;
 
-      --  Read metadata
       if Override_Name'Length > 0 then
          Family_Str := To_Unbounded_String (Override_Name);
       else
@@ -1544,14 +1508,12 @@ package body Adi.Font is
 
       TTF_CloseFont (F);
 
-      --  Check if family already registered
       declare
          Key : constant String :=
            Ada.Characters.Handling.To_Lower (To_String (Family_Str));
          Existing : constant Font_Handle := Lookup (Key);
       begin
          if Existing /= Null_Font then
-            --  Add as variant of existing family
             Register_Variant (Existing, Det_Weight, Det_Style, Path);
             Log ("load variant: handle=" & Font_Handle'Image (Existing)
                  & ", family=" & To_String (Family_Str)
@@ -1561,7 +1523,6 @@ package body Adi.Font is
             return Existing;
          end if;
 
-         --  New family
          Family_Registry.Append (To_Unbounded_String (Path));
          Family_Generation.Append (0);
 
@@ -1606,7 +1567,6 @@ package body Adi.Font is
          return Null_Font;
       end if;
 
-      --  Open font temporarily to read metadata
       Stream := SDL_IOFromConstMem (Data, Interfaces.C.size_t (Length));
       if Stream = null then
          Log ("ERROR: Failed to create IO stream for memory font metadata");
@@ -1624,7 +1584,6 @@ package body Adi.Font is
          return Null_Font;
       end if;
 
-      --  Read metadata
       if Name'Length > 0 then
          Family_Str := To_Unbounded_String (Name);
       else
@@ -1651,7 +1610,6 @@ package body Adi.Font is
 
       TTF_CloseFont (F);
 
-      --  Check if family already registered
       declare
          Key : constant String :=
            Ada.Characters.Handling.To_Lower (To_String (Family_Str));
@@ -1661,7 +1619,6 @@ package body Adi.Font is
          if Existing /= Null_Font then
             H := Existing;
          else
-            --  New family — register with a placeholder path
             Family_Registry.Append
               (To_Unbounded_String ("(memory:" & To_String (Family_Str) & ")"));
             Family_Generation.Append (0);
@@ -1669,7 +1626,6 @@ package body Adi.Font is
             Register_Name (To_String (Family_Str), H);
          end if;
 
-         --  Register in memory variants map
          declare
             VK : constant Variant_Key :=
               (Handle => H, Weight => Det_Weight, Style => Det_Style);
@@ -1755,23 +1711,18 @@ package body Adi.Font is
         Key & '|' & Ada.Characters.Handling.To_Lower (Prefix);
       H   : Font_Handle;
    begin
-      --  Check if already loaded/registered
       H := Lookup (Key);
       if H /= Null_Font then
          return H;
       end if;
 
-      --  Check negative cache to avoid repeated expensive scans. Keyed by
-      --  the stem as well as the family: the same family is looked for
-      --  under a derived stem by Find and under a curated one by the
-      --  generic tables, and a miss on the first must not answer for the
-      --  second. Consolas is the case -- derived "Consolas" finds
-      --  nothing, curated "consola" finds consola.ttf.
+      --  Keyed by stem plus family: Find looks a family up under a derived stem
+      --  and the generic tables under a curated one, and a miss on one must not
+      --  answer for the other ("Consolas" misses where "consola" finds consola.ttf).
       if Name_Miss_Cache.Contains (Miss_Key) then
          return Null_Font;
       end if;
 
-      --  Search system font directories
       H := Search_System_Font (Key, Prefix);
       if H /= Null_Font then
          Log ("find: resolved """ & Family & """ from system fonts");
@@ -2187,7 +2138,6 @@ package body Adi.Font is
          I := I + 1;
       end loop;
 
-      --  Last word (no trailing break)
       if Word_Start <= Content'Last then
          declare
             W : constant Size_2D :=

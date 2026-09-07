@@ -830,16 +830,14 @@ package body Adi.CSS_Styles is
      (Set_Properties (Slots_Of (S)));
 
    -------------------------------------------------
-   --  Inherit_From: cascade inheritable properties
-   --  See Inheritable_Properties in adi-css_styles.ads
+   --  Inherit_From
    -------------------------------------------------
 
    function Inherit_From (Parent, Child : Style_Rules) return Style_Rules is
      (Rules_Of (Inherit_From (Slots_Of (Parent), Slots_Of (Child))));
 
    -------------------------------------------------
-   -- Resolve_Font_Family: resolve Font_Family_Value to Font_Handle
-   -- Handles By_Handle (pass through), By_Name (comma-list lookup)
+   -- Resolve_Font_Family
    -------------------------------------------------
 
    function Resolve_Font_Family (O : Opt_Font.Optional) return Font_Handle is
@@ -889,7 +887,6 @@ package body Adi.CSS_Styles is
 
          while I <= Raw'Last loop
             if In_Quote /= ASCII.NUL then
-               --  Inside a quoted string, skip until closing quote
                if Raw (I) = In_Quote then
                   In_Quote := ASCII.NUL;
                end if;
@@ -913,7 +910,6 @@ package body Adi.CSS_Styles is
             I := I + 1;
          end loop;
 
-         --  Last (or only) entry
          declare
             Name : constant String :=
               Strip_Quotes (Trim (Raw (Start .. Raw'Last)));

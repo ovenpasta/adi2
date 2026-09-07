@@ -34,7 +34,6 @@ class TestPoParser(unittest.TestCase):
             f.write(content)
             path = f.name
         try:
-            # Override language from actual filename parameter
             result = parse_po(path)
             result.language = language_from_filename(filename)
             return result

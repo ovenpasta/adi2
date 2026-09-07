@@ -40,7 +40,6 @@ package body Adi.Widget is
    --  in the current pass.
    Current_Layout_Epoch : Natural := 0;
 
-   --  Widget ID counter: monotonically increasing, assigned at creation
    Id_Counter : Natural := 0;
 
    function Allocate_Widget_Id return Natural is
@@ -108,7 +107,6 @@ package body Adi.Widget is
 
    function In_Library_Finalization return Boolean is (Library_Finalizing);
 
-   --  Forward declaration for recursive child destruction
    procedure Destroy_Subtree (W : not null Widget_Access);
 
    procedure Notify_Destroy (H : Widget_Handle) is
@@ -135,12 +133,10 @@ package body Adi.Widget is
          Notify_Destroy (H);
       end if;
 
-      --  Detach from parent
       if Obj.Parent /= null then
          Remove_Child (Obj.Parent.all, Obj);
       end if;
 
-      --  Recursively mark children for destruction (bottom-up), then self
       Destroy_Subtree (Obj);
       H.Id := Widget_Stores.Null_Id;
    end Destroy;
@@ -158,7 +154,6 @@ package body Adi.Widget is
    procedure Destroy_Subtree (W : not null Widget_Access) is
       use Widget_List;
    begin
-      --  Recurse into children first (bottom-up destruction)
       declare
          C : Widget_List.Cursor := W.Children.First;
       begin
@@ -170,10 +165,6 @@ package body Adi.Widget is
                if Child /= null then
                   Child.Parent := null;
                   if Child.Store_Index > 0 then
-                     --  Destroy signals for the handle it was given and
-                     --  then lands here, so without this a subscriber
-                     --  hears nothing about a subtree's descendants --
-                     --  the ordinary way a bound panel goes away.
                      if not In_Library_Finalization then
                         Notify_Destroy (Get_Handle (Child.all));
                      end if;
@@ -184,31 +175,8 @@ package body Adi.Widget is
          end loop;
       end;
 
-      --  Skip dispatching ops AND the unchecked-deallocation path during
-      --  library finalization.
-      --
-      --  Library-level finalization (running after main returns) eventually
-      --  reaches Adi.Window.Finalize, which walks the widget tree owned by
-      --  the package-level Window_Stores.  If the widgets were created by
-      --  local generic instantiations or stack-scoped tagged types whose
-      --  enclosing scope has already been finalized, W.all'Tag now points
-      --  at a torn-down vtable; the dispatching On_Destroy / Clear_Items
-      --  calls fault, and Widget_Stores.Request_Destroy → Really_Free
-      --  → Unchecked_Deallocation also faults because freeing a
-      --  controlled object dispatches into its (gone) Finalize slot.
-      --  This all happens past the point where GNAT's signal-to-exception
-      --  mapping is still active, so an Ada exception handler cannot
-      --  catch it — we must avoid making the call at all.  At process
-      --  exit the OS reclaims everything regardless, so skipping the
-      --  store cleanup is harmless here.  Widgets destroyed explicitly
-      --  (Destroy (H) from user code) still get the full path.
-      --
-      --  TODO: the root cause is finalization-ordering between the Window
-      --  store and consumer-owned tagged-type packages.  Three structural
-      --  options (type-erased cleanup at registration, Elaborate_All on
-      --  every widget child package, or mandatory explicit Destroy) are
-      --  written up in docs/proposals/finalization_ordering.md; Option 2 there is
-      --  the recommended fix.
+      --  Under library finalization the tagged-type vtables may be gone, so
+      --  nothing dispatches and nothing is freed (Begin_Library_Finalization).
       if In_Library_Finalization then
          W.Children.Clear;
          return;
@@ -245,18 +213,10 @@ package body Adi.Widget is
    end Pump_Widget_Store;
 
    ---------------------------------------------------------------------------
-   --  Generic handle-wrapper templates
-   --
-   --  These eliminate the boilerplate Resolve_Handle + null-check + delegate
-   --  pattern.  Each instantiation + rename serves as the body completion for
-   --  the corresponding Widget_Handle overload declared in the spec.
-   --
    --  Each wrapper borrows the widget for the length of the call, so an Op
-   --  that reaches a callback destroying that very widget only retires the
-   --  slot once the call has unwound.
+   --  that destroys that widget retires the slot once the call has unwound.
    ---------------------------------------------------------------------------
 
-   --  Class-wide procedure, 0 extra args
    generic
       with procedure Op (W : in out Widget'Class);
    procedure Wrap_CW_Proc (H : Widget_Handle);
@@ -272,7 +232,6 @@ package body Adi.Widget is
       end if;
    end Wrap_CW_Proc;
 
-   --  Dispatching procedure, 0 extra args
    generic
       with procedure Op (W : in out Widget) is abstract;
    procedure Wrap_Prim_Proc (H : Widget_Handle);
@@ -288,7 +247,6 @@ package body Adi.Widget is
       end if;
    end Wrap_Prim_Proc;
 
-   --  Class-wide function, 0 extra args
    generic
       type R is private;
       Default : R;
@@ -307,7 +265,6 @@ package body Adi.Widget is
       return Default;
    end Wrap_CW_Func;
 
-   --  Dispatching function, 0 extra args
    generic
       type R is private;
       Default : R;
@@ -360,10 +317,6 @@ package body Adi.Widget is
       Widget_States      : Packed_State_Bits := 0;
       Part_States        : Packed_State_Bits := 0;
       Main_Part_States   : Packed_State_Bits := 0;
-      --  The domain state the widget was carrying. Interned, so this is
-      --  fixed width and exact on equality, and a widget naming no
-      --  property carries the empty assignment as every widget did
-      --  before there were any.
       Assigned           : Adi.Widget_Properties.Property_Assignment :=
         Adi.Widget_Properties.Empty_Assignment;
       --  Resolving turns a font family named in CSS into a handle, so
@@ -458,27 +411,9 @@ package body Adi.Widget is
 
    ---------------------------------------------------------------------------
    --  Renderer clip save / restore
-   --
-   --  Narrowing the clip means putting the previous one back afterwards,
-   --  so the two states must stay distinct:
-   --
-   --    Was_Enabled  SDL reports an active clip rectangle.
-   --    Saved        that rectangle was successfully read into Prev.
-   --
-   --  Replacing is only safe when there was nothing to lose
-   --  (not Was_Enabled) or when we can put it back (Saved): replacing a
-   --  clip we could not read ends in a null restore that drops the
-   --  caller's clip entirely.
-   --
-   --  Content is always drawn, clipped or not. That is a deliberate
-   --  choice, not a claim that the failure is harmless: SDL only
-   --  promises false-on-failure and does not say the renderer is
-   --  unusable, so the draw may well succeed and overflow its widget.
-   --  Drawing it makes the fault visible on screen; dropping the content
-   --  would leave a silent gap with nothing to trace back. Every failure
-   --  also goes through Report_Clip_Failure, though note that Adi.Log is
-   --  a no-op outside development builds, so on a release build the
-   --  overflow itself is the only signal.
+   --  Was_Enabled: SDL reports an active clip. Saved: it was read into Prev.
+   --  Replace the clip only when nothing is lost (not Was_Enabled) or it can
+   --  be put back (Saved). Content is drawn either way.
    ---------------------------------------------------------------------------
 
    --  Which clip call failed, and which rendering path it served. Both
@@ -629,18 +564,15 @@ package body Adi.Widget is
       end Pack_Pixel;
 
    begin
-      --  Create surface
       Surface := SDL_CreateSurface
          (int (Tex_Size), int (Tex_Size), SDL_PIXELFORMAT_RGBA32);
       if Surface = null then
          return null;
       end if;
 
-      --  Work with pixel buffer via constrained array overlay
       declare
          Pitch : constant Natural := Natural (Surface.pitch) / 4;
 
-         --  Constrained pixel buffer matching the surface
          subtype Pixel_Index is Natural range 0 .. Pitch * Tex_Size - 1;
          type Pixel_Buffer is array (Pixel_Index) of aliased Uint32
             with Convention => C;
@@ -666,7 +598,6 @@ package body Adi.Widget is
          end loop;
       end;
 
-      --  Upload to GPU texture
       Texture := SDL_CreateTextureFromSurface (Renderer, Surface);
       SDL_DestroySurface (Surface);
 
@@ -674,7 +605,6 @@ package body Adi.Widget is
          return null;
       end if;
 
-      --  Enable alpha blending and linear scaling
       Unused := SDL_SetTextureBlendMode (Texture, SDL_BLENDMODE_BLEND);
       Unused := SDL_SetTextureScaleMode (Texture, SDL_SCALEMODE_LINEAR);
 
@@ -717,7 +647,6 @@ package body Adi.Widget is
              0);
       Effective_Rad : constant Natural := Natural'Min (Max_Rad, Max_Geom_Rad);
 
-      --  Get shadow color
       SR, SG, SB, SA : Uint8;
 
       --  The same geometry the texture was generated with, so slicing and
@@ -749,11 +678,10 @@ package body Adi.Widget is
 
       Handle : Adi.Texture_Cache.Texture_Handle;
 
-      --  Set only when the cache declined the texture we just built, which
-      --  leaves us owning it. Drawn once, then destroyed.
+      --  Set when the cache declines the texture; the caller then owns it and
+      --  destroys it after this draw.
       Unowned : SDL_Texture_Ptr := null;
 
-      --  Destination rect: widget rect expanded by spread + blur, offset
       Dst : aliased SDL_FRect;
 
       procedure Draw (Texture : SDL_Texture_Ptr) is
@@ -779,7 +707,7 @@ package body Adi.Widget is
       CSS_Color_To_SDL (Shadow.Color, SR, SG, SB, SA);
 
       if SA = 0 then
-         return;  --  Fully transparent shadow
+         return;
       end if;
 
       Dst.x := Float (Sh.Dst.X);
@@ -787,8 +715,6 @@ package body Adi.Widget is
       Dst.w := Float (Sh.Dst.Width);
       Dst.h := Float (Sh.Dst.Height);
 
-      --  Decided before anything is built: a shadow with no destination is
-      --  not worth a texture.
       if Dst.w <= 0.0 or else Dst.h <= 0.0 then
          return;
       end if;
@@ -952,8 +878,6 @@ package body Adi.Widget is
       return Result;
    end Memo_Resolved_Style;
 
-   --  Classification of a state-driven style change.  Used to decide
-   --  whether we only need to re-render or also need to re-layout.
    type Style_Diff_Kind is
      (Diff_None,                 --  resolved styles identical
       Diff_Render_Only,          --  differ in render-only fields (color,
@@ -987,9 +911,7 @@ package body Adi.Widget is
       Changed : Widget_State;
       Found   : Boolean := False;
       Eff_States : constant Widget_States := Get_States (W);
-      --  Both resolves read effective states, or the widget's own
-      --  disabled bit would read as having changed on every state
-      --  change made under a disabled ancestor.
+      --  Both resolves read effective (ancestor-folded) states, never W.States.
       Old_Eff    : constant Widget_States :=
         (if Old_States (State_Disabled)
            or else not Disabled_By_Ancestor (W)
@@ -997,7 +919,6 @@ package body Adi.Widget is
          else [Old_States with delta State_Disabled => True]);
       Worst   : Style_Diff_Kind := Diff_None;
    begin
-      --  Identify which state changed
       for S in Widget_State loop
          if Old_States (S) /= W.States (S) then
             Changed := S;
@@ -1009,7 +930,6 @@ package body Adi.Widget is
          return Diff_None;
       end if;
 
-      --  Only check parts whose rules reference the changed state
       for P in Part_Kind loop
          if W.Part_Styles (P).Enabled then
             declare
@@ -1055,7 +975,6 @@ package body Adi.Widget is
       Eff_States    : constant Widget_States := Get_States (W);
       Worst         : Style_Diff_Kind := Diff_None;
    begin
-      --  Identify which part state changed
       for S in Widget_State loop
          if Old_States (S) /= W.Part_States (Changed) (S) then
             Changed_State := S;
@@ -1067,7 +986,6 @@ package body Adi.Widget is
          return Diff_None;
       end if;
 
-      --  Only the changed part can be affected, and only if rules use this state
       for P in Part_Kind loop
          if P = Changed and then W.Part_Styles (P).Enabled then
             declare
@@ -1370,7 +1288,6 @@ package body Adi.Widget is
       return Adi.Widget_Properties.Empty_Assignment;
    end Get_Properties;
 
-   --  Convenience state setters
    procedure Set_Hovered (W : in out Widget'Class; Value : Boolean := True) is
    begin
       Set_State (W, State_Hovered, Value);
@@ -1618,31 +1535,12 @@ package body Adi.Widget is
 
    function Get_Resolved_Part_Handle (W : Widget'Class;
                                       P : Part_Kind) return Resolved_Handle is
-      --  NOTE: This function is nominally read-only (in-mode Widget'Class),
-      --  but we cache the resolved result in the Widget record to avoid
-      --  recomputing the cascade and Resolve (~60 fields each) on every
-      --  call.  The cache is keyed on (Style_Version, effective states,
-      --  Part_States) so staleness is impossible.  'Unrestricted_Access is
-      --  safe here because the cache is a pure memo — same inputs always
-      --  produce the same output.
       W_Mut : constant access Widget'Class := W'Unrestricted_Access;
       Eff   : constant Widget_States := Get_States (W);
       Result : Resolved_Handle;
    begin
       Inc_Sat (Perf_Style_Resolves);
 
-      --  When the widget-level key (version or effective states) changes,
-      --  ALL per-part entries are stale — invalidate them.  This prevents
-      --  a subtle bug where resolving Main_Part after a state change
-      --  updates the shared key, making a subsequent Label_Part lookup
-      --  appear cached even though Label_Part inherits from Main_Part
-      --  and should also change.
-      --  A font registered or replaced after a style resolved changes
-      --  which face Font_Family names, and nothing else in the key can
-      --  see that. One modular comparison keeps runtime font changes
-      --  working instead of making registration startup-only.
-      --  A store that has cleared since these were cached leaves every
-      --  handle here naming an entry it no longer holds.
       if W_Mut.Cached_Style_Version /= W.Style_Version
         or else W_Mut.Cached_Eff_States /= Eff
         or else W_Mut.Cached_Store_Gen /= Adi.Resolved_Styles.Generation
@@ -1656,7 +1554,6 @@ package body Adi.Widget is
          W_Mut.Cached_Store_Gen := Adi.Resolved_Styles.Generation;
       end if;
 
-      --  Cache hit?  (per-part key: init flag + part states)
       if W_Mut.Cached_Resolved_Init (P)
         and then W_Mut.Cached_Part_States (P) = W.Part_States (P)
       then
@@ -1664,7 +1561,6 @@ package body Adi.Widget is
          return W_Mut.Cached_Resolved (P);
       end if;
 
-      --  Cache miss: the memo answers, or the cascade runs behind it.
       Result :=
         Memo_Resolved_Style (W, P, Eff, W.Part_States (P), W.Properties);
 
@@ -1764,7 +1660,6 @@ package body Adi.Widget is
    procedure Build_Label_Overlay (W : in out Widget'Class) is
       Lbl_Text : constant String := To_String (W.Label_Text);
    begin
-      --  No label text and no items allocated: nothing to do
       if Lbl_Text'Length = 0 and then W.Label_Item_Base = 0 then
          return;
       end if;
@@ -1779,12 +1674,10 @@ package body Adi.Widget is
          W.Label_Item_Base := 0;
       end if;
 
-      --  Label cleared and stale index was just reset: nothing left to do
       if Lbl_Text'Length = 0 and then W.Label_Item_Base = 0 then
          return;
       end if;
 
-      --  Allocate label items on first use
       if Lbl_Text'Length > 0 and then W.Label_Item_Base = 0 then
          Add_Item (W, Make_Panel (Label_Part, (0.0, 0.0, 0.0, 0.0), 100));
          Add_Item (W, Make_Text (Label_Part, (0.0, 0.0, 0.0, 0.0), "", 101));
@@ -1916,7 +1809,6 @@ package body Adi.Widget is
          W.Has_Any_Animation := False;
          W.Target_Store_Gen := Store_Gen;
 
-      --  Skip if styles haven't changed since last apply and no animations
       elsif W.Style_Version = W.Last_Applied_Version
          and then W.Last_Target_Init (Main_Part)
          and then not W.Has_Any_Animation
@@ -1925,9 +1817,6 @@ package body Adi.Widget is
       end if;
       W.Last_Applied_Version := W.Style_Version;
 
-      --  First pass: for each part encountered, check if target changed.
-      --  Use a direct reference rename instead of Element/Replace_Element to
-      --  avoid copying Cached_TTF_Text through Ada controlled-type assignment.
       for I in 1 .. Natural (W.Items.Length) loop
          declare
             It : Item renames W.Items.Reference (I).Element.all;
@@ -1945,7 +1834,6 @@ package body Adi.Widget is
                        Ref (New_Target).Transition;
                   begin
                      if not W.Last_Target_Init (P) then
-                        --  First time: no transition, just snap
                         W.Last_Target (P) := New_Target;
                         W.Last_Target_Init (P) := True;
                      elsif Spec.Duration > 0.0
@@ -1969,14 +1857,12 @@ package body Adi.Widget is
                            end if;
                         end;
                      elsif New_Target /= W.Last_Target (P) then
-                        --  Changed but no transition: snap and cancel any running transition
                         Cancel (W.Transitions (P));
                      end if;
                      W.Last_Target (P) := New_Target;
                   end;
                end if;
 
-               --  Apply the current visual style to this item
                if W.Transitions (P).Active then
                   declare
                      Interpolated : Resolved_Handle;
@@ -2207,9 +2093,6 @@ package body Adi.Widget is
       return 0;
    end Child_Count;
 
-   --------------------
-   -- Find_Widget_At --
-   --------------------
    function Get_Child (W : Widget'Class; Index : Positive) return Widget_Access is
      use Widget_List;
      Cursor : Widget_List.Cursor := W.Children.First;
@@ -3449,7 +3332,6 @@ package body Adi.Widget is
    --  Color Conversion Helpers
    ---------------------------------------------------------------------------
 
-   --  Convert CSS Color_Value to SDL RGBA components
    procedure CSS_Color_To_SDL
       (C : Color_Value;
        R, G, B, A : out Adi.SDL.Uint8)
@@ -3538,12 +3420,10 @@ package body Adi.Widget is
        R, G, B, A    : Uint8;
        Min_Segments  : Natural := 0)
    is
-      --  Clamp radius to half the smallest dimension
       Max_Radius : constant Float := Half_Min_Dimension_Non_Neg (Rect);
       Rad : constant Float :=
          Clamp_Radius_To_Max (Corner_Radius, Max_Radius);
 
-      --  Number of segments per corner arc
       Num_Seg : constant Positive :=
          Positive'Max (Segments_For_Radius (Rad),
                        (if Min_Segments > 0 then Min_Segments else 1));
@@ -3561,8 +3441,8 @@ package body Adi.Widget is
       Verts : SDL_Vertex_Array (0 .. Total_Verts - 1);
       Idxs  : Int_Array (0 .. Total_Indices - 1);
 
-      VI : Natural := 0;  --  next vertex index
-      II : Natural := 0;  --  next index index
+      VI : Natural := 0;
+      II : Natural := 0;
 
       FC : constant SDL_FColor :=
          (r => Float (R) / 255.0,
@@ -3606,10 +3486,8 @@ package body Adi.Widget is
          Center_Idx : constant Natural := VI;
          Step       : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
       begin
-         --  Center vertex of the fan
          Add_Vertex (Cx, Cy);
 
-         --  Arc vertices
          for I in 0 .. Num_Seg loop
             declare
                Angle : constant Float := Start_Angle + Float (I) * Step;
@@ -3618,13 +3496,11 @@ package body Adi.Widget is
             end;
          end loop;
 
-         --  Fan triangles
          for I in 0 .. Num_Seg - 1 loop
             Add_Triangle (Center_Idx, Center_Idx + 1 + I, Center_Idx + 2 + I);
          end loop;
       end Add_Corner_Fan;
 
-      --  Rectangle edges
       X0 : constant Float := Rect.x;
       Y0 : constant Float := Rect.y;
       X1 : constant Float := Rect.x + Rect.w;
@@ -3637,7 +3513,6 @@ package body Adi.Widget is
       end if;
 
       if Rad < 1.0 then
-         --  Fallback to regular rect for very small radii
          declare
             R2 : aliased SDL_FRect := Rect;
          begin
@@ -3649,16 +3524,11 @@ package body Adi.Widget is
          end;
       end if;
 
-      --  Center rectangle (between all corner circles)
       Add_Rect (X0 + Rad, Y0 + Rad, X1 - Rad, Y1 - Rad);
 
-      --  Top edge rectangle
       Add_Rect (X0 + Rad, Y0, X1 - Rad, Y0 + Rad);
-      --  Bottom edge rectangle
       Add_Rect (X0 + Rad, Y1 - Rad, X1 - Rad, Y1);
-      --  Left edge rectangle
       Add_Rect (X0, Y0 + Rad, X0 + Rad, Y1 - Rad);
-      --  Right edge rectangle
       Add_Rect (X1 - Rad, Y0 + Rad, X1, Y1 - Rad);
 
       --  Corner fans (angles in standard math convention, Y-down)
@@ -3671,11 +3541,9 @@ package body Adi.Widget is
       --  Bottom-left corner: arc from PI/2 to PI
       Add_Corner_Fan (X0 + Rad, Y1 - Rad, Ada.Numerics.Pi / 2.0);
 
-      --  Set blend mode for alpha support
       SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
                   "SDL_SetRenderDrawBlendMode");
 
-      --  Render all geometry in one call
       Unused := SDL_RenderGeometry
          (Renderer     => Renderer,
           Texture      => null,
@@ -3698,7 +3566,6 @@ package body Adi.Widget is
        R, G, B, A : Uint8;
        Min_Segments : Natural := 0)
    is
-      --  Clamp each radius to half the smallest dimension
       Max_Dim : constant Float := Half_Min_Dimension_Non_Neg (Rect);
       Clamped_Radii : constant Corner_Pixels :=
         Clamp_Corner_Radii_To_Max (Radii, Max_Dim);
@@ -3710,7 +3577,6 @@ package body Adi.Widget is
       Max_R : constant Float :=
          Float'Max (Float'Max (R_TL, R_TR), Float'Max (R_BR, R_BL));
 
-      --  Segments per corner arc (based on largest radius)
       Num_Seg : constant Positive :=
          Positive'Max (Segments_For_Radius (Max_R),
                        (if Min_Segments > 0 then Min_Segments else 1));
@@ -3777,7 +3643,6 @@ package body Adi.Widget is
          end;
       end if;
 
-      --  Center vertex for fan
       Center_Idx := VI;
       Add_Vertex ((X0 + X1) / 2.0, (Y0 + Y1) / 2.0);
 
@@ -3826,7 +3691,6 @@ package body Adi.Widget is
          end;
       end loop;
 
-      --  Fan triangles from center to consecutive outline pairs
       for I in 0 .. N_Outline - 1 loop
          declare
             Next_I : constant Natural := (I + 1) mod N_Outline;
@@ -3848,10 +3712,6 @@ package body Adi.Widget is
           Indices      => Idxs (0)'Access,
           Num_Indices  => int (II));
    end Render_Rounded_Rect;
-
-   --  Render a rounded-rectangle border ring (annulus) between an outer and
-   --  inner rounded rect.  Used when the background is transparent so we
-   --  cannot use the "fill outer, overlay inner" approach.
 
    procedure Render_Rounded_Border_Ring
       (Renderer       : SDL_Renderer_Ptr;
@@ -3920,13 +3780,11 @@ package body Adi.Widget is
          II := II + 3;
       end Add_Triangle;
 
-      --  Outer rect edges
       OX0 : constant Float := Outer_Rect.x;
       OY0 : constant Float := Outer_Rect.y;
       OX1 : constant Float := Outer_Rect.x + Outer_Rect.w;
       OY1 : constant Float := Outer_Rect.y + Outer_Rect.h;
 
-      --  Inner rect edges
       IX0 : constant Float := Inner_Rect.x;
       IY0 : constant Float := Inner_Rect.y;
       IX1 : constant Float := Inner_Rect.x + Inner_Rect.w;
@@ -3955,10 +3813,8 @@ package body Adi.Widget is
          return;
       end if;
 
-      --  Generate outer outline points
       Outer_Start := VI;
 
-      --  Top-left arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float := Ada.Numerics.Pi + Float (I) * Step;
@@ -3967,7 +3823,6 @@ package body Adi.Widget is
                         OY0 + O_TL + O_TL * Sin (Angle));
          end;
       end loop;
-      --  Top-right arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float := 3.0 * Ada.Numerics.Pi / 2.0 + Float (I) * Step;
@@ -3976,7 +3831,6 @@ package body Adi.Widget is
                         OY0 + O_TR + O_TR * Sin (Angle));
          end;
       end loop;
-      --  Bottom-right arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float := Float (I) * Step;
@@ -3985,7 +3839,6 @@ package body Adi.Widget is
                         OY1 - O_BR + O_BR * Sin (Angle));
          end;
       end loop;
-      --  Bottom-left arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float := Ada.Numerics.Pi / 2.0 + Float (I) * Step;
@@ -3998,7 +3851,6 @@ package body Adi.Widget is
       --  Generate inner outline points (same arc order)
       Inner_Start := VI;
 
-      --  Top-left arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float := Ada.Numerics.Pi + Float (I) * Step;
@@ -4007,7 +3859,6 @@ package body Adi.Widget is
                         IY0 + I_TL + I_TL * Sin (Angle));
          end;
       end loop;
-      --  Top-right arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float := 3.0 * Ada.Numerics.Pi / 2.0 + Float (I) * Step;
@@ -4016,7 +3867,6 @@ package body Adi.Widget is
                         IY0 + I_TR + I_TR * Sin (Angle));
          end;
       end loop;
-      --  Bottom-right arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float := Float (I) * Step;
@@ -4025,7 +3875,6 @@ package body Adi.Widget is
                         IY1 - I_BR + I_BR * Sin (Angle));
          end;
       end loop;
-      --  Bottom-left arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float := Ada.Numerics.Pi / 2.0 + Float (I) * Step;
@@ -4035,16 +3884,13 @@ package body Adi.Widget is
          end;
       end loop;
 
-      --  Build triangle strip between outer and inner outlines
       for I in 0 .. N_Outline - 1 loop
          declare
             Next_I : constant Natural := (I + 1) mod N_Outline;
          begin
-            --  Triangle 1: outer[i], outer[i+1], inner[i+1]
             Add_Triangle (Outer_Start + I,
                           Outer_Start + Next_I,
                           Inner_Start + Next_I);
-            --  Triangle 2: outer[i], inner[i+1], inner[i]
             Add_Triangle (Outer_Start + I,
                           Inner_Start + Next_I,
                           Inner_Start + I);
@@ -4210,7 +4056,6 @@ package body Adi.Widget is
          end;
       end loop;
 
-      --  Build triangle strip between inner ring and outer ring.
       --  Pair K: inner = 2*K, outer = 2*K+1.
       for K in 0 .. N_Outline - 1 loop
          declare
@@ -4237,7 +4082,6 @@ package body Adi.Widget is
           Num_Indices  => int (II));
    end Render_AA_Fringe;
 
-   --  Apply opacity to an alpha byte
    function Apply_Opacity (A : Uint8; O : Float) return Uint8 is
    begin
       if O >= 1.0 then
@@ -4283,7 +4127,6 @@ package body Adi.Widget is
          end if;
       end loop;
 
-      --  Anchor endpoints
       if Pos_Arr (1) < 0.0 then Pos_Arr (1) := 0.0; end if;
       if Pos_Arr (N) < 0.0 then Pos_Arr (N) := 1.0; end if;
 
@@ -4297,7 +4140,6 @@ package body Adi.Widget is
                   Run_Start : constant Natural := I;
                   J         : Natural          := I + 1;
                begin
-                  --  Find first following stop with an explicit position
                   while J < N and then Pos_Arr (J) < 0.0 loop
                      J := J + 1;
                   end loop;
@@ -4321,7 +4163,6 @@ package body Adi.Widget is
          end loop;
       end;
 
-      --  Build output
       for I in 1 .. N loop
          Stops (I) :=
            (Pos   => Pos_Arr (I),
@@ -4473,7 +4314,6 @@ package body Adi.Widget is
          return;
       end if;
 
-      --  Set clip rect to contain strips within the widget bounds
       Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved,
          Gradient_Rect);
       Clip_Replaced := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
@@ -5082,13 +4922,11 @@ package body Adi.Widget is
                CA    : constant Float := Cos (Angle);
                SA    : constant Float := Sin (Angle);
             begin
-               --  Outer
                Verts (VI) :=
                  (position  => (x => Cx + Outer_R * CA, y => Cy + Outer_R * SA),
                   color     => FC,
                   tex_coord => Zero_TC);
                VI := VI + 1;
-               --  Inner
                Verts (VI) :=
                  (position  => (x => Cx + Inner_R * CA, y => Cy + Inner_R * SA),
                   color     => FC,
@@ -5354,7 +5192,6 @@ package body Adi.Widget is
          and then Radius_Px.Top_Right = Radius_Px.Bottom_Right
          and then Radius_Px.Bottom_Right = Radius_Px.Bottom_Left;
 
-      --  Set up outer rectangle geometry
       Rect.x := Float (Geom.X);
       Rect.y := Float (Geom.Y);
       Rect.w := Float (Geom.Width);
@@ -5416,13 +5253,11 @@ package body Adi.Widget is
                      Outer_Radii, Inner_Radii,
                      OR_Val, OG_Val, OB_Val, OA_Val,
                      Min_Segments => Seg);
-                  --  AA fringe on outer outline edge
                   Render_AA_Fringe
                     (Renderer, Outline_Outer, Outer_Radii,
                      OR_Val, OG_Val, OB_Val, OA_Val,
                      Min_Segments => Seg);
-                  --  AA fringe on inner outline edge (shared Seg
-                  --  ensures tessellation matches the ring boundary)
+                  --  Shared Seg: the fringe must tessellate as the ring does.
                   Render_AA_Fringe
                     (Renderer, Outline_Inner, Inner_Radii,
                      OR_Val, OG_Val, OB_Val, OA_Val,
@@ -5436,23 +5271,19 @@ package body Adi.Widget is
                   SDL_Assert (SDL_SetRenderDrawColor
                     (Renderer, OR_Val, OG_Val, OB_Val, OA_Val),
                     "SDL_SetRenderDrawColor");
-                  --  Top
                   Edge_Rect := (x => Outline_Outer.x, y => Outline_Outer.y,
                                 w => Outline_Outer.w, h => OW);
                   SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
                               "SDL_RenderFillRect");
-                  --  Bottom
                   Edge_Rect := (x => Outline_Outer.x,
                                 y => Outline_Outer.y + Outline_Outer.h - OW,
                                 w => Outline_Outer.w, h => OW);
                   SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
                               "SDL_RenderFillRect");
-                  --  Left
                   Edge_Rect := (x => Outline_Outer.x, y => Outline_Outer.y,
                                 w => OW, h => Outline_Outer.h);
                   SDL_Assert (SDL_RenderFillRect (Renderer, Edge_Rect'Access),
                               "SDL_RenderFillRect");
-                  --  Right
                   Edge_Rect := (x => Outline_Outer.x + Outline_Outer.w - OW,
                                 y => Outline_Outer.y,
                                 w => OW, h => Outline_Outer.h);
@@ -5493,7 +5324,6 @@ package body Adi.Widget is
                --  alike and must not make an opaque border look absent.
                Declared_BA : Uint8;
             begin
-               --  Border ring
                Set_Edge_Color (Top);
                BR := R; BG := G; BB := B; BA := A;
                case Style.Border_Color.Kind is
@@ -5509,13 +5339,11 @@ package body Adi.Widget is
                   (Renderer, Rect, Inner, Radius_Px, Inner_Radii, R, G, B, A,
                    Min_Segments => Seg);
 
-               --  AA fringe on outer border edge
                Render_AA_Fringe
                   (Renderer, Rect, Radius_Px,
                    BR, BG, BB, BA,
                    Min_Segments => Seg);
 
-               --  Background fill (skip for fully transparent)
                if Style.Background_Color.Kind /= Named
                   or else Style.Background_Color.Name /= Transparent
                then
@@ -5562,8 +5390,7 @@ package body Adi.Widget is
                   end if;
                end if;
 
-               --  Gradient fill (renders over background-color,
-               --  under inner AA fringe — no AA fringe for gradient in v1)
+               --  The gradient draws over background-color and under the inner AA fringe.
                if Has_Gradient
                  and then Inner.w > 0.0 and then Inner.h > 0.0
                then
@@ -5608,14 +5435,11 @@ package body Adi.Widget is
                else
                   Render_Rounded_Rect (Renderer, Rect, Radius_Px, R, G, B, A);
                end if;
-               --  AA fringe on outer background edge (skip when gradient
-               --  covers the fill — gradient has no AA fringe in v1)
                if not Has_Gradient then
                   Render_AA_Fringe (Renderer, Rect, Radius_Px, R, G, B, A);
                end if;
             end if;
 
-            --  Gradient fill + gradient-aware AA fringe
             if Has_Gradient then
                if Uniform then
                   Render_Gradient_Rounded_Rect
@@ -5647,7 +5471,6 @@ package body Adi.Widget is
       else
          --  No border radius: use fast SDL rect primitives
 
-         --  Background
          if Style.Background_Color.Kind /= Named
             or else Style.Background_Color.Name /= Transparent
          then
@@ -5659,13 +5482,11 @@ package body Adi.Widget is
                         "SDL_RenderFillRect");
          end if;
 
-         --  Gradient fill
          if Has_Gradient then
             Render_Gradient_Rect
               (Renderer, Rect, Style.Background_Image.Gradient.all, Op);
          end if;
 
-         --  Border
          if Has_Border then
             Draw_Edge_Borders;
          end if;
@@ -5731,14 +5552,12 @@ package body Adi.Widget is
          return;
       end if;
 
-      --  Get text engine from render context (created lazily)
       Engine := Get_Text_Engine (Ctx);
       if Engine = null then
          Adi.Log.Error ("Failed to create text engine");
          return;
       end if;
 
-      --  Calculate font size
       Font_Sz := Float (Font_Length_To_Px (Style.Font_Size, Container_Size => Geom.Height));
       if Font_Sz = 0.0 then
          Font_Sz := Adi.Font.Default_Font_Size_Px;
@@ -5785,7 +5604,6 @@ package body Adi.Widget is
       --  Font_Key_Changed above has already dropped or re-pointed the
       --  cached text. Nothing here mutates the font.
 
-      --  Reuse or create cached text object
       Text_Obj := It.Cached_TTF_Text;
 
       if Text_Obj /= null and then (Font_Key_Changed or else Prev_Font /= Font) then
@@ -5799,7 +5617,6 @@ package body Adi.Widget is
       end if;
 
       if Text_Obj = null then
-         --  First time: create text object
          C_Text := New_String (Content);
          Text_Obj := TTF_CreateText (Engine, Font, C_Text,
                                      size_t (Content'Length));
@@ -5814,14 +5631,12 @@ package body Adi.Widget is
          It.Cached_Text_String := To_Unbounded_String (Content);
 
       elsif It.Cached_Text_String /= It.Text_Content then
-         --  Text content changed: update in-place
          C_Text := New_String (Content);
          Success := TTF_SetTextString (Text_Obj, C_Text, size_t (Content'Length));
          Free (C_Text);
          It.Cached_Text_String := It.Text_Content;
       end if;
 
-      --  Set text color (with opacity)
       CSS_Color_To_SDL (Style.Color, R, G, B, A);
       A := Apply_Opacity (A, Float (Style.Opacity));
       Success := TTF_SetTextColor (Text_Obj, R, G, B, A);
@@ -5856,10 +5671,8 @@ package body Adi.Widget is
          C_float (Text_Draw_X),
          C_float (Text_Draw_Y));
 
-      --  Workaround for SDL_ttf renderer text engine decoration color handling:
-      --  in current upstream versions, underline/strikethrough draw ops can be
-      --  emitted as non-alpha fill sequences that render with white RGB.
-      --  Draw these two decorations manually using the resolved text color.
+      --  SDL_ttf's renderer text engine fills decorations white; drawn here in
+      --  the text colour.
       if Manual_Decoration then
          Text_Size := Adi.Font.Measure_Text (Attrs => Font_Attrs, Content => Content);
          Deco_W := Pixel_Type'Min (Geom.Width, Pixel_Type'Max (0.0, Text_Size.Width));
@@ -6002,7 +5815,6 @@ package body Adi.Widget is
       Inv_W : constant Float := (if Rect.w > 0.0 then 1.0 / Rect.w else 0.0);
       Inv_H : constant Float := (if Rect.h > 0.0 then 1.0 / Rect.h else 0.0);
 
-      --  UV range to map across the rect
       DU : constant Float := Src_U1 - Src_U0;
       DV : constant Float := Src_V1 - Src_V0;
 
@@ -6033,7 +5845,6 @@ package body Adi.Widget is
       end if;
 
       if Max_R < 1.0 then
-         --  No rounding — simple quad with UV mapping
          declare
             Q : SDL_Vertex_Array (0 .. 3);
             QI : Int_Array (0 .. 5) := [0, 1, 2, 0, 2, 3];
@@ -6053,13 +5864,11 @@ package body Adi.Widget is
          end;
       end if;
 
-      --  Center vertex for fan
       Center_Idx := VI;
       Add_Vertex ((X0 + X1) / 2.0, (Y0 + Y1) / 2.0);
 
       First_Outline := VI;
 
-      --  Top-left arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float :=
@@ -6070,7 +5879,6 @@ package body Adi.Widget is
          end;
       end loop;
 
-      --  Top-right arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float :=
@@ -6081,7 +5889,6 @@ package body Adi.Widget is
          end;
       end loop;
 
-      --  Bottom-right arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float := Float (I) * Step;
@@ -6091,7 +5898,6 @@ package body Adi.Widget is
          end;
       end loop;
 
-      --  Bottom-left arc
       for I in 0 .. Num_Seg loop
          declare
             Angle : constant Float :=
@@ -6102,7 +5908,6 @@ package body Adi.Widget is
          end;
       end loop;
 
-      --  Fan triangles
       for I in 0 .. N_Outline - 1 loop
          declare
             Next_I : constant Natural := (I + 1) mod N_Outline;
@@ -6175,7 +5980,6 @@ package body Adi.Widget is
          return;
       end if;
 
-      --  Border radius for clipping
       Radius_Px :=
         Resolve_Border_Radius_Px (Style.Border_Radius,
                                    Container_Width  => Geom.Width,
@@ -6184,7 +5988,6 @@ package body Adi.Widget is
          (Float'Max (Radius_Px.Top_Left, Radius_Px.Top_Right),
           Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left));
 
-      --  Default: full texture
       U0 := 0.0; V0 := 0.0; U1 := 1.0; V1 := 1.0;
 
       case Style.Object_Fit is
@@ -6265,7 +6068,6 @@ package body Adi.Widget is
             Dst_Y := Geom.Y + (Geom.Height - Dst_H) / 2.0;
       end case;
 
-      --  Object-position (for non-Cover/Fill modes)
       if Style.Object_Fit /= Fit_Fill and Style.Object_Fit /= Fit_Cover then
          case Style.Object_Position.Kind is
             when Keyword_Pos =>
@@ -6672,7 +6474,6 @@ package body Adi.Widget is
             Wants : constant Item_Clip :=
               (if Use_Clip then Clip_For (Current) else No_Clip);
          begin
-            --  Temporarily apply scroll offset for rendering
             Current.Geometry.Y := Current.Geometry.Y + Scroll_Shift;
 
             if Clip_Is_Empty (Wants) then
@@ -6712,7 +6513,6 @@ package body Adi.Widget is
                end if;
             end if;
 
-            --  Restore original geometry
             Current.Geometry.Y := Current.Geometry.Y - Scroll_Shift;
          end;
       end loop;
@@ -6832,11 +6632,6 @@ package body Adi.Widget is
                   Save_Clip
                     (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved,
                      Widget_Tree);
-                  --  A clip we cannot save is one we cannot restore, so
-                  --  leave it in place and draw the subtree within the
-                  --  caller's region: narrower than intended, but there.
-                  --  Dropping the subtree would hide the failure instead
-                  --  of showing it.
                   Use_Clip := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
                   if Use_Clip then
                      if Build_Content_Clip_Rect (
@@ -6852,8 +6647,6 @@ package body Adi.Widget is
                         Use_Clip :=
                           Set_Clip (Renderer, Clip_Rect'Access, Widget_Tree);
                      else
-                        --  Empty intersection: none of this subtree can
-                        --  be seen, so there is nothing to draw.
                         Use_Clip := False;
                         Skip_Children := True;
                      end if;
@@ -6905,7 +6698,6 @@ package body Adi.Widget is
 
 
    begin
-      --  Measure based on items
       for I in 1 .. Item_Count(W) loop
          declare
             Current : constant Item := Get_Item(W, I);
@@ -6913,16 +6705,12 @@ package body Adi.Widget is
             if Ref (Current.Computed_Style).Display /= Display_None then
                case Current.Kind is
                   when Panel_Item =>
-                     --  Panel contributes its geometry
                      Result := Max(Result, (Current.Geometry.Width, Current.Geometry.Height));
 
                   when Text_Item =>
-                     --  For text, we'd ideally measure the text
-                     --  For now, use geometry as approximation
                      Result := Max(Result, (Current.Geometry.Width, Current.Geometry.Height));
 
                   when Image_Item =>
-                     --  Get image dimensions (skip background images)
                      if not Current.Is_Background
                         and then Is_Valid (Current.Image_Source)
                      then
@@ -6970,7 +6758,6 @@ package body Adi.Widget is
          end;
       end loop;
 
-      --  Also consider children
       for Child of W.Children loop
          if Widget_Participates (Child.all) then
             declare
@@ -6994,7 +6781,6 @@ package body Adi.Widget is
         Ref (Get_Resolved_Part_Handle (W, Main_Part)).all;
       Min_W, Min_H : Pixel_Type := 0.0;
    begin
-      --  Check explicit min-width/min-height
       case Style.Min_Width.Kind is
          when Fixed =>
             Min_W := Size_To_Px(Style.Min_Width, W.Geometry.Width);
@@ -7029,9 +6815,6 @@ package body Adi.Widget is
    end Get_Content_Min_Size;
 
    function Get_Preferred_Size (W : Widget'Class) return Size_2D is
-      --  Pass-scoped + mutation-keyed cache.  Same 'Unrestricted_Access
-      --  pattern as Get_Resolved_Part_Style — safe because the cache is
-      --  a pure memo (same inputs always produce the same output).
       W_Mut : constant access Widget'Class := W'Unrestricted_Access;
       Eff   : constant Widget_States := Get_States (W);
    begin
@@ -7053,7 +6836,6 @@ package body Adi.Widget is
          return W_Mut.Cached_Pref_Size;
       end if;
 
-      --  Cache miss: compute.
       declare
          Style : constant Resolved_Style :=
            Get_Resolved_Part_Style (W, Main_Part);
@@ -7078,7 +6860,6 @@ package body Adi.Widget is
          Need_Content_H : Boolean := False;
          Result : Size_2D;
       begin
-         --  Check explicit width/height
          if Sized_W then
             Pref_W := Size_To_Px (Style.Width, W.Geometry.Width);
          elsif Scrollable_X then
@@ -7323,7 +7104,6 @@ package body Adi.Widget is
       Info.Basis_Is_Definite :=
         Child_Style.Flex_Basis.Kind = Fixed;
 
-      --  Align self
       Info.Align_Self := Child_Style.Align_Self;
 
       Info.Min_Cross := Get_Cross_Size
@@ -7408,7 +7188,6 @@ package body Adi.Widget is
             Pixel_Type'Min (Info.Flex_Basis, Info.Max_Main));
       end if;
 
-      --  Content sizes
       Info.Content_Main := Get_Main_Size
         (Child_Pref, Container.Flex_Direction);
       Info.Content_Cross := Get_Cross_Size
@@ -7440,7 +7219,6 @@ package body Adi.Widget is
          end if;
       end;
 
-      --  Margins
       Info.Margin := Get_Margin_Px(Child_Style);
       return Info;
    end Make_Flex_Child_Info;
@@ -7728,7 +7506,6 @@ package body Adi.Widget is
       CW   : Pixel_Type := Pref.Width;
       CH   : Pixel_Type := Pref.Height;
    begin
-      --  Explicit CSS width overrides preferred
       case Child_Style.Width.Kind is
          when Fixed =>
             CW := Size_To_Px (Child_Style.Width, Container.Width);
@@ -7741,7 +7518,6 @@ package body Adi.Widget is
             end if;
       end case;
 
-      --  Explicit CSS height overrides preferred
       case Child_Style.Height.Kind is
          when Fixed =>
             CH := Size_To_Px (Child_Style.Height, Container.Height);
@@ -7809,14 +7585,12 @@ package body Adi.Widget is
       Num_Children : Natural := 0;
       Num_Absolute : Natural := 0;
 
-      --  Content box (after padding/border)
       Content : constant Rectangle := Content_Box(W.Geometry, Style);
    begin
       if Total_Children = 0 then
          return;
       end if;
 
-      --  Count flow vs absolute children
       for Child of W.Children loop
          if Child /= null and then Widget_Participates (Child.all) then
             if Ref (Get_Resolved_Part_Handle (Child.all, Main_Part)).Position
@@ -7833,7 +7607,6 @@ package body Adi.Widget is
          return;
       end if;
 
-      --  Build flex context
       declare
          type Child_Array is array (Positive range <>) of Widget_Access;
          Active_Children  : Child_Array (1 .. Natural'Max (Num_Children, 1));
@@ -7855,7 +7628,6 @@ package body Adi.Widget is
             Cross_Gap       => Get_Cross_Gap(Style.Gap, Style.Flex_Direction)
          );
 
-         --  Collect child information, separating absolute children
          for Child of W.Children loop
             if Child /= null and then Widget_Participates (Child.all) then
                declare
@@ -7990,7 +7762,6 @@ package body Adi.Widget is
                   Set_Geometry (Active_Children (I).all, Assigned (I));
                end loop;
 
-               --  Recursively layout children
                for I in 1 .. Num_Children loop
                   Layout_Child (Active_Children (I).all);
                end loop;
@@ -8040,13 +7811,11 @@ package body Adi.Widget is
                end;
             end;
 
-            --  Apply relative offsets after flow layout
             for I in 1 .. Num_Children loop
                Apply_Relative_Offset (Active_Children (I).all, Content);
             end loop;
          end if;
 
-         --  Position absolute children against the content box
          for I in 1 .. Abs_Index loop
             declare
                --  Copied, because Position_Absolute_Child reads this
@@ -8073,7 +7842,6 @@ package body Adi.Widget is
    is
       Num_Items : constant Natural := Natural (Items.Length);
    begin
-      --  Preconditions
       pragma Assert (Container_Geom.Width >= 0.0,
          "Container width must be non-negative");
       pragma Assert (Container_Geom.Height >= 0.0,
@@ -8089,7 +7857,6 @@ package body Adi.Widget is
          Rectangles    : Rectangle_Array (1 .. Num_Items);
          Index         : Positive := 1;
       begin
-         --  Build flex context from container style
          Context := (
             Container       => Container_Geom,
             Direction       => Container_Style.Flex_Direction,
@@ -8101,7 +7868,6 @@ package body Adi.Widget is
             Cross_Gap       => Get_Cross_Gap (Container_Style.Gap, Container_Style.Flex_Direction)
          );
 
-         --  Convert Layout_Items to Flex_Child_Info
          for Item of Items loop
             declare
                Info : Flex_Child_Info;
@@ -8111,7 +7877,6 @@ package body Adi.Widget is
                Info.Flex_Shrink := Item.Flex.Shrink;
                Info.Flex_Basis  := Pixel_Type (Item.Flex.Basis);
 
-               --  Alignment
                case Item.Flex.Align_Self is
                   when Auto =>
                      Info.Align_Self := Auto;
@@ -8153,7 +7918,6 @@ package body Adi.Widget is
                   Info.Min_Main := Pixel_Type'Max (Info.Min_Main, Info.Content_Main);
                end if;
 
-               --  No margins for items (can be added later if needed)
                Info.Margin := Zero_Edges;
 
                Children_Info (Index) := Info;
@@ -8161,18 +7925,14 @@ package body Adi.Widget is
             end;
          end loop;
 
-         --  Compute flex layout
          Compute_Flex_Layout (Context, Children_Info);
 
-         --  Convert to rectangles
          Rectangles := Flex_To_Rectangles (Context, Children_Info);
 
-         --  Update Layout_Items with calculated geometry
          Index := 1;
          for Item of Items loop
             Item.Geometry := Rectangles (Index);
 
-            --  Postconditions for each item
             pragma Assert (Item.Geometry.Width >= 0.0,
                "Item width must be non-negative");
             pragma Assert (Item.Geometry.Height >= 0.0,
@@ -8207,8 +7967,7 @@ package body Adi.Widget is
     procedure Update_Subtree (W : in out Widget'Class) is
     begin
        if Is_Dirty (W) then
-          --  Layout must have been called before this.
-          --  Build items using the current geometry.
+          --  Layout must have run before this.
           Build_Items (W);
           Build_Label_Overlay (W);
           Apply_Styles_To_Items (W);
@@ -8313,7 +8072,6 @@ begin
    end if;
 
    if W.Last_Layout_Epoch = Current_Layout_Epoch then
-      --  Already laid out by parent container in this epoch — skip.
       Inc_Sat (Perf_Layout_Skips);
    else
       Inc_Sat (Perf_Layout_Calls);
@@ -8416,9 +8174,6 @@ begin
          begin
             Advance (W.Transitions (P), DT_Float, Interpolated);
 
-            --  Apply interpolated style to all items of this part.
-            --  Use a direct reference rename to avoid copying Cached_TTF_Text
-            --  through Ada controlled-type assignment.
             for I in 1 .. Natural (W.Items.Length) loop
                declare
                   It : Item renames W.Items.Reference (I).Element.all;
@@ -8471,7 +8226,6 @@ begin
       W.Ticks_Wanted := True;
    end if;
 
-   --  Recurse to children.
    for Child of W.Children loop
       Tick_Animations (Child.all, DT);
       if Child.Ticks_Wanted then

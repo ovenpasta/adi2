@@ -23,7 +23,6 @@ package body Adi.Widget.Value_Input is
          declare
             S : constant String := Trim (Buf, Both);
          begin
-            --  Find decimal point
             for I in S'Range loop
                if S (I) = '.' then
                   Dot := I;
@@ -33,7 +32,6 @@ package body Adi.Widget.Value_Input is
             if Dot = 0 then
                return S;
             end if;
-            --  Strip trailing zeros, keep at least one after dot
             Last := S'Last;
             while Last > Dot + 1 and then S (Last) = '0' loop
                Last := Last - 1;
@@ -42,7 +40,6 @@ package body Adi.Widget.Value_Input is
          end;
       end Format;
    begin
-      --  Try increasing precision, return first that round-trips
       for Aft in 1 .. 5 loop
          declare
             S : constant String := Format (Aft);
@@ -54,7 +51,6 @@ package body Adi.Widget.Value_Input is
             when others => null;
          end;
       end loop;
-      --  Fallback: 6 digits
       return Format (6);
    end Conv_Image;
 

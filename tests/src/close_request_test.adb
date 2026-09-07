@@ -34,7 +34,6 @@ procedure Close_Request_Test is
    is
       pragma Unreferenced (Win);
    begin
-      --  Leave Allow as True (default)
       Allow := True;
    end Allow_Close;
 

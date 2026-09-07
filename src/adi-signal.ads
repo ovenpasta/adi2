@@ -65,7 +65,6 @@ package Adi.Signal is
      (S  : in out Signal;
       Id : Connection_Id);
 
-   --  Remove all subscriptions.
    procedure Disconnect_All (S : in out Signal);
 
    --  Number of active (non-tombstone) subscribers.

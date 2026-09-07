@@ -25,13 +25,7 @@ with Adi_GL;
 
 with GL_Demo_UI;
 
---  A tetrahedron drawn by OpenGL into a texture Adi never touches, shown
---  as a widget and driven by ordinary Adi controls.
---
---  The layout is XML, the styling is CSS, and the GL work happens in a
---  per-frame callback outside the widget tree. The controls only write
---  variables the callback reads on its next pass: nothing in the GUI
---  reaches into GL, and nothing in GL reaches into the GUI.
+--  The GL work runs in a per-frame callback outside the widget tree; controls only write variables the callback reads next pass -- no direct reach either way.
 procedure GL_Triangle is
 
    package UI is new GL_Demo_UI.Instance;
@@ -109,10 +103,7 @@ procedure GL_Triangle is
    Angle    : Float := 0.0;
    Orbit    : Float := 0.0;
 
-   --  Read at startup rather than bundled, so the file can be edited
-   --  between runs without rebuilding. Base_Path is where the binary
-   --  is, and bin/ sits beside assets/, so the working directory the
-   --  user happened to run from does not come into it.
+   --  Base_Path is where the binary is, and bin/ sits beside assets/, so the caller's working directory does not affect resolution.
    function Read_Asset (Name : String) return String is
       use Ada.Streams.Stream_IO;
 

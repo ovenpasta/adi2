@@ -22,14 +22,7 @@ with Adi.Widget_Styles;       use Adi.Widget_Styles;
 with Adi.Window;
 with Test_Support;            use Test_Support;
 
---  What `overflow: visible` means for text.
---
---  Text that does not fit its own box is drawn outside it, exactly as
---  CSS says (https://www.w3.org/TR/css-overflow/#valdef-overflow-visible),
---  and an ancestor that says `overflow: hidden` clips it. These tests
---  read the rendered pixels rather than geometry, because the failure
---  they guard against was a renderer-side clip that layout knew nothing
---  about.
+--  What `overflow: visible` means for text: text is drawn outside its own box, as CSS says, and a `overflow: hidden` ancestor clips it. These tests read rendered pixels, not geometry.
 procedure Text_Overflow_Test is
 
    use type Adi.Widget.Box.Box_Handle;
@@ -372,8 +365,6 @@ procedure Text_Overflow_Test is
       Put_Line ("    ink inside=" & Inside'Image
                 & " left of the field=" & Beyond'Image);
 
-      --  Without this the test would also pass if the number stopped
-      --  rendering altogether.
       Assert (Inside > 0, "the number renders inside the field");
       Assert (Beyond = 0, "a value input does not draw its number outside "
               & "the field");
@@ -385,11 +376,7 @@ procedure Text_Overflow_Test is
          Assert (False, "Unexpected exception: " & Exception_Name (E));
    end Test_Value_Input_Clips_Its_Number;
 
-   --  A text input inside a scrolled page still shows its text. The
-   --  input clips its own line, and that clip is a rectangle in window
-   --  space: taking it from the widget's stored geometry while the items
-   --  are drawn shifted by the scroll offset put the two in different
-   --  places, and the text vanished as soon as the page moved.
+   --  A text input inside a scrolled page still shows its text: the input's line-clip is a window-space rectangle built from stored geometry, while items are drawn shifted by the scroll offset, so the two must move together.
    procedure Test_Scrolled_Input_Still_Renders is
       Ready : Boolean;
       W     : Adi.Window.Window_Handle;
@@ -560,10 +547,7 @@ procedure Text_Overflow_Test is
       Add_Child (+Clip_Box, +Text);
       Add_Child (+Page, +Spacer);
       Add_Child (+Page, +Clip_Box);
-      --  Trailing content, so the box can be scrolled to the middle of
-      --  the viewport rather than sitting at its bottom edge -- there the
-      --  page's own clip would hide anything escaping downwards and the
-      --  test would pass without the box clipping at all.
+      --  Trailing content lets the box scroll to the middle of the viewport instead of sitting at its bottom edge.
       Add_Child (+Page, +Trailer);
       Add_Child (+Root, +Page);
 

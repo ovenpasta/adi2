@@ -32,7 +32,6 @@ procedure Combo_Box_Item_Test is
          Fill      => (R => 128, G => 128, B => 128, A => 255)));
    end Make_Test_Image;
 
-   --  A concrete subclass of Item_Data for testing
    type My_Data is new Item_Data with record
       Id : Integer := 0;
    end record;
@@ -127,7 +126,6 @@ procedure Combo_Box_Item_Test is
    begin
       Put_Line ("Test: handle overloads agree with widget overloads");
       Add_Item (H, "Test", Icon, D'Unchecked_Access);
-      --  Handle accessors already delegate to widget overloads; verify values
       Test_Support.Assert (Get_Selected_Text (H) = "Test", "text matches via handle");
       Test_Support.Assert (Get_Item_Icon (H, 1) = Icon,    "icon matches via handle");
       Test_Support.Assert (Get_Item_Data (H, 1) /= null,   "data non-null via handle");

@@ -167,7 +167,6 @@ package Adi.CSS_Source is
      (Source : in out Style_Source;
       W      : access Adi.Widget.Widget'Class);
 
-   --  Widget_Handle overloads (resolve handle then delegate to access-based)
    procedure Bind_Class (Source : in out Style_Source;
                          Name   : String;
                          W      : Adi.Widget.Widget_Handle);

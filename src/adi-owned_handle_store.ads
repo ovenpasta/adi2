@@ -6,31 +6,12 @@ pragma Ada_2022;
 with Ada.Finalization;
 with Adi.Handle_Store;
 
---  Ownership and viewing as two different things.
---
---  A generational store already answers "is this still there". It does
---  not answer "whose job is it to end this", and a single handle type
---  cannot: every holder of one is equally able to destroy what it names,
---  so who owns an object lives in documentation rather than in the
---  program.
---
---  Here the two are separate types. An Owner keeps the object alive and
---  is the only thing that can end it; a Handle names the object without
---  keeping it. Copying a Handle costs nothing and grants nothing, which
---  is what a widget drawing a picture wants. Dropping the last Owner
---  reclaims the object and retires its slot, so every Handle to it goes
---  stale in that moment -- an owner does not wait for its viewers.
---
---  Owners are counted rather than unique because they have to live in
---  ordinary containers: an asset cache is a map of them, an animation's
---  frames a vector, and the standard containers cannot hold a limited
---  type. Counting is between owners only. A Handle never contributes,
---  so a cache dropping its entry stales every viewer at once instead of
---  keeping the object alive for whoever still happens to point at it.
---
---  Render-thread confined: nothing here locks, and reclamation reaches
---  whatever the object holds. Owners are render-thread values, and that
---  includes the implicit release when one goes out of scope.
+--  An Owner keeps the object and is the only thing that can end it; a
+--  Handle names it without keeping it. Releasing the last Owner reclaims
+--  the object and retires its slot, so every Handle goes stale at once.
+--  Owners are counted between themselves; a Handle never counts. Owners,
+--  and the release they perform on leaving scope, belong to the render
+--  thread: nothing here locks.
 generic
    type Object_Type is abstract tagged limited private;
    type Object_Access is access all Object_Type'Class;
@@ -84,7 +65,6 @@ package Adi.Owned_Handle_Store is
    --  The object, or null for an owner of nothing.
    function Resolve (O : Owner) return Object_Access;
 
-   --  Whether this owner holds anything.
    function Is_Owned (O : Owner) return Boolean;
 
    --  Give up this owner's share. The last one out reclaims the object

@@ -2499,9 +2499,7 @@ package body Adi.Widget.Html_View is
             return;
          end if;
 
-         --  Note: Flush_Pending_Margin is now called inside Add_Text_Run /
-         --  Add_Image_Run. Whitespace-only text in collapsed mode never
-         --  reaches those, so it must not commit a pending margin.
+         --  Flush_Pending_Margin is called inside Add_Text_Run / Add_Image_Run; whitespace-only text in collapsed mode never reaches those, so it must not commit a pending margin here.
 
          case Style.White_Space is
             when WS_Pre | WS_Pre_Wrap =>
@@ -3617,11 +3615,9 @@ package body Adi.Widget.Html_View is
    overriding function Measure_Content (Self : Html_View) return Size_2D is
       Main_Style : Resolved_Style renames
         Ref (Get_Resolved_Part_Handle (Self, Main_Part)).all;
-      --  Once Layout_And_Build has run we know the real document size;
-      --  before that we report a small stub so the parent flex has
-      --  something to assign on the first pass.  When the parent gives
-      --  the widget a constrained slot (max-height / explicit height)
-      --  the document still scrolls — Scroll_Content_H is independent.
+      --  Before Layout_And_Build has run this reports a stub, so the parent
+      --  flex has something to assign; afterwards the document size.
+      --  Scroll_Content_H is independent of the slot.
       W : constant Pixel_Type :=
         (if Self.Cached_Content_W > 0.0 then Self.Cached_Content_W
          else 320.0);

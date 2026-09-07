@@ -51,7 +51,6 @@ package Adi.Widget_Properties.Enumerated is
    --  takes for `[severity="critical"]`.
    function Value (V : Values) return Property_Value;
 
-   --  The CSS name a literal answers to.
    function CSS_Name (V : Values) return String;
 
    --  Handles, as the rest of the widget API takes. A widget body with

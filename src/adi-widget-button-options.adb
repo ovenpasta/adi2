@@ -69,7 +69,6 @@ package body Adi.Widget.Button.Options is
          raise Constraint_Error with "Set_Button: stale or null handle";
       end if;
 
-      --  Whatever held this option loses it.
       if G.Buttons (O) /= B then
          Unlink (G, G.Buttons (O));
       end if;
@@ -97,11 +96,9 @@ package body Adi.Widget.Button.Options is
          end if;
       end;
 
-      --  Set initial toggle state
       if G.Initialized then
          Set_Toggled (Btn.all, O = G.Selected);
       else
-         --  First button added initializes the group
          G.Selected := O;
          G.Initialized := True;
          Set_Toggled (Btn.all, True);
@@ -215,7 +212,6 @@ package body Adi.Widget.Button.Options is
          return;
       end if;
 
-      --  Find which option this button corresponds to
       for O in Option_Type loop
          if Is_Valid (G.Buttons (O))
            and then To_Widget_Handle (G.Buttons (O)) = W
@@ -227,7 +223,6 @@ package body Adi.Widget.Button.Options is
                   return;
                end if;
 
-               --  Already selected? No-op (radio behavior)
                if O = G.Selected then
                   --  Keep it toggled: the click may have flipped it
                   Set_Toggled (Btn.all, True);

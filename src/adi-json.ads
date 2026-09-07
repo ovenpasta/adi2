@@ -72,7 +72,7 @@ private
    --  Track whether current container has had at least one element written
    type Has_Element_Array is array (Depth_Range) of Boolean;
 
-   --  Track whether we just wrote a key (suppress comma before value)
+   --  True between a key and its value, where no comma goes.
    type After_Key_Array is array (Depth_Range) of Boolean;
 
    type JSON_Writer is tagged limited record

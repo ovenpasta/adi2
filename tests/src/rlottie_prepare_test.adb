@@ -723,8 +723,6 @@ procedure RLottie_Prepare_Test is
               "a speed of zero is clamped up rather than stopping time");
       Set_Playback_Speed (Anim, 1.0);
 
-      --  A step backwards used to convert a negative frame index before
-      --  the clamp written for it could run.
       Reset (Anim);
       Moved := Advance (Anim, -1.0);
       Assert (Get_Current_Frame_Index (Anim) = 1,

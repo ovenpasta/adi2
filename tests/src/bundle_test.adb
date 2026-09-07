@@ -82,8 +82,6 @@ begin
    Test_Support.Assert (Adi.Assets.Get_Mode = Adi.Assets.Bundle_Mode,
            "Set_Mode to Bundle_Mode");
 
-   --  Reset to File_Mode for further tests (no assets loaded yet in the
-   --  test because we haven't called Get_Image etc)
    Adi.Assets.Set_Mode (Adi.Assets.File_Mode);
    Test_Support.Assert (Adi.Assets.Get_Mode = Adi.Assets.File_Mode,
            "Set_Mode back to File_Mode");
@@ -232,8 +230,7 @@ begin
    ---------------------------------------------------------------------------
 
    declare
-      --  An SVG base: it has no surface to duplicate, which is the case
-      --  that used to hand the derived key the base image itself.
+      --  An SVG base has no surface to duplicate.
       Base    : constant Adi.Image.Image_Handle :=
         Adi.Assets.Get_Image ("icons.svg");
       Derived : constant Adi.Image.Image_Handle :=
@@ -263,8 +260,7 @@ begin
    end;
 
    declare
-      --  An SVG base: it has no surface to duplicate, which is the case
-      --  that used to hand the derived key the base image itself.
+      --  An SVG base has no surface to duplicate.
       Base    : constant Adi.Image.Image_Handle :=
         Adi.Assets.Get_Image ("icons.svg");
       Derived : constant Adi.Image.Image_Handle :=

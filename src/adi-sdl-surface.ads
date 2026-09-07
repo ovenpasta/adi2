@@ -9,18 +9,16 @@ with Adi.SDL.Pixelformat; use Adi.SDL.Pixelformat;
 
 package Adi.SDL.Surface is 
 
-   SDL_SURFACE_PREALLOCATED : constant := 16#00000001#;  --  /usr/include/SDL3/SDL_surface.h:66
-   SDL_SURFACE_LOCK_NEEDED : constant := 16#00000002#;  --  /usr/include/SDL3/SDL_surface.h:67
-   SDL_SURFACE_LOCKED : constant := 16#00000004#;  --  /usr/include/SDL3/SDL_surface.h:68
-   SDL_SURFACE_SIMD_ALIGNED : constant := 16#00000008#;  --  /usr/include/SDL3/SDL_surface.h:69
-   --  arg-macro: function SDL_MUSTLOCK (S)
-   --    return ((S).flags and SDL_SURFACE_LOCK_NEEDED) = SDL_SURFACE_LOCK_NEEDED;
+   SDL_SURFACE_PREALLOCATED : constant := 16#00000001#;
+   SDL_SURFACE_LOCK_NEEDED : constant := 16#00000002#;
+   SDL_SURFACE_LOCKED : constant := 16#00000004#;
+   SDL_SURFACE_SIMD_ALIGNED : constant := 16#00000008#;
 
-   SDL_PROP_SURFACE_SDR_WHITE_POINT_FLOAT : aliased constant String := "SDL.surface.SDR_white_point" & ASCII.NUL;  --  /usr/include/SDL3/SDL_surface.h:249
-   SDL_PROP_SURFACE_HDR_HEADROOM_FLOAT : aliased constant String := "SDL.surface.HDR_headroom" & ASCII.NUL;  --  /usr/include/SDL3/SDL_surface.h:250
-   SDL_PROP_SURFACE_TONEMAP_OPERATOR_STRING : aliased constant String := "SDL.surface.tonemap" & ASCII.NUL;  --  /usr/include/SDL3/SDL_surface.h:251
-   SDL_PROP_SURFACE_HOTSPOT_X_NUMBER : aliased constant String := "SDL.surface.hotspot.x" & ASCII.NUL;  --  /usr/include/SDL3/SDL_surface.h:252
-   SDL_PROP_SURFACE_HOTSPOT_Y_NUMBER : aliased constant String := "SDL.surface.hotspot.y" & ASCII.NUL;  --  /usr/include/SDL3/SDL_surface.h:253
+   SDL_PROP_SURFACE_SDR_WHITE_POINT_FLOAT : aliased constant String := "SDL.surface.SDR_white_point" & ASCII.NUL;
+   SDL_PROP_SURFACE_HDR_HEADROOM_FLOAT : aliased constant String := "SDL.surface.HDR_headroom" & ASCII.NUL;
+   SDL_PROP_SURFACE_TONEMAP_OPERATOR_STRING : aliased constant String := "SDL.surface.tonemap" & ASCII.NUL;
+   SDL_PROP_SURFACE_HOTSPOT_X_NUMBER : aliased constant String := "SDL.surface.hotspot.x" & ASCII.NUL;
+   SDL_PROP_SURFACE_HOTSPOT_Y_NUMBER : aliased constant String := "SDL.surface.hotspot.y" & ASCII.NUL;
 
   --  Simple DirectMedia Layer
   --  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
@@ -39,110 +37,33 @@ package Adi.SDL.Surface is
   --  3. This notice may not be removed or altered from any source distribution.
   -- 
 
-  --*
-  -- * # CategorySurface
-  -- *
-  -- * SDL surfaces are buffers of pixels in system RAM. These are useful for
-  -- * passing around and manipulating images that are not stored in GPU memory.
-  -- *
-  -- * SDL_Surface makes serious efforts to manage images in various formats, and
-  -- * provides a reasonable toolbox for transforming the data, including copying
-  -- * between surfaces, filling rectangles in the image data, etc.
-  -- *
-  -- * There is also a simple .bmp loader, SDL_LoadBMP(). SDL itself does not
-  -- * provide loaders for various other file formats, but there are several
-  -- * excellent external libraries that do, including its own satellite library,
-  -- * SDL_image:
-  -- *
-  -- * https://github.com/libsdl-org/SDL_image
-  --  
-
-  -- Set up for C function definitions, even when using C++  
-  --*
-  -- * The flags on an SDL_Surface.
-  -- *
-  -- * These are generally considered read-only.
-  -- *
-  -- * \since This datatype is available since SDL 3.2.0.
-  --  
-
-   subtype SDL_SurfaceFlags is Uint32;  -- /usr/include/SDL3/SDL_surface.h:64
-
-  --*
-  -- * Evaluates to true if the surface needs to be locked before access.
-  -- *
-  -- * \since This macro is available since SDL 3.2.0.
-  --  
-
-  --*
-  -- * The scaling mode.
-  -- *
-  -- * \since This enum is available since SDL 3.2.0.
-  --  
+   subtype SDL_SurfaceFlags is Uint32;
 
    subtype SDL_ScaleMode is int;
    SDL_ScaleMode_SDL_SCALEMODE_INVALID : constant SDL_ScaleMode := -1;
    SDL_ScaleMode_SDL_SCALEMODE_NEAREST : constant SDL_ScaleMode := 0;
-   SDL_ScaleMode_SDL_SCALEMODE_LINEAR : constant SDL_ScaleMode := 1;  -- /usr/include/SDL3/SDL_surface.h:83
-
-  --*< nearest pixel sampling  
-  --*< linear filtering  
-  --*
-  -- * The flip mode.
-  -- *
-  -- * \since This enum is available since SDL 3.2.0.
-  --  
+   SDL_ScaleMode_SDL_SCALEMODE_LINEAR : constant SDL_ScaleMode := 1;
 
    type SDL_FlipMode is 
      (SDL_FLIP_NONE,
       SDL_FLIP_HORIZONTAL,
       SDL_FLIP_VERTICAL)
-   with Convention => C;  -- /usr/include/SDL3/SDL_surface.h:95
+   with Convention => C;
 
-  --*< Do not flip  
-  --*< flip horizontally  
-  --*< flip vertically  
-  --*
-  -- * A collection of pixels used in software blitting.
-  -- *
-  -- * Pixels are arranged in memory in rows, with the top row first. Each row
-  -- * occupies an amount of memory given by the pitch (sometimes known as the row
-  -- * stride in non-SDL APIs).
-  -- *
-  -- * Within each row, pixels are arranged from left to right until the width is
-  -- * reached. Each pixel occupies a number of bits appropriate for its format,
-  -- * with most formats representing each pixel as one or more whole bytes (in
-  -- * some indexed formats, instead multiple pixels are packed into each byte),
-  -- * and a byte order given by the format. After encoding all pixels, any
-  -- * remaining bytes to reach the pitch are used as padding to reach a desired
-  -- * alignment, and have undefined contents.
-  -- *
-  -- * When a surface holds YUV format data, the planes are assumed to be
-  -- * contiguous without padding between them, e.g. a 32x32 surface in NV12
-  -- * format with a pitch of 32 would consist of 32x32 bytes of Y plane followed
-  -- * by 32x16 bytes of UV plane.
-  -- *
-  -- * When a surface holds MJPG format data, pixels points at the compressed JPEG
-  -- * image and pitch is the length of that data.
-  -- *
-  -- * \since This struct is available since SDL 3.2.0.
-  -- *
-  -- * \sa SDL_CreateSurface
-  -- * \sa SDL_DestroySurface
-  --  
+  --  Pixel data is arranged in rows (top row first); pitch is the row stride in bytes, with trailing padding bytes of undefined content. YUV-format surfaces store planes contiguously with no padding between them; MJPG-format surfaces store compressed JPEG data directly in pixels, with pitch giving its length.
 
-  --*< The flags of the surface, read-only  
+  --  Read-only.
    type SDL_Surface is record
-      flags : aliased SDL_SurfaceFlags;  -- /usr/include/SDL3/SDL_surface.h:134
-      format : aliased SDL_PixelFormat;  -- /usr/include/SDL3/SDL_surface.h:135
-      w : aliased int;  -- /usr/include/SDL3/SDL_surface.h:136
-      h : aliased int;  -- /usr/include/SDL3/SDL_surface.h:137
-      pitch : aliased int;  -- /usr/include/SDL3/SDL_surface.h:138
-      pixels : System.Address;  -- /usr/include/SDL3/SDL_surface.h:139
-      refcount : aliased int;  -- /usr/include/SDL3/SDL_surface.h:141
-      reserved : System.Address;  -- /usr/include/SDL3/SDL_surface.h:143
+      flags : aliased SDL_SurfaceFlags;
+      format : aliased SDL_PixelFormat;
+      w : aliased int;
+      h : aliased int;
+      pitch : aliased int;
+      pixels : System.Address;
+      refcount : aliased int;
+      reserved : System.Address;
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/include/SDL3/SDL_surface.h:132
+   with Convention => C_Pass_By_Copy;
 
    type SDL_Surface_Ptr is access all SDL_Surface;
    subtype SDL_Surface_Access is SDL_Surface_Ptr;
@@ -151,7 +72,7 @@ package Adi.SDL.Surface is
    function SDL_CreateSurface
      (width : int;
       height : int;
-      format : SDL_PixelFormat) return access SDL_Surface  -- /usr/include/SDL3/SDL_surface.h:167
+      format : SDL_PixelFormat) return access SDL_Surface
    with Import => True, 
         Convention => C, 
         External_Name => "SDL_CreateSurface";

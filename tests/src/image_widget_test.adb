@@ -21,7 +21,6 @@ procedure Image_Widget_Test is
               Msg & " actual=" & Actual'Image & " expected=" & Expected'Image);
    end Assert_Close;
 
-   --  Helper to create a test image with specific intrinsic dimensions
    function Make_Test_Image
      (W, H : Pixel_Type) return Adi.Image.Image_Handle
    is
@@ -187,11 +186,9 @@ procedure Image_Widget_Test is
       Pref1 := Get_Preferred_Size (+W1);
       Pref2 := Get_Preferred_Size (+W2);
 
-      --  Preferred size should be (0,0) since no CSS width/height set
       Assert_Close (Pref1.Width, 0.0, "Preferred width should be 0");
       Assert_Close (Pref1.Height, 0.0, "Preferred height should be 0");
 
-      --  Put two images in a 400px-wide, 2-column grid with preferred floor
       Ctx := (
          Container           => (0.0, 0.0, 400.0, 300.0),
          Columns             => 2,
@@ -287,7 +284,6 @@ procedure Image_Widget_Test is
                       From (Img_Rules).Build);
       Add_Child (Box_H, Img_H);
 
-      --  Verify the image's preferred size doesn't demand 500x400
       declare
          Pref : constant Size_2D := Get_Preferred_Size (Img_H);
       begin

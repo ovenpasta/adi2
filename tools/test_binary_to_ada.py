@@ -6,7 +6,6 @@ import sys
 import tempfile
 import unittest
 
-# Add tools directory to path
 sys.path.insert(0, os.path.dirname(__file__))
 from binary_to_ada import file_to_identifier, bytes_to_decimal_lines, relative_key, generate
 
@@ -72,11 +71,9 @@ class TestGenerate(unittest.TestCase):
 
             spec, body = generate([test_file], tmpdir, 'Test_Bundle', None)
 
-            # Spec should only have Register_All
             self.assertIn('Register_All', spec)
             self.assertNotIn('Storage_Array', spec)
 
-            # Body should have the constants as decimal literals
             self.assertIn('Storage_Array', body)
             self.assertIn('0,1,2', body)
             self.assertIn('Register_All', body)
@@ -92,11 +89,8 @@ class TestGenerate(unittest.TestCase):
 
             spec, body = generate([test_file], tmpdir, 'Test_Pkg', None)
 
-            # Extract all decimal values from the body
             import re
             dec_vals = re.findall(r'\b(\d+)\b', body)
-            # Filter: only values 0-255 that appear in the array literal
-            # Find the array content between := and ;
             array_match = re.search(
                 r'Storage_Array \(0 \.\. 255\) :=\s*\[([\s\S]*?)\];', body)
             self.assertIsNotNone(array_match)

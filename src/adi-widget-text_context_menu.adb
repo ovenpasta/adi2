@@ -263,7 +263,6 @@ package body Adi.Widget.Text_Context_Menu is
          return;
       end if;
 
-      --  Remove command binding for this menu
       declare
          I : constant Natural := Find_Command_Binding (Menu);
       begin
@@ -272,8 +271,6 @@ package body Adi.Widget.Text_Context_Menu is
          end if;
       end;
 
-      --  Remove request binding(s) that reference this menu,
-      --  disconnecting signal subscriptions first.
       declare
          I : Natural := 1;
       begin

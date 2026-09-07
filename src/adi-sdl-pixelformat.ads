@@ -77,6 +77,6 @@ package Adi.SDL.Pixelformat is
    SDL_PIXELFORMAT_RGBX32 : constant SDL_PixelFormat := 374740996;
    SDL_PIXELFORMAT_XRGB32 : constant SDL_PixelFormat := 375789572;
    SDL_PIXELFORMAT_BGRX32 : constant SDL_PixelFormat := 370546692;
-   SDL_PIXELFORMAT_XBGR32 : constant SDL_PixelFormat := 371595268;  -- /usr/include/SDL3/SDL_pixels.h:548
+   SDL_PIXELFORMAT_XBGR32 : constant SDL_PixelFormat := 371595268;
 
 end Adi.SDL.Pixelformat;

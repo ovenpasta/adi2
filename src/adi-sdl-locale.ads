@@ -9,10 +9,6 @@ with System;
 
 package Adi.SDL.Locale is
 
-   ----------------------------------------------------------------------------
-   --  SDL_Locale Record
-   ----------------------------------------------------------------------------
-
    type SDL_Locale is record
       Language : Interfaces.C.Strings.chars_ptr;
       Country  : Interfaces.C.Strings.chars_ptr;

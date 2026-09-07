@@ -24,18 +24,13 @@ def file_to_identifier(path: str) -> str:
     a letter, and capitalizes word segments.
     """
     name = os.path.basename(path)
-    # Replace non-alphanumeric with underscore
     ident = re.sub(r'[^a-zA-Z0-9]', '_', name)
-    # Collapse multiple underscores
     ident = re.sub(r'_+', '_', ident)
-    # Strip leading/trailing underscores
     ident = ident.strip('_')
-    # Ensure starts with letter
     if ident and ident[0].isdigit():
         ident = 'F_' + ident
     if not ident:
         ident = 'Unknown'
-    # Capitalize each segment
     parts = ident.split('_')
     ident = '_'.join(p.capitalize() for p in parts if p)
     return ident
@@ -55,7 +50,6 @@ def relative_key(filepath: str, base_dir: str | None) -> str:
     """Compute the bundle registration key for a file."""
     if base_dir:
         rel = os.path.relpath(filepath, base_dir)
-        # Normalize to forward slashes
         rel = rel.replace('\\', '/')
         return rel
     return os.path.basename(filepath)
@@ -72,7 +66,6 @@ def generate(files: list[str], output_dir: str, package_name: str,
         ident = file_to_identifier(key) + '_Data'
         entries.append((key, ident, data))
 
-    # Spec
     spec_lines = [
         f'pragma Ada_2022;',
         f'package {package_name} is',
@@ -80,7 +73,6 @@ def generate(files: list[str], output_dir: str, package_name: str,
         f'end {package_name};',
     ]
 
-    # Body
     body_lines = [
         f'pragma Ada_2022;',
         f'with System.Storage_Elements; use System.Storage_Elements;',
@@ -137,7 +129,6 @@ def main():
     spec, body = generate(args.files, args.output_dir, args.package_name,
                           args.base_dir)
 
-    # Ada file naming: package name lowercased, dots to dashes
     base_name = args.package_name.lower().replace('.', '-')
     spec_path = os.path.join(args.output_dir, base_name + '.ads')
     body_path = os.path.join(args.output_dir, base_name + '.adb')

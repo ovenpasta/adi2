@@ -27,7 +27,6 @@ package body Adi.JSON is
             when ASCII.CR  => Append (Result, "\r");
             when others =>
                if Character'Pos (C) < 32 then
-                  --  Control character: emit \u00XX
                   declare
                      Hi : constant Natural := Character'Pos (C) / 16;
                      Lo : constant Natural := Character'Pos (C) mod 16;
@@ -45,10 +44,6 @@ package body Adi.JSON is
       end loop;
       return To_String (Result);
    end Escape_String;
-
-   ---------------------------------------------------------------------------
-   --  JSON_Writer - Creation
-   ---------------------------------------------------------------------------
 
    function Create (Pretty : Boolean := False) return JSON_Writer is
    begin
@@ -114,10 +109,6 @@ package body Adi.JSON is
       W.Has_Element (W.Depth) := True;
    end Write_Key;
 
-   ---------------------------------------------------------------------------
-   --  Structure
-   ---------------------------------------------------------------------------
-
    procedure Start_Object (W : in out JSON_Writer) is
    begin
       Begin_Value (W);
@@ -170,8 +161,7 @@ package body Adi.JSON is
       --  Signal that the next Start_Object/Start_Array/Write_* should
       --  not emit a comma or indent (the key already did that).
       W.After_Key (W.Depth) := True;
-      --  Undo the Has_Element set by Write_Key -- we set it only once
-      --  the actual value is written (Start_Object/Array will set it).
+      --  Has_Element here is provisional: Start_Object/Start_Array reset it once the value is written.
    end Key;
 
    ---------------------------------------------------------------------------

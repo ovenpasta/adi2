@@ -14,20 +14,12 @@ package Adi.SDL.IO is
    type SDL_IOStream is limited null record;
    type SDL_IOStream_Ptr is access all SDL_IOStream;
 
-   ---------------------------------------------------------------------------
-   --  IO Stream from constant memory
-   ---------------------------------------------------------------------------
-
    function SDL_IOFromConstMem
      (Mem  : System.Address;
       Size : size_t) return SDL_IOStream_Ptr
       with Import        => True,
            Convention    => C,
            External_Name => "SDL_IOFromConstMem";
-
-   ---------------------------------------------------------------------------
-   --  Close an IO stream
-   ---------------------------------------------------------------------------
 
    function SDL_CloseIO
      (Context : SDL_IOStream_Ptr) return C_bool

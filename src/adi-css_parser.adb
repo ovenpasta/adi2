@@ -508,14 +508,11 @@ package body Adi.CSS_Parser is
       List := Default_Grid_Track_List;
       Count := 0;
 
-      --  Legacy: plain integer N → N equal fr(1.0) tracks
       if Parse_Natural (V, N_Plain) and then N_Plain > 0 then
          Append ((Kind => Track_Fr, Value => 1.0), N_Plain);
       else
-         --  Token-level parsing
          I := V'First;
          while I <= V'Last loop
-            --  Skip whitespace
             while I <= V'Last
               and then (V (I) = ' ' or else V (I) = ASCII.HT)
             loop
@@ -534,7 +531,7 @@ package body Adi.CSS_Parser is
                      Depth := Depth - 1;
                   end if;
                   if Depth = 0 then
-                     I := I + 1;  --  advance past ')'
+                     I := I + 1;
                      exit;
                   end if;
                elsif (V (I) = ' ' or else V (I) = ASCII.HT) and then Depth = 0 then
@@ -1276,8 +1273,6 @@ package body Adi.CSS_Parser is
       return False;
    end Parse_Color;
 
-   --  Parse a CSS linear-gradient() function value.
-   --  Returns True and sets Out_Val on success; returns False on any error.
    function Parse_Linear_Gradient
      (Input   : String;
       Out_Val : out Background_Image_Value) return Boolean
@@ -1295,7 +1290,6 @@ package body Adi.CSS_Parser is
    begin
       Out_Val := (Kind => No_Image);
 
-      --  Verify prefix and suffix
       if LV'Length <= Prefix'Length + 1 then
          return False;
       end if;
@@ -1306,14 +1300,12 @@ package body Adi.CSS_Parser is
          return False;
       end if;
 
-      --  Extract inner content and split on commas
       Split_Comma_Tokens (V (V'First + Prefix'Length .. V'Last - 1), Tokens);
 
       if Natural (Tokens.Length) < 2 then
          return False;
       end if;
 
-      --  Try to parse first token as direction or angle
       Start := 1;
       declare
          First_Tok : constant String := To_String (Tokens (1));
@@ -1375,12 +1367,10 @@ package body Adi.CSS_Parser is
          --  Otherwise Start stays 1 (first token treated as a color stop)
       end;
 
-      --  Need at least 2 stop tokens
       if Natural (Tokens.Length) - (Start - 1) < 2 then
          return False;
       end if;
 
-      --  Parse stop tokens
       for I in Start .. Natural (Tokens.Last_Index) loop
          exit when Stop_Count >= Max_Gradient_Stops;
          declare
@@ -1542,7 +1532,6 @@ package body Adi.CSS_Parser is
          return False;
       end if;
 
-      --  Expand shorthand the same way CSS does.
       case Count is
          when 1 =>
             Out_Sides := [others => Opt_Margin.Val (To_MV (Tokens (1)))];
@@ -3837,7 +3826,6 @@ package body Adi.CSS_Parser is
             Start_Line  : Natural := 0;
             Took        : Boolean := False;
          begin
-            --  Find slash separator
             for J in V'Range loop
                if V (J) = '/' then
                   Slash_Pos := J;
@@ -4093,7 +4081,6 @@ package body Adi.CSS_Parser is
    end Set_Variable;
 
    function Find_Var_End (CSS : String; Start : Positive) return Natural is
-      --  Find closing ')' of var(...) starting after 'var('.
       Depth : Natural := 1;
       I     : Positive := Start;
    begin
@@ -4209,17 +4196,13 @@ package body Adi.CSS_Parser is
    end Resolve_Variable_Map;
 
    function Extract_At_Property_Blocks (CSS : String) return String is
-      --  Remove @property --name { ... } blocks, extracting initial-value
-      --  into Variables. Returns cleaned CSS.
       Result : Unbounded_String;
       I      : Positive := CSS'First;
    begin
       while I <= CSS'Last loop
-         --  Look for "@property"
          if I + 8 <= CSS'Last
            and then CSS (I .. I + 8) = "@property"
          then
-            --  Skip to opening brace
             declare
                Open  : Natural := 0;
                Close : Natural := 0;
@@ -4269,7 +4252,6 @@ package body Adi.CSS_Parser is
                Name_Start : Natural := 0;
                Name_End   : Natural := 0;
             begin
-               --  Find variable name (--xxx)
                for J in I + 9 .. CSS'Last loop
                   if not Is_Whitespace (CSS (J)) then
                      Name_Start := J;
@@ -4284,7 +4266,6 @@ package body Adi.CSS_Parser is
                      end if;
                   end loop;
                end if;
-               --  Find block
                for J in I + 9 .. CSS'Last loop
                   if CSS (J) = '{' then
                      Open := J;
@@ -4361,7 +4342,6 @@ package body Adi.CSS_Parser is
          if I + 4 <= CSS'Last
            and then CSS (I .. I + 4) = ":root"
          then
-            --  Find the block
             declare
                Open  : Natural := 0;
                Close : Natural := 0;
@@ -4381,7 +4361,6 @@ package body Adi.CSS_Parser is
                   end loop;
                end if;
                if Close > 0 then
-                  --  Parse declarations inside the block
                   declare
                      Body_Str : constant String := CSS (Open + 1 .. Close - 1);
                      Decl_Pos : Positive := Body_Str'First;
@@ -4433,7 +4412,6 @@ package body Adi.CSS_Parser is
                         end;
                      end loop;
                   end;
-                  --  Skip past the :root block
                   I := Close + 1;
                else
                   Append (Result, CSS (I));
@@ -4449,7 +4427,6 @@ package body Adi.CSS_Parser is
    end Extract_Root_Block;
 
    function Strip_Non_Root_Custom_Properties (CSS : String) return String is
-      --  Remove --name: value declarations from normal (non-:root) blocks.
       Result : Unbounded_String;
       I      : Positive := CSS'First;
    begin
@@ -4462,13 +4439,10 @@ package body Adi.CSS_Parser is
                Close : constant Natural := Fix.Index (CSS, "}", From => Open + 1);
             begin
                if Close = 0 then
-                  --  Unclosed block, copy rest
                   Append (Result, CSS (I .. CSS'Last));
                   return To_String (Result);
                end if;
-               --  Copy selector
                Append (Result, CSS (I .. Open));
-               --  Process body: copy declarations, skip --* ones
                declare
                   Body_Str : constant String := CSS (Open + 1 .. Close - 1);
                   Decl_Pos : Positive := Body_Str'First;
@@ -4492,7 +4466,6 @@ package body Adi.CSS_Parser is
                            else Body_Str (Decl_Pos .. Decl_End));
                         Name_End : Natural := 0;
                      begin
-                        --  Find the property name part (before ':')
                         for J in Decl_Str'Range loop
                            if Decl_Str (J) = ':' then
                               Name_End := J - 1;

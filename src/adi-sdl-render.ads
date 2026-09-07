@@ -48,7 +48,6 @@ package Adi.SDL.Render is
       SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
    ) with Convention => C;
 
-   -- Blend modes (simplified - can expand later)
    type SDL_BlendMode is new Uint32;
    SDL_BLENDMODE_NONE  : constant SDL_BlendMode := 16#0000_0000#;
    SDL_BLENDMODE_BLEND : constant SDL_BlendMode := 16#0000_0001#;

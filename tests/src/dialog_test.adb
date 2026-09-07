@@ -136,7 +136,6 @@ procedure Dialog_Test is
       Assert (Is_Shown (D),
               "dialog remains visible after button click (auto-close=False)");
 
-      --  App explicitly closes the dialog
       Hide (D);
       Assert (not Is_Shown (D), "dialog is hidden after explicit Hide");
    end Test_Auto_Close_False;

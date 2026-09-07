@@ -180,8 +180,6 @@ procedure Widget_Extension_Test is
       end;
       Assert (Raised, "Borrow (Null_Handle) raises Constraint_Error");
 
-      --  Nothing else holds the widget, so if the rejected call had
-      --  pinned, this Destroy would be deferred and never complete.
       Destroy (W);
       Pump_Widget_Store;
       Assert (not Probes.Is_Valid (H),

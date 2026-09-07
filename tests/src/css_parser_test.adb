@@ -599,7 +599,6 @@ procedure Css_Parser_Test is
             Test_Support.Assert (Adi.Font.Lookup ("Unknown Font") = Null_Font,
                     "Lookup unknown should return Null_Font");
 
-            --  Register custom name
             Adi.Font.Register_Name ("My Alias", H1);
             Test_Support.Assert (Adi.Font.Lookup ("my alias") = H1,
                     "Register_Name + Lookup should work");
@@ -930,7 +929,7 @@ procedure Css_Parser_Test is
                     "100grad: angle = 90.0");
          end;
 
-         --  200grad = 180°  (key regression: must not mis-parse as "rad")
+         --  200grad = 180°; must not mis-parse the "grad" suffix as "rad".
          declare
             S : constant Part_Style_Array :=
               Adi.CSS_Parser.Styles_For_Class (Grad_Sheet, "grad200g");

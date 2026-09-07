@@ -46,9 +46,7 @@ procedure Shadow_Test is
       return Lowest;
    end Dimmest_Middle_Alpha;
 
-   --  One alpha unit short of opaque. The blur's tail never quite reaches
-   --  1.0, and 254/255 is the worst any blur/radius pair gives; the sizing
-   --  bug this pins gave 132.
+   --  One alpha unit short of opaque: the blur's tail never quite reaches 1.0, and 254/255 is the worst any blur/radius pair gives.
    Opaque_Enough : constant Natural := 254;
 
 begin
@@ -77,11 +75,7 @@ begin
       end loop;
    end loop;
 
-   --  The regression itself. A shadow's middle is opaque with no blur and
-   --  has to stay opaque once blurred, or the stretched interior dilutes
-   --  the entire shadow rather than just its fringe. Sizing the pre-blur
-   --  rect from the corner radius alone left blur 8 at 132 here -- barely
-   --  half the shadow that was asked for.
+   --  A shadow's middle is opaque with no blur and must stay opaque once blurred, or the stretched interior dilutes the whole shadow, not just its fringe.
    Assert (Centre_Alpha (0, 8) = 255,
            "Unblurred shadow centre should be opaque");
    Assert (Centre_Alpha (8, 8) >= Opaque_Enough,

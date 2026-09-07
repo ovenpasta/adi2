@@ -147,7 +147,6 @@ begin
       Adi.Widget.Label.Set_Part_Styles (Wrap_Line_Visible, Wrap_Line_Class_Part_Styles);
       Adi.Widget.Label.Set_Part_Styles (Wrap_Line_Hidden, Wrap_Line_Class_Part_Styles);
 
-      --  Add intentionally oversized content to both containers.
       Add_Child (+Visible_Content, +New_Item (Item_A_Class_Part_Styles));
       Add_Child (+Visible_Content, +New_Item (Item_B_Class_Part_Styles));
       Add_Child (+Visible_Content, +New_Item (Item_C_Class_Part_Styles));
@@ -201,10 +200,7 @@ begin
       Add_Child (+Root, +Panels_Row_2);
       Add_Child (+Root, +Panels_Row_3);
 
-      --  Overflow is the whole point here, so the window must be free to
-      --  be smaller than its content wants. Deriving the OS minimum from
-      --  the layout would pin it open at the size where nothing overflows,
-      --  so switch the policy off before the first layout runs.
+      --  Must run before the first layout, or content-derived min-size pins the window open.
       Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
 
       Adi.Window.Set_Root (W, Widget_Handle'(+Root));

@@ -153,7 +153,6 @@ package body Adi.Assets is
             end if;
          end loop;
 
-         --  Reject ".." segments
          if Result = ".." then
             return "";
          end if;
@@ -285,7 +284,6 @@ package body Adi.Assets is
          for E of Entries loop
             if E.Scheme = Scheme then
                if E.Flatten then
-                  --  Flattened: look up by basename only.
                   declare
                      Filename : constant String :=
                        Ada.Directories.Simple_Name (Safe);
@@ -341,7 +339,6 @@ package body Adi.Assets is
    end Resolve_Path;
 
    ---------------------------------------------------------------------------
-   --  Read_File — read entire file contents into a String.
    ---------------------------------------------------------------------------
 
    function Read_File (Path : String) return String is
@@ -398,7 +395,6 @@ package body Adi.Assets is
       Amp : Natural;
    begin
       while I <= Query'Last loop
-         --  Find end of this pair (next '&' / ';' or end of string)
          Amp := Query'Last + 1;
          for J in I .. Query'Last loop
             if Query (J) = '&' or else Query (J) = ';' then
@@ -407,7 +403,6 @@ package body Adi.Assets is
             end if;
          end loop;
 
-         --  Find '=' separator within this pair
          Sep := Amp;  --  default: no value
          for J in I .. Amp - 1 loop
             if Query (J) = '=' then
@@ -426,7 +421,6 @@ package body Adi.Assets is
    end Get_Param;
 
    ---------------------------------------------------------------------------
-   --  Has_Param — check if a key exists in the query string.
    ---------------------------------------------------------------------------
 
    function Has_Param (Query : String; Key : String) return Boolean is
@@ -507,7 +501,6 @@ package body Adi.Assets is
    is
       Src_W : constant Natural := Natural (Source.w);
       Src_H : constant Natural := Natural (Source.h);
-      --  Clamp to source bounds
       CX : constant Natural := Natural'Min (X, Src_W);
       CY : constant Natural := Natural'Min (Y, Src_H);
       CW : constant Positive :=
@@ -534,7 +527,6 @@ package body Adi.Assets is
    end Crop_Surface;
 
    ---------------------------------------------------------------------------
-   --  Load_SVG_Sprite — load/cache sprite sheet, extract symbol as Image.
    ---------------------------------------------------------------------------
 
    function Load_SVG_Sprite
@@ -616,7 +608,6 @@ package body Adi.Assets is
    end Load_SVG_Sprite;
 
    ---------------------------------------------------------------------------
-   --  Load_Raster_Crop — load source image, crop rectangle, return Image.
    ---------------------------------------------------------------------------
 
    function Load_Raster_Crop
@@ -628,7 +619,6 @@ package body Adi.Assets is
       Surf   : SDL_Surface_Ptr;
       Crop   : SDL_Surface_Ptr;
    begin
-      --  Load the source image (may already be cached under the base path)
       Source := Get_Image (Base_Path);
       if not Adi.Image.Is_Valid (Source) then
          return Null_Image_Owner;
@@ -659,7 +649,6 @@ package body Adi.Assets is
    end Load_Raster_Crop;
 
    ---------------------------------------------------------------------------
-   --  Free_All_Sprites — destroy and deallocate all cached sprite sheets.
    ---------------------------------------------------------------------------
 
    procedure Free_All_Sprites is
@@ -877,7 +866,6 @@ package body Adi.Assets is
          return Adi.Image.To_Handle (Element (Pos));
       end if;
 
-      --  Check for query parameters (sprite/crop syntax)
       declare
          Base_Last   : Natural;
          Query_Start : Natural;
@@ -885,7 +873,6 @@ package body Adi.Assets is
          Split_Query (Path, Base_Last, Query_Start);
 
          if Query_Start <= Path'Last then
-            --  Has query string — sprite or crop mode
             if Base_Last < Path'First then
                Adi.Log.Warning ("Assets: missing base path: " & Path);
                Images.Insert (Path, Null_Image_Owner);
@@ -900,7 +887,6 @@ package body Adi.Assets is
                Has_Content  : Boolean := False;
             begin
                if Has_Param (Query, "id") then
-                  --  SVG sprite mode: base.svg?id=symbol-name
                   Has_Content := True;
                   if not Ends_With_SVG (Base) then
                      Adi.Log.Warning
@@ -914,7 +900,6 @@ package body Adi.Assets is
                  and then Has_Param (Query, "w")
                  and then Has_Param (Query, "h")
                then
-                  --  Raster crop mode: image.png?x=0&y=0&w=32&h=32
                   Has_Content := True;
                   declare
                      PX : constant Integer :=
@@ -1010,7 +995,6 @@ package body Adi.Assets is
          end if;
       end;
 
-      --  Normal path — no query string
       declare
          Img : constant Image_Owner := Load_Fresh (Path);
       begin
@@ -1151,7 +1135,6 @@ package body Adi.Assets is
          Anim_Images.Delete (Path);
       end if;
 
-      --  Also invalidate derived sprite/crop entries and sprite sheet cache.
       Invalidate_Derived (Path);
 
       --  In Bundle_Mode the sprite key is the original path, not resolved path.

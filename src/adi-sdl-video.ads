@@ -6,10 +6,8 @@ pragma Ada_2022;
 with Adi.SDL.Surface; use Adi.SDL.Surface;
 package Adi.SDL.Video is
 
-   -- Use 64-bit modular type for bit flags
    type SDL_WindowFlags is new Interfaces.Unsigned_64;
 
-   -- Individual flag constants
    SDL_WINDOW_FULLSCREEN          : constant SDL_WindowFlags :=
      16#0000000000000001#;
    SDL_WINDOW_OPENGL              : constant SDL_WindowFlags :=
@@ -69,7 +67,7 @@ package Adi.SDL.Video is
       w     : int;
       h     : int;
       flags : SDL_WindowFlags)
-      return access SDL_Window  -- /usr/include/SDL3/SDL_video.h:1129
+      return access SDL_Window
    with Import => True, Convention => C, External_Name => "SDL_CreateWindow";
    
    
@@ -79,17 +77,17 @@ package Adi.SDL.Video is
       offset_y : int;
       w : int;
       h : int;
-      flags : SDL_WindowFlags) return access SDL_Window  -- /usr/include/SDL3/SDL_video.h:1204
+      flags : SDL_WindowFlags) return access SDL_Window
      with Import => True, 
           Convention => C, 
           External_Name => "SDL_CreatePopupWindow";
 
-   function SDL_GetWindowSurface (window : access SDL_Window) return access SDL_Surface  -- /usr/include/SDL3/SDL_video.h:2310
+   function SDL_GetWindowSurface (window : access SDL_Window) return access SDL_Surface
    with Import => True, 
         Convention => C, 
         External_Name => "SDL_GetWindowSurface";
    
-   function SDL_UpdateWindowSurface (window : access SDL_Window) return Extensions.bool  -- /usr/include/SDL3/SDL_video.h:2377
+   function SDL_UpdateWindowSurface (window : access SDL_Window) return Extensions.bool
    with Import => True,
         Convention => C,
         External_Name => "SDL_UpdateWindowSurface";

@@ -13,12 +13,7 @@ with Adi.Widget_Styles;   use Adi.Widget_Styles;
 with Interfaces.C;        use Interfaces.C;
 with Test_Support;        use Test_Support;
 
---  A rounded panel is drawn as a border ring, a fill inside it, and antialias
---  fringes. Both fringes used to be the border's colour, which is only enough
---  to smooth the edge when the border itself is opaque enough to stand between
---  the fill and whatever is behind it. A pale fill behind a nearly transparent
---  border therefore stepped straight from backdrop to fill in one pixel, and
---  the curve read as stairs -- the switch knob being the case that showed it.
+--  Each AA fringe blends toward backdrop or fill, not always the border's colour.
 
 procedure Panel_AA_Test is
 

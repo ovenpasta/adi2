@@ -2077,7 +2077,6 @@ def collect_at_property_blocks(
     for m in pattern.finditer(css_content):
         var_name = m.group(1)
         body = m.group(2)
-        # Extract initial-value
         iv_match = re.search(
             r'initial-value\s*:\s*([^;]+);?', body
         )
@@ -2394,7 +2393,6 @@ def parse_stylesheet_with_diagnostics(
         selector_str = match.group(1).strip()
         properties_str = match.group(2).strip()
 
-        # Handle multiple selectors separated by comma
         segments = [part.strip() for part in selector_str.split(',')]
         #  A block with nothing to select is lost whole, where a stray
         #  comma leaves the selectors beside it carrying it.
@@ -4372,7 +4370,6 @@ def main():
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
     
-    # Read CSS
     try:
         with open(args.input, 'r') as f:
             css_content = f.read()
@@ -4380,7 +4377,6 @@ def main():
         print(f"Error reading input file: {e}", file=sys.stderr)
         sys.exit(1)
     
-    # Parse
     stylesheet, diagnostics = parse_stylesheet_with_diagnostics(css_content)
     rules = stylesheet.rules
     for diag in diagnostics:
@@ -4408,7 +4404,6 @@ def main():
     
     print(f"Parsed {len(rules)} CSS rules")
     
-    # Group by widget
     try:
         groups = group_rules_by_widget(rules)
     except StyleRuleLimitError as e:
@@ -4419,7 +4414,6 @@ def main():
         + ", ".join([f"{g.selector_type}:{g.name}" for g in groups.values()])
     )
     
-    # Debug: print parsed selectors
     for _group_key, group in groups.items():
         widget_name = group.name
         print(f"  {group.selector_type}:{widget_name}:")
@@ -4435,7 +4429,6 @@ def main():
                     f"part_negated={[s.value for s in rule.selector.part_negated_states]}"
                 )
     
-    # Generate Ada
     try:
         ada_code = generate_ada_package(
             stylesheet, groups, args.package_name, args.properties_package

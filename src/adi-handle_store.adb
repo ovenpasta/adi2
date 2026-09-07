@@ -7,10 +7,6 @@ with Ada.Unchecked_Deallocation;
 
 package body Adi.Handle_Store is
 
-   ---------------------------------------------------------------------------
-   --  Slot record
-   ---------------------------------------------------------------------------
-
    type Slot is record
       Gen       : Generation    := 1;
       Alive     : Boolean       := False;
@@ -65,7 +61,6 @@ package body Adi.Handle_Store is
          New_Cap := Initial_Capacity;
          Slots := new Slot_Array (0 .. New_Cap);
          --  Slot 0 stays default (reserved sentinel).
-         --  Build free list from 1 .. New_Cap.
          for I in 1 .. New_Cap loop
             Slots (I).Next_Free := (if I < New_Cap then I + 1 else 0);
          end loop;
@@ -74,15 +69,13 @@ package body Adi.Handle_Store is
       end if;
 
       if Free_Head /= 0 then
-         return;  --  still have free slots
+         return;
       end if;
 
-      --  Double capacity
       New_Cap := Slots'Last * 2;
       New_Arr := new Slot_Array (0 .. New_Cap);
       New_Arr (Slots'Range) := Slots.all;
 
-      --  Build free list from old-last+1 .. New_Cap
       for I in Slots'Last + 1 .. New_Cap loop
          New_Arr (I).Next_Free := (if I < New_Cap then I + 1 else 0);
       end loop;
@@ -92,10 +85,6 @@ package body Adi.Handle_Store is
       Slots := New_Arr;
       Free_Old (Old);
    end Ensure_Capacity;
-
-   ---------------------------------------------------------------------------
-   --  Holds_Slot / Is_Valid
-   ---------------------------------------------------------------------------
 
    function Holds_Slot (Id : Object_Id) return Boolean is
    begin
@@ -193,10 +182,6 @@ package body Adi.Handle_Store is
       end loop;
    end Pump;
 
-   ---------------------------------------------------------------------------
-   --  Pin / Unpin
-   ---------------------------------------------------------------------------
-
    procedure Pin (Id : Object_Id) is
    begin
       if Is_Valid (Id) then
@@ -225,10 +210,6 @@ package body Adi.Handle_Store is
          end if;
       end;
    end Unpin;
-
-   ---------------------------------------------------------------------------
-   --  Really_Free  (non-recursive, single slot)
-   ---------------------------------------------------------------------------
 
    procedure Really_Free (Id : Object_Id) is
       S : Slot renames Slots (Id.Index);
@@ -261,10 +242,6 @@ package body Adi.Handle_Store is
               Ptr => Obj,
               Id  => Id);
    end Borrow;
-
-   ---------------------------------------------------------------------------
-   --  Object_Ref finalization
-   ---------------------------------------------------------------------------
 
    overriding procedure Finalize (R : in out Object_Ref) is
    begin

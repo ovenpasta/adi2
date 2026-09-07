@@ -339,7 +339,6 @@ package body Adi.Text_Buffer is
          end;
       end if;
 
-      --  Multi-line: first partial + middle full lines + last partial
       declare
          Result : Unbounded_String;
          First_L : constant String := Get_Line (B, Start.Line);

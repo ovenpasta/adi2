@@ -212,9 +212,6 @@ procedure Window_Handle_Test is
       Adi.Widget.Destroy (Child_H);
       Adi.Widget.Pump_Widget_Store;
 
-      --  Not merely "no longer the child": the window must hold
-      --  Null_Handle, never a stale handle that happens to compare
-      --  unequal.
       Test_Support.Assert
         (Get_Focus_Handle (W) = Adi.Widget.Null_Handle,
          "focus is Null_Handle, not the destroyed child's stale handle");

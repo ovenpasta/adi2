@@ -113,9 +113,7 @@ procedure Side_Longhand_Test is
    Sheet : Adi.CSS_Parser.Stylesheet;
    OK    : Boolean := False;
 
-   --  Every case below spreads a group over two rules, which is the only
-   --  place the defect showed: one rule naming a side used to discard the
-   --  three the earlier rule set.
+   --  Every case below spreads a group across two rules.
    CSS : constant String :=
      ".pad-a { padding: 12px; }" & ASCII.LF &
      ".pad-a { padding-top: 4px; }" & ASCII.LF &
@@ -279,12 +277,7 @@ procedure Side_Longhand_Test is
       end;
    end Test_Specificity;
 
-   --  tools/css_to_ada.py merges at build time and Adi.CSS_Parser at run
-   --  time. A stylesheet that resolves differently depending on which
-   --  loaded it is the failure this section exists to catch, so the two
-   --  are driven from one file: tests/generated/side_cascade_styles.ads
-   --  is generated from tests/css/side_cascade.css, which is also what
-   --  the dynamic source reads.
+   --  tools/css_to_ada.py merges at build time and Adi.CSS_Parser at run time, so the two are driven from one file: tests/generated/side_cascade_styles.ads is generated from tests/css/side_cascade.css.
    Corpus_Path : constant String := "tests/css/side_cascade.css";
 
    procedure Test_Pipeline_Agreement is

@@ -19,7 +19,6 @@ begin
    Assets_Example_Bundle.Register_All;
    Adi.Assets.Set_Mode (Adi.Assets.Bundle_Mode);
 
-   --  Load bundled font and set as app default (replaces system fallback)
    Adi.Font.Set_Default_Font
      (Adi.Font.Load_Asset ("OpenSans-Regular.ttf"));
 

@@ -15,11 +15,6 @@ use type Adi.Widget.Box.Box_Handle;
 use type Adi.Widget.Label.Label_Handle;
 use type Adi.Widget.Button.Button_Handle;
 
---  Same UI as hello_example, written by hand without the XML/CSS pipeline.
---  Demonstrates that the declarative path is convenience, not a requirement:
---  widgets are built with handle constructors and styles are plain Ada
---  aggregates wired through Set_Part_Style.
-
 procedure Hello_Raw_Example is
    A : Adi.App.App;
    W : Window_Handle;

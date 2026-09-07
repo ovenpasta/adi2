@@ -180,10 +180,6 @@ class TestSendCommand(unittest.TestCase):
                         except RuntimeError:
                             pass  # Expected timeout
 
-            # Check that a cmd file was written (and possibly cleaned up)
-            # The command either exists or was cleaned up on timeout
-            # Just verify the function ran without crashing
-
     def test_response_received(self):
         """Successfully receives a response when one appears."""
         import threading
@@ -199,7 +195,6 @@ class TestSendCommand(unittest.TestCase):
             def write_response():
                 """Simulate the Ada side writing a response."""
                 time.sleep(0.1)
-                # Find the cmd file
                 for f in mcp_dir.glob("cmd_*.json"):
                     data = json.loads(f.read_text())
                     req_id = data["req_id"]

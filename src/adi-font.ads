@@ -242,7 +242,6 @@ package Adi.Font is
    --  value converts to a signed 64-bit integer.
    type Event_Count is mod 2 ** 63;
 
-   --  About sixty faces of a UI font.
    Default_Face_Budget : constant Byte_Count := 8 * 1024 * 1024;
 
    --  The budget bounds idle residency and not what the frame is
@@ -325,9 +324,7 @@ package Adi.Font is
                                   Content    : String;
                                   Wrap_Width : Pixel_Type) return Size_2D;
 
-   --  Return the width of the longest word in Content.
-   --  Words are separated by spaces, tabs, and newlines.
-   --  This gives the minimum intrinsic width for wrappable text.
+   --  Words split on spaces, tabs, and newlines; this is the minimum intrinsic width for wrappable text.
    function Measure_Min_Text_Width (Attrs   : Font_Attributes;
                                     Content : String) return Pixel_Type;
 

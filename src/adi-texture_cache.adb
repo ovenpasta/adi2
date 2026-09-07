@@ -72,9 +72,8 @@ package body Adi.Texture_Cache is
       Serial  : Cache_Serial := 0;
       --  Holders of this block, and whether the cache itself has gone. A
       --  holder is a live borrow or a group that has stored here; the
-      --  block is freed by whichever finishes last. A group thus keeps a
-      --  dead renderer's block alive until released -- more than it
-      --  needs, but not yet worth a second structure to avoid.
+      --  block is freed by whichever finishes last, so a group keeps a
+      --  dead renderer's block alive until released.
       Refs        : Natural := 0;
       Owner_Gone  : Boolean := False;
       --  The floor: the standing of whatever was evicted last. An entry

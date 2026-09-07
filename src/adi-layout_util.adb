@@ -182,7 +182,6 @@ package body Adi.Layout_Util is
                Viewport_Width,
                Viewport_Height);
          when Auto | Min_Content | Max_Content | Fit_Content =>
-            --  These need more context; return 0 as placeholder
             return 0.0;
       end case;
    end Size_To_Px;
@@ -197,11 +196,8 @@ package body Adi.Layout_Util is
       Viewport_Height  : Pixel_Type := 0.0)
       return CSS_Styles.Corner_Pixels
    is
-      --  Per CSS spec, percent border-radius resolves against the box's
-      --  width for horizontal radii — we use Container_Width as the
-      --  reference for all four corners (the simpler interpretation; CSS
-      --  technically distinguishes horizontal vs vertical radii but this
-      --  codebase stores only a single radius per corner).
+      --  One radius per corner, so a percent resolves against Container_Width
+      --  on both axes.
       pragma Unreferenced (Container_Height);
       function Cnv (L : CSS_Styles.Length_Value) return Float is
       begin
@@ -359,7 +355,6 @@ package body Adi.Layout_Util is
       Result_X, Result_Y : Pixel_Type;
       Result_W, Result_H : Pixel_Type;
    begin
-      --  Horizontal
       case H is
          when H_Left =>
             Result_X := Container.X;
@@ -375,7 +370,6 @@ package body Adi.Layout_Util is
             Result_W := Container.Width;
       end case;
 
-      --  Vertical
       case V is
          when V_Top =>
             Result_Y := Container.Y;
@@ -440,7 +434,7 @@ package body Adi.Layout_Util is
          when VA_Top | VA_Text_Top       => return V_Top;
          when VA_Middle                  => return V_Middle;
          when VA_Bottom | VA_Text_Bottom => return V_Bottom;
-         when VA_Baseline                => return V_Top;  -- Simplified
+         when VA_Baseline                => return V_Top;  --  No baseline metric available; treated as V_Top.
       end case;
    end Align_V_From_CSS;
 
@@ -463,7 +457,6 @@ package body Adi.Layout_Util is
       Result.Has_Icon := Has_Icon;
       Result.Has_Text := Has_Text and Position /= Icon_Only;
 
-      --  No gap if only one element
       if not Has_Icon or not Has_Text or Position = Icon_Only then
          Actual_Gap := 0.0;
       else
@@ -471,21 +464,18 @@ package body Adi.Layout_Util is
       end if;
 
       if not Has_Icon then
-         --  Text only
          Result.Text_Rect := Container;
          Result.Icon_Rect := (0.0, 0.0, 0.0, 0.0);
          return Result;
       end if;
 
       if Position = Icon_Only or not Has_Text then
-         --  Icon only, centered
          Result.Icon_Rect := Align_In (Container, Icon_Size, H_Center, V_Middle);
          Result.Text_Rect := (0.0, 0.0, 0.0, 0.0);
          Result.Has_Text := False;
          return Result;
       end if;
 
-      --  Both icon and text
       case Position is
          when Icon_Left =>
             Result.Icon_Rect := Align_In (
@@ -556,7 +546,6 @@ package body Adi.Layout_Util is
       Item_X     : Pixel_Type;
       Item_Y     : Pixel_Type;
    begin
-      --  Calculate starting position based on main axis alignment
       case Direction is
          when Dir_Horizontal =>
             case Main_Align is
@@ -623,13 +612,11 @@ package body Adi.Layout_Util is
       Total_Grow  : Float := 0.0;
       Total_Min   : Pixel_Type := 0.0;
    begin
-      --  Calculate totals
       for I in Items'Range loop
          Total_Grow := Total_Grow + Items (I).Flex_Grow;
          Total_Min := Total_Min + Items (I).Min_Size;
       end loop;
 
-      --  Simple distribution (doesn't handle shrink yet)
       if Total_Grow > 0.0 then
          declare
             Remaining : constant Pixel_Type := Space - Total_Min;
@@ -648,7 +635,6 @@ package body Adi.Layout_Util is
             end loop;
          end;
       else
-         --  No flex grow, use min sizes
          for I in Items'Range loop
             Result (I) := Items (I).Min_Size;
          end loop;
@@ -1590,7 +1576,6 @@ package body Adi.Layout_Util is
                end;
             end;
          else
-            --  Equal distribution (legacy / no track list)
             declare
                Cell_W : constant Pixel_Type :=
                  Available_W / Pixel_Type (Cols);
@@ -1665,10 +1650,8 @@ package body Adi.Layout_Util is
             end;
          end loop;
 
-         --  Pass 5: re-distribute fr tracks using the post-Pass-4 fixed totals.
-         --  Pass 4 can expand auto/px columns (via min-width), which reduces
-         --  the space available for fr tracks.  Re-running the fr allocation
-         --  here ensures fr columns never exceed their fair share.
+         --  Pass 5: re-distribute fr tracks over what Pass 4's min-width
+         --  expansion of the auto/px columns left.
          if Context.Column_Tracks.Count = Cols then
             declare
                Tracks     : Grid_Track_Array renames Context.Column_Tracks.Tracks;

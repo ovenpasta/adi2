@@ -50,7 +50,6 @@ package Adi.Widget.Image is
 
 private
 
-   --  Fixed item indices for Image_Widget items vector
    Panel_Idx : constant Positive := 1;
    Img_Idx   : constant Positive := 2;
 

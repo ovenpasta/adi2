@@ -15,7 +15,6 @@ import subprocess
 import tempfile
 import unittest
 
-# Add tools directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import css_to_ada

@@ -115,7 +115,6 @@ procedure Material_Demo is
    is
       pragma Unreferenced (W, Button_Index, Button_Text);
    begin
-      --  Navigate to the Forms page after dismissing (syncs nav buttons too)
       Material_Demo_UI.Nav_Options.Set_Selected
         (UI.Nav_Options_Group, Forms);
    end On_Welcome_Result;
@@ -162,7 +161,6 @@ procedure Material_Demo is
    Welcome_Icon : Adi.Image.Image_Owner;
 
 begin
-   --  Register translations and parse --lang argument
    I18N_Example_Translations.Register_All;
    declare
       use Ada.Command_Line;
@@ -188,31 +186,23 @@ begin
    UI.On_Control_Slider := On_Control_Slider'Unrestricted_Access;
    UI.On_Control_Value := On_Control_Value'Unrestricted_Access;
 
-   --  Set package-level context menu styles (applies to all context menus)
    Adi.Widget.Context_Menu.Set_Default_Menu_Styles (Context_Menu_Class_Part_Styles);
    Adi.Widget.Context_Menu.Set_Default_Item_Styles (Context_Menu_Item_Class_Part_Styles);
 
-   --  Set package-level combo box styles (applies to all combo boxes)
    Set_Default_Dropdown_Styles (Combo_Dropdown_Class_Part_Styles);
    Set_Default_Option_Row_Styles (Combo_Option_Class_Part_Styles);
 
    W := UI.Build;
 
-   --  Don't let content reflow ratchet the OS window min-size — the
-   --  user picks a size; we render whatever fits.
+   --  Layout min-size only grows with content when enforced; users pick their own size here.
    Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
 
-   --  Snap the UI / Text scale sliders to 10-percent increments.
-   --  Continuous dragging would otherwise spawn a fresh TTF_Font for
-   --  every fractional pixel size — fine in itself with the cache, but
-   --  pointless granularity for a visual demo.
+   --  Steps avoid spawning a new cached TTF_Font per fractional pixel size.
    Float_Slider.Set_Step (UI.UI_Scale_Slider,   10.0);
    Float_Slider.Set_Step (UI.Text_Scale_Slider, 10.0);
 
-   --  Enable MCP introspection (development builds only)
    Adi.MCP.Initialize (W);
 
-   --  Set title icon
    Title_Icon := Adi.Image.Load_SVG_Path
      (Path_Data => Dashboard_Path,
       Size      => (24.0, 24.0),
@@ -224,7 +214,6 @@ begin
 
    Adi.Widget.Label.Set_Text (UI.App_Title, Var_App_Title);
 
-   --  Create welcome dialog
    Welcome_Dialog := Welcome_UI.Build;
    Welcome_UI.Attach_Window (Welcome_Dialog, W);
    Set_Title (Welcome_Dialog, Var_Welcome_Title);
@@ -256,7 +245,6 @@ begin
       Set_Icon (Welcome_Dialog, Adi.Image.To_Handle (Welcome_Icon));
    end if;
 
-   --  Create quit confirmation dialog
    Quit_Dialog := Quit_UI.Build;
    Quit_UI.Attach_Window (Quit_Dialog, W);
    Set_Title (Quit_Dialog, Var_Quit_Title);
@@ -264,7 +252,6 @@ begin
    Yes_Button_Index := 2;
    Connect_Result (Quit_Dialog, On_Quit_Result'Unrestricted_Access);
 
-   --  Intercept window close / app quit
    Adi.Window.Connect_Close_Request
      (W, On_Close_Request'Unrestricted_Access);
 

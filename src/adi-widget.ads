@@ -52,28 +52,7 @@ package Adi.Widget is
    --  Drain deferred widget destroys (call once per frame from App.Run)
    procedure Pump_Widget_Store;
 
-   --  Fired after a widget's scroll offset changes, carrying the widget
-   --  that scrolled. Overlays anchored to a widget's geometry — combo
-   --  dropdowns — need this because scrolling only marks rendering
-   --  dirty, so layout, where such overlays are placed, does not re-run
-   --  and the overlay is left behind.
-   --
-   --  A signal rather than a single hook: more than one subsystem may
-   --  care, and knowing which widget scrolled lets each ignore the ones
-   --  that cannot affect it instead of re-examining everything.
-   --
-   --  Fires for every widget. The scrolled widget is passed as a
-   --  pointer, not a handle, because parent links are pointers too: the
-   --  library's own Add_Child/Set_Parent on Widget'Class allow
-   --  unregistered widgets in the tree, and those have no handle to
-   --  report or walk through.
-   --
-   --  This is the one callback in the public API that carries a widget
-   --  as a pointer. Scrolled is borrowed for the length of the call
-   --  only: widgets need not be heap-allocated, so an observer that
-   --  stores the pointer can end up with a dangling one. Take a
-   --  Widget_Handle instead if the widget is registered and something
-   --  has to outlive the callback.
+   --  Scrolled is borrowed for the call; hold a Widget_Handle to outlive it.
    type Scroll_Observer is access procedure
      (Scrolled : not null access Widget'Class);
    package Scroll_Signals is new Adi.Signal (Scroll_Observer, null);
@@ -180,8 +159,6 @@ package Adi.Widget is
       Cached_Font        : Adi.SDL.TTF.TTF_Font_Access := null;
       Cached_Font_Attrs  : Adi.Font.Font_Attributes :=
         Adi.Font.Default_Font_Attributes;
-      --  Line-skip the cached TTF_Text was laid out with.  -1.0 sentinel
-      --  forces a relayout on the first render.
    end record;
 
    package Items_List is new
@@ -191,11 +168,10 @@ package Adi.Widget is
    --  Layout Items - Items that can participate in flex layout
    ---------------------------------------------------------------------------
 
-   --  Flex properties for a layout item
    type Flex_Item_Properties is record
-      Grow       : Float := 0.0;   -- flex-grow (default 0 = don't grow)
-      Shrink     : Float := 1.0;   -- flex-shrink (default 1 = can shrink)
-      Basis      : Float := 0.0;   -- flex-basis in pixels (default auto = 0)
+      Grow       : Float := 0.0;
+      Shrink     : Float := 1.0;
+      Basis      : Float := 0.0;
       Align_Self : Align_Self_Value := Auto;  -- Override container alignment
    end record;
 
@@ -217,11 +193,9 @@ package Adi.Widget is
       --  Flex properties
       Flex        : Flex_Item_Properties;
 
-      --  Calculated geometry (output of layout algorithm)
       Geometry    : Rectangle := (0.0, 0.0, 0.0, 0.0);
 
-      --  User data to identify this item when creating renderable Items
-      Index       : Natural := 0;  -- Can be used to identify which item this is
+      Index       : Natural := 0;
    end record;
 
    package Layout_Item_List is new
@@ -262,15 +236,9 @@ package Adi.Widget is
    --  User Properties
    ---------------------------------------------------------------------------
 
-   --  Domain state a stylesheet selects on with [severity="critical"].
-   --  A value names its own property, so setting one replaces whatever
-   --  that property held. The whole assignment is one interned index in
-   --  the widget, and it joins the resolved-style memo's key, so two
-   --  widgets at the same value share the style they resolve to.
-   --
-   --  Setting a property invalidates the widget's style the way
-   --  Set_State does, and where no rule on the widget names a property
-   --  the change reaches no further than the version bump.
+   --  Domain state a stylesheet selects on with [severity="critical"]. A
+   --  value names its property, so setting one replaces what that property
+   --  held. Setting invalidates the style as Set_State does.
    procedure Set_Property (H : Widget_Handle;
                            V : Adi.Widget_Properties.Property_Value);
    procedure Clear_Property (H : Widget_Handle;
@@ -335,7 +303,6 @@ package Adi.Widget is
    --  Apply current part styles to all items (recomputes Computed_Style)
    procedure Apply_Styles_To_Items (W : in out Widget'Class);
 
-   --  Get items filtered by part
    function Get_Items_For_Part (W : Widget'Class;
                                 P : Part_Kind) return Items_List.Vector;
    function Get_Items_For_Part (H : Widget_Handle;
@@ -484,7 +451,6 @@ package Adi.Widget is
    --  Abstract Methods - Must be implemented by derived widgets
    ---------------------------------------------------------------------------
 
-   --  Render items to the scene graph/renderer
    procedure Build_Items (W : in out Widget) is abstract;
    procedure Build_Items (H : Widget_Handle);
 
@@ -492,7 +458,6 @@ package Adi.Widget is
    --  Concrete Rendering - Generic for all widgets
    ---------------------------------------------------------------------------
 
-   --  Render all items of this widget using SDL renderer
    procedure Render_Items (W : in out Widget'Class; Ctx : in out Render_Context);
 
    --  An override replaces the items entirely; call Render_Items first
@@ -504,14 +469,11 @@ package Adi.Widget is
                              Ctx  : in out Render_Context;
                              Area : Rectangle);
 
-   --  Render this widget and all children recursively
    procedure Render_Tree (W : in out Widget'Class; Ctx : in out Render_Context);
    procedure Render_Tree (H : Widget_Handle; Ctx : in out Render_Context);
 
-   --  Full update and render cycle
    procedure Update_And_Render (W : in out Widget'Class; Ctx : in out Render_Context);
 
-   --  Handle layout calculation
    procedure Layout (W : in out Widget) is abstract;
    procedure Layout (H : Widget_Handle);
 
@@ -522,8 +484,7 @@ package Adi.Widget is
    --  materialising the children.
    function Get_Scroll_Content_Height (W : Widget) return Pixel_Type;
 
-   --  Called when the widget is clicked (mouse-up within bounds of clickable widget)
-   --  Default does nothing; override in derived widgets (e.g., Button).
+   --  Mouse-up within a clickable widget's bounds. Default does nothing.
    procedure On_Click (W : in out Widget) is null;
    procedure On_Click (H : Widget_Handle);
 
@@ -587,7 +548,6 @@ package Adi.Widget is
    procedure On_Text_Input (W : in out Widget; Text : String) is null;
    procedure On_Text_Input (H : Widget_Handle; Text : String);
 
-   --  Called when this widget gains/loses keyboard focus.
    procedure On_Focus_Gained (W : in out Widget) is null;
    procedure On_Focus_Gained (H : Widget_Handle);
    procedure On_Focus_Lost (W : in out Widget) is null;
@@ -1009,7 +969,7 @@ private
       Cached_Store_Gen     : Natural := 0;
       Cached_Part_States   : Part_State_Array := [others => No_States];
 
-      --  Layout epoch for duplicate-call elimination (Phase 2)
+      --  Layout epoch for duplicate-call elimination.
       Last_Layout_Epoch : Natural := 0;
 
       --  Content version: bumped by Mark_Dirty (text changes, child
@@ -1101,8 +1061,6 @@ private
      end record;
    overriding procedure Finalize (R : in out Widget_Ref);
 
-   --  Widget'Class versions — used internally by handle wrappers
-   --  and visible to child packages (List_Box, Stack, Dialog, etc.).
    procedure Set_Label (W : in out Widget'Class; Label : String);
    function  Get_Label (W : Widget'Class) return String;
    function  Get_Id (W : Widget'Class) return Natural;
@@ -1169,7 +1127,6 @@ private
    function  Get_Child_Handle (W : Widget'Class; Index : Positive)
       return Widget_Handle;
 
-   --  Color conversion helpers (CSS Color_Value to SDL RGBA)
    procedure CSS_Color_To_SDL
       (C : Color_Value;
        R, G, B, A : out Adi.SDL.Uint8);

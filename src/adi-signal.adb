@@ -67,13 +67,11 @@ package body Adi.Signal is
       if CB = Null_Callback then
          return No_Connection;
       end if;
-      --  Scan for an existing active slot with the same callback.
       for I in 1 .. S.Count loop
          if S.Slots (I).Active and then S.Slots (I).CB = CB then
             return S.Slots (I).Id;
          end if;
       end loop;
-      --  Not found — delegate to regular Connect.
       return S.Connect (CB);
    end Connect_Unique;
 
@@ -167,15 +165,7 @@ package body Adi.Signal is
    --------------
 
    procedure For_Each (S : Signal) is
-      --  Snapshot length and the id watermark at entry. Disconnects set
-      --  the tombstone immediately, and we re-check Active each
-      --  iteration. The length snapshot alone is not enough to keep
-      --  connects made during the emit from firing: a disconnect (or
-      --  Disconnect_All) can shrink Count mid-emit, letting a new
-      --  connection land inside the snapshotted range. Ids are
-      --  monotonic and never reused, so skipping any slot whose id is
-      --  at or above the entry watermark filters those out wherever
-      --  they land.
+      --  Length and id-watermark snapshot at entry: disconnects tombstone immediately (skipped via Active), and a connect landing inside the snapshotted range after a mid-emit shrink is filtered by having an id at or above the watermark.
       Len     : constant Natural := S.Count;
       Snap_Id : constant Connection_Id := S.Next_Id;
    begin

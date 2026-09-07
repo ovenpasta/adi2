@@ -14,18 +14,10 @@ use type Adi.Resolved_Styles.Resolved_Handle;
 with Ada.Containers;    use type Ada.Containers.Hash_Type;
 with Interfaces;        use type Interfaces.Unsigned_16;
 
---  Tests for layout performance optimisations:
---    1. Resolved-style cache (Phase 1)
---    2. Epoch-based duplicate-layout elimination (Phase 2)
---    3. Perf-counter infrastructure (Phase 0)
-
 procedure Layout_Perf_Test is
 
    ---------------------------------------------------------------------------
-   --  Test: Layout_Tree on a root with children must actually lay them out.
-   --  This is the regression that triggered the epoch fix: when both
-   --  Current_Layout_Epoch and Last_Layout_Epoch start at 0, the root
-   --  (and its children) must not be skipped.
+   --  Layout_Tree on a root with children must actually lay them out; when Current_Layout_Epoch and Last_Layout_Epoch both start at 0, the root (and its children) must not be skipped.
    ---------------------------------------------------------------------------
 
    procedure Test_Layout_Tree_First_Frame is
@@ -42,7 +34,6 @@ procedure Layout_Perf_Test is
       Add_Child (+Root, +Child1);
       Add_Child (+Root, +Child2);
 
-      --  Give root a flex style so children get positioned
       declare
          Flex_Style : constant Widget_Style :=
            From ((Display        => Set (Flex),
@@ -55,13 +46,11 @@ procedure Layout_Perf_Test is
       Reset_Perf_Counters;
       Layout_Tree (+Root);
 
-      --  Children should have been laid out (non-zero geometry)
       Assert (Get_Geometry (+Child1).Width > 0.0,
               "child1 has non-zero width after first Layout_Tree");
       Assert (Get_Geometry (+Child2).Width > 0.0,
               "child2 has non-zero width after first Layout_Tree");
 
-      --  Root layout must have been called (not skipped)
       Assert (Get_Perf_Layout_Calls > 0,
               "layout calls > 0 on first frame");
    end Test_Layout_Tree_First_Frame;
@@ -81,7 +70,6 @@ procedure Layout_Perf_Test is
       Set_Geometry (+Root, (0.0, 0.0, 400.0, 300.0));
       Add_Child (+Root, +Child);
 
-      --  Give root a flex style
       declare
          Flex_Style : constant Widget_Style :=
            From ((Display        => Set (Flex),
@@ -91,7 +79,6 @@ procedure Layout_Perf_Test is
          Set_Part_Style (+Root, Main_Part, Flex_Style);
       end;
 
-      --  First pass: everything gets laid out
       Reset_Perf_Counters;
       Layout_Tree (+Root);
 
@@ -122,7 +109,6 @@ procedure Layout_Perf_Test is
 
       Reset_Perf_Counters;
 
-      --  First call: cache miss
       declare
          S1 : constant Resolved_Style :=
            Get_Resolved_Part_Style (+W, Main_Part);
@@ -132,7 +118,6 @@ procedure Layout_Perf_Test is
          Assert (Get_Perf_Style_Hits = 0,
                  "first resolve is a miss");
 
-         --  Second call: cache hit (same version + states)
          declare
             S2 : constant Resolved_Style :=
               Get_Resolved_Part_Style (+W, Main_Part);
@@ -467,7 +452,6 @@ procedure Layout_Perf_Test is
 
       Set_Geometry (+W, (0.0, 0.0, 200.0, 40.0));
 
-      --  Prime the cache
       declare
          S1 : constant Resolved_Style :=
            Get_Resolved_Part_Style (+W, Main_Part);
@@ -478,10 +462,8 @@ procedure Layout_Perf_Test is
 
       Reset_Perf_Counters;
 
-      --  Change state (hover)
       Set_State (+W, State_Hovered, True);
 
-      --  Next resolve must be a miss (state changed)
       declare
          S2 : constant Resolved_Style :=
            Get_Resolved_Part_Style (+W, Main_Part);
@@ -495,11 +477,7 @@ procedure Layout_Perf_Test is
    end Test_Style_Cache_Invalidation;
 
    ---------------------------------------------------------------------------
-   --  Test: Sub-part cache invalidates when widget state changes.
-   --  Regression: resolving Main_Part after a state change updated the
-   --  shared cache key, making a subsequent Label_Part lookup falsely
-   --  hit — returning a stale style (e.g. selected text color after
-   --  deselection).
+   --  Sub-part cache invalidates when widget state changes: Main_Part and Label_Part must not share a cache key.
    ---------------------------------------------------------------------------
 
    procedure Test_Subpart_Cache_Invalidation is
@@ -520,7 +498,6 @@ procedure Layout_Perf_Test is
       Set_Geometry (+W, (0.0, 0.0, 200.0, 40.0));
       Set_Part_Style (+W, Main_Part, WS);
 
-      --  Select → prime cache for Main_Part AND Label_Part
       Set_State (+W, State_Selected, True);
       declare
          S_Main_Sel : constant Resolved_Style :=
@@ -531,7 +508,6 @@ procedure Layout_Perf_Test is
          --  Deselect
          Set_State (+W, State_Selected, False);
 
-         --  Both parts must reflect the deselected state
          declare
             S_Main_Desel : constant Resolved_Style :=
               Get_Resolved_Part_Style (+W, Main_Part);
@@ -570,14 +546,12 @@ procedure Layout_Perf_Test is
          Set_Part_Style (+Root, Main_Part, Flex_Style);
       end;
 
-      --  First pass
       Layout_Tree (+Root);
       declare
          W1 : constant Pixel_Type := Get_Geometry (+Child).Width;
       begin
          Assert (W1 > 0.0, "pass 1: child laid out");
 
-         --  Second pass (simulates next frame)
          Reset_Perf_Counters;
          Layout_Tree (+Root);
 
@@ -611,7 +585,6 @@ procedure Layout_Perf_Test is
 
       Reset_Perf_Counters;
 
-      --  First call: cache miss
       declare
          S1 : constant Size_2D := Get_Preferred_Size (+W);
       begin
@@ -620,7 +593,6 @@ procedure Layout_Perf_Test is
          Assert (Get_Perf_Pref_Hits = 0,
                  "first pref-size call is a miss");
 
-         --  Second call: cache hit (same epoch + version + states + geom)
          declare
             S2 : constant Size_2D := Get_Preferred_Size (+W);
          begin
@@ -647,7 +619,6 @@ procedure Layout_Perf_Test is
       --  Layout_Tree establishes a layout epoch
       Layout_Tree (+W);
 
-      --  Prime the cache
       declare
          S1 : constant Size_2D := Get_Preferred_Size (+W);
          pragma Unreferenced (S1);
@@ -657,10 +628,8 @@ procedure Layout_Perf_Test is
 
       Reset_Perf_Counters;
 
-      --  Change state
       Set_State (+W, State_Hovered, True);
 
-      --  Next call must be a miss (state changed)
       declare
          S2 : constant Size_2D := Get_Preferred_Size (+W);
          pragma Unreferenced (S2);
@@ -673,9 +642,7 @@ procedure Layout_Perf_Test is
    end Test_Pref_Size_Cache_Invalidation;
 
    ---------------------------------------------------------------------------
-   --  Test: Preferred size cache invalidates on content mutation (Set_Text).
-   --  Regression guard: Content_Version must cause a cache miss even when
-   --  Style_Version, states, and geometry are unchanged.
+   --  Preferred size cache invalidates on content mutation (Set_Text): Content_Version must force a cache miss even when Style_Version, states, and geometry are unchanged.
    ---------------------------------------------------------------------------
 
    procedure Test_Pref_Size_Content_Invalidation is
@@ -699,7 +666,6 @@ procedure Layout_Perf_Test is
          --  Mutate content without changing style or state
          Adi.Widget.Label.Set_Text (W, "after - different length");
 
-         --  Next call must be a miss (Content_Version changed)
          declare
             S2 : constant Size_2D := Get_Preferred_Size (+W);
             pragma Unreferenced (S2);

@@ -79,14 +79,12 @@ package body Adi.I18N is
      (Lang : String;
       Key  : String) return String
    is
-      --  Try exact canonical language
       Result : constant String := Catalog.Lookup (Lang, Key);
    begin
       if Result'Length > 0 then
          return Result;
       end if;
 
-      --  Try base language (strip region)
       declare
          Base : constant String := Base_Language (Lang);
       begin
@@ -102,14 +100,12 @@ package body Adi.I18N is
      (Lang : String;
       Key  : String) return Plural_Forms
    is
-      --  Try exact canonical language
       Result : constant Plural_Forms := Catalog.Lookup_Plural (Lang, Key);
    begin
       if Result'Length > 0 then
          return Result;
       end if;
 
-      --  Try base language (strip region)
       declare
          Base : constant String := Base_Language (Lang);
       begin
@@ -130,7 +126,6 @@ package body Adi.I18N is
    is
       Result : constant Catalog.Formula_Record := Catalog.Lookup_Formula (Lang);
    begin
-      --  If we got the default and there's a base language, try that
       if Result.Formula = To_Unbounded_String ("n != 1") then
          declare
             Base : constant String := Base_Language (Lang);
@@ -199,7 +194,6 @@ package body Adi.I18N is
             Index : Natural :=
               Plural.Evaluate (To_String (FR.Formula), N);
          begin
-            --  Clamp to valid range
             if Index > Forms'Last then
                Index := Forms'Last;
             end if;
@@ -207,7 +201,6 @@ package body Adi.I18N is
          end;
       end if;
 
-      --  Fallback: English singular/plural
       if N = 1 then
          return Msg_Id;
       else

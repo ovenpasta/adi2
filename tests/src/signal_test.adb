@@ -24,7 +24,6 @@ procedure Signal_Test is
    Call_Count : Natural := 0;
    Last_Value : Natural := 0;
 
-   --  Accumulates call order for ordering tests
    type Call_Record is record
       Handler_Id : Positive;
       Value      : Positive;
@@ -271,7 +270,6 @@ begin
       Emit_Modify (Modify_Sig);
       Assert (Call_Count = 1,
               "connect during emit: new subscriber does not fire in current emit");
-      --  But the new subscriber is now registered
       Assert (Modify_Sig.Subscriber_Count = 2,
               "connect during emit: new subscriber is registered for next emit");
    end;
@@ -297,8 +295,6 @@ begin
 
    ---------------------------------------------------------------------------
    --  Test 10b: Disconnect_All during emit — no crash, rest skipped
-   --  (regression: Disconnect_All used to free the slot array while
-   --  For_Each was still iterating it)
    ---------------------------------------------------------------------------
    begin
       Reset_Log;
@@ -321,10 +317,7 @@ begin
    end;
 
    ---------------------------------------------------------------------------
-   --  Test 10c: Disconnect-then-connect during emit — the replacement
-   --  lands inside the snapshot range after compaction but must NOT
-   --  fire until the next emit (regression: the length snapshot alone
-   --  let it fire in the same emission)
+   --  Test 10c: Disconnect-then-connect during emit — the replacement lands inside the snapshot range after compaction but must NOT fire until the next emit.
    ---------------------------------------------------------------------------
    begin
       Reset_Log;

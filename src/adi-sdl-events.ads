@@ -172,7 +172,7 @@ package Adi.SDL.Events is
    SDL_EVENT_POLL_SENTINEL : constant SDL_EventType := 32512;
    SDL_EVENT_USER : constant SDL_EventType := 32768;
    SDL_EVENT_LAST : constant SDL_EventType := 65535;
-   SDL_EVENT_ENUM_PADDING : constant SDL_EventType := 2147483647;  -- /
+   SDL_EVENT_ENUM_PADDING : constant SDL_EventType := 2147483647;
 
    type SDL_CommonEvent is record
       Event_Type : Uint32;
@@ -580,12 +580,12 @@ package Adi.SDL.Events is
         Convention => C,
         External_Name => "SDL_GetModState";
 
-   function SDL_PollEvent (event : access SDL_Event) return C_bool  -- /usr/include/SDL3/SDL_events.h:1270
+   function SDL_PollEvent (event : access SDL_Event) return C_bool
    with Import => True,
         Convention => C,
         External_Name => "SDL_PollEvent";
 
-   function SDL_PushEvent (event : access SDL_Event) return C_bool  -- /usr/include/SDL3/SDL_events.h:1358
+   function SDL_PushEvent (event : access SDL_Event) return C_bool
    with Import => True,
         Convention => C,
         External_Name => "SDL_PushEvent";

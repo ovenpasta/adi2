@@ -585,9 +585,7 @@ begin
       Clear (C);
    end;
 
-   --  A texture too large for the budget, drawn every frame, is stored
-   --  once and found thereafter. Rebuilding it per frame is the failure a
-   --  scene-aware budget exists to prevent.
+   --  A texture too large for the budget, drawn every frame, is stored once and found thereafter (not rebuilt per frame).
    declare
       C : Cache;
       Big : constant Texture_Key :=
@@ -1094,7 +1092,6 @@ begin
                  "Bytes awaiting the end of a borrow are still charged");
       end;
 
-      --  Borrow over: the deferred destruction can complete.
       Assert (Bytes_Used (C) = 0,
               "Ending the last borrow should release the bytes");
       Clear (C);

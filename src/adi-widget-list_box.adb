@@ -688,7 +688,6 @@ package body Adi.Widget.List_Box is
       end loop;
 
       if Cols > 1 and then N > 0 then
-         --  Grid layout using Compute_Grid_Layout.
          declare
             Ctx : constant Grid_Layout_Context :=
               (Container          => (X => 0.0, Y => 0.0,
@@ -751,7 +750,6 @@ package body Adi.Widget.List_Box is
             end loop;
          end;
       else
-         --  Vertical layout (original path).
          W.Cell_Rects.Clear;
          declare
             Cursor_Y   : Pixel_Type := Content.Y;

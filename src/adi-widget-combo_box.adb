@@ -571,7 +571,6 @@ package body Adi.Widget.Combo_Box is
          return;
       end if;
 
-      --  Use package-level defaults if set
       if Default_Arrow_Down /= Adi.Image.Null_Image_Handle then
          W.Arrow_Down_Img := Default_Arrow_Down;
          W.Arrow_Up_Img :=
@@ -765,10 +764,8 @@ package body Adi.Widget.Combo_Box is
            (W, Make_Image (Icon_Part, W.Geometry, Adi.Image.Null_Image_Handle, 3));
       end if;
 
-      --  Update panel geometry
       W.Items.Reference (Panel_Idx).Geometry := W.Geometry;
 
-      --  Update label text + geometry from Layout_Items
       declare
          Label_It : Item renames W.Items.Reference (Label_Idx).Element.all;
          Found : Boolean := False;
@@ -788,7 +785,6 @@ package body Adi.Widget.Combo_Box is
          end if;
       end;
 
-      --  Update indicator image + geometry from Layout_Items
       declare
          Ind_It : Item renames
            W.Items.Reference (Indicator_Idx).Element.all;
@@ -809,7 +805,6 @@ package body Adi.Widget.Combo_Box is
          end if;
       end;
 
-      --  Update selected-item icon + geometry from Layout_Items
       declare
          Icon_It : Item renames W.Items.Reference (Icon_Idx).Element.all;
          Found   : Boolean := False;

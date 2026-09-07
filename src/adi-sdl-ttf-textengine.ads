@@ -159,8 +159,7 @@ package Adi.SDL.TTF.TextEngine is
            Convention    => C,
            External_Name => "TTF_CreateText";
 
-   --  A text engine that needs no renderer, so text can be laid out
-   --  without a window. Used by tests to read back what SDL did.
+   --  A text engine that needs no renderer, so text can be laid out without a window.
    function TTF_CreateSurfaceTextEngine return TTF_TextEngine_Access
       with Import        => True,
            Convention    => C,

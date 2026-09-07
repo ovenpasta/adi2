@@ -480,12 +480,7 @@ procedure Layout_Flex_Grid_Test is
       end;
    end Test_Grid_Track_Sizing;
 
-   --  Regression: fr columns in a content-sized grid must not collapse to zero.
-   --  Measure_Content (Fix A) includes fr content in the container width.
-   --  This test simulates that: container = auto cols + fr content + gaps.
-   --  3 columns: auto(60) auto(40) 1fr(child=120), gap=8.
-   --  Container = 60 + 40 + 120 + 2*8 = 236.
-   --  Fr column should get remaining: 236 - 2*8 - 60 - 40 = 120.
+   --  3 columns: auto(60) auto(40) 1fr(child=120), gap=8; container = 236, so the fr column should get 236-16-60-40 = 120.
    procedure Test_Grid_Fr_Content_Sized is
       Tracks : constant Grid_Track_List :=
         (Count  => 3,
@@ -525,9 +520,6 @@ procedure Layout_Flex_Grid_Test is
                     "fr-content-sized fr col3 width = 120 (not collapsed)");
    end Test_Grid_Fr_Content_Sized;
 
-   --  Regression: with ample container space, fr columns still distribute
-   --  remaining space correctly (ensure the fix didn't break normal fr sizing).
-   --  Helper: make a flex container with position-styled children
    function Make_Flex_Container
      (W, H : Pixel_Type) return Widget_Handle
    is
@@ -755,8 +747,7 @@ procedure Layout_Flex_Grid_Test is
    end Test_Absolute_Right_Bottom_Anchor;
 
    procedure Test_Absolute_Zero_Inset_Explicit is
-      --  Regression: left:0 should be treated as "set" (not same as unset).
-      --  With left:0 and right:10, this is dual-inset → width = 400-0-10 = 390
+      --  left:0 counts as set (not the same as unset): dual-inset width = 400-0-10 = 390.
       Container : constant Widget_Handle :=
         Make_Flex_Container (400.0, 200.0);
       Abs_Child : constant Widget_Handle :=

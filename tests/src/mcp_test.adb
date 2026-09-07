@@ -53,7 +53,7 @@ procedure MCP_Test is
                  "parse compact: req_id field");
       end;
 
-      --  Spaces after colons (Python json.dumps format — the original bug)
+      --  Spaces after colons (Python json.dumps format)
       declare
          P    : Parsers.Parser := Parsers.Create
            ("{""command"": ""perf_stats"", ""req_id"": ""def456""}");
@@ -142,8 +142,6 @@ procedure MCP_Test is
 
       Assert (not Adi.MCP.Is_Active, "not active before init");
 
-      --  We can't truly test Initialize without a real Window + SDL context,
-      --  but we can verify Is_Active stays False
       Assert (not Adi.MCP.Is_Active, "still not active without init");
 
       --  Finalize should be safe when not active
@@ -159,7 +157,6 @@ procedure MCP_Test is
    begin
       Section ("Widget Tree Structure Tests");
 
-      --  Create a simple hierarchy: Box with 2 children
       declare
          Root   : constant Widget_Handle := New_Box;
          Child1 : constant Widget_Handle := New_Box;
@@ -233,7 +230,6 @@ procedure MCP_Test is
          Set_Hovered (W, True);
          Assert (Has_State (W, State_Hovered), "hovered after set");
 
-         --  Check flags
          Assert (Has_Flag (W, Visible), "visible by default");
          Assert (not Has_Flag (W, Focusable), "not focusable by default (Box)");
 

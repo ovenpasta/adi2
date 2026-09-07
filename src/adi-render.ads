@@ -27,30 +27,13 @@ package Adi.Render is
    --  Texture cache
    ---------------------------------------------------------------------------
 
-   --  Textures belong to a renderer, so the cache holding them belongs to
-   --  the context that owns one. Destroy releases it before the renderer
-   --  goes, and there is deliberately no process-global cache: two windows
-   --  have two renderers, and a texture from one cannot be drawn with the
-   --  other.
-   --
-   --  How much the cache retains for reuse. It bounds idle textures, not
-   --  what the scene may display: a window drawing more than this holds
-   --  it all, and the budget governs only what stops being drawn.
-   --
-   --  A fixed per-renderer figure, roughly two decoded 4K RGBA images.
-   --  It is a policy, not a measurement: the example suite here is far
-   --  too small to derive one from, and an application's size is not the
-   --  sizing variable anyway -- what it draws now is protected regardless,
-   --  and this bounds only what it has stopped drawing. An image-heavy
-   --  program raises it through Set_Texture_Budget.
+   --  One texture cache per Render_Context. Default_Texture_Budget bounds the
+   --  idle textures kept for reuse, never what the scene draws.
    Default_Texture_Budget : constant Adi.Texture_Cache.Byte_Count :=
      Adi.Texture_Cache.Byte_Count (64 * 1024 * 1024);
 
-   --  The cache itself is not handed out. A reference to it could be kept
-   --  past Destroy and used against freed storage, which is the failure
-   --  handles exist to prevent; these operations reach it without a caller
-   --  ever holding it. A handle taken from one context and offered to
-   --  another is refused, as it always was.
+   --  Find, Store, Borrow and Is_Valid refuse a handle from another
+   --  Render_Context.
    function Find_Texture
      (Ctx : Render_Context;
       Key : Adi.Texture_Cache.Texture_Key)
@@ -106,12 +89,12 @@ package Adi.Render is
 
    function Get_Texture_Stats (Ctx : Render_Context) return Texture_Stats;
 
-   --  Text engine (created lazily on first call)
+   --  Created lazily on first call.
    function Get_Text_Engine
      (Ctx : in out Render_Context)
       return Adi.SDL.TTF.TextEngine.TTF_TextEngine_Access;
 
-   --  Scroll offset (accumulated from parent scrollable containers)
+   --  Accumulated from parent scrollable containers.
    function Get_Scroll_Y (Ctx : Render_Context) return Float;
    procedure Set_Scroll_Y (Ctx : in out Render_Context; Value : Float);
 

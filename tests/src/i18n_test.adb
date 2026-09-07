@@ -74,7 +74,6 @@ begin
    Set_Language ("PT_BR");
    Test_Support.Assert (T ("Hello") = "Olá", "PT_BR uppercase");
 
-   --  Register with different case
    Clear;
    Register ("de-AT", "Hello", "Grüß Gott");
    Set_Language ("de_at");

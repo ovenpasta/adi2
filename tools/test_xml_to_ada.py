@@ -276,7 +276,6 @@ class TestDialogCodeGeneration(unittest.TestCase):
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
         self.assertIn("Adi.Widget.Dialog.Set_Content (D, +Content)", body)
-        # The content widget tree should be built
         self.assertIn("Adi.Widget.Box", body)
         self.assertIn("Add_Child", body)
 
@@ -307,7 +306,6 @@ class TestDialogCodeGeneration(unittest.TestCase):
 </adi>"""
         app = parse_xml(xml)
         body = xml_to_ada.generate_body(app, "Test_UI")
-        # The content widget with a class should get style wiring
         self.assertIn("My_Styles.Register_Selectors (Source);", body)
         self.assertIn('Class_Name => "dialog-content");', body)
 
@@ -978,8 +976,6 @@ class TestSetCSSFileKeepsInlineSheet(unittest.TestCase):
         )
 
     def test_one_call_gives_one_verdict(self):
-        #  Installing the two sheets separately made Success ambiguous:
-        #  whose outcome was it? One install has one answer.
         proc = self._set_css_file_body()
         self.assertEqual(proc.count("Set_Dynamic_Sources"), 1)
         self.assertNotIn("Inline_Loaded", proc)
@@ -1259,14 +1255,6 @@ class TestI18N(unittest.TestCase):
   <label id="Lbl" text="Created"/>
 </adi>"""
         app = parse_xml(xml)
-        # label text is a create-param, but let's test via a text-input
-        # which has text as both create-param and setter-less
-        # Actually label has no setter for text, it's create-param only.
-        # Let's use text-input where text is a create-param.
-        # The setter test needs an attribute with both create-param and setter...
-        # Actually in widgets.xml, label.text is create-param with no setter.
-        # text-input.text is create-param with no setter.
-        # Let's just verify the create-param path is working.
         body = xml_to_ada.generate_body(app, "My_UI", i18n=True)
         self.assertIn('Adi.I18N.T ("Created")', body)
 

@@ -19,7 +19,6 @@ if [[ ${#PO_FILES[@]} -eq 0 ]]; then
   exit 0
 fi
 
-# Check if regeneration is needed
 needs_regen=0
 if [[ ! -f "$OUT_FILE" ]]; then
   needs_regen=1

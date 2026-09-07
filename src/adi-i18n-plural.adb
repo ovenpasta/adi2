@@ -61,7 +61,6 @@ package body Adi.I18N.Plural is
       return False;
    end Match2;
 
-   --  Forward declarations
    function Parse_Ternary (S : in out Parser_State; N : Natural) return Natural;
 
    function Parse_Primary

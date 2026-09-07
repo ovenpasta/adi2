@@ -22,11 +22,9 @@ package Adi.SVG_Sprites is
    --  Constructors
    ---------------------------------------------------------------------------
 
-   --  Load a sprite sheet from a file path.
    --  Returns null on failure.
    function Load (Path : String) return Sprite_Sheet_Access;
 
-   --  Load a sprite sheet from an in-memory SVG string.
    --  Returns null on failure.
    function Load_From_String (Source : String) return Sprite_Sheet_Access;
 
@@ -34,23 +32,17 @@ package Adi.SVG_Sprites is
    --  Queries
    ---------------------------------------------------------------------------
 
-   --  Check whether a symbol with the given id exists.
    function Has_Symbol
      (Sheet : Sprite_Sheet;
       Id    : String) return Boolean;
 
-   --  Return the number of symbols in the sheet.
    function Symbol_Count (Sheet : Sprite_Sheet) return Natural;
 
    ---------------------------------------------------------------------------
    --  Image extraction
    ---------------------------------------------------------------------------
 
-   --  Create an Image from the symbol with the given id.
-   --  The image is a fresh SVG document built from the symbol's viewBox and
-   --  content.  The owner holds nothing if the id is not found.
-   --  When Tintable is True, the SVG is rendered white-on-transparent and
-   --  the image is marked as tintable so CSS color applies as a tint.
+   --  Fresh Image per call; owner holds nothing if Id is unknown, and Tintable renders white-on-transparent for CSS tinting.
    function Get_Image
      (Sheet    : Sprite_Sheet;
       Id       : String;

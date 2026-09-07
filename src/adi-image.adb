@@ -589,10 +589,7 @@ package body Adi.Image is
          return null;
       end if;
 
-      --  Scale mode only. The raster path sets a blend mode; this one
-      --  never has, and changing that here would alter how transparent
-      --  SVGs composite under a migration that is meant to move where
-      --  textures live and nothing else.
+      --  Scale mode only; an SVG texture takes no blend mode.
       Success := SDL_SetTextureScaleMode (Texture, To_SDL (Img.Scaling));
       return Texture;
    end Build_SVG;

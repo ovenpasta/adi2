@@ -29,14 +29,12 @@ package Adi.SDL.Image is
    -- Loading Images
    ----------------------------------------------------------------------------
 
-   -- Load an image from a file path
    function IMG_Load
       (file : Interfaces.C.Strings.chars_ptr) return SDL_Surface_Ptr
       with Import        => True,
            Convention    => C,
            External_Name => "IMG_Load";
 
-   -- Load an image directly as a texture for a renderer
    function IMG_LoadTexture
       (renderer : SDL_Renderer_Ptr;
        file     : Interfaces.C.Strings.chars_ptr) return SDL_Texture_Ptr
@@ -44,7 +42,6 @@ package Adi.SDL.Image is
            Convention    => C,
            External_Name => "IMG_LoadTexture";
 
-   -- Load an image from an IO stream
    function IMG_Load_IO
       (Src     : SDL_IOStream_Ptr;
        Closeio : C_bool) return SDL_Surface_Ptr
@@ -55,39 +52,6 @@ package Adi.SDL.Image is
    ----------------------------------------------------------------------------
    -- Format Detection
    ----------------------------------------------------------------------------
-
-   -- These functions are provided but require SDL_IOStream
-   -- Uncomment if needed in the future
-
-   -- function IMG_isPNG (src : SDL_IOStream_Access) return C_bool
-   --    with Import        => True,
-   --         Convention    => C,
-   --         External_Name => "IMG_isPNG";
-
-   -- function IMG_isJPG (src : SDL_IOStream_Access) return C_bool
-   --    with Import        => True,
-   --         Convention    => C,
-   --         External_Name => "IMG_isJPG";
-
-   -- function IMG_isBMP (src : SDL_IOStream_Access) return C_bool
-   --    with Import        => True,
-   --         Convention    => C,
-   --         External_Name => "IMG_isBMP";
-
-   -- function IMG_isGIF (src : SDL_IOStream_Access) return C_bool
-   --    with Import        => True,
-   --         Convention    => C,
-   --         External_Name => "IMG_isGIF";
-
-   -- function IMG_isWEBP (src : SDL_IOStream_Access) return C_bool
-   --    with Import        => True,
-   --         Convention    => C,
-   --         External_Name => "IMG_isWEBP";
-
-   -- function IMG_isSVG (src : SDL_IOStream_Access) return C_bool
-   --    with Import        => True,
-   --         Convention    => C,
-   --         External_Name => "IMG_isSVG";
 
    ----------------------------------------------------------------------------
    -- Saving Images

@@ -144,10 +144,13 @@ obj/rlottie/%.o: %.cpp
 
 #  ---- Ada compile + bind ----
 #  .PHONY so gprbuild's own dependency tracking decides what to rebuild.
+#  -j0 is one gprbuild spreading independent units over every core, which
+#  is not the same thing as the concurrent gprbuild processes the
+#  showcase loop is careful to avoid.
 .PHONY: ada-objs
 ada-objs:
 	PATH=$(LLVM_SYS_BIN):$(LLVM_BIN_DIR):$$PATH LD_LIBRARY_PATH=$(LLVM_LIBRARY_PATH) \
-	$(GPRBUILD) --target=llvm --RTS=$(ADA_RTS) -c -b -p \
+	$(GPRBUILD) --target=llvm --RTS=$(ADA_RTS) -c -b -p -j0 \
 	  -P adi_wasm.gpr -XWASM_EXAMPLE=$(EXAMPLE) -XWASM_MAIN_LOOP=$(LOOP)
 
 #  ---- Link ----

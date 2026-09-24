@@ -682,7 +682,8 @@ procedure Css_Parser_Test is
          --  By_Handle path: existing Set(Font_Handle) should still work
          declare
             H : constant Font_Handle := Adi.Font.Lookup ("Open Sans");
-            Rules : Style_Rules := (Font_Family => Set (H), others => <>);
+            Rules : constant Style_Rules :=
+              (Font_Family => Set (H), others => <>);
             R     : constant Resolved_Style := Resolve (Rules);
          begin
             Test_Support.Assert (R.Font_Family = H,

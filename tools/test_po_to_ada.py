@@ -171,6 +171,21 @@ msgstr "Dire \"bonjour\""
         self.assertEqual(po.entries[0].msgid, 'Say "hello"')
         self.assertEqual(po.entries[0].msgstr, 'Dire "bonjour"')
 
+    def test_escapes_decode_in_one_pass(self):
+        #  Each backslash takes exactly the character after it.
+        po = self._parse(r'''
+msgid "a\\nb"
+msgstr "c\\td\\\"e\\\\f"
+
+msgid "g\nh\ti\rj"
+msgstr "k\ql"
+''', 'fr.po')
+        self.assertEqual(len(po.entries), 2)
+        self.assertEqual(po.entries[0].msgid, 'a\\nb')
+        self.assertEqual(po.entries[0].msgstr, 'c\\td\\"e\\\\f')
+        self.assertEqual(po.entries[1].msgid, 'g\nh\ti\rj')
+        self.assertEqual(po.entries[1].msgstr, 'k\\ql')
+
     def test_three_plural_forms(self):
         po = self._parse('''
 msgid ""
@@ -225,8 +240,19 @@ class TestGenerate(unittest.TestCase):
         _, body = generate([po], "Plural_Test")
         self.assertIn('Register_Plural_Formula ("fr", 2, "n > 1")', body)
         self.assertIn('Register_Plural ("fr", "%d file"', body)
-        self.assertIn('To_Unbounded_String ("%d fichier")', body)
-        self.assertIn('To_Unbounded_String ("%d fichiers")', body)
+        self.assertIn(
+            '[To_Unbounded_String ("%d fichier"),\n'
+            '         To_Unbounded_String ("%d fichiers")]', body)
+
+    def test_single_plural_form_is_a_named_aggregate(self):
+        po = PoFile(language="ja", n_plurals=1, plural_formula="0")
+        from po_to_ada import PoEntry
+        po.entries = [
+            PoEntry(msgid="%d file", msgid_plural="%d files",
+                    msgstr_plural={0: "%d ファイル"}),
+        ]
+        _, body = generate([po], "Single_Test")
+        self.assertIn('[0 => To_Unbounded_String ("%d ファイル")]', body)
 
     def test_ada_escaping(self):
         po = PoFile(language="fr")
@@ -237,6 +263,25 @@ class TestGenerate(unittest.TestCase):
         _, body = generate([po], "Escape_Test")
         self.assertIn('Say ""hello""', body)
         self.assertIn('Dire ""bonjour""', body)
+
+    def test_control_characters_are_concatenated(self):
+        from po_to_ada import PoEntry
+        po = PoFile(language="fr")
+        po.entries = [
+            PoEntry(msgid='Two\nlines', msgstr='Deux\nlignes\t\x7f'),
+            PoEntry(msgid='%d line', msgid_plural='%d lines',
+                    msgstr_plural={0: '%d\nligne', 1: '%d\nlignes'}),
+        ]
+        _, body = generate([po], "Control_Test")
+        self.assertIn(
+            'Register ("fr", "Two" & Character\'Val (10) & "lines", '
+            '"Deux" & Character\'Val (10) & "lignes" & Character\'Val (9)'
+            ' & "" & Character\'Val (127) & "");', body)
+        self.assertIn(
+            'To_Unbounded_String ("%d" & Character\'Val (10) & "ligne")',
+            body)
+        self.assertFalse(any(ord(c) < 32 and c != '\n' or ord(c) == 127
+                             for c in body))
 
     def test_multiple_languages(self):
         from po_to_ada import PoEntry

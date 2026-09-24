@@ -48,12 +48,15 @@ def _extract_string(line: str) -> str | None:
     return None
 
 
+_PO_ESCAPES = {'a': '\a', 'b': '\b', 'f': '\f', 'n': '\n', 'r': '\r',
+               't': '\t', 'v': '\v', '"': '"', '\\': '\\'}
+
+
 def _unescape_po(s: str) -> str:
-    """Unescape PO string escapes."""
-    return (s.replace('\\n', '\n')
-             .replace('\\t', '\t')
-             .replace('\\"', '"')
-             .replace('\\\\', '\\'))
+    """Decode the single-character escapes; any other, octal and hex
+    included, stays as written."""
+    return re.sub(r'\\(.)',
+                  lambda m: _PO_ESCAPES.get(m.group(1), m.group(0)), s)
 
 
 def parse_po(path: str) -> PoFile:
@@ -190,8 +193,13 @@ def parse_po(path: str) -> PoFile:
 
 
 def ada_escape(s: str) -> str:
-    """Escape a string for use as an Ada string literal body (inside quotes)."""
-    return s.replace('"', '""')
+    """Escape a string for use as an Ada string literal body (inside quotes).
+
+    A literal cannot hold a control character, so one is concatenated.
+    """
+    return re.sub(r'[\x00-\x1f\x7f]',
+                  lambda m: f'" & Character\'Val ({ord(m.group())}) & "',
+                  s.replace('"', '""'))
 
 
 def generate(po_files: list[PoFile], package_name: str) -> tuple[str, str]:
@@ -258,9 +266,9 @@ def generate(po_files: list[PoFile], package_name: str) -> tuple[str, str]:
                     forms.append(f'To_Unbounded_String ("{val}")')
 
                 if len(forms) == 1:
-                    forms_str = f'(0 => {forms[0]})'
+                    forms_str = f'[0 => {forms[0]}]'
                 else:
-                    forms_str = '(' + ',\n         '.join(forms) + ')'
+                    forms_str = '[' + ',\n         '.join(forms) + ']'
 
                 body_lines.append(
                     f'      Register_Plural ("{lang}", "{msgid}",')

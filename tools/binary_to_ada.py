@@ -85,7 +85,7 @@ def generate(files: list[str], output_dir: str, package_name: str,
         size = len(data)
         body_lines.append(
             f'   {ident} : aliased constant Storage_Array (0 .. {size - 1}) :=')
-        hex_lines = bytes_to_decimal_lines(data)
+        hex_lines = bytes_to_decimal_lines(data) or ['']  # [] when empty
         for i, line in enumerate(hex_lines):
             if i == 0 and len(hex_lines) == 1:
                 body_lines.append(f'     [{line.strip()}];')

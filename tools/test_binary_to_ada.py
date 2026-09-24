@@ -99,6 +99,23 @@ class TestGenerate(unittest.TestCase):
             reconstructed = bytes(vals)
             self.assertEqual(reconstructed, data)
 
+    def test_empty_file(self):
+        """An empty file gets the null aggregate, ending its declaration."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            empty = os.path.join(tmpdir, 'empty.bin')
+            after = os.path.join(tmpdir, 'after.bin')
+            open(empty, 'wb').close()
+            with open(after, 'wb') as f:
+                f.write(b'\x07')
+
+            spec, body = generate([empty, after], tmpdir, 'Empty_Pkg', None)
+            self.assertIn(
+                'Empty_Bin_Data : aliased constant Storage_Array (0 .. -1) :='
+                '\n     [];\n', body)
+            self.assertIn(
+                'After_Bin_Data : aliased constant Storage_Array (0 .. 0) :='
+                '\n     [7];\n', body)
+
     def test_base_dir_stripping(self):
         """--base-dir should produce clean relative paths."""
         with tempfile.TemporaryDirectory() as tmpdir:

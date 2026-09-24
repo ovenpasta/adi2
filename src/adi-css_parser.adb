@@ -347,23 +347,72 @@ package body Adi.CSS_Parser is
    function Strip_Comments (Content : String) return String is
       Result : Unbounded_String;
       I      : Positive := Content'First;
+      Next   : Positive;
+
+      function Is_Name_Char (C : Character) return Boolean is
+        (C in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_' | '-'
+         or else Character'Pos (C) >= 128);
    begin
       while I <= Content'Last loop
-         if I < Content'Last
-           and then Content (I) = '/'
-           and then Content (I + 1) = '*'
+         Next := I + 1;
+         if Content (I) = '/'
+           and then Next <= Content'Last
+           and then Content (Next) = '*'
          then
-            I := I + 2;
-            while I < Content'Last loop
-               exit when Content (I) = '*' and then Content (I + 1) = '/';
-               I := I + 1;
+            Next := I + 2;
+            while Next < Content'Last
+              and then Content (Next .. Next + 1) /= "*/"
+            loop
+               Next := Next + 1;
             end loop;
-            if I < Content'Last then
-               I := I + 2;
-            end if;
+            I := Next + 2;
          else
-            Append (Result, Content (I));
-            I := I + 1;
+            if Content (I) in '"' | ''' then
+               while Next <= Content'Last
+                 and then Content (Next) not in
+                            Content (I) | ASCII.LF | ASCII.CR | ASCII.FF
+               loop
+                  if Content (Next) /= '\' then
+                     Next := Next + 1;
+                  elsif Next + 2 <= Content'Last
+                    and then Content (Next + 1 .. Next + 2)
+                               = ASCII.CR & ASCII.LF
+                  then
+                     Next := Next + 3;
+                  else
+                     Next := Next + 2;
+                  end if;
+               end loop;
+               if Next <= Content'Last and then Content (Next) = Content (I)
+               then
+                  Next := Next + 1;
+               end if;
+            elsif I + 3 <= Content'Last
+              and then Lower (Content (I .. I + 3)) = "url("
+              and then (I = Content'First
+                        or else not Is_Name_Char (Content (I - 1)))
+            then
+               Next := I + 4;
+               while Next <= Content'Last
+                 and then Is_Whitespace (Content (Next))
+               loop
+                  Next := Next + 1;
+               end loop;
+               if Next <= Content'Last
+                 and then Content (Next) not in '"' | ''' | ')'
+               then
+                  while Next <= Content'Last and then Content (Next) /= ')'
+                  loop
+                     Next := Next + (if Content (Next) = '\' then 2 else 1);
+                  end loop;
+                  Next := Next + 1;
+               end if;
+            elsif Content (I) = '\' then
+               Next := I + 2;
+            end if;
+            Next := Positive'Min (Next, Content'Last + 1);
+            Append (Result, Content (I .. Next - 1));
+            I := Next;
          end if;
       end loop;
 

@@ -26,12 +26,20 @@ package body Flat_Values_Styles is
    end Register_Selectors_3;
    pragma No_Inline (Register_Selectors_3);
 
+   procedure Register_Selectors_4
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("flat-comment", Flat_Comment_Class_Part_Styles));
+   end Register_Selectors_4;
+   pragma No_Inline (Register_Selectors_4);
+
    procedure Register_Selectors
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
       Register_Selectors_1 (S);
       Register_Selectors_2 (S);
       Register_Selectors_3 (S);
+      Register_Selectors_4 (S);
    end Register_Selectors;
 
 end Flat_Values_Styles;

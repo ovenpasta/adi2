@@ -328,6 +328,13 @@ procedure Style_Flat_Values_Test is
          Grad : constant Style_Rules := Parsed_Base ("flat-grad");
          Lst  : constant Style_Rules := Parsed_Base ("flat-list");
          Hov  : constant Style_Rules := Parsed_Hover ("flat-list");
+         Cmt  : constant Style_Rules := Parsed_Base ("flat-comment");
+         Cmt_Bg   : constant Background_Image_Value :=
+           Opt_Bg_Image.Resolve (Cmt.Background_Image);
+         Cmt_Type : constant List_Style_Type_Value :=
+           Opt_List_Style_Type.Resolve (Cmt.List_Style_Type);
+         Cmt_Img  : constant List_Style_Image_Value :=
+           Opt_List_Style_Image.Resolve (Cmt.List_Style_Image);
       begin
          Assert (Opt_Bg_Image.Resolve (Bg.Background_Image).Kind = Url_Image,
                  "a url() background-image parses as a URL image");
@@ -348,6 +355,15 @@ procedure Style_Flat_Values_Test is
          Assert (Opt_List_Style_Image.Resolve (Hov.List_Style_Image).Kind
                    = List_Image_None,
                  "the hover rule clears the marker image");
+         Assert (Cmt_Bg.Kind = Url_Image
+                   and then Text_Of (Cmt_Bg.URI) = "img/a/*keep*/b.png",
+                 "a quoted url keeps the comment markers in its path");
+         Assert (Cmt_Type.Kind = List_Style_Custom_String
+                   and then Text_Of (Cmt_Type.Marker) = "/* kept */",
+                 "a quoted marker keeps the comment markers");
+         Assert (Cmt_Img.Kind = List_Image_URL
+                   and then Text_Of (Cmt_Img.URI) = "img/c/*keep*/d.svg",
+                 "an unquoted url keeps the comment markers in its path");
       end Expect_Parsed;
 
    begin
@@ -371,6 +387,9 @@ procedure Style_Flat_Values_Test is
       Compare ("flat-list:hover",
                Hover_Of (Flat_Values_Styles.Flat_List_Class_Widget),
                Parsed_Hover ("flat-list"));
+      Compare ("flat-comment",
+               Base_Of (Flat_Values_Styles.Flat_Comment_Class_Widget),
+               Parsed_Base ("flat-comment"));
 
       Expect_Parsed;
    end Test_Pipeline_Agreement;

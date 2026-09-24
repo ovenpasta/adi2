@@ -183,6 +183,12 @@ package Adi.CSS_Parser is
 
 private
 
+   --  The CSS with each comment dropped; one left unterminated runs to
+   --  the end. A unit the tokenizer reads whole keeps any "/*" inside it:
+   --  a string, ended by its quote or a newline (LF, CR or FF), an
+   --  unquoted url(), or an escape. Read through Adi.CSS_Parser.Testing.
+   function Strip_Comments (Content : String) return String;
+
    --  What one parsed selector costs to hold; a sheet keeps one per
    --  selector it names. Read through Adi.CSS_Parser.Testing.
    function Selector_Entry_Bytes return Natural;

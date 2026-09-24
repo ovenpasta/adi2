@@ -21,3 +21,9 @@
   font-family: 'Second Flat Family', sans-serif;
   background-image: none;
 }
+
+.flat-comment {
+  background-image: url("img/a/*keep*/b.png"); /* a comment */
+  list-style-type: "/* kept */";
+  list-style-image: url(img/c/*keep*/d.svg);
+}

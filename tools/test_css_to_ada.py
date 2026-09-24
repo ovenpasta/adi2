@@ -37,6 +37,7 @@ from css_to_ada import (
     parse_css,
     parse_css_with_diagnostics,
     parse_stylesheet_with_diagnostics,
+    strip_comments,
     parse_grid_tracks,
     parse_grid_placement,
     MAX_GRID_TRACKS,
@@ -628,6 +629,12 @@ class TestParseCss(unittest.TestCase):
         rules = parse_css("/* comment */ .x { color: red; }")
         self.assertEqual(len(rules), 1)
 
+    def test_comment_markers_in_a_url_stay_in_the_path(self):
+        rules = parse_css(
+            '.a { background-image: url("img/a/*keep*/b.png"); }')
+        ada = generate_ada_package(group_rules_by_widget(rules), "Test_Styles")
+        self.assertIn('Background_Image_URL ("img/a/*keep*/b.png")', ada)
+
     def test_state_rule(self):
         rules = parse_css(".btn:hover { background-color: blue; }")
         self.assertEqual(len(rules), 1)
@@ -678,6 +685,51 @@ class TestParseCss(unittest.TestCase):
         )
         self.assertEqual(len(rules), 1)
         self.assertEqual(len(diags), 0)
+
+
+class TestStripComments(unittest.TestCase):
+    """The cases css_parser_test puts to Adi.CSS_Parser.Strip_Comments."""
+
+    def check(self, css, expected):
+        self.assertEqual(strip_comments(css), expected, repr(css))
+
+    def test_comments_go(self):
+        self.check("a /* c */ b", "a  b")
+        self.check("/* a */ /* b */c", " c")
+        self.check("/*/ still */x", "x")
+
+    def test_unterminated_comment_runs_to_the_end(self):
+        self.check("a /* open", "a ")
+        self.check("a /* open *", "a ")
+
+    def test_strings_keep_comment_markers(self):
+        self.check('"a/*b*/c" /* d */', '"a/*b*/c" ')
+        self.check("'a/*b*/c' /* d */", "'a/*b*/c' ")
+        self.check('"x\\"/*y*/" z', '"x\\"/*y*/" z')
+
+    def test_a_newline_ends_an_unterminated_string(self):
+        for newline in ("\n", "\r", "\f"):
+            self.check(f'"open{newline}/* c */ ok', f'"open{newline} ok')
+
+    def test_an_escaped_newline_continues_a_string(self):
+        for newline in ("\n", "\r\n"):
+            self.check(f'"a\\{newline}/*k*/" /* c */',
+                       f'"a\\{newline}/*k*/" ')
+
+    def test_unquoted_url_keeps_comment_markers(self):
+        self.check("url(img/a/*k*/b.png) /* c */", "url(img/a/*k*/b.png) ")
+        self.check("URL( a/*k*/b ) /* c */", "URL( a/*k*/b ) ")
+        self.check("url(\\)/*k*/) /* c */", "url(\\)/*k*/) ")
+
+    def test_quoted_url_is_a_string(self):
+        self.check('url( "a/*k*/b" ) /* c */', 'url( "a/*k*/b" ) ')
+        self.check('url("a)/*k*/") /* c */', 'url("a)/*k*/") ')
+
+    def test_only_url_is_a_url(self):
+        self.check("myurl(a/*c*/b)", "myurl(ab)")
+
+    def test_escape_is_not_a_comment_start(self):
+        self.check("\\/* x", "\\/* x")
 
 
 class TestGroupRules(unittest.TestCase):

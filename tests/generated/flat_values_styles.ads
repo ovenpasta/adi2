@@ -74,6 +74,21 @@ package Flat_Values_Styles is
       others => <>
    ];
 
+   --  Style for class 'flat-comment'
+   Flat_Comment_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Background_Image (Background_Image_URL ("img/a/*keep*/b.png"))
+        .List_Style_Type (List_String ("/* kept */"))
+        .List_Style_Image (List_Image ("img/c/*keep*/d.svg"))
+     .Build;
+
+   --  Part styles bundle for class 'flat-comment'
+   Flat_Comment_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Flat_Comment_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package
    --  name can install the whole sheet without reparsing the

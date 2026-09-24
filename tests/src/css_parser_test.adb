@@ -2051,6 +2051,57 @@ procedure Css_Parser_Test is
       end;
    end Test_Unsupported_Property_Is_Reported;
 
+   --  The cases test_css_to_ada.py puts to strip_comments, so both
+   --  pipelines read the same units.
+   procedure Test_Strip_Comments is
+      LF : constant Character := ASCII.LF;
+      CR : constant Character := ASCII.CR;
+
+      procedure Check (CSS, Expected : String) is
+         Got : constant String := Adi.CSS_Parser.Testing.Strip_Comments (CSS);
+      begin
+         Test_Support.Assert
+           (Got = Expected,
+            "strips " & CSS & " to " & Expected
+            & (if Got = Expected then "" else ", not " & Got));
+      end Check;
+
+      Padded : constant String := "xurl(a/*k*/b)";
+   begin
+      Test_Support.Section ("comments, and the units that keep a /* inside");
+
+      Check ("a /* c */ b", "a  b");
+      Check ("/* a */ /* b */c", " c");
+      Check ("/*/ still */x", "x");
+
+      Check ("a /* open", "a ");
+      Check ("a /* open *", "a ");
+
+      Check ("""a/*b*/c"" /* d */", """a/*b*/c"" ");
+      Check ("'a/*b*/c' /* d */", "'a/*b*/c' ");
+      Check ("""x\""/*y*/"" z", """x\""/*y*/"" z");
+
+      for NL of String'[LF, CR, ASCII.FF] loop
+         Check ("""open" & NL & "/* c */ ok", """open" & NL & " ok");
+      end loop;
+
+      Check ("""a\" & LF & "/*k*/"" /* c */", """a\" & LF & "/*k*/"" ");
+      Check ("""a\" & CR & LF & "/*k*/"" /* c */",
+             """a\" & CR & LF & "/*k*/"" ");
+
+      Check ("url(img/a/*k*/b.png) /* c */", "url(img/a/*k*/b.png) ");
+      Check ("URL( a/*k*/b ) /* c */", "URL( a/*k*/b ) ");
+      Check ("url(\)/*k*/) /* c */", "url(\)/*k*/) ");
+      Check (Padded (2 .. Padded'Last), "url(a/*k*/b)");
+
+      Check ("url( ""a/*k*/b"" ) /* c */", "url( ""a/*k*/b"" ) ");
+      Check ("url(""a)/*k*/"") /* c */", "url(""a)/*k*/"") ");
+
+      Check ("myurl(a/*c*/b)", "myurl(ab)");
+
+      Check ("\/* x", "\/* x");
+   end Test_Strip_Comments;
+
    --  A selector the parser passes over costs the whole rule block
    --  behind it, so it is reported the way a dropped declaration is.
    procedure Test_Skipped_Selector_Is_Reported is
@@ -3320,6 +3371,7 @@ begin
    Test_No_Declaration_Rejects_The_Sheet;
    Test_Unsupported_Property_Is_Reported;
    Test_Skipped_Selector_Is_Reported;
+   Test_Strip_Comments;
    Test_Invalid_Value_Is_Reported;
    Test_Shadow_Takes_Any_Colour;
    Test_Grid_Template_None;

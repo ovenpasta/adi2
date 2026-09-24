@@ -57,4 +57,7 @@ package body Adi.CSS_Parser.Testing is
       Name  : String) return Adi.Widget.Part_Style_Array is
      (Adi.CSS_Parser.Styles_For_Scanned (Sheet, Kind, Name));
 
+   function Strip_Comments (CSS : String) return String is
+     (Adi.CSS_Parser.Strip_Comments (CSS));
+
 end Adi.CSS_Parser.Testing;

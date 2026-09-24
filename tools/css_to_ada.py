@@ -2341,14 +2341,33 @@ def preprocess_custom_properties(
     return css_content, diagnostics
 
 
+# A comment, which runs to the end when unterminated, or a unit the
+# tokenizer reads whole, keeping any "/*" inside it: a string, ended by
+# its quote or a newline (LF, CR or FF), an unquoted url(), or an escape.
+# Adi.CSS_Parser.Strip_Comments reads the same units.
+COMMENT_SCAN_RE = re.compile(r'''
+      /\* .*? (?: \*/ | \Z )
+    | " (?: [^"\\\n\r\f] | \\ (?: \r\n | . ) )* "?
+    | ' (?: [^'\\\n\r\f] | \\ (?: \r\n | . ) )* '?
+    | (?<! [A-Za-z0-9_\-\u0080-\U0010FFFF] ) (?i: url ) \( [ \t\n\r]*
+      (?= [^"' \t\n\r)] ) (?: [^)\\] | \\. )* \)?
+    | \\.
+''', re.DOTALL | re.VERBOSE)
+
+
+def strip_comments(css_content: str) -> str:
+    return COMMENT_SCAN_RE.sub(
+        lambda m: '' if m.group().startswith('/*') else m.group(),
+        css_content)
+
+
 def parse_stylesheet_with_diagnostics(
     css_content: str,
 ) -> tuple[ParsedStylesheet, list[CssDiagnostic]]:
     """Parse CSS content into rules plus root metadata/custom properties."""
     diagnostics: list[CssDiagnostic] = []
 
-    # Remove comments
-    css_content = re.sub(r'/\*.*?\*/', '', css_content, flags=re.DOTALL)
+    css_content = strip_comments(css_content)
 
     # Preprocess custom properties (@property, :root, var())
     css_content, variables, root_properties, var_diagnostics = (

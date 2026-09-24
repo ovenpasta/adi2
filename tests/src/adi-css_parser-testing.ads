@@ -50,4 +50,7 @@ package Adi.CSS_Parser.Testing is
       Kind  : Selector_Kind;
       Name  : String) return Adi.Widget.Part_Style_Array;
 
+   --  The CSS with its comments dropped, as a sheet is read.
+   function Strip_Comments (CSS : String) return String;
+
 end Adi.CSS_Parser.Testing;

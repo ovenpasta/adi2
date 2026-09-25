@@ -1352,7 +1352,7 @@ python3 tools/css_to_ada.py input.css output.ads --package-name=My_Styles
 python3 tools/css_to_ada.py input.css output.ads --package-name=My_Styles --strict
 ```
 
-Incremental generation for all examples via `tools/generate_example_styles.sh`.
+Incremental generation for all examples via `tools/generate_demo_styles.sh`.
 
 ### Validation Modes
 

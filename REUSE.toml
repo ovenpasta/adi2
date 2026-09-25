@@ -10,7 +10,7 @@ SPDX-PackageDownloadLocation = "https://github.com/ovenpasta/adi2"
 #  ---- Adi2's own sources ----
 
 [[annotations]]
-path = ["src/**", "tests/**", "examples/**", "extras/**", "tools/**", "docs/**", "wasm/**", "config/**", "*.md", "*.gpr", "*.toml", "LICENSE", ".github/**"]
+path = ["src/**", "tests/**", "demos/**", "extras/**", "tools/**", "docs/**", "wasm/**", "config/**", "*.md", "*.gpr", "*.toml", "LICENSE", ".github/**"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Aldo Nicolas Bruno"
 SPDX-License-Identifier = "Apache-2.0"
@@ -18,7 +18,7 @@ SPDX-License-Identifier = "Apache-2.0"
 #  Prose containing the word "Copyright"; without override, reuse scrapes
 #  the sentences into the notice.
 [[annotations]]
-path = ["CONTRIBUTING.md", "examples/assets/NOTICE.md", "wasm/site/index.html"]
+path = ["CONTRIBUTING.md", "demos/assets/NOTICE.md", "wasm/site/index.html"]
 precedence = "override"
 SPDX-FileCopyrightText = "2026 Aldo Nicolas Bruno"
 SPDX-License-Identifier = "Apache-2.0"
@@ -32,7 +32,7 @@ SPDX-License-Identifier = "CC-BY-3.0"
 
 #  binary_to_ada.py output: the fonts and icons verbatim as byte arrays.
 [[annotations]]
-path = "examples/generated/assets_example_bundle.*"
+path = "demos/generated/assets_example_bundle.*"
 precedence = "override"
 SPDX-FileCopyrightText = ["2026 Aldo Nicolas Bruno", "Google LLC", "2020 The Open Sans Project Authors (https://github.com/googlefonts/opensans)"]
 SPDX-License-Identifier = "Apache-2.0 AND OFL-1.1"
@@ -170,37 +170,37 @@ SPDX-License-Identifier = "MIT OR Unlicense"
 #  ---- example assets (demonstration content, bundled into binaries) ----
 
 [[annotations]]
-path = "examples/assets/noto_*.json"
+path = "demos/assets/noto_*.json"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "Google LLC"
 SPDX-License-Identifier = "CC-BY-4.0"
 
 [[annotations]]
-path = "examples/assets/icons.svg"
+path = "demos/assets/icons.svg"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "Google LLC"
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-path = "examples/assets/animhorse.gif"
+path = "demos/assets/animhorse.gif"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2005 Janke (https://commons.wikimedia.org/wiki/User:Janke)"
 SPDX-License-Identifier = "CC-BY-SA-2.5"
 
 [[annotations]]
-path = ["examples/assets/camera.svg", "tests/assets/camera.svg"]
+path = ["demos/assets/camera.svg", "tests/assets/camera.svg"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "AJ Ashton (https://openclipart.org/)"
 SPDX-License-Identifier = "CC-PDDC"
 
 [[annotations]]
-path = ["examples/assets/tiger.svg", "tests/assets/tiger.svg"]
+path = ["demos/assets/tiger.svg", "tests/assets/tiger.svg"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "microugly (https://openclipart.org/detail/176055/Clipart-by-microugly)"
 SPDX-License-Identifier = "CC-PDDC"
 
 [[annotations]]
-path = "examples/assets/OpenSans-Regular.ttf"
+path = "demos/assets/OpenSans-Regular.ttf"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2020 The Open Sans Project Authors (https://github.com/googlefonts/opensans)"
 SPDX-License-Identifier = "OFL-1.1"

@@ -61,14 +61,14 @@ EM_CACHE ?= /tmp/emscripten-cache
 GPRBUILD ?= gprbuild
 
 #  Runtime files the examples expect, mounted at the same repo-relative
-#  paths they use natively (Emscripten CWD is "/"): examples/assets
-#  (images, SVG, html; also the "app://" scheme root), examples/css
+#  paths they use natively (Emscripten CWD is "/"): demos/assets
+#  (images, SVG, html; also the "app://" scheme root), demos/css
 #  (runtime-loaded stylesheets), plus OpenSans-Regular.ttf, which
 #  font_example loads and pre-js/adi_env.js pins as the fallback face.
 #  ~2.4 MB per example — fine for a showcase.
 EMBED_FLAGS = \
-  --embed-file ../examples/assets@/examples/assets \
-  --embed-file ../examples/css@/examples/css \
+  --embed-file ../demos/assets@/demos/assets \
+  --embed-file ../demos/css@/demos/css \
   --embed-file ../vendor/open-sans/static/OpenSans-Regular.ttf@/OpenSans-Regular.ttf
 
 #  -fwasm-exceptions is REQUIRED with the -eh runtime (keeps the wasm EH
@@ -158,7 +158,7 @@ ada-objs:
 #  link exactly this example's closure: all library objects (other
 #  examples' generated style/UI packages are gc'd by wasm-ld) minus all
 #  mains and binders, plus this example's own two.
-EXAMPLE_MAINS := $(notdir $(basename $(wildcard ../examples/*.adb)))
+EXAMPLE_MAINS := $(shell sed -n 's/^[[:space:]]*"\([a-z0-9_]*\)\.adb".*/\1/p' ../demos/demos.gpr)
 MAINS_RE := b__.*|$(shell echo $(EXAMPLE_MAINS) | tr ' ' '|')
 
 #  Custom shell: Bulma top bar with example switcher instead of the

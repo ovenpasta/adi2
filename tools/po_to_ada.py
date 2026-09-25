@@ -3,7 +3,7 @@
 
 Usage:
     python3 tools/po_to_ada.py \\
-        --output-dir examples/generated/ \\
+        --output-dir demos/generated/ \\
         --package-name I18N_Example_Translations \\
         fr.po de.po
 """

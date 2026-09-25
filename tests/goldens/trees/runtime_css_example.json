@@ -223,7 +223,7 @@
     "items_count": 3,
     "path": "3",
     "states": [],
-    "text": "Dynamic mode: edit examples/css/runtime_css_example.css and save to live reload",
+    "text": "Dynamic mode: edit demos/css/runtime_css_example.css and save to live reload",
     "type": "adi.widget.label.label_widget",
     "visible": true,
     "w": 1284.0,

@@ -220,7 +220,7 @@ The renderer implements CSS-style vertical margin collapsing:
   5. Tag/class/id selectors from parsed stylesheets
   6. Inline `style` attributes
 - Implemented precedence: `defaults < default-stylesheet < tag < class < id < inline`.
-- `examples/assets/html/default.css` is a browser-like typographic default sheet for `Set_Default_Stylesheet`. Document CSS always overrides the default stylesheet.
+- `demos/assets/html/default.css` is a browser-like typographic default sheet for `Set_Default_Stylesheet`. Document CSS always overrides the default stylesheet.
 - Inline style declarations are parsed once and cached by normalized declaration text.
 - Document CSS and every inline `style` attribute go through `Adi.CSS_Parser.Rule_Sheet`, which answers a selector's `Style_Rules` and interns none of them. The view cascades those rules itself and never asks for a part, a state or a `Widget_Style`, so the round trip a `Stylesheet` makes through the rule-set and style stores would leave a permanent entry per distinct rule block and per distinct inline style. A `Rule_Sheet` is an ordinary object: the document's dies with the view, an inline style's with the call that parsed it.
 - `:root` metadata is host-scoped inside the widget:
@@ -284,7 +284,7 @@ The renderer implements CSS-style vertical margin collapsing:
 
 ## Scroll Behavior and CSS Overflow
 - `Html_View` installs no styles at construction and does not set the `Scrollable` flag. Scrolling and clipping come entirely from CSS `overflow-x` / `overflow-y`, whose initial value is `visible`.
-- Scrolling is opt-in: `overflow-y: auto` (or `scroll`) makes the widget a viewport that clips its document and scrolls it. `examples/css/html_view_example.css` shows the usual form.
+- Scrolling is opt-in: `overflow-y: auto` (or `scroll`) makes the widget a viewport that clips its document and scrolls it. `demos/css/html_view_example.css` shows the usual form.
 - Left at `visible`, `Get_Preferred_Size` routes through `Measure_Content` and the widget sizes itself to its document height — useful for short, static documents such as inline code blocks that should grow to fit.
 - `overflow-x: auto` clips; a horizontal offset and scrollbar are the subject of [`proposals/horizontal_scrolling.md`](proposals/horizontal_scrolling.md).
 - Appearance — background, border, radius, padding, text and link colours, scrollbar track and knob — is entirely the stylesheet's. A fresh view draws none of it.

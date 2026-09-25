@@ -38,8 +38,8 @@ project Adi_Wasm is
       "../config/posix",
       "../config/development",
       "../vendor/json-ada/src",
-      "../examples",
-      "../examples/generated");
+      "../demos/src",
+      "../demos/generated");
 
    --  Shared per-loop-mode object dir: the library compiles once, each
    --  example adds only its own main + generated packages. The Makefile

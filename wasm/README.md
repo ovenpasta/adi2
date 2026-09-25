@@ -125,7 +125,7 @@ session — an IDBFS mount plus `syncfs` glue would lift that last one.
   The tell is a `wasm-ld` signature mismatch naming an `obj/` file.
 - **Do not add `-gnatW8`.** Generated UI packages carry raw UTF-8 in
   String literals with byte semantics; W8 lexes those as wide
-  characters and rejects them. Native `examples.gpr` builds without it
+  characters and rejects them. Native `demos.gpr` builds without it
   too.
 
 Warnings that are expected and not worth chasing:
@@ -167,8 +167,8 @@ site/shell.html   emcc --shell-file for every example page: centered
 ```
 
 Embedded into every example at the repo-relative paths it uses natively
-(Emscripten's CWD is `/`): `examples/assets` — also the `app://` root —
-`examples/css`, and `OpenSans-Regular.ttf`, which `adi_env.js` pins as
+(Emscripten's CWD is `/`): `demos/assets` — also the `app://` root —
+`demos/css`, and `OpenSans-Regular.ttf`, which `adi_env.js` pins as
 the fallback face so text metrics do not depend on the build machine's
 installed fonts.
 

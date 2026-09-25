@@ -2,7 +2,7 @@
 
 ## Symptom
 
-Running `./examples/bin/material_demo` crashed immediately on startup:
+Running `./demos/bin/material_demo` crashed immediately on startup:
 
 ```
 raised STORAGE_ERROR : s-intman.adb:136 explicit raise
@@ -29,7 +29,7 @@ Increased the stack limit and re-ran:
 
 ```bash
 ulimit -s 16384
-./examples/bin/material_demo   # runs successfully
+./demos/bin/material_demo   # runs successfully
 ```
 
 This confirmed the 8 MB default stack was insufficient.
@@ -40,14 +40,13 @@ Rebuilt with GCC's `-fstack-usage` flag, which writes `.su` files reporting
 the static stack size of every compiled function:
 
 ```bash
-alr exec -- gprbuild -P examples/examples.gpr \
-    -XEXAMPLE_KIND=material_demo -f -cargs -fstack-usage
+alr -C demos build -- material_demo.adb -f -cargs -fstack-usage
 ```
 
 Then sorted by stack size:
 
 ```bash
-sort -t'	' -k2 -rn examples/obj/material_demo/material_demo_ui.su | head -5
+sort -t'	' -k2 -rn demos/obj/material_demo/material_demo_ui.su | head -5
 ```
 
 Results:

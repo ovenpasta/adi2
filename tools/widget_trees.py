@@ -24,7 +24,7 @@ Two things are normalized away, and nothing else:
   tools/widget_trees.py                  # build, then check every example
   tools/widget_trees.py demo_flex        # just these
   tools/widget_trees.py --update         # accept what the apps report now
-  tools/widget_trees.py --no-build       # trust examples/bin as it stands
+  tools/widget_trees.py --no-build       # trust demos/bin as it stands
 """
 
 from __future__ import annotations
@@ -207,18 +207,18 @@ def check(name: str, found: dict, golden_dir: Path, update: bool) -> bool:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("examples", nargs="*", help="default: every example")
+    ap.add_argument("demos", nargs="*", help="default: every example")
     ap.add_argument("--update", action="store_true",
                     help="rewrite the goldens from what the apps report")
     ap.add_argument("--no-build", action="store_true",
-                    help="use examples/bin as it stands; a stale binary "
+                    help="use demos/bin as it stands; a stale binary "
                          "reports on the library it was linked against")
     ap.add_argument("--golden-dir", type=Path, default=GOLDEN_DIR)
     ap.add_argument("--timeout", type=float, default=10.0,
                     help="seconds to wait for an example to come up")
     args = ap.parse_args()
 
-    wanted = args.examples or app.all_examples()
+    wanted = args.demos or app.all_examples()
     ready, skipped = app.controllable(wanted)
     if skipped:
         print("skipped, no Adi.MCP.Initialize: " + ", ".join(skipped))

@@ -6,13 +6,13 @@ The XML UI system lets you describe widget trees in XML and compile them into Ad
 
 - **`tools/xml_to_ada.py`** — Code generator (XML → `.ads` + `.adb`)
 - **`tools/widgets.xml`** — Widget grammar (tag definitions, attributes, access types)
-- **`tools/generate_example_ui.sh`** — Incremental build script for example UIs
+- **`tools/generate_demo_ui.sh`** — Incremental build script for example UIs
 
 ### Invocation
 
 ```bash
 python3 tools/xml_to_ada.py input.xml \
-  --output-dir examples/generated \
+  --output-dir demos/generated \
   --package-name My_UI
 ```
 
@@ -310,8 +310,8 @@ W := UI.Build;
 ### `<link>` — External Stylesheets
 
 ```xml
-<link rel="stylesheet" href="examples/css/stack_example.css"/>
-<link rel="stylesheet" href="examples/css/tabs.css" styles="Custom_Tab_Styles"/>
+<link rel="stylesheet" href="demos/css/stack_example.css"/>
+<link rel="stylesheet" href="demos/css/tabs.css" styles="Custom_Tab_Styles"/>
 ```
 
 | Attribute | Description |
@@ -510,7 +510,7 @@ Create a separate XML file with a bare root widget (no `<window>`):
 ```xml
 <!-- red_page.xml -->
 <adi>
-  <link rel="stylesheet" href="examples/css/stack_example.css"/>
+  <link rel="stylesheet" href="demos/css/stack_example.css"/>
   <box class="page-red">
     <label text="Red Page" class="page-title"/>
   </box>

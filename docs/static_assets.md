@@ -56,14 +56,14 @@ Adi.Assets.Register ("icons.svg", Data'Address, Data'Length);
 
 ```bash
 python3 tools/binary_to_ada.py \
-  --output-dir examples/generated/ \
+  --output-dir demos/generated/ \
   --package-name Assets_Example_Bundle \
-  --base-dir examples/assets/ \
-  examples/assets/icons.svg examples/assets/happycat.png
+  --base-dir demos/assets/ \
+  demos/assets/icons.svg demos/assets/happycat.png
 ```
 
 `--base-dir` strips the directory prefix so registered paths are clean
-relative paths (e.g. `icons.svg` instead of `examples/assets/icons.svg`).
+relative paths (e.g. `icons.svg` instead of `demos/assets/icons.svg`).
 
 The generated package exposes a single `Register_All` procedure. Constants are
 placed in the package **body** to avoid recompilation churn — body-level
@@ -105,8 +105,8 @@ default. `Set_Default_Font` is what sets the app-wide font.
 
 ### Building the examples
 
-`tools/build_examples.sh` runs `tools/generate_example_bundles.sh` before
-compiling. Generated files go to `examples/generated/` which is already
+`tools/build_demos.sh` runs `tools/generate_demo_bundles.sh` before
+compiling. Generated files go to `demos/generated/` which is already
 in the `Source_Dirs`.
 
 ### Without the script (direct gprbuild)
@@ -114,10 +114,10 @@ in the `Source_Dirs`.
 Run the generation scripts manually before building:
 
 ```bash
-bash tools/generate_example_styles.sh
-bash tools/generate_example_ui.sh
-bash tools/generate_example_bundles.sh
-gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=assets_example
+bash tools/generate_demo_styles.sh
+bash tools/generate_demo_ui.sh
+bash tools/generate_demo_bundles.sh
+tools/build_demos.sh assets_example
 ```
 
 ## Example Usage

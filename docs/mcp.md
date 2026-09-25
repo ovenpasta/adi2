@@ -209,7 +209,7 @@ PID names its directory, so this touches no session but the one it
 starts:
 
 ```bash
-./examples/bin/html_view_example >/tmp/app.log 2>&1 &
+./demos/bin/html_view_example >/tmp/app.log 2>&1 &
 APP=$!
 trap 'kill "$APP" 2>/dev/null' EXIT     # the app goes, however this ends
 D=/tmp/adi_mcp/$APP
@@ -246,7 +246,7 @@ arguments as further fields of the same object.
   Auto-discovery does not guess between live applications, because the
   most recently active one is not necessarily the one you mean. Re-run
   targeting a specific process with `--pid <PID>`, or leave one running:
-  `pgrep -af examples/bin/` lists them. Discovery removes the session
+  `pgrep -af demos/bin/` lists them. Discovery removes the session
   directory of an application that has stopped rewriting its `ready`
   file, and on POSIX also one whose PID the OS reports as gone, so a
   killed app stops counting on its own. Clearing one by hand means

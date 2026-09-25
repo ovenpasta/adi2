@@ -118,7 +118,7 @@ material to be distinguished from the contributor's Contribution as
 defined in the Agreement.
 
 Non-software material used by the examples is recorded in
-[`examples/assets/NOTICE.md`](examples/assets/NOTICE.md), with source,
+[`demos/assets/NOTICE.md`](demos/assets/NOTICE.md), with source,
 license, and modification information. New entries must follow the
 existing format. Because `tools/binary_to_ada.py` incorporates these
 assets into executable binaries, any applicable attribution or notice

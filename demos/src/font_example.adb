@@ -1,0 +1,353 @@
+pragma Ada_2022;
+
+with Demo_Paths;
+with Ada.Directories;
+with Ada.Strings.Fixed;
+with Adi.App;
+with Adi.CSS_Styles;       use Adi.CSS_Styles;
+with Adi.Font;
+with Adi.Layout_Util;      use Adi.Layout_Util;
+with Adi.MCP;
+with Adi.Window;           use Adi.Window;
+with Adi.Widget;           use Adi.Widget;
+with Adi.Widget.Box;
+with Adi.Widget.Label;
+with Adi.Widget_Styles;    use Adi.Widget_Styles;
+with Font_Example_Styles;  use Font_Example_Styles;
+
+procedure Font_Example is
+   A : Adi.App.App;
+
+   use type Adi.Widget.Box.Box_Handle;
+   use type Adi.Widget.Label.Label_Handle;
+
+   --  The sheet's base rules for a part, with the caller's overrides
+   --  folded over them and the loaded family last. Only the base rules
+   --  travel: a state rule on either style is the part styles' business
+   --  rather than this one label's.
+   function Build_Label_Widget (Base, Extra : Widget_Style;
+                                Family      : Font_Handle) return Widget_Style
+   is
+      Merged : constant Widget_Style :=
+        Intern ((Base   => Merge (Definition (Base).Base,
+                                  Definition (Extra).Base),
+                 others => <>));
+   begin
+      if Family = Null_Font then
+         return Merged;
+      end if;
+      return Style_Of (Merged).Font_Family (Family).Build;
+   end Build_Label_Widget;
+
+   function Create_Sample (Text   : String;
+                           Extra  : Widget_Style;
+                           Family : Font_Handle) return Adi.Widget.Label.Label_Handle
+   is
+      L : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle (Text);
+   begin
+      Adi.Widget.Label.Set_Part_Styles (L, Sample_Class_Part_Styles);
+      Set_Part_Style (+L, Label_Part,
+        Build_Label_Widget (Sample_Class_Label_Widget, Extra, Family));
+      return L;
+   end Create_Sample;
+
+   function Create_Wrap_Sample (Text   : String;
+                                Extra  : Widget_Style;
+                                Family : Font_Handle) return Adi.Widget.Label.Label_Handle
+   is
+      L : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle (Text);
+   begin
+      Adi.Widget.Label.Set_Part_Styles (L, Wrap_Sample_Class_Part_Styles);
+      Set_Part_Style (+L, Label_Part,
+        Build_Label_Widget (Wrap_Sample_Class_Label_Widget, Extra, Family));
+      return L;
+   end Create_Wrap_Sample;
+
+   function Load_Font_With_Variants return Font_Handle is
+      use Ada.Directories;
+
+      Vendor_Dir   : constant String := "vendor/open-sans/static/";
+      Base_Regular : constant String := Vendor_Dir & "OpenSans-Regular.ttf";
+      Base_Bold    : constant String := Vendor_Dir & "OpenSans-Bold.ttf";
+      Base_Italic  : constant String := Vendor_Dir & "OpenSans-Italic.ttf";
+      Base_BI      : constant String := Vendor_Dir & "OpenSans-BoldItalic.ttf";
+      F            : Font_Handle := Null_Font;
+   begin
+      if not Exists (Base_Regular) then
+         return Null_Font;
+      end if;
+
+      F := Adi.Font.Load (Base_Regular);
+
+      if Exists (Base_Bold) then
+         Adi.Font.Register_Variant (F, Weight_Semi_Bold, Style_Normal, Base_Bold);
+         Adi.Font.Register_Variant (F, Weight_Bold, Style_Normal, Base_Bold);
+         Adi.Font.Register_Variant (F, Weight_Extra_Bold, Style_Normal, Base_Bold);
+         Adi.Font.Register_Variant (F, Weight_Black, Style_Normal, Base_Bold);
+      end if;
+
+      if Exists (Base_Italic) then
+         Adi.Font.Register_Variant (F, Weight_Normal, Style_Italic, Base_Italic);
+         Adi.Font.Register_Variant (F, Weight_Normal, Style_Oblique, Base_Italic);
+         Adi.Font.Register_Variant (F, Weight_Medium, Style_Italic, Base_Italic);
+         Adi.Font.Register_Variant (F, Weight_Medium, Style_Oblique, Base_Italic);
+      end if;
+
+      if Exists (Base_BI) then
+         Adi.Font.Register_Variant (F, Weight_Semi_Bold, Style_Italic, Base_BI);
+         Adi.Font.Register_Variant (F, Weight_Semi_Bold, Style_Oblique, Base_BI);
+         Adi.Font.Register_Variant (F, Weight_Bold, Style_Italic, Base_BI);
+         Adi.Font.Register_Variant (F, Weight_Bold, Style_Oblique, Base_BI);
+         Adi.Font.Register_Variant (F, Weight_Extra_Bold, Style_Italic, Base_BI);
+         Adi.Font.Register_Variant (F, Weight_Extra_Bold, Style_Oblique, Base_BI);
+         Adi.Font.Register_Variant (F, Weight_Black, Style_Italic, Base_BI);
+         Adi.Font.Register_Variant (F, Weight_Black, Style_Oblique, Base_BI);
+      end if;
+
+      return F;
+   end Load_Font_With_Variants;
+
+begin
+   Demo_Paths.Initialize;
+   A.Init;
+   A.Set_Target_FPS (60);
+
+   declare
+      W : constant Window_Handle := Create_Window_Handle ("Font & Text Features", Adi.Window.Extent (Pix (980.0), Pix (860.0)));
+
+      Root      : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Container : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+
+      Title : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Font and Text Features");
+      Hint  : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
+          ("Shows weight, italic/oblique, and text decorations.");
+
+      Section_Weight : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Weights");
+      Section_Style : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Styles");
+      Section_Size : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Sizes");
+      Section_Deco : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Decorations");
+      Section_Wrap : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Wrapping");
+      Section_Align : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Alignment");
+      Section_Line_Height : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("Line Height");
+      Section_DPI : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle ("DPI Units (px vs dip)");
+
+      Body_Font : constant Font_Handle := Load_Font_With_Variants;
+
+      Weight_Normal_Sample   : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("Weight 400 (normal)", Weight_Normal_Class_Label_Widget, Body_Font);
+      Weight_Light_Sample    : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("Weight 300 (light)", Weight_Light_Class_Label_Widget, Body_Font);
+      Weight_Medium_Sample   : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("Weight 500 (medium)", Weight_Medium_Class_Label_Widget, Body_Font);
+      Weight_Semibold_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("Weight 600 (semibold)", Weight_Semibold_Class_Label_Widget, Body_Font);
+      Weight_Bold_Sample     : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("Weight 700 (bold)", Weight_Bold_Class_Label_Widget, Body_Font);
+      Weight_Black_Sample    : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("Weight 900 (black)", Weight_Black_Class_Label_Widget, Body_Font);
+
+      Italic_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("font-style: italic", Style_Italic_Class_Label_Widget, Body_Font);
+      Oblique_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("font-style: oblique", Style_Oblique_Class_Label_Widget, Body_Font);
+
+      Size_Small_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("font-size: 12px (small)", Size_Small_Class_Label_Widget, Body_Font);
+      Size_Base_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("font-size: 18px (base)", Size_Base_Class_Label_Widget, Body_Font);
+      Size_Large_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("font-size: 28px (large)", Size_Large_Class_Label_Widget, Body_Font);
+
+      Underline_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("text-decoration: underline", Decor_Underline_Class_Label_Widget, Body_Font);
+      Strike_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("text-decoration: line-through", Decor_Strike_Class_Label_Widget, Body_Font);
+      Overline_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("text-decoration: overline",
+          Decor_Overline_Class_Label_Widget, Body_Font);
+
+      Wrap_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("This is a wrapping sample using the same font pipeline. "
+           & "It should wrap naturally and keep typography style settings.",
+           Empty_Widget_Style, Body_Font);
+
+      Align_Text : constant String :=
+        "Wrapped text takes its alignment from the label part, so every "
+        & "line of this sample is placed the same way. Each line is "
+        & "positioned on its own within the label's width, which is why "
+        & "the ragged edge falls on a different side in each of these "
+        & "three boxes.";
+
+      LH_Text : constant String :=
+        "Line height sets the distance from one baseline to the next. "
+        & "Normal is whatever the font itself asks for; a number "
+        & "multiplies the font size, and a length or percentage sets it "
+        & "outright.";
+
+      LH_Normal_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("line-height: normal — " & LH_Text,
+           Lh_Normal_Class_Label_Widget, Body_Font);
+      LH_Number_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("line-height: 1.8 — " & LH_Text,
+           Lh_Number_Class_Label_Widget, Body_Font);
+      LH_Percent_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("line-height: 150% — " & LH_Text,
+           Lh_Percent_Class_Label_Widget, Body_Font);
+      LH_Length_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("line-height: 30px — " & LH_Text,
+           Lh_Length_Class_Label_Widget, Body_Font);
+
+      Align_Left_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("text-align: left — " & Align_Text,
+           Align_Left_Class_Label_Widget, Body_Font);
+      Align_Center_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("text-align: center — " & Align_Text,
+           Align_Center_Class_Label_Widget, Body_Font);
+      Align_Right_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Wrap_Sample
+          ("text-align: right — " & Align_Text,
+           Align_Right_Class_Label_Widget, Body_Font);
+
+      DPI_Intro : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample
+          ("These two labels use numeric size 18 with different units.",
+           Style_Of.Font_Size (Px (14))
+             .Text_Color (RGB (191, 219, 254)).Build,
+           Body_Font);
+      DPI_Status : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample ("",
+           Style_Of.Font_Size (Px (13))
+             .Text_Color (RGB (125, 211, 252)).Build,
+           Body_Font);
+      DPI_PX_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample
+          ("font-size: 18px (fixed pixels)",
+           Style_Of.Font_Size (Px (18)).Build,
+           Body_Font);
+      DPI_DIP_Sample : constant Adi.Widget.Label.Label_Handle :=
+        Create_Sample
+          ("font-size: 18dip (display-scale aware)",
+           Style_Of.Font_Size (Dip (18))
+             .Text_Color (RGB (147, 197, 253)).Build,
+           Body_Font);
+   begin
+      if Font_Example_Styles.Has_Root_Font_Size then
+         Set_Root_Font_Size (W, Font_Example_Styles.Root_Font_Size);
+      end if;
+
+      Adi.Widget.Box.Set_Part_Styles (Root, Root_Class_Part_Styles);
+      Adi.Widget.Box.Set_Part_Styles (Container, Container_Class_Part_Styles);
+
+      Adi.Widget.Label.Set_Part_Styles (Title, Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Hint, Hint_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Section_Weight, Section_Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Section_Style, Section_Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Section_Size, Section_Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Section_Deco, Section_Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Section_Wrap, Section_Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Section_Align, Section_Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles
+        (Section_Line_Height, Section_Title_Class_Part_Styles);
+      Adi.Widget.Label.Set_Part_Styles (Section_DPI, Section_Title_Class_Part_Styles);
+
+      if Body_Font /= Null_Font then
+         Set_Part_Style (+Title, Label_Part,
+           Build_Label_Widget (Title_Class_Label_Widget, Empty_Widget_Style, Body_Font));
+         Set_Part_Style (+Hint, Label_Part,
+           Build_Label_Widget (Hint_Class_Label_Widget, Empty_Widget_Style, Body_Font));
+         Set_Part_Style (+Section_Weight, Label_Part,
+           Build_Label_Widget (Section_Title_Class_Label_Widget, Empty_Widget_Style, Body_Font));
+         Set_Part_Style (+Section_Style, Label_Part,
+           Build_Label_Widget (Section_Title_Class_Label_Widget, Empty_Widget_Style, Body_Font));
+         Set_Part_Style (+Section_Size, Label_Part,
+           Build_Label_Widget (Section_Title_Class_Label_Widget, Empty_Widget_Style, Body_Font));
+         Set_Part_Style (+Section_Deco, Label_Part,
+           Build_Label_Widget (Section_Title_Class_Label_Widget, Empty_Widget_Style, Body_Font));
+         Set_Part_Style (+Section_Wrap, Label_Part,
+           Build_Label_Widget (Section_Title_Class_Label_Widget, Empty_Widget_Style, Body_Font));
+         Set_Part_Style (+Section_Align, Label_Part,
+           Build_Label_Widget (Section_Title_Class_Label_Widget, Empty_Widget_Style, Body_Font));
+         Set_Part_Style (+Section_Line_Height, Label_Part,
+           Build_Label_Widget (Section_Title_Class_Label_Widget, Empty_Widget_Style, Body_Font));
+         Set_Part_Style (+Section_DPI, Label_Part,
+           Build_Label_Widget (Section_Title_Class_Label_Widget, Empty_Widget_Style, Body_Font));
+      end if;
+
+      Add_Child (+Root, +Container);
+
+      Add_Child (+Container, +Title);
+      Add_Child (+Container, +Hint);
+
+      Add_Child (+Container, +Section_Weight);
+      Add_Child (+Container, +Weight_Normal_Sample);
+      Add_Child (+Container, +Weight_Light_Sample);
+      Add_Child (+Container, +Weight_Medium_Sample);
+      Add_Child (+Container, +Weight_Semibold_Sample);
+      Add_Child (+Container, +Weight_Bold_Sample);
+      Add_Child (+Container, +Weight_Black_Sample);
+
+      Add_Child (+Container, +Section_Style);
+      Add_Child (+Container, +Italic_Sample);
+      Add_Child (+Container, +Oblique_Sample);
+
+      Add_Child (+Container, +Section_Size);
+      Add_Child (+Container, +Size_Small_Sample);
+      Add_Child (+Container, +Size_Base_Sample);
+      Add_Child (+Container, +Size_Large_Sample);
+
+      Add_Child (+Container, +Section_Deco);
+      Add_Child (+Container, +Underline_Sample);
+      Add_Child (+Container, +Strike_Sample);
+      Add_Child (+Container, +Overline_Sample);
+
+      Add_Child (+Container, +Section_Wrap);
+      Add_Child (+Container, +Wrap_Sample);
+
+      Add_Child (+Container, +Section_Align);
+      Add_Child (+Container, +Align_Left_Sample);
+      Add_Child (+Container, +Align_Center_Sample);
+      Add_Child (+Container, +Align_Right_Sample);
+
+      Add_Child (+Container, +Section_Line_Height);
+      Add_Child (+Container, +LH_Normal_Sample);
+      Add_Child (+Container, +LH_Number_Sample);
+      Add_Child (+Container, +LH_Percent_Sample);
+      Add_Child (+Container, +LH_Length_Sample);
+
+      Add_Child (+Container, +Section_DPI);
+      Add_Child (+Container, +DPI_Intro);
+      Adi.Widget.Label.Set_Text
+        (DPI_Status,
+         "Current active DIP scale: "
+         & Ada.Strings.Fixed.Trim
+           (Float'Image (Float (Get_Active_DIP_Scale)), Ada.Strings.Both));
+      Add_Child (+Container, +DPI_Status);
+      Add_Child (+Container, +DPI_PX_Sample);
+      Add_Child (+Container, +DPI_DIP_Sample);
+
+      Adi.Window.Set_Root (W, Widget_Handle'(+Root));
+      Adi.MCP.Initialize (W);
+      A.Add_Window (W);
+      A.Run;
+      Adi.MCP.Finalize;
+   end;
+end Font_Example;

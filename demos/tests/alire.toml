@@ -1,0 +1,13 @@
+name = "demos_tests"
+description = "Tests for the built-in Alire test runner"
+version = "0.0.0-test"
+
+[[depends-on]]
+demos = "*"
+
+[[pins]]
+demos = { path = ".." }
+
+[build-profiles]
+demos       = "validation"
+demos_tests = "validation"

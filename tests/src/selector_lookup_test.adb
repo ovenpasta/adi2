@@ -236,7 +236,7 @@ procedure Selector_Lookup_Test is
    procedure Test_Corpus_Agreement is
    begin
       Section ("selector lookup agrees with a scan, over every sheet");
-      Check_Directory ("examples/css");
+      Check_Directory ("demos/css");
       Check_Directory ("tests/css");
       Assert (Sheets_Checked >= 30,
               "the corpus should cover every sheet in the repository");

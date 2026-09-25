@@ -182,7 +182,7 @@ container, `Icon_Part` and `Label_Part` are the two items it positions.
 ### Creating and Styling a Label
 
 A part style is a `Style_Rules` aggregate wrapped by the `Adi.Widget_Styles`
-builder and attached with `Set_Part_Style`. `examples/hello_raw_example.adb`
+builder and attached with `Set_Part_Style`. `demos/src/hello_raw_example.adb`
 has the same shape end to end.
 
 ```ada
@@ -247,7 +247,7 @@ Set_Part_Style (Widget_Handle'(+Lbl), Label_Part,
 ```
 
 `Adi.Image.Load_From_File` takes a path instead, for a raster or an SVG file.
-`examples/label_example.adb` builds its icon the same way.
+`demos/src/label_example.adb` builds its icon the same way.
 
 ### Layout Variations
 

@@ -2341,24 +2341,41 @@ def preprocess_custom_properties(
     return css_content, diagnostics
 
 
-# A comment, which runs to the end when unterminated, or a unit the
-# tokenizer reads whole, keeping any "/*" inside it: a string, ended by
-# its quote or a newline (LF, CR or FF), an unquoted url(), or an escape.
-# Adi.CSS_Parser.Strip_Comments reads the same units.
-COMMENT_SCAN_RE = re.compile(r'''
-      /\* .*? (?: \*/ | \Z )
+# A character that continues a name or a number.
+CSS_NAME_CHAR = r'[A-Za-z0-9_\-\u0080-\U0010FFFF]'
+
+# The start of a name, an escape or a number.
+CSS_TOKEN_START_RE = re.compile(rf'{CSS_NAME_CHAR}|\\|\+?\.?[0-9]')
+
+# A run of comments, each running to the end when unterminated, or a unit
+# the tokenizer reads whole, keeping any "/*" inside it: a string, ended
+# by its quote or a newline (LF, CR or FF), an unquoted url(), or an
+# escape. Adi.CSS_Parser.Strip_Comments reads the same units.
+COMMENT_SCAN_RE = re.compile(rf'''
+      (?: /\* .*? (?: \*/ | \Z ) )+
     | " (?: [^"\\\n\r\f] | \\ (?: \r\n | . ) )* "?
     | ' (?: [^'\\\n\r\f] | \\ (?: \r\n | . ) )* '?
-    | (?<! [A-Za-z0-9_\-\u0080-\U0010FFFF] ) (?i: url ) \( [ \t\n\r]*
+    | (?<! {CSS_NAME_CHAR} ) (?i: url ) \( [ \t\n\r]*
       (?= [^"' \t\n\r)] ) (?: [^)\\] | \\. )* \)?
     | \\.
 ''', re.DOTALL | re.VERBOSE)
 
 
 def strip_comments(css_content: str) -> str:
-    return COMMENT_SCAN_RE.sub(
-        lambda m: '' if m.group().startswith('/*') else m.group(),
-        css_content)
+    """Drop the comments. A run after a name character and before the
+    start of a name, an escape or a number leaves a space, so the tokens
+    either side stay apart; elsewhere it leaves nothing, so a compound
+    selector such as .a/**/:hover stays one."""
+    def replace(m: re.Match) -> str:
+        if not m.group().startswith('/*'):
+            return m.group()
+        before = css_content[m.start() - 1:m.start()]
+        if (re.fullmatch(CSS_NAME_CHAR, before)
+                and CSS_TOKEN_START_RE.match(css_content, m.end())):
+            return ' '
+        return ''
+
+    return COMMENT_SCAN_RE.sub(replace, css_content)
 
 
 def parse_stylesheet_with_diagnostics(

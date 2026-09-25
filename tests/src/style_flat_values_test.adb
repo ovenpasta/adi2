@@ -335,6 +335,8 @@ procedure Style_Flat_Values_Test is
            Opt_List_Style_Type.Resolve (Cmt.List_Style_Type);
          Cmt_Img  : constant List_Style_Image_Value :=
            Opt_List_Style_Image.Resolve (Cmt.List_Style_Image);
+         Cmt_Font : constant Font_Family_Value :=
+           Opt_Font.Resolve (Cmt.Font_Family);
       begin
          Assert (Opt_Bg_Image.Resolve (Bg.Background_Image).Kind = Url_Image,
                  "a url() background-image parses as a URL image");
@@ -364,6 +366,10 @@ procedure Style_Flat_Values_Test is
          Assert (Cmt_Img.Kind = List_Image_URL
                    and then Text_Of (Cmt_Img.URI) = "img/c/*keep*/d.svg",
                  "an unquoted url keeps the comment markers in its path");
+         Assert (Cmt_Font.Kind = By_Name
+                   and then Text_Of (Cmt_Font.Name)
+                              = "Flat Comment Family, monospace",
+                 "a comment between two names keeps them apart");
       end Expect_Parsed;
 
    begin

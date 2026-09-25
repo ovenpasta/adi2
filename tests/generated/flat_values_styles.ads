@@ -78,6 +78,7 @@ package Flat_Values_Styles is
    Flat_Comment_Class_Widget : constant Widget_Style :=
      Style_Of
         .Background_Image (Background_Image_URL ("img/a/*keep*/b.png"))
+        .Font_Family ("Flat Comment Family, monospace")
         .List_Style_Type (List_String ("/* kept */"))
         .List_Style_Image (List_Image ("img/c/*keep*/d.svg"))
      .Build;

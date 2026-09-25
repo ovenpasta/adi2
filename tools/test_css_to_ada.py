@@ -629,6 +629,14 @@ class TestParseCss(unittest.TestCase):
         rules = parse_css("/* comment */ .x { color: red; }")
         self.assertEqual(len(rules), 1)
 
+    def test_a_comment_between_names_keeps_them_apart(self):
+        rules = parse_css(
+            ".a { font-family: Open/**/Sans, serif; margin: 1px/**/2px; }"
+            ".b { margin: 0/**/.5em; }")
+        self.assertEqual(rules[0].properties["font-family"], "Open Sans, serif")
+        self.assertEqual(rules[0].properties["margin"], "1px 2px")
+        self.assertEqual(rules[1].properties["margin"], "0 .5em")
+
     def test_comment_markers_in_a_url_stay_in_the_path(self):
         rules = parse_css(
             '.a { background-image: url("img/a/*keep*/b.png"); }')
@@ -698,6 +706,28 @@ class TestStripComments(unittest.TestCase):
         self.check("/* a */ /* b */c", " c")
         self.check("/*/ still */x", "x")
 
+    def test_a_comment_between_names_leaves_a_space(self):
+        self.check("1px/**/2px", "1px 2px")
+        self.check("Open/* a */Sans", "Open Sans")
+        self.check("a/**//* b */c", "a c")
+        self.check("a/**/\\31", "a \\31")
+        self.check("\u00e9/**/\u00e9", "\u00e9 \u00e9")
+        self.check("a/**/url(x/*k*/)", "a url(x/*k*/)")
+        self.check("1px/**/-2px", "1px -2px")
+        self.check("a_/**/_b", "a_ _b")
+        self.check("0/**/.5em", "0 .5em")
+        self.check("1px/**/+2px", "1px +2px")
+        self.check("1px/**/+.5px", "1px +.5px")
+
+    def test_a_comment_elsewhere_leaves_nothing(self):
+        self.check(".a/**/.b/**/:hover", ".a.b:hover")
+        self.check("a/**/ /**/b", "a b")
+        self.check('a/**/"s"', 'a"s"')
+        self.check("/**/a/**/", "a")
+        self.check("a/**/+b", "a+b")
+        self.check("a/**/+.", "a+.")
+        self.check("a/**/.", "a.")
+
     def test_unterminated_comment_runs_to_the_end(self):
         self.check("a /* open", "a ")
         self.check("a /* open *", "a ")
@@ -726,7 +756,7 @@ class TestStripComments(unittest.TestCase):
         self.check('url("a)/*k*/") /* c */', 'url("a)/*k*/") ')
 
     def test_only_url_is_a_url(self):
-        self.check("myurl(a/*c*/b)", "myurl(ab)")
+        self.check("myurl(a/*c*/b)", "myurl(a b)")
 
     def test_escape_is_not_a_comment_start(self):
         self.check("\\/* x", "\\/* x")

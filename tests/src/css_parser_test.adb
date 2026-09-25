@@ -2068,12 +2068,36 @@ procedure Css_Parser_Test is
       end Check;
 
       Padded : constant String := "xurl(a/*k*/b)";
+      --  The bytes a sheet holds, where a literal here is one character.
+      E_Acute : constant String :=
+        Character'Val (16#C3#) & Character'Val (16#A9#);
    begin
       Test_Support.Section ("comments, and the units that keep a /* inside");
 
       Check ("a /* c */ b", "a  b");
       Check ("/* a */ /* b */c", " c");
       Check ("/*/ still */x", "x");
+
+      Check ("1px/**/2px", "1px 2px");
+      Check ("Open/* a */Sans", "Open Sans");
+      Check ("a/**//* b */c", "a c");
+      Check ("a/**/\31", "a \31");
+      Check (E_Acute & "/**/" & E_Acute, E_Acute & " " & E_Acute);
+      Check ("a/**/url(x/*k*/)", "a url(x/*k*/)");
+      Check ("1px/**/-2px", "1px -2px");
+      Check ("a_/**/_b", "a_ _b");
+      Check ("0/**/.5em", "0 .5em");
+      Check ("1px/**/+2px", "1px +2px");
+      Check ("1px/**/+.5px", "1px +.5px");
+
+      Check (".a/**/.b/**/:hover", ".a.b:hover");
+      Check ("a/**/ /**/b", "a b");
+      Check ("a/**/""s""", "a""s""");
+      Check ("/**/a/**/", "a");
+      Check ("a/**/+b", "a+b");
+      Check ("a/**/+.", "a+.");
+      Check ("a/**/.", "a.");
+      Check (Padded (7 .. Padded'Last), "b)");
 
       Check ("a /* open", "a ");
       Check ("a /* open *", "a ");
@@ -2098,7 +2122,7 @@ procedure Css_Parser_Test is
       Check ("url( ""a/*k*/b"" ) /* c */", "url( ""a/*k*/b"" ) ");
       Check ("url(""a)/*k*/"") /* c */", "url(""a)/*k*/"") ");
 
-      Check ("myurl(a/*c*/b)", "myurl(ab)");
+      Check ("myurl(a/*c*/b)", "myurl(a b)");
 
       Check ("\/* x", "\/* x");
    end Test_Strip_Comments;

@@ -352,6 +352,22 @@ package body Adi.CSS_Parser is
       function Is_Name_Char (C : Character) return Boolean is
         (C in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_' | '-'
          or else Character'Pos (C) >= 128);
+
+      --  Whether a name, an escape or a number starts at From.
+      function Starts_Token (From : Positive) return Boolean is
+         J : Positive := From;
+      begin
+         if Is_Name_Char (Content (J)) or else Content (J) = '\' then
+            return True;
+         end if;
+         if Content (J) = '+' and then J < Content'Last then
+            J := J + 1;
+         end if;
+         if Content (J) = '.' and then J < Content'Last then
+            J := J + 1;
+         end if;
+         return Content (J) in '0' .. '9';
+      end Starts_Token;
    begin
       while I <= Content'Last loop
          Next := I + 1;
@@ -359,13 +375,27 @@ package body Adi.CSS_Parser is
            and then Next <= Content'Last
            and then Content (Next) = '*'
          then
-            Next := I + 2;
-            while Next < Content'Last
-              and then Content (Next .. Next + 1) /= "*/"
-            loop
-               Next := Next + 1;
-            end loop;
-            I := Next + 2;
+            declare
+               Before : constant Natural := I - 1;
+            begin
+               while I < Content'Last and then Content (I .. I + 1) = "/*"
+               loop
+                  Next := I + 2;
+                  while Next < Content'Last
+                    and then Content (Next .. Next + 1) /= "*/"
+                  loop
+                     Next := Next + 1;
+                  end loop;
+                  I := Next + 2;
+               end loop;
+               if Before >= Content'First
+                 and then I <= Content'Last
+                 and then Is_Name_Char (Content (Before))
+                 and then Starts_Token (I)
+               then
+                  Append (Result, ' ');
+               end if;
+            end;
          else
             if Content (I) in '"' | ''' then
                while Next <= Content'Last

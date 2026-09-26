@@ -78,6 +78,7 @@ project Tests is
       "css_wide_test",
       "auto_margin_test",
       "os_paths_test",
+      "os_dialog_delivery_test",
       "resolved_store_test",
       "selector_lookup_test",
       "slot_pool_test",

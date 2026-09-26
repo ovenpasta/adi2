@@ -9,7 +9,7 @@ package Adi.Dispatch is
    --  Deferred execution queue
    --
    --  Post queues a procedure to run on the main thread at the start of
-   --  the next frame. Thread-safe: can be called from any Ada task.
+   --  the next frame. Thread-safe: callable from any thread, Ada task or not.
    --
    --  Drain executes all pending procedures in FIFO order, then clears
    --  the queue. Must only be called from the main thread (App.Run loop).

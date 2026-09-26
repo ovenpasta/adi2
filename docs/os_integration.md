@@ -4,7 +4,9 @@
 
 ## File Dialogs
 
-SDL3 file dialogs are **asynchronous** — calling `Show_*` returns immediately. SDL3 internally dispatches the callback from within `SDL_PollEvent` when the platform dialog response arrives (e.g. via D-Bus on Linux). Since `Adi.App.Run` calls `SDL_PollEvent` every frame, the callback fires during normal event processing without any special handling.
+SDL3 file dialogs are **asynchronous**: `Show_*` returns at once, and SDL answers later from whichever thread it chooses (on Windows, a thread of its own). `Adi.OS` hands every answer to the main thread through `Adi.Dispatch`, so the callback always runs there, at the next `Adi.Dispatch.Drain`, which `Adi.App.Run` calls every frame after polling events. That includes the answer SDL gives at once when it cannot show a dialog: the callback never runs inside `Show_*`. A program that drives its own loop instead of `App.Run` calls `Adi.Dispatch.Drain` for its callbacks to arrive.
+
+One file dialog is open at a time. A `Show_*` called before the open dialog's answer has been delivered logs an error and shows nothing, and its callback is never called.
 
 ### Types
 

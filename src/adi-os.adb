@@ -2,12 +2,15 @@
 --  SPDX-License-Identifier: Apache-2.0
 
 pragma Ada_2022;
+with Ada.Containers.Indefinite_Holders;
 with Ada.Unchecked_Conversion;
+with Ada.Unchecked_Deallocation;
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 with System;
 with System.Storage_Elements;
 with Ada.Environment_Variables;
+with Adi.Dispatch;
 with Adi.Log;
 with Adi.SDL;
 with Adi.SDL.Dialog;
@@ -42,10 +45,99 @@ package body Adi.OS is
       return Path (Path'First .. Last);
    end Trim_Separator;
 
-   --  SDL3 dialog callbacks arrive as C calls; Stored_Callback and this
-   --  trampoline carry them to the Ada callback.
+   --  SDL3 dialog callbacks arrive as C calls, on whichever thread SDL
+   --  chooses; Stored_Callback and the trampoline carry them to
+   --  Post_Dialog_Result.
 
    Stored_Callback : Dialog_Callback := null;
+
+   --  Main thread only. Set when a Show_* opens a dialog and cleared when
+   --  its answer is delivered, so one answer at most is ever in flight.
+   Dialog_Open : Boolean := False;
+
+   type Filter_List is access Adi.SDL.Dialog.SDL_DialogFileFilter_Array;
+
+   --  SDL reads the open dialog's filters until it answers, so they are
+   --  freed when the answer is delivered. Main thread only.
+   Open_Filters : Filter_List;
+
+   function New_Filters (Filters : File_Filter_Array) return Filter_List is
+      use Ada.Strings.Unbounded;
+      List : Filter_List;
+   begin
+      if Filters'Length = 0 then
+         return null;
+      end if;
+      List := new Adi.SDL.Dialog.SDL_DialogFileFilter_Array
+                    (0 .. Filters'Length - 1);
+      for I in Filters'Range loop
+         List (int (I - Filters'First)) :=
+           (Name    => New_String (To_String (Filters (I).Name)),
+            Pattern => New_String (To_String (Filters (I).Pattern)));
+      end loop;
+      return List;
+   end New_Filters;
+
+   procedure Free_Filters (List : in out Filter_List) is
+      procedure Free_List is new Ada.Unchecked_Deallocation
+        (Adi.SDL.Dialog.SDL_DialogFileFilter_Array, Filter_List);
+   begin
+      if List = null then
+         return;
+      end if;
+      for Filter of List.all loop
+         Free (Filter.Name);
+         Free (Filter.Pattern);
+      end loop;
+      Free_List (List);
+   end Free_Filters;
+
+   --  The answering thread fills this before Adi.Dispatch.Post, and the
+   --  main thread empties it after Drain, so Dispatch orders the two.
+
+   type Dialog_Result (Count : Natural) is record
+      Callback : Dialog_Callback;
+      Files    : String_Array (1 .. Count);
+   end record;
+
+   package Result_Holders is new Ada.Containers.Indefinite_Holders
+     (Dialog_Result);
+
+   Pending_Result : Result_Holders.Holder;
+
+   procedure Deliver_Dialog_Result is
+      Result : constant Dialog_Result := Pending_Result.Element;
+   begin
+      Pending_Result.Clear;
+      Free_Filters (Open_Filters);
+      Dialog_Open := False;
+      if Result.Callback /= null then
+         Result.Callback (Result.Files);
+      end if;
+   end Deliver_Dialog_Result;
+
+   procedure Post_Dialog_Result
+     (Callback : Dialog_Callback;
+      Files    : String_Array)
+   is
+   begin
+      Pending_Result.Replace_Element
+        (Dialog_Result'(Count    => Files'Length,
+                        Callback => Callback,
+                        Files    => Files));
+      Adi.Dispatch.Post (Deliver_Dialog_Result'Access);
+   end Post_Dialog_Result;
+
+   function Claim_Dialog return Boolean is
+   begin
+      if Dialog_Open then
+         Adi.Log.Error
+           ("[Adi.OS] A file dialog is already open; not showing another");
+         return False;
+      end if;
+      Dialog_Open := True;
+      return True;
+   end Claim_Dialog;
 
    function Read_Chars_Ptr (Addr : System.Address) return chars_ptr is
       type Chars_Ptr_Ptr is access all chars_ptr with Convention => C;
@@ -103,12 +195,6 @@ package body Adi.OS is
       CB : constant Dialog_Callback := Stored_Callback;
    begin
       Adi.Log.Info ("[Adi.OS] Dialog_Trampoline called, N=" & Natural'Image (N));
-      Stored_Callback := null;
-
-      if CB = null then
-         Adi.Log.Warning ("[Adi.OS] Dialog_Trampoline: no stored callback");
-         return;
-      end if;
 
       if N = 0 then
          declare
@@ -120,7 +206,7 @@ package body Adi.OS is
                Log_Dialog_Error ("[Adi.OS] Dialog failed: ", Err);
             end if;
          end;
-         CB (Empty_Strings);
+         Post_Dialog_Result (CB, Empty_Strings);
          return;
       end if;
 
@@ -143,7 +229,7 @@ package body Adi.OS is
 
          if Non_Empty_Count = 0 then
             Adi.Log.Info ("[Adi.OS] Dialog returned only empty paths; treating as cancel");
-            CB (Empty_Strings);
+            Post_Dialog_Result (CB, Empty_Strings);
             return;
          end if;
 
@@ -163,45 +249,10 @@ package body Adi.OS is
                end;
                Cur := Cur + Ptr_Size;
             end loop;
-            CB (Files);
+            Post_Dialog_Result (CB, Files);
          end;
       end;
    end Dialog_Trampoline;
-
-   ---------------------------------------------------------------------------
-   --  Dialog Helpers
-   ---------------------------------------------------------------------------
-
-   procedure Prepare_Filters
-     (Filters     : File_Filter_Array;
-      C_Filters   : out Adi.SDL.Dialog.SDL_DialogFileFilter_Array;
-      C_Names     : out Interfaces.C.Strings.chars_ptr_array;
-      C_Patterns  : out Interfaces.C.Strings.chars_ptr_array)
-   is
-      use Ada.Strings.Unbounded;
-   begin
-      for I in Filters'Range loop
-         C_Names (size_t (I - Filters'First))   :=
-           New_String (To_String (Filters (I).Name));
-         C_Patterns (size_t (I - Filters'First)) :=
-           New_String (To_String (Filters (I).Pattern));
-         C_Filters (int (I - Filters'First)) :=
-           (Name    => C_Names (size_t (I - Filters'First)),
-            Pattern => C_Patterns (size_t (I - Filters'First)));
-      end loop;
-   end Prepare_Filters;
-
-   procedure Free_Filter_Strings
-     (C_Names    : in out Interfaces.C.Strings.chars_ptr_array;
-      C_Patterns : in out Interfaces.C.Strings.chars_ptr_array;
-      Count      : Natural)
-   is
-   begin
-      for I in 0 .. size_t (Count) - 1 loop
-         Free (C_Names (I));
-         Free (C_Patterns (I));
-      end loop;
-   end Free_Filter_Strings;
 
    function Get_Window_Ptr
      (Window : Adi.Window.Window_Handle)
@@ -220,13 +271,19 @@ package body Adi.OS is
       Default_Location : String := "";
       Allow_Many       : Boolean := False)
    is
-      C_Loc : chars_ptr := (if Default_Location = ""
-                             then Null_Ptr
-                             else New_String (Default_Location));
-      N     : constant int := Filters'Length;
+      C_Filters : Filter_List := New_Filters (Filters);
+      C_Loc     : chars_ptr := (if Default_Location = ""
+                                 then Null_Ptr
+                                 else New_String (Default_Location));
    begin
       Adi.Log.Info ("[Adi.OS] Show_Open_File_Dialog: N_filters=" &
-                    int'Image (N));
+                    Natural'Image (Filters'Length));
+      if not Claim_Dialog then
+         Free_Filters (C_Filters);
+         Free (C_Loc);
+         return;
+      end if;
+      Open_Filters    := C_Filters;
       Stored_Callback := Callback;
       declare
          Unused : constant Adi.SDL.C_bool := Adi.SDL.SDL_ClearError;
@@ -235,48 +292,17 @@ package body Adi.OS is
          null;
       end;
 
-      if N = 0 then
-         Adi.SDL.Dialog.SDL_ShowOpenFileDialog
-           (Callback         => Dialog_Trampoline'Access,
-            Userdata         => System.Null_Address,
-            Window           => Get_Window_Ptr (Window),
-            Filters          => null,
-            Nfilters         => 0,
-            Default_Location => C_Loc,
-            Allow_Many       => Adi.SDL.C_bool (Allow_Many));
-      else
-         declare
-            C_Filters  : Adi.SDL.Dialog.SDL_DialogFileFilter_Array (0 .. N - 1);
-            C_Names    : chars_ptr_array (0 .. size_t (N) - 1);
-            C_Patterns : chars_ptr_array (0 .. size_t (N) - 1);
-         begin
-            Prepare_Filters (Filters, C_Filters, C_Names, C_Patterns);
-            Adi.SDL.Dialog.SDL_ShowOpenFileDialog
-              (Callback         => Dialog_Trampoline'Access,
-               Userdata         => System.Null_Address,
-               Window           => Get_Window_Ptr (Window),
-               Filters          => C_Filters (C_Filters'First)'Access,
-               Nfilters         => N,
-               Default_Location => C_Loc,
-               Allow_Many       => Adi.SDL.C_bool (Allow_Many));
-            Free_Filter_Strings (C_Names, C_Patterns, Natural (N));
-         end;
-      end if;
+      Adi.SDL.Dialog.SDL_ShowOpenFileDialog
+        (Callback         => Dialog_Trampoline'Access,
+         Userdata         => System.Null_Address,
+         Window           => Get_Window_Ptr (Window),
+         Filters          => (if C_Filters = null then null
+                              else C_Filters (0)'Access),
+         Nfilters         => Filters'Length,
+         Default_Location => C_Loc,
+         Allow_Many       => Adi.SDL.C_bool (Allow_Many));
 
-      declare
-         Err : constant String := Value (Adi.SDL.SDL_GetError);
-      begin
-         --  When callback fired synchronously, Dialog_Trampoline already
-         --  logged cancellation/error; avoid duplicate error lines here.
-         if Stored_Callback /= null and then Err'Length > 0 then
-            Log_Dialog_Error
-              ("[Adi.OS] SDL error after ShowOpenFileDialog: ", Err);
-         end if;
-      end;
-
-      if C_Loc /= Null_Ptr then
-         Free (C_Loc);
-      end if;
+      Free (C_Loc);
    end Show_Open_File_Dialog;
 
    procedure Show_Save_File_Dialog
@@ -286,11 +312,17 @@ package body Adi.OS is
       Filters          : File_Filter_Array := No_Filters;
       Default_Location : String := "")
    is
-      C_Loc : chars_ptr := (if Default_Location = ""
-                             then Null_Ptr
-                             else New_String (Default_Location));
-      N     : constant int := Filters'Length;
+      C_Filters : Filter_List := New_Filters (Filters);
+      C_Loc     : chars_ptr := (if Default_Location = ""
+                                 then Null_Ptr
+                                 else New_String (Default_Location));
    begin
+      if not Claim_Dialog then
+         Free_Filters (C_Filters);
+         Free (C_Loc);
+         return;
+      end if;
+      Open_Filters    := C_Filters;
       Stored_Callback := Callback;
       declare
          Unused : constant Adi.SDL.C_bool := Adi.SDL.SDL_ClearError;
@@ -299,35 +331,16 @@ package body Adi.OS is
          null;
       end;
 
-      if N = 0 then
-         Adi.SDL.Dialog.SDL_ShowSaveFileDialog
-           (Callback         => Dialog_Trampoline'Access,
-            Userdata         => System.Null_Address,
-            Window           => Get_Window_Ptr (Window),
-            Filters          => null,
-            Nfilters         => 0,
-            Default_Location => C_Loc);
-      else
-         declare
-            C_Filters  : Adi.SDL.Dialog.SDL_DialogFileFilter_Array (0 .. N - 1);
-            C_Names    : chars_ptr_array (0 .. size_t (N) - 1);
-            C_Patterns : chars_ptr_array (0 .. size_t (N) - 1);
-         begin
-            Prepare_Filters (Filters, C_Filters, C_Names, C_Patterns);
-            Adi.SDL.Dialog.SDL_ShowSaveFileDialog
-              (Callback         => Dialog_Trampoline'Access,
-               Userdata         => System.Null_Address,
-               Window           => Get_Window_Ptr (Window),
-               Filters          => C_Filters (C_Filters'First)'Access,
-               Nfilters         => N,
-               Default_Location => C_Loc);
-            Free_Filter_Strings (C_Names, C_Patterns, Natural (N));
-         end;
-      end if;
+      Adi.SDL.Dialog.SDL_ShowSaveFileDialog
+        (Callback         => Dialog_Trampoline'Access,
+         Userdata         => System.Null_Address,
+         Window           => Get_Window_Ptr (Window),
+         Filters          => (if C_Filters = null then null
+                              else C_Filters (0)'Access),
+         Nfilters         => Filters'Length,
+         Default_Location => C_Loc);
 
-      if C_Loc /= Null_Ptr then
-         Free (C_Loc);
-      end if;
+      Free (C_Loc);
    end Show_Save_File_Dialog;
 
    procedure Show_Open_Folder_Dialog
@@ -341,6 +354,10 @@ package body Adi.OS is
                              then Null_Ptr
                              else New_String (Default_Location));
    begin
+      if not Claim_Dialog then
+         Free (C_Loc);
+         return;
+      end if;
       Stored_Callback := Callback;
       declare
          Unused : constant Adi.SDL.C_bool := Adi.SDL.SDL_ClearError;
@@ -356,9 +373,7 @@ package body Adi.OS is
          Default_Location => C_Loc,
          Allow_Many       => Adi.SDL.C_bool (Allow_Many));
 
-      if C_Loc /= Null_Ptr then
-         Free (C_Loc);
-      end if;
+      Free (C_Loc);
    end Show_Open_Folder_Dialog;
 
    ---------------------------------------------------------------------------

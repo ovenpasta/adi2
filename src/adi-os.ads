@@ -148,4 +148,16 @@ private
    function To_SDL_Folder
      (Folder : User_Folder) return Adi.SDL.Filesystem.SDL_Folder;
 
+   --  Queues Callback (Files) for the main thread's next Adi.Dispatch.Drain,
+   --  from whichever thread SDL answered a dialog on.
+   --  Read through Adi.OS.Testing.
+   procedure Post_Dialog_Result
+     (Callback : Dialog_Callback;
+      Files    : String_Array);
+
+   --  Asked by each Show_* before it opens a dialog: True marks one open
+   --  until its answer is delivered, False means one already is.
+   --  Read through Adi.OS.Testing.
+   function Claim_Dialog return Boolean;
+
 end Adi.OS;

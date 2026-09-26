@@ -284,7 +284,7 @@ src/adi-dispatch.adb   -- Body
 type Deferred_Proc is access procedure;
 
 --  Queue a procedure to run on the main thread next frame.
---  Thread-safe: can be called from any Ada task.
+--  Thread-safe: callable from any thread, Ada task or not.
 procedure Post (Proc : Deferred_Proc);
 
 --  Execute all pending procedures in FIFO order, then clear.
@@ -320,7 +320,7 @@ Adi.Dispatch.Post (Update_UI'Access);
 
 ### Integration
 
-`Adi.App.Run` calls `Adi.Dispatch.Drain` once per frame before processing events and rendering. This is automatic — application code only needs to call `Post`.
+`Adi.App.Run` calls `Adi.Dispatch.Drain` once per frame, after polling events and before ticking and rendering. This is automatic — application code only needs to call `Post`.
 
 ## Testing
 

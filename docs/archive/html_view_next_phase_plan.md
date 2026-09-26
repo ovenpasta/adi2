@@ -62,6 +62,6 @@ Milestone completed: 2026-02-13
 
 ## Example Coverage
 
-- `examples/html_view_example.adb` remains the manual QA harness.
-- Expanded `examples/assets/html_view_example.html` to exercise a wider feature set:
+- `demos/src/html_view_example.adb` remains the manual QA harness.
+- Expanded `demos/assets/html_view_example.html` to exercise a wider feature set:
   - cascade layers, nested lists, unknown tags, inline formatting, links, images, and long scroll content.

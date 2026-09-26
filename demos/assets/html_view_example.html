@@ -1,0 +1,380 @@
+<link rel="stylesheet" href="app://html/theme.css">
+
+<style>
+  body {
+    background-color: rgb(255, 252, 247);
+    color: rgb(52, 46, 39);
+    font-size: 16px;
+    line-height: 1.45;
+  }
+
+  h1 {
+    color: rgb(35, 31, 27);
+    margin: 0px 0px 10px 0px;
+  }
+
+  h2 {
+    color: rgb(78, 66, 54);
+    margin: 22px 0px 8px 0px;
+  }
+
+  p {
+    margin: 8px 0px;
+  }
+
+  a {
+    color: rgb(22, 95, 184);
+  }
+
+  code {
+    color: rgb(66, 57, 46);
+  }
+
+  hr {
+    background-color: rgba(127, 103, 75, 0.55);
+  }
+
+  .lead {
+    margin: 10px 0px 14px 0px;
+    padding: 12px 14px;
+    background-color: rgb(246, 238, 226);
+    color: rgb(64, 52, 40);
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(219, 202, 179);
+    border-radius: 10px;
+    line-height: 1.6;
+  }
+
+  .panel {
+    margin: 10px 0px;
+    padding: 10px 12px;
+    background-color: rgb(252, 248, 240);
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(224, 212, 196);
+    border-radius: 8px;
+  }
+
+  .cascade-class {
+    color: rgb(173, 92, 42);
+  }
+
+  #cascade-id {
+    color: rgb(44, 104, 164);
+  }
+
+  .align-center {
+    text-align: center;
+  }
+
+  .align-right {
+    text-align: right;
+  }
+
+  .roomy {
+    line-height: 2.0;
+  }
+
+  .preline {
+    white-space: pre-line;
+    line-height: 1.75;
+  }
+
+  .pre {
+    white-space: pre;
+    line-height: 1.5;
+  }
+
+  .nowrap {
+    white-space: nowrap;
+  }
+
+  .strike {
+    text-decoration: line-through;
+  }
+
+  .vwvh {
+    font-size: 3vw;
+    line-height: 7vh;
+  }
+
+  .hidden-row {
+    display: none;
+  }
+
+  .small-gap {
+    margin-top: 4px;
+  }
+
+  .list-gallery {
+    margin: 10px 0px;
+    padding: 10px 14px;
+    background-color: rgb(252, 248, 240);
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(224, 212, 196);
+    border-radius: 8px;
+  }
+
+  .list-disc {
+    list-style-type: disc;
+    list-style-position: outside;
+  }
+
+  .list-circle {
+    list-style-type: circle;
+    list-style-position: outside;
+  }
+
+  .list-square {
+    list-style-type: square;
+    list-style-position: outside;
+  }
+
+  .list-decimal {
+    list-style-type: decimal;
+    list-style-position: outside;
+  }
+
+  .list-custom {
+    list-style: "=> " inside;
+  }
+
+  .list-cat {
+    list-style: url(app://cat.svg) disc outside;
+  }
+
+  .list-none {
+    list-style: none;
+  }
+</style>
+
+<div id="html-doc-root" class="doc">
+  <h1>HTML View Showcase</h1>
+
+  <p class="lead">
+    This document is intentionally dense: it exercises parsing, cascade, alignment,
+    spacing, line height, white-space modes, viewport units, images, links, lists,
+    unknown tags, and long-scroll behavior.<br>
+    Source file: <code>demos/assets/html_view_example.html</code>.
+  </p>
+
+  <h2>1) Links and Inline Formatting</h2>
+  <p class="panel">
+    Inline tags: <strong>strong</strong>, <em>emphasis</em>, <span>span</span>,
+    <code>inline_code()</code>, and <span class="strike">line-through text</span>.<br>
+    Try links: <a href="https://example.com/docs/html-view">external docs</a>,
+    <a href="app://section/getting-started">internal route</a>,
+    <a href="app://section/layout/line-box">line-box notes</a>.
+  </p>
+
+  <h2>2) Cascade: tag &lt; class &lt; id &lt; inline</h2>
+  <p class="panel cascade-class" id="cascade-id" style="color: rgb(24, 148, 90);">
+    This sentence uses tag + class + id + inline style. Inline should win.
+  </p>
+  <p class="panel cascade-class" id="cascade-id">
+    This sentence uses tag + class + id. Id should win.
+  </p>
+  <p class="panel cascade-class">
+    This sentence uses tag + class only. Class should win.
+  </p>
+  <p class="panel" style="background-color: rgb(236, 248, 255); border-color: rgb(154, 191, 216); color: rgb(20, 74, 112); line-height: 1.8;">
+    Inline CSS sample: this paragraph sets its own background, border color,
+    text color, and line-height through the <code>style</code> attribute.
+  </p>
+  <p class="panel">
+    Inline chip:
+    <span style="padding: 2px 8px; background-color: rgb(44, 104, 164); color: rgb(255, 255, 255); border-radius: 999px;">
+      inline-badge
+    </span>
+  </p>
+
+  <h2>3) Alignment and Center Support</h2>
+  <p class="panel align-center">
+    This block is centered with <code>text-align: center</code>.
+  </p>
+  <center class="panel">
+    This uses the <code>&lt;center&gt;</code> tag and includes
+    <a href="app://center/link">a centered link</a>.
+  </center>
+  <p class="panel align-right">
+    This block is aligned right with <code>text-align: right</code>.
+  </p>
+
+  <h2>4) Line Height and White-Space</h2>
+  <p class="panel roomy">
+    Extra roomy rhythm via <code>line-height: 2.0</code>.
+    Line spacing should be visibly larger than normal.
+  </p>
+  <p class="panel preline">This uses white-space: pre-line.
+Newlines in source should create new visual lines,
+while runs of spaces still collapse.</p>
+  <p class="panel pre">This uses white-space: pre.
+    Leading spaces,   runs of spaces, and
+line breaks should be preserved.</p>
+  <p class="panel nowrap">
+    This line uses white-space: nowrap and should stay on one line until clipped by the viewport when it gets too long for the available width.
+  </p>
+
+  <h2>5) Block Margin and Padding</h2>
+  <div class="panel" style="padding: 14px;">
+    <p class="panel small-gap" style="margin: 0px 0px 10px 0px;">
+      Inner block A with explicit margin and panel padding.
+    </p>
+    <p class="panel small-gap" style="margin: 10px 0px 0px 0px;">
+      Inner block B demonstrates vertical spacing from margin.
+    </p>
+  </div>
+
+  <h2>5b) Margin Collapse-Through</h2>
+  <p class="panel" style="margin: 0 0 24px 0;">
+    Sibling above with margin-bottom 24px. The transparent
+    <code>&lt;center&gt;</code> below has no padding/border, so its
+    last child's bottom margin should collapse with the next paragraph's
+    top margin (max wins, not sum).
+  </p>
+  <center style="margin: 0; padding: 0;">
+    <p class="panel" style="margin: 24px 0;">
+      Inside center: this paragraph's top and bottom margins should
+      propagate outward through center.
+    </p>
+  </center>
+  <p class="panel" style="margin: 24px 0 0 0;">
+    Sibling below with margin-top 24px. Gap above should be ~24px,
+    not 24+24=48px.
+  </p>
+  <p class="panel preline" style="margin: 32px 0 0 0;">A pre-line block:
+the rendered newline above committed margins, so this paragraph's
+margin-top collapses with the previous paragraph's margin-bottom
+exactly as for normal blocks.</p>
+
+  <h2>6) Lists and Marker Styles</h2>
+  <p class="panel">
+    The next lists showcase all marker styles supported by the widget:
+    <code>disc</code>, <code>circle</code>, <code>square</code>,
+    <code>decimal</code>, custom string markers, image markers, and
+    <code>none</code>. The cat image marker uses
+    <code>list-style-image: url(app://cat.svg)</code>.
+  </p>
+
+  <ul class="list-gallery list-disc">
+    <li>Disc marker with <strong>strong</strong> text.</li>
+    <li>Disc marker with <a href="app://list/disc/link">inline link</a>.</li>
+  </ul>
+
+  <ul class="list-gallery list-circle">
+    <li>Circle marker sample.</li>
+    <li>Circle marker with <em>emphasis</em>.</li>
+  </ul>
+
+  <ul class="list-gallery list-square">
+    <li>Square marker sample.</li>
+    <li>Square marker with nested decimal list:
+      <ol class="list-decimal">
+        <li value="4">nested item starts at 4 via <code>value</code></li>
+        <li>nested item continues at 5</li>
+      </ol>
+    </li>
+  </ul>
+
+  <ol class="list-gallery list-decimal">
+    <li>Decimal marker one.</li>
+    <li value="8">Decimal marker jumps to 8 via <code>li value</code>.</li>
+    <li>Decimal marker continues at 9.</li>
+  </ol>
+
+  <ul class="list-gallery list-custom">
+    <li>Custom string marker rendered with <code>list-style</code> shorthand.</li>
+    <li>Inside markers flow with the text line box.</li>
+  </ul>
+
+  <ul class="list-gallery list-cat">
+    <li>Cat SVG marker from <code>app://cat.svg</code>.</li>
+    <li>If image loading fails, the fallback marker is a disc.</li>
+  </ul>
+
+  <ul class="list-gallery list-none">
+    <li>This list uses <code>list-style: none</code>.</li>
+    <li>No marker should appear for these rows.</li>
+  </ul>
+
+  <h2>7) Images and Fallback</h2>
+  <p class="panel">
+    Callback-loaded SVG image: <img src="app://cat.svg" alt="cat image">.
+  </p>
+  <p class="panel align-center">
+    Centered image (sized with viewport width):<br>
+    <img src="app://cat.svg" alt="centered cat" style="width: 34vw;">
+  </p>
+  <p class="panel align-center">
+    Detailed SVG sample (<code>camera.svg</code>):<br>
+    <img src="app://camera.svg" alt="camera icon" style="width: 42vw;">
+  </p>
+  <p class="panel">
+    Near full-width image using viewport width (<code>88vw</code>):<br>
+    <img src="app://tiger.svg" alt="wide tiger" style="width: 88vw;">
+  </p>
+  <p class="panel">
+    Missing image fallback text: <img src="app://missing-image" alt="(missing image fallback text)">.
+  </p>
+  <p class="panel">
+    Linked image fragment: <a href="app://open/cat"><img src="app://cat.svg" alt="linked cat"></a>
+  </p>
+  <p class="panel align-center">
+    Inline SVG block (standard HTML style):<br>
+    <svg viewBox="0 0 24 24" style="width: 80px; height: 80px;">
+      <path d="M4 4 H20 V20 H4 Z" fill="rgb(234, 245, 255)" stroke="rgb(35, 71, 104)" stroke-width="1.5"></path>
+      <path d="M8 8 H16 V16 H8 Z" fill="rgb(58, 129, 189)"></path>
+      <path d="M12 10 V14" stroke="rgb(255, 255, 255)" stroke-width="1.5"></path>
+    </svg>
+  </p>
+
+  <h2>8) Unknown Tags Are Transparent</h2>
+  <custom-panel data-kind="demo" class="panel">
+    <p>
+      Children of unknown tags still render.
+      <a href="app://unknown-tag/child">Click me</a>
+    </p>
+  </custom-panel>
+
+  <h2>9) Viewport Units (vw / vh)</h2>
+  <p class="panel vwvh">
+    This line uses <code>font-size: 3vw</code> and <code>line-height: 7vh</code>.
+    Resize the window and watch it respond to the html viewport.
+  </p>
+
+  <h2>10) Display None and Entities</h2>
+  <p class="hidden-row">This row should be hidden by display:none.</p>
+  <p class="panel">
+    Entity decode probe: &amp; &lt; &gt; &quot; &#39;.
+  </p>
+
+  <hr>
+
+  <h2>11) Long Scroll Content</h2>
+  <p>Row 01: The quick brown fox jumps over the lazy dog.</p>
+  <p>Row 02: Pack my box with five dozen liquor jugs.</p>
+  <p>Row 03: Sphinx of black quartz, judge my vow.</p>
+  <p>Row 04: Waltz, bad nymph, for quick jigs vex.</p>
+  <p>Row 05: Glib jocks quiz nymph to vex dwarf.</p>
+  <p>Row 06: Bright vixens jump; dozy fowl quack.</p>
+  <p>Row 07: Quick zephyrs blow, vexing daft Jim.</p>
+  <p>Row 08: How razorback-jumping frogs can level six piqued gymnasts.</p>
+  <p>Row 09: Cozy lummox gives smart squid who asks for job pen.</p>
+  <p>Row 10: A wizard's job is to vex chumps quickly in fog.</p>
+  <p>Row 11: Few black taxis drive up major roads on quiet hazy nights.</p>
+  <p>Row 12: Heavy boxes perform quick waltzes and jigs for my amazed crowd.</p>
+  <p>Row 13: Jumpy halflings vex dwarves while bright foxes quiz bold knights.</p>
+  <p>Row 14: The five boxing wizards jump quickly through lazy fog.</p>
+  <p>Row 15: Grumpy wizards make toxic brew for the jovial queen.</p>
+  <p>Row 16: Quick movement of the enemy will jeopardize six gunboats.</p>
+  <p>Row 17: Back in June we delivered oxygen equipment of the same size.</p>
+  <p>Row 18: We promptly judged antique ivory buckles for the next prize.</p>
+  <p>Row 19: Big fjords vex quick waltzing nymphs in cozy haze.</p>
+  <p>Row 20: End of long-scroll section; scrollbar should reach this line cleanly.</p>
+
+  <p class="lead">
+    End of showcase. Edit this file in the Source tab and switch back to Preview to re-render.
+  </p>
+</div>

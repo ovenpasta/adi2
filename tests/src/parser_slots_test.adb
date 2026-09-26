@@ -40,7 +40,7 @@ pragma Unreferenced (Test_Properties);
 procedure Parser_Slots_Test is
 
    Corpus_Dirs : constant array (1 .. 2) of Unbounded_String :=
-     [To_Unbounded_String ("examples/css"),
+     [To_Unbounded_String ("demos/css"),
       To_Unbounded_String ("tests/css")];
 
    --  A gap axis, wherever Overlay left the value: a pair equal on

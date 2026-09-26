@@ -1980,7 +1980,7 @@ procedure Html_View_Test is
 
       --  Set_Default_Stylesheet from file path
       Adi.Widget.Html_View.Set_Default_Stylesheet
-        (W, "examples/assets/html/default.css");
+        (W, "demos/assets/html/default.css");
       Assert
         (Adi.Widget.Html_View.Get_Default_Stylesheet (W)'Length > 0,
          "set default stylesheet from file loads non-empty CSS");

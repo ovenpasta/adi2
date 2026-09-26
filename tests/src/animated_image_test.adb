@@ -24,7 +24,7 @@ procedure Animated_Image_Test is
 
    --  Eight frames. Shared with the example rather than copied: it is a
    --  licensed binary and one of it is enough.
-   Fixture : constant String := "examples/assets/animhorse.gif";
+   Fixture : constant String := "demos/assets/animhorse.gif";
 
    use type Adi.Texture_Cache.Event_Count;
 
@@ -180,11 +180,11 @@ procedure Animated_Image_Test is
 
       --  The cache resolves through its own search path, not the
       --  working directory.
-      Adi.Assets.Add_Path ("examples/assets");
+      Adi.Assets.Add_Path ("demos/assets");
       A := Adi.Assets.Get_Animated_Image ("animhorse.gif");
       if not Is_Valid (A) then
          Assert (False, "the cache resolves the fixture");
-         Adi.Assets.Remove_Path ("examples/assets");
+         Adi.Assets.Remove_Path ("demos/assets");
          return;
       end if;
 
@@ -202,7 +202,7 @@ procedure Animated_Image_Test is
       Assert (Get_Current_Image (A) = Adi.Image.Null_Image_Handle,
               "and asking one for a frame is answered, not dereferenced");
 
-      Adi.Assets.Remove_Path ("examples/assets");
+      Adi.Assets.Remove_Path ("demos/assets");
    end Test_Asset_Invalidation;
 
    ---------------------------------------------------------------------
@@ -467,11 +467,11 @@ procedure Animated_Image_Test is
    begin
       Section ("invalidating one path stales the handles for it");
 
-      Adi.Assets.Add_Path ("examples/assets");
+      Adi.Assets.Add_Path ("demos/assets");
       H := Adi.Assets.Get_Animated_Image ("animhorse.gif");
       if not Is_Valid (H) then
          Assert (False, "the cache resolves the fixture");
-         Adi.Assets.Remove_Path ("examples/assets");
+         Adi.Assets.Remove_Path ("demos/assets");
          return;
       end if;
       Assert (Handle_Is_Registered (H), "and the handle names it");
@@ -481,7 +481,7 @@ procedure Animated_Image_Test is
       Assert (not Handle_Is_Registered (H),
               "Invalidating retires the slot, so the handle it gave out"
               & " is stale rather than dangling");
-      Adi.Assets.Remove_Path ("examples/assets");
+      Adi.Assets.Remove_Path ("demos/assets");
    end Test_Invalidate_Stales;
 
    ---------------------------------------------------------------------

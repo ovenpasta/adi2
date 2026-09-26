@@ -7,8 +7,8 @@
 # Build artifacts
 /tests/bin/
 /tests/obj/
-/examples/bin/
-/examples/obj/
+/demos/bin/
+/demos/obj/
 /*.o
 /*.ali
 

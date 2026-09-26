@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="demos/css/material_demo.css"/>
+
+  <enum name="Page" values="Home, Forms, Settings, Controls"/>
+  <generic name="Page_Stack" package="Adi.Widget.Stack" type-param="Page"/>
+  <generic name="Nav_Options" package="Adi.Widget.Button.Options" type-param="Page"/>
+  <generic name="Float_Slider" package="Adi.Widget.Slider" type-param="Float"/>
+  <generic name="Float_Value_Input" package="Adi.Widget.Value_Input" type-param="Float"/>
+  <generic name="Int_Value_Input" package="Adi.Widget.Integer_Value_Input" type-param="Integer"/>
+  <callback name="On_Page" type="Page_Stack.Page_Changed_Callback"/>
+  <callback name="On_Dark_Mode" type="Adi.Widget.Button.Toggle_Callback"/>
+  <callback name="On_Get_Started" type="Adi.Widget.Button.Click_Callback"/>
+  <callback name="On_Lock_UI" type="Adi.Widget.Button.Toggle_Callback"/>
+  <callback name="On_UI_Scale" type="Float_Slider.Value_Changed_Callback"/>
+  <callback name="On_Text_Scale" type="Float_Slider.Value_Changed_Callback"/>
+  <!-- The Controls slider and value input show the same number,
+       each editable, so moving one updates the other. -->
+  <callback name="On_Control_Slider" type="Float_Slider.Value_Changed_Callback"/>
+  <callback name="On_Control_Value" type="Float_Value_Input.Value_Changed_Callback"/>
+
+  <window title="Material Demo" width="617dp" height="592dp">
+    <box id="Root" class="root">
+      <box class="app-bar">
+        <label id="App_Title" text="Material Demo" class="app-title"/>
+      </box>
+      <box id="Nav_Bar" class="nav-bar">
+        <button id="Btn_Home"     text="Home"     class="nav-btn"/>
+        <button id="Btn_Forms"    text="Forms"    class="nav-btn"/>
+        <button id="Btn_Settings" text="Settings" class="nav-btn"/>
+        <button id="Btn_Controls" text="Controls" class="nav-btn"/>
+      </box>
+      <stack id="Pages" generic="Page_Stack" class="pages">
+        <page key="Home">
+          <box class="page">
+            <box class="card">
+              <label text="Welcome" class="label-inline card-title"/>
+              <label text="A Material Design 3 demo built with Adi." class="label-inline card-body"/>
+              <label text="Edit demos/css/material_demo.css to live-reload." class="label-inline card-hint"/>
+              <button text="Get Started" class="btn btn-primary" on-clicked="On_Get_Started"/>
+            </box>
+          </box>
+        </page>
+        <page key="Forms">
+          <box class="page">
+            <box class="card">
+              <label text="Form Controls" class="label-inline card-title"/>
+              <text-input text="" class="text-field" id="Name_Input" label="Name"/>
+              <label text="Country" class="label-inline field-label"/>
+              <combo-box class="combo" id="Country_Combo">
+                <item text="United States"/>
+                <item text="United Kingdom"/>
+                <item text="Germany"/>
+                <item text="France"/>
+                <item text="Japan"/>
+              </combo-box>
+              <box class="btn-row">
+                <button text="Submit" class="btn btn-primary"/>
+                <button text="Cancel" class="btn btn-secondary"/>
+              </box>
+            </box>
+          </box>
+        </page>
+        <page key="Controls">
+          <box class="page">
+            <box class="card">
+              <label text="Enabled vs Disabled" class="label-inline card-title"/>
+              <box class="control-grid">
+                <!-- Header row -->
+                <label text="" class="label-inline grid-header"/>
+                <label text="Enabled" class="label-inline grid-header"/>
+                <label text="Disabled" class="label-inline grid-header"/>
+                <!-- Button row -->
+                <label text="Button" class="label-inline grid-label"/>
+                <button text="Click Me" class="btn btn-primary grid-cell"/>
+                <button text="Click Me" class="btn btn-primary grid-cell" disabled="true"/>
+                <!-- Text Input row -->
+                <label text="Text Input" class="label-inline grid-label"/>
+                <text-input id="Enabled_Input" text="Editable" class="text-field grid-cell"/>
+                <text-input id="Disabled_Input" text="Read-only" class="text-field grid-cell" disabled="true"/>
+                <!-- Switch row -->
+                <label text="Switch" class="label-inline grid-label"/>
+                <switch checked="true" class="setting-switch grid-cell"/>
+                <switch checked="true" class="setting-switch grid-cell" disabled="true"/>
+                <!-- Combo Box row -->
+                <label text="Combo Box" class="label-inline grid-label"/>
+                <combo-box id="Enabled_Combo" class="combo grid-cell">
+                  <item text="Enabled"/>
+                </combo-box>
+                <combo-box id="Disabled_Combo" class="combo grid-cell" disabled="true">
+                  <item text="Disabled"/>
+                </combo-box>
+                <!-- Slider row -->
+                <label text="Slider" class="label-inline grid-label"/>
+                <slider id="Enabled_Slider" generic="Float_Slider" min="0.0" max="100.0" value="50.0" class="slider grid-cell grid-slider" on-changed="On_Control_Slider"/>
+                <slider id="Disabled_Slider" generic="Float_Slider" min="0.0" max="100.0" value="75.0" class="slider grid-cell grid-slider" disabled="true"/>
+                <!-- Value Input row -->
+                <label text="Value Input" class="label-inline grid-label"/>
+                <value-input id="Enabled_Value_Input" generic="Float_Value_Input" min="0.0" max="100.0" value="50.0" class="num-field grid-cell" on-value-changed="On_Control_Value"/>
+                <integer-value-input id="Disabled_Value_Input" generic="Int_Value_Input" min="0" max="100" value="75" class="num-field grid-cell" disabled="true"/>
+              </box>
+            </box>
+          </box>
+        </page>
+        <page key="Settings">
+          <box class="page">
+            <box class="card">
+              <label text="Settings" class="label-inline card-title"/>
+              <box class="setting-row">
+                <label text="Dark Mode" class="label-inline setting-label"/>
+                <switch id="Dark_Switch" checked="true" class="setting-switch" on-toggled="On_Dark_Mode"/>
+              </box>
+              <box class="setting-row">
+                <label text="UI Scale" class="label-inline setting-label"/>
+                <slider id="UI_Scale_Slider" generic="Float_Slider" min="80.0" max="160.0" value="100.0" class="slider" on-changed="On_UI_Scale"/>
+              </box>
+              <box class="setting-row">
+                <label text="Text Scale" class="label-inline setting-label"/>
+                <slider id="Text_Scale_Slider" generic="Float_Slider" min="80.0" max="160.0" value="100.0" class="slider" on-changed="On_Text_Scale"/>
+              </box>
+              <box class="setting-row">
+                <label text="Notifications" class="label-inline setting-label"/>
+                <switch checked="true" class="setting-switch"/>
+              </box>
+              <box class="setting-row">
+                <label text="Auto-save" class="label-inline setting-label"/>
+                <switch checked="true" class="setting-switch"/>
+              </box>
+            </box>
+          </box>
+        </page>
+      </stack>
+      <box id="Lock_Bar" class="nav-bar setting-row lock-bar">
+        <label text="Lock UI" class="label-inline setting-label"/>
+        <switch id="Lock_Switch" class="setting-switch" on-toggled="On_Lock_UI"/>
+      </box>
+    </box>
+  </window>
+
+  <option-group id="Nav" generic="Nav_Options" on-changed="On_Page">
+    <option value="Home"     button="Btn_Home"/>
+    <option value="Forms"    button="Btn_Forms"/>
+    <option value="Settings" button="Btn_Settings"/>
+    <option value="Controls" button="Btn_Controls"/>
+  </option-group>
+</adi>

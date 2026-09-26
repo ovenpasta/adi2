@@ -152,7 +152,7 @@ counters and under the same per-frame reset. They reach
 `perf_stats` as `selector_memo_hits` and `selector_memo_misses`.
 
 `tests/src/selector_lookup_test.adb` holds both lookups to the scans they
-replaced, over every sheet in `examples/css/` and `tests/css/`, and holds
+replaced, over every sheet in `demos/css/` and `tests/css/`, and holds
 a memo hit to a fresh fold.
 
 ### Reading what the stores hold

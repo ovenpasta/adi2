@@ -8,7 +8,7 @@ on:
 
 jobs:
   #  The library and the Ada tests. The widget-tree goldens are left out:
-  #  their runner looks for examples/bin/<name> and shells out to a .sh,
+  #  their runner looks for demos/bin/<name> and shells out to a .sh,
   #  neither of which holds here.
   test:
     runs-on: windows-latest

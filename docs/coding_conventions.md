@@ -52,10 +52,10 @@ src/mcp/, src/mcp_stub/   - MCP bridge; the stub replaces it outside development
 tests/src/                - Test programs
 tests/css/                - CSS a test compares against its own runtime parse
 tests/generated/          - Ada generated from tests/css/
-examples/                 - Example programs
-examples/css/             - CSS source files
-examples/xml/             - Declarative UI definitions
-examples/generated/       - Ada generated from css/ and xml/
+demos/                 - Example programs
+demos/css/             - CSS source files
+demos/xml/             - Declarative UI definitions
+demos/generated/       - Ada generated from css/ and xml/
 tools/                    - Build/generation scripts
 config/                   - Build config (posix/, windows/, darwin/ and build profiles)
 ```

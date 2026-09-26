@@ -4,7 +4,7 @@ This guide walks through registering a new example program in the Adi build syst
 
 ## 1. Create the CSS file
 
-Create `examples/css/<name>.css` with your stylesheet. Follow existing examples for conventions (dark themes, class selectors, part selectors like `::label` and `::icon`).
+Create `demos/css/<name>.css` with your stylesheet. Follow existing examples for conventions (dark themes, class selectors, part selectors like `::label` and `::icon`).
 
 ### Pick a pixel convention
 
@@ -17,12 +17,12 @@ See `docs/css_styling.md` "Treating CSS `px` as logical pixels" for the trade-of
 
 ## 2. Create the XML UI file (optional)
 
-If using the XML UI system, create `examples/xml/<name>.xml`. The root element is `<adi>`, containing a `<link>` to the CSS file and a `<window>` with widget children:
+If using the XML UI system, create `demos/xml/<name>.xml`. The root element is `<adi>`, containing a `<link>` to the CSS file and a `<window>` with widget children:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <adi>
-  <link rel="stylesheet" href="examples/css/image_example.css"/>
+  <link rel="stylesheet" href="demos/css/image_example.css"/>
   <window title="Image Example" width="1100" height="700">
     <box id="Root" class="root">
       <label text="Hello" class="title"/>
@@ -38,11 +38,11 @@ Widgets with an `id` attribute become named handle fields accessible from Ada co
 
 ## 3. Register in the code generation scripts
 
-An example that ships CSS must be listed in `tools/generate_example_styles.sh`,
-and one that ships XML in `tools/generate_example_ui.sh`; the entry is what
+An example that ships CSS must be listed in `tools/generate_demo_styles.sh`,
+and one that ships XML in `tools/generate_demo_ui.sh`; the entry is what
 writes the generated package the example compiles against.
 
-### `tools/generate_example_styles.sh`
+### `tools/generate_demo_styles.sh`
 
 Add a `generate_if_needed` call for the CSS file:
 
@@ -50,7 +50,7 @@ Add a `generate_if_needed` call for the CSS file:
 generate_if_needed "$CSS_DIR/image_example.css" "$OUT_DIR/image_example_styles.ads" "Image_Example_Styles"
 ```
 
-### `tools/generate_example_ui.sh` (if using XML)
+### `tools/generate_demo_ui.sh` (if using XML)
 
 Add a `generate_if_needed` call for the XML file:
 
@@ -58,35 +58,35 @@ Add a `generate_if_needed` call for the XML file:
 generate_if_needed "$XML_DIR/image_example.xml" "Image_Example_UI"
 ```
 
-### `tools/generate_example_bundles.sh` (if bundling assets)
+### `tools/generate_demo_bundles.sh` (if bundling assets)
 
 This script has no `generate_if_needed` helper: it carries one hand-written
 staleness check and one `binary_to_ada.py` invocation. Copy that block, giving
 the new bundle its own `OUT_FILE`, asset list and `--package-name`.
 
-### `tools/generate_example_translations.sh` (if translated)
+### `tools/generate_demo_translations.sh` (if translated)
 
-Nothing to add per example. The script picks up every `examples/i18n/*.po`
+Nothing to add per example. The script picks up every `demos/i18n/*.po`
 and emits the single `I18N_Example_Translations` package; a new example reuses
 it by adding its strings to the existing `.po` files.
 
 ### Run the generators
 
 ```bash
-python3 tools/css_to_ada.py examples/css/image_example.css examples/generated/image_example_styles.ads --package-name Image_Example_Styles
-python3 tools/xml_to_ada.py examples/xml/image_example.xml --output-dir examples/generated --package-name Image_Example_UI
+python3 tools/css_to_ada.py demos/css/image_example.css demos/generated/image_example_styles.ads --package-name Image_Example_Styles
+python3 tools/xml_to_ada.py demos/xml/image_example.xml --output-dir demos/generated --package-name Image_Example_UI
 ```
 
 For asset bundling:
 ```bash
-python3 tools/binary_to_ada.py --output-dir examples/generated/ --package-name My_Example_Bundle --base-dir examples/assets/ examples/assets/icon.svg
+python3 tools/binary_to_ada.py --output-dir demos/generated/ --package-name My_Example_Bundle --base-dir demos/assets/ demos/assets/icon.svg
 ```
 
-The generated files go in `examples/generated/`.
+The generated files go in `demos/generated/`.
 
 ## 4. Create the Ada main
 
-Create `examples/<name>.adb`. For XML-based examples, the pattern is:
+Create `demos/src/<name>.adb`. For XML-based examples, the pattern is:
 
 ```ada
 pragma Ada_2022;
@@ -114,48 +114,33 @@ begin
 end Image_Example;
 ```
 
-## 5. Register in `examples/examples.gpr`
+## 5. Register in `demos/demos.gpr`
 
-Add the example name to the `Example_Kind` type on line 4:
+Add `"image_example.adb"` to the project's `Main` list.
 
-```
-type Example_Kind is (..., "image_example");
-```
+## 6. Register in `demos/alire.toml`
 
-This is the list `-XEXAMPLE_KIND` is checked against, so an unlisted name
-cannot be built at all.
-
-## 6. Register in `tools/build_examples.sh`
-
-Add the example name to the `ALL_EXAMPLES` array:
-
-```bash
-ALL_EXAMPLES=(
-  ...
-  image_example
-)
-```
-
-The array is what a bare `tools/build_examples.sh` iterates over. Naming the
-example on the command line builds it either way; only the no-argument run
-needs the entry.
+Add `"image_example"` to `executables`, so `alr run image_example` can select it.
+`tools/build_demos.sh` builds the Alire crate and needs no separate list.
+Call `Demo_Paths.Initialize` at the start of the main procedure so resources
+resolve from both the demos crate and the repository root.
 
 ## 7. Register in `tools/configure.sh`
 
 `configure.sh` writes a standalone build tree that does not read
-`examples/examples.gpr`, so the name has to be added in both of its own lists.
+`demos/demos.gpr`, so the name has to be added in both of its own lists.
 
-### `Example_Kind` in the generated `examples_build.gpr`
+### `Demo_Kind` in the generated `demos_build.gpr`
 
-The heredoc at `type Example_Kind is`:
+The heredoc at `type Demo_Kind is`:
 
 ```
       "image_example",
 ```
 
-### `EXAMPLE_KINDS` in the generated `build_all.sh`
+### `DEMO_KINDS` in the generated `build_all.sh`
 
-The array at `EXAMPLE_KINDS=(`:
+The array at `DEMO_KINDS=(`:
 
 ```bash
   image_example
@@ -165,13 +150,13 @@ The array at `EXAMPLE_KINDS=(`:
 
 ```bash
 # Build just this example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=image_example
+tools/build_demos.sh image_example
 
 # Run it
-./examples/bin/image_example
+./demos/bin/image_example
 ```
 
-Or build every example with `tools/build_examples.sh`.
+Or build every example with `tools/build_demos.sh`.
 
 ## Checklist
 
@@ -179,13 +164,13 @@ Six registration sites, plus the sources themselves.
 
 | Step | File | What to add |
 |------|------|-------------|
-| CSS | `examples/css/<name>.css` | Stylesheet |
-| XML (opt) | `examples/xml/<name>.xml` | UI definition |
-| Ada main | `examples/<name>.adb` | Entry point |
-| Registration 1 | `examples/examples.gpr` | Name in `Example_Kind` |
-| Registration 2 | `tools/build_examples.sh` | Name in `ALL_EXAMPLES` |
-| Registration 3 | `tools/configure.sh` | Name in the generated `Example_Kind` |
-| Registration 4 | `tools/configure.sh` | Name in `EXAMPLE_KINDS` |
-| Registration 5 | `tools/generate_example_styles.sh` | `generate_if_needed` call |
-| Registration 6 | `tools/generate_example_ui.sh` | `generate_if_needed` call (if XML) |
-| Bundle gen | `tools/generate_example_bundles.sh` | A copy of the existing generate block (if bundling assets) |
+| CSS | `demos/css/<name>.css` | Stylesheet |
+| XML (opt) | `demos/xml/<name>.xml` | UI definition |
+| Ada main | `demos/src/<name>.adb` | Entry point |
+| Registration 1 | `demos/demos.gpr` | Filename in `Main` |
+| Registration 2 | `demos/alire.toml` | Name in `executables` |
+| Registration 3 | `tools/configure.sh` | Name in the generated `Demo_Kind` |
+| Registration 4 | `tools/configure.sh` | Name in `DEMO_KINDS` |
+| Registration 5 | `tools/generate_demo_styles.sh` | `generate_if_needed` call |
+| Registration 6 | `tools/generate_demo_ui.sh` | `generate_if_needed` call (if XML) |
+| Bundle gen | `tools/generate_demo_bundles.sh` | A copy of the existing generate block (if bundling assets) |

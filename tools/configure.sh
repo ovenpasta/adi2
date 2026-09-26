@@ -10,7 +10,7 @@ Generates build files in <build-dir> (no writes to source dir):
   <build-dir>/config/adi_linker_config.gpr
   <build-dir>/projects/adi_build.gpr
   <build-dir>/projects/tests_build.gpr
-  <build-dir>/projects/examples_build.gpr
+  <build-dir>/projects/demos_build.gpr
   <build-dir>/build_all.sh
 EOF
 }
@@ -85,7 +85,7 @@ mkdir -p "${BUILD_DIR}/adi/obj" "${BUILD_DIR}/adi/lib"
 mkdir -p "${BUILD_DIR}/vendor/plutosvg/obj" "${BUILD_DIR}/vendor/plutosvg/lib"
 mkdir -p "${BUILD_DIR}/vendor/rlottie/obj" "${BUILD_DIR}/vendor/rlottie/lib"
 mkdir -p "${BUILD_DIR}/tests/obj" "${BUILD_DIR}/tests/bin"
-mkdir -p "${BUILD_DIR}/examples/obj" "${BUILD_DIR}/examples/bin"
+mkdir -p "${BUILD_DIR}/demos/obj" "${BUILD_DIR}/demos/bin"
 
 #  adi.gpr withs config/adi2_config.gpr; supply it when Alire has not.
 bash "${SOURCE_DIR}/tools/ensure_build_config.sh" "${SOURCE_DIR}" || exit 1
@@ -295,12 +295,12 @@ project Tests_Build is
 end Tests_Build;
 EOF
 
-cat > "${BUILD_DIR}/projects/examples_build.gpr" <<EOF
+cat > "${BUILD_DIR}/projects/demos_build.gpr" <<EOF
 with "adi_build.gpr";
 with "../config/adi_linker_config.gpr";
 
-project Examples_Build is
-   type Example_Kind is
+project Demos_Build is
+   type Demo_Kind is
      ("label_example",
       "button_example",
       "transition_example",
@@ -328,11 +328,11 @@ project Examples_Build is
       "hello_example",
       "hello_raw_example",
       "svg_example");
-   Kind : Example_Kind := external ("EXAMPLE_KIND", "label_example");
+   Kind : Demo_Kind := external ("DEMO_KIND", "label_example");
 
-   for Source_Dirs use ("${SOURCE_DIR}/examples", "${SOURCE_DIR}/examples/generated");
-   for Object_Dir use "${BUILD_DIR}/examples/obj/" & Kind;
-   for Exec_Dir use "${BUILD_DIR}/examples/bin";
+   for Source_Dirs use ("${SOURCE_DIR}/demos/src", "${SOURCE_DIR}/demos/generated");
+   for Object_Dir use "${BUILD_DIR}/demos/obj/" & Kind;
+   for Exec_Dir use "${BUILD_DIR}/demos/bin";
    for Main use (Kind & ".adb");
    for Create_Missing_Dirs use "True";
 
@@ -347,7 +347,7 @@ project Examples_Build is
          Profile_Ada_Compiler_Switches := ("-O2", "-g", "-gnata");
       when "development" =>
          --  No -gnatW8 here: generated example sources carry raw UTF-8 in
-         --  String literals (matches the Alire examples.gpr, which also
+         --  String literals (matches the Alire demos.gpr, which also
          --  builds them without -gnatW8).
          Profile_Ada_Compiler_Switches := ("-Og", "-g", "-gnatwa", "-gnatw.X", "-gnatVa");
    end case;
@@ -386,7 +386,7 @@ project Examples_Build is
         Adi_Linker_Config.SDL_Linker_Switches &
         Adi_Linker_Config.Platform_Linker_Switches;
    end Linker;
-end Examples_Build;
+end Demos_Build;
 EOF
 
 cat > "${BUILD_DIR}/build_all.sh" <<EOF
@@ -405,10 +405,10 @@ if [[ -n "\${CGPR_FILE}" ]]; then
 fi
 
 echo "[build_all] generate CSS Ada packages"
-bash "\${SOURCE_DIR}/tools/generate_example_styles.sh"
+bash "\${SOURCE_DIR}/tools/generate_demo_styles.sh"
 
 echo "[build_all] generate XML Ada packages"
-bash "\${SOURCE_DIR}/tools/generate_example_ui.sh"
+bash "\${SOURCE_DIR}/tools/generate_demo_ui.sh"
 
 echo "[build_all] generate test CSS Ada packages"
 bash "\${SOURCE_DIR}/tools/generate_test_styles.sh"
@@ -436,7 +436,7 @@ for kind in "\${TEST_KINDS[@]}"; do
   gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XTEST_KIND="\${kind}"
 done
 
-EXAMPLE_KINDS=(
+DEMO_KINDS=(
   label_example
   button_example
   transition_example
@@ -466,9 +466,9 @@ EXAMPLE_KINDS=(
   svg_example
 )
 
-for kind in "\${EXAMPLE_KINDS[@]}"; do
+for kind in "\${DEMO_KINDS[@]}"; do
   echo "[build_all] build example: \${kind}"
-  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XEXAMPLE_KIND="\${kind}"
+  gprbuild "\${GPR_ARGS[@]}" -P "\${BUILD_DIR}/projects/demos_build.gpr" -XADI_PLATFORM="\${TARGET_PLATFORM}" -XADI_BUILD_PROFILE="\${BUILD_PROFILE}" -XDEMO_KIND="\${kind}"
 done
 
 echo "[build_all] complete"
@@ -481,7 +481,7 @@ cat > "${BUILD_DIR}/BUILDING.md" <<EOF
 
 gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/adi_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT}
 gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/tests_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT} -XTEST_KIND=styles
-gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/examples_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT} -XEXAMPLE_KIND=font_example
+gprbuild ${CGPR_FILE:+--config="${CGPR_FILE}"} -P "${BUILD_DIR}/projects/demos_build.gpr" -XADI_PLATFORM="${TARGET_PLATFORM}" -XADI_BUILD_PROFILE=${BUILD_PROFILE_DEFAULT} -XDEMO_KIND=font_example
 
 One-command full build:
 "${BUILD_DIR}/build_all.sh"

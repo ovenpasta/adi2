@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -15,8 +16,8 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BIN_DIR = ROOT / "examples" / "bin"
-SRC_DIR = ROOT / "examples"
+BIN_DIR = ROOT / "demos" / "bin"
+SRC_DIR = ROOT / "demos" / "src"
 
 #  In-tree, so every machine measures the same glyphs. Also what the wasm
 #  build embeds, which keeps the browser on the same numbers.
@@ -53,25 +54,14 @@ def controllable(names: list[str]) -> tuple[list[str], list[str]]:
 
 
 def all_examples() -> list[str]:
-    """Every example the build script knows about.
-
-    One list, kept where the build already keeps it. The array ends at a
-    parenthesis in the first column, so a comment holding one does not
-    cut the list short.
-    """
-    script = (ROOT / "tools" / "build_examples.sh").read_text()
-    body = script.split("ALL_EXAMPLES=(", 1)[1].split("\n)", 1)[0]
-    names = []
-    for line in body.splitlines():
-        name = line.split("#", 1)[0].strip()
-        if name:
-            names.append(name)
-    return sorted(names)
+    """Every demo main declared in the Alire project."""
+    project = (ROOT / "demos" / "demos.gpr").read_text()
+    return sorted(re.findall(r'"(\w+)\.adb"', project))
 
 
 def build(*names: str) -> None:
     subprocess.run(
-        [str(ROOT / "tools" / "build_examples.sh"), *names],
+        [str(ROOT / "tools" / "build_demos.sh"), *names],
         cwd=ROOT, check=True, stdout=subprocess.DEVNULL,
     )
 

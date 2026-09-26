@@ -299,7 +299,7 @@ Important flags:
 
 - `-fwasm-exceptions` -- **required when linking against an `-eh`
   runtime**; keeps the wasm EH personality / unwind tables. (See
-  `examples/hac_web/Makefile`.) Add `-sWASM_LEGACY_EXCEPTIONS=0` when
+  `demos/hac_web/Makefile`.) Add `-sWASM_LEGACY_EXCEPTIONS=0` when
   using the `-exnref` encoding.
 - `-sALLOW_MEMORY_GROWTH=1` -- Ada programs allocate a lot; fixed memory
   runs out quickly.

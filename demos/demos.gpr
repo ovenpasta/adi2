@@ -1,0 +1,75 @@
+with "adi.gpr";
+with "config/demos_config.gpr";
+
+project Demos is
+
+   for Source_Dirs use ("src/", "config/", "generated");
+   for Object_Dir use "obj/" & Demos_Config.Build_Profile;
+   for Create_Missing_Dirs use "True";
+   for Exec_Dir use "bin";
+   for Main use (
+      "label_example.adb",
+      "button_example.adb",
+      "transition_example.adb",
+      "text_input_example.adb",
+      "text_editor_example.adb",
+      "demo_flex.adb",
+      "demo_block.adb",
+      "stack_example.adb",
+      "list_box_example.adb",
+      "combo_box_example.adb",
+      "overflow_example.adb",
+      "grid_example.adb",
+      "dialog_example.adb",
+      "font_example.adb",
+      "runtime_css_example.adb",
+      "animated_image_example.adb",
+      "rlottie_example.adb",
+      "html_view_example.adb",
+      "material_demo.adb",
+      "image_example.adb",
+      "slider_example.adb",
+      "value_input_example.adb",
+      "assets_example.adb",
+      "gradient_example.adb",
+      "hello_example.adb",
+      "hello_raw_example.adb",
+      "svg_example.adb");
+
+
+   Ada_Switches := ("-gnat2022", "-gnatX0", "-gnatef", "-g", "-gnatwa", "-gnata");
+   --  See adi.gpr: a stored traceback needs these on 32-bit Windows.
+   type Frame_Pointer_Kind is ("yes", "no");
+   Frame_Pointer : Frame_Pointer_Kind :=
+     external ("ADI_FRAME_POINTER", "yes");
+
+   Frame_Pointer_Switches := ();
+   case Frame_Pointer is
+      when "yes" => Frame_Pointer_Switches := ("-fno-omit-frame-pointer");
+      when "no"  => Frame_Pointer_Switches := ();
+   end case;
+
+   package Compiler is
+      for Default_Switches ("Ada") use Demos_Config.Ada_Compiler_Switches
+      & Ada_Switches & Frame_Pointer_Switches;
+   end Compiler;
+
+   --  See adi.gpr: a 32-bit Windows build cannot store one.
+   type Traceback_Kind is ("yes", "no");
+   Traceback : Traceback_Kind := external ("ADI_TRACEBACK", "yes");
+
+   Binder_Switches := ();
+   case Traceback is
+      when "yes" => Binder_Switches := ("-E");
+      when "no"  => Binder_Switches := ();
+   end case;
+
+   package Binder is
+      for Switches ("Ada") use Binder_Switches;
+   end Binder;
+
+   package Install is
+      for Artifacts (".") use ("share");
+   end Install;
+
+end Demos;

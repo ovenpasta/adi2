@@ -45,7 +45,7 @@ procedure Idle_Tick_Test is
    Fade_Seconds : constant := 0.5;
    Fade_Frames  : constant := 100;
 
-   Gif    : constant String := "examples/assets/animhorse.gif";
+   Gif    : constant String := "demos/assets/animhorse.gif";
    Lottie : constant String := "tests/assets/tiny_anim.json";
 
    ------------------------------------------------------------------

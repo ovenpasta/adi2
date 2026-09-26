@@ -55,19 +55,19 @@ moved past.
 
 ## Screenshots
 
-![hello_example](examples/screenshots/hello_example.png)
+![hello_example](demos/screenshots/hello_example.png)
 *`hello_example`*
 
-![material_demo](examples/screenshots/material_demo.png)
+![material_demo](demos/screenshots/material_demo.png)
 *`material_demo`*
 
-![html_view_example](examples/screenshots/html_view_example.png)
+![html_view_example](demos/screenshots/html_view_example.png)
 *`html_view_example`*
 
-![rlottie_example](examples/screenshots/rlottie_example.png)
+![rlottie_example](demos/screenshots/rlottie_example.png)
 *`rlottie_example`*
 
-![assets_example](examples/screenshots/assets_example.png)
+![assets_example](demos/screenshots/assets_example.png)
 *`assets_example`*
 
 Full gallery of every example: [`docs/gallery.md`](docs/gallery.md). Or run them yourself, in the browser: [**live demos**](https://pizzahack.eu/adi2/demo/).
@@ -79,7 +79,7 @@ Full gallery of every example: [`docs/gallery.md`](docs/gallery.md). Or run them
 ### XML and CSS
 
 ```css
-/* examples/css/hello_example.css */
+/* demos/css/hello_example.css */
 .primary {
   background-color: rgb(37, 99, 235);
   border-radius: 8px;
@@ -91,9 +91,9 @@ Full gallery of every example: [`docs/gallery.md`](docs/gallery.md). Or run them
 ```
 
 ```xml
-<!-- examples/xml/hello_example.xml -->
+<!-- demos/xml/hello_example.xml -->
 <adi>
-  <link rel="stylesheet" href="examples/css/hello_example.css"/>
+  <link rel="stylesheet" href="demos/css/hello_example.css"/>
   <callback name="On_Hello_Click" type="Adi.Widget.Button.Click_Callback"/>
   <window title="Hello, Adi" width="320" height="180">
     <box class="root">
@@ -104,11 +104,11 @@ Full gallery of every example: [`docs/gallery.md`](docs/gallery.md). Or run them
 </adi>
 ```
 
-The toolchain emits a typed Ada package that `main` instantiates; [`examples/hello_example.adb`](examples/hello_example.adb) is the full program.
+The toolchain emits a typed Ada package that `main` instantiates; [`demos/src/hello_example.adb`](demos/src/hello_example.adb) is the full program.
 
 ### The same, written in Ada
 
-The CSS rule is an aggregate and the widget tree is a few constructor calls; [`examples/hello_raw_example.adb`](examples/hello_raw_example.adb) is the full equivalent program. The styling code has this shape:
+The CSS rule is an aggregate and the widget tree is a few constructor calls; [`demos/src/hello_raw_example.adb`](demos/src/hello_raw_example.adb) is the full equivalent program. The styling code has this shape:
 
 ```ada
 function Style return Style_Builder renames Adi.Widget_Styles.Create;
@@ -135,9 +135,9 @@ Set_Part_Style (Widget_Handle'(+Btn), Main_Part,
 Build and run either flavour:
 
 ```bash
-tools/build_examples.sh hello_example hello_raw_example
-./examples/bin/hello_example       # XML + CSS pipeline
-./examples/bin/hello_raw_example   # pure hand-written Ada
+tools/build_demos.sh hello_example hello_raw_example
+./demos/bin/hello_example       # XML + CSS pipeline
+./demos/bin/hello_raw_example   # pure hand-written Ada
 ```
 
 ---
@@ -152,14 +152,14 @@ alr build -- -j0
 tools/run_tests.sh
 
 # Build all example programs
-tools/build_examples.sh
+tools/build_demos.sh
 
 # ...or just one
-tools/build_examples.sh stack_example
+tools/build_demos.sh stack_example
 
 # Try a demo
-./examples/bin/material_demo
-./examples/bin/html_view_example
+./demos/bin/material_demo
+./demos/bin/html_view_example
 ```
 
 To use Adi2 from your own project, `with "adi.gpr"`; the SDL linker options come with it. The library's public specs use Ada 2022 constructs, so units that `with Adi.*` packages need `pragma Ada_2022;` or `-gnat2022`.
@@ -330,7 +330,7 @@ Vendored third-party code under [`vendor/`](vendor/) is mostly permissive — MI
 - **FreeType.** Both `vendor/rlottie/src/vector/freetype/` and plutovg's `plutovg-ft-*` files are under the FreeType Licence, and Adi2 links them statically. A binary distribution must state in its documentation that the software is based in part of the work of the FreeType Team. Redistributing the source instead requires retaining `FTL.TXT` unaltered, preserving the original copyright notices, and marking any changes.
 - **MPL-2.0.** `vendor/rlottie/src/vector/vinterpolator.cpp` is file-level copyleft. Distributing a build that contains it obliges telling recipients how to obtain that file's source form; modifications to it must be made available under the same licence.
 
-Example assets under [`examples/assets/`](examples/assets/) are demonstration content rather than part of the library; those with known third-party terms are attributed in [`examples/assets/NOTICE.md`](examples/assets/NOTICE.md).
+Example assets under [`demos/assets/`](demos/assets/) are demonstration content rather than part of the library; those with known third-party terms are attributed in [`demos/assets/NOTICE.md`](demos/assets/NOTICE.md).
 
 ---
 

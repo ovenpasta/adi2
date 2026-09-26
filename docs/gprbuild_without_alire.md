@@ -44,7 +44,7 @@ Generated files:
 - `<build-dir>/projects/adi_build.gpr`
 - `<build-dir>/projects/plutosvg_build.gpr` and `rlottie_build.gpr`, which it withs
 - `<build-dir>/projects/tests_build.gpr`
-- `<build-dir>/projects/examples_build.gpr`
+- `<build-dir>/projects/demos_build.gpr`
 - `<build-dir>/build_all.sh` (full build command using configured paths/options)
 - `config/adi2_config.gpr` in the *source* tree, and only when absent — see below
 
@@ -60,7 +60,7 @@ build-win32/build_all.sh
 ```bash
 gprbuild -P build-linux/projects/adi_build.gpr -XADI_PLATFORM=linux
 gprbuild -P build-linux/projects/tests_build.gpr -XADI_PLATFORM=linux -XTEST_KIND=styles
-gprbuild -P build-linux/projects/examples_build.gpr -XADI_PLATFORM=linux -XEXAMPLE_KIND=label_example
+gprbuild -P build-linux/projects/demos_build.gpr -XADI_PLATFORM=linux -XDEMO_KIND=label_example
 ```
 
 ## 3) Cross-target with `.cgpr`

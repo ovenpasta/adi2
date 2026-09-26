@@ -108,7 +108,7 @@ Registration reaches the same figures. `tools/css_to_ada.py` emits one
 that one 240 KB frame is live at a time; `Register_Selectors_23` in
 `material_demo_styles.adb` builds 13 `Style_Builder` temporaries and one
 `Part_Style_Array`, about 500 KB for a single selector. Hand-written
-registration reaches it too: `examples/runtime_css_example.adb:90-149`
+registration reaches it too: `demos/src/runtime_css_example.adb:90-149`
 places 14 entry calls in one frame, about 3.4 MB.
 
 ### 2.5   Merge

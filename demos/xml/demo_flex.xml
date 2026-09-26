@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="demos/css/demo_flex.css"/>
+
+  <window title="Flex Layout Reference" width="617px" height="617px">
+    <box id="Root" class="root">
+      <label text="Flex Layout Reference" class="title"/>
+
+      <!-- flex-direction -->
+      <box class="section">
+        <label text="flex-direction" class="caption"/>
+        <label text="Which way the main axis runs, and from which end it starts."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="row" class="case-label"/>
+            <box class="demo tall dir-row">
+              <label text="1" class="item"/>
+              <label text="2" class="item"/>
+              <label text="3" class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="row-reverse" class="case-label"/>
+            <box class="demo tall dir-row-rev">
+              <label text="1" class="item"/>
+              <label text="2" class="item"/>
+              <label text="3" class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="column" class="case-label"/>
+            <box class="demo tall dir-col">
+              <label text="1" class="item"/>
+              <label text="2" class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="column-reverse" class="case-label"/>
+            <box class="demo tall dir-col-rev">
+              <label text="1" class="item"/>
+              <label text="2" class="item"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- flex-grow -->
+      <box class="section">
+        <label text="flex-grow" class="caption"/>
+        <label text="Free space is shared by grow factor: 1, 2, 1. The last item has grow 0 and keeps its 70px."
+               class="note"/>
+        <box class="demo short">
+          <box class="item bar grow-1"/>
+          <box class="item bar grow-2"/>
+          <box class="item bar grow-1"/>
+          <box class="item bar grow-0"/>
+        </box>
+      </box>
+
+      <!-- flex-shrink -->
+      <box class="section">
+        <label text="flex-shrink" class="caption"/>
+        <label text="Three 160px items in a 320px row. The red one has shrink 0 and keeps its width; the overflow comes off the other two."
+               class="note"/>
+        <box class="demo short w320">
+          <box class="item bar shrink-yes"/>
+          <box class="item bar shrink-no"/>
+          <box class="item bar shrink-yes"/>
+        </box>
+      </box>
+
+      <!-- flex-basis -->
+      <box class="section">
+        <label text="flex-basis" class="caption"/>
+        <label text="Starting sizes of 40, 120 and 200px. Equal grow factors add the same amount to each, so the differences survive."
+               class="note"/>
+        <box class="demo short">
+          <box class="item bar basis-40"/>
+          <box class="item bar basis-120"/>
+          <box class="item bar basis-200"/>
+        </box>
+      </box>
+
+      <!-- a percentage on the main axis -->
+      <box class="section">
+        <label text="a percentage main size" class="caption"/>
+        <label text="Two spellings of the same thing: flex-basis: auto, the default, means use the main size property, so a percentage width resolves against the container exactly as flex-basis would. Both rows are the same declared width, and both take half of what its padding and border leave inside. Neither item can grow or shrink, so the fraction is where they stay."
+               class="note"/>
+        <label text="width: 50%" class="case-label"/>
+        <box class="demo short w300">
+          <label text="half" class="item pct-width"/>
+        </box>
+        <label text="flex-basis: 50%" class="case-label"/>
+        <box class="demo short w300">
+          <label text="half" class="item pct-basis"/>
+        </box>
+      </box>
+
+      <!-- justify-content -->
+      <box class="section">
+        <label text="justify-content" class="caption"/>
+        <label text="Where leftover main-axis space goes." class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="flex-start" class="case-label"/>
+            <box class="demo short just-start">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="center" class="case-label"/>
+            <box class="demo short just-center">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="flex-end" class="case-label"/>
+            <box class="demo short just-end">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+        </box>
+        <box class="cases">
+          <box class="case">
+            <label text="space-between" class="case-label"/>
+            <box class="demo short just-between">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="space-around" class="case-label"/>
+            <box class="demo short just-around">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="space-evenly" class="case-label"/>
+            <box class="demo short just-evenly">
+              <box class="item"/><box class="item"/><box class="item"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- align-items -->
+      <box class="section">
+        <label text="align-items" class="caption"/>
+        <label text="Cross-axis placement. The third item has no height of its own, so only stretch gives it one."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="flex-start" class="case-label"/>
+            <box class="demo tall align-start">
+              <box class="item h20"/><box class="item h40"/><box class="item h-auto"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="center" class="case-label"/>
+            <box class="demo tall align-center">
+              <box class="item h20"/><box class="item h40"/><box class="item h-auto"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="flex-end" class="case-label"/>
+            <box class="demo tall align-end">
+              <box class="item h20"/><box class="item h40"/><box class="item h-auto"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="stretch" class="case-label"/>
+            <box class="demo tall align-stretch">
+              <box class="item h20"/><box class="item h40"/><box class="item h-auto"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- min-size freeze and redistribution -->
+      <box class="section">
+        <label text="min-size freeze and redistribution" class="caption"/>
+        <label text="620px of flex-basis in a 480px row. The two red items are already at their min-width and can give up nothing, so the green ones absorb the whole overflow and the row still ends flush with its border. Sharing the overflow by basis alone would leave the red items' share unabsorbed and the row would spill past the right edge."
+               class="note"/>
+        <box class="demo short w480">
+          <box class="item bar pinned"/>
+          <box class="item bar elastic"/>
+          <box class="item bar pinned"/>
+          <box class="item bar elastic"/>
+        </box>
+      </box>
+
+      <!-- the same freezing where the row has room to spare -->
+      <box class="section">
+        <label text="freezing where there is room to spare" class="caption"/>
+        <label text="The red items cannot flex, so their widths are settled before any space is shared out. The green one grows into what the row has left over them, not into the whole row. A floor reserves the room it needs and a cap gives back the room it denies, so both rows end flush with their border."
+               class="note"/>
+        <label text="two 90px floors" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar rigid"/>
+          <box class="item bar rigid"/>
+          <box class="item bar greedy"/>
+        </box>
+        <label text="a 220px basis capped at 90px" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar capped"/>
+          <box class="item bar greedy"/>
+        </box>
+      </box>
+
+      <!-- factors that do not reach one between them -->
+      <box class="section">
+        <label text="a factor under one" class="caption"/>
+        <label text="A flex factor is a fraction of the free space, not only a ratio between the items. Where the factors on a line do not reach one between them they take that fraction and leave the rest of the row empty, which is why the same 0.5 fills half a row alone and all of it in company. The gap between the items is spent either way."
+               class="note"/>
+        <label text="one item at 0.5 — half the row" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar frac-half"/>
+        </box>
+        <label text="two at 0.25 — a quarter each" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar frac-quarter"/>
+          <box class="item bar frac-quarter"/>
+        </box>
+        <label text="two at 0.5 — summing to one, the row is filled" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar frac-half"/>
+          <box class="item bar frac-half"/>
+        </box>
+      </box>
+
+      <!-- what a second pass does with what is left -->
+      <box class="section">
+        <label text="after a floor freezes" class="caption"/>
+        <label text="The red item's floor takes more of the row than its factor was due, so it freezes and the rest is shared again. That share starts from each item's own basis, in the proportion of the factors: green begins at 160px and blue has three times the factor but nothing to begin with, so green stays the wider of the two. Below, the purple item's maximum is a ceiling rather than a target — with the floor above taking more than its share there is less to go round, and purple settles under its cap, level with the green beside it."
+               class="note"/>
+        <label text="a floor, a basis of 160px, and three times the factor" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar floored-wide"/>
+          <box class="item bar based"/>
+          <box class="item bar triple"/>
+        </box>
+        <label text="a floor, a cap of 112px, and a plain share" class="case-label"/>
+        <box class="demo short w480">
+          <box class="item bar floored-wide"/>
+          <box class="item bar ceiling"/>
+          <box class="item bar plain-grow"/>
+        </box>
+      </box>
+      <!-- flex-wrap -->
+      <box class="section">
+        <label text="flex-wrap" class="caption"/>
+        <label text="Four 40px tiles in a 170px row, aligned to the start of their line. nowrap keeps one line and lets it run past the border; wrap breaks where the next tile stops fitting; wrap-reverse builds the lines from the bottom up and takes the start of each line with it, so the short tile drops instead of rising."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="nowrap" class="case-label"/>
+            <box class="demo h120 w170 nowrap align-start-items">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="wrap" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-start align-start-items">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="wrap-reverse" class="case-label"/>
+            <box class="demo h120 w170 wrap-reverse ac-start align-start-items">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- align-content -->
+      <box class="section">
+        <label text="align-content" class="caption"/>
+        <label text="Where the lines sit once they are formed. Each row wraps into two lines and has cross-axis space left over; stretch is the only value that grows the lines themselves to take it up."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="flex-start" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-start">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="center" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-center">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="flex-end" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-end">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="space-between" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-between">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="space-around" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-around">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="stretch" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-stretch">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+        </box>
+      </box>
+      <!-- align-self -->
+      <box class="section">
+        <label text="align-self" class="caption"/>
+        <label text="One item stepping out of the row's align-items: flex-start. Item 2 takes its own value; the others stay where the container put them."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="center" class="case-label"/>
+            <box class="demo tall align-start">
+              <label text="1" class="item h20"/>
+              <label text="2" class="item h20 self-center"/>
+              <label text="3" class="item h20"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="flex-end" class="case-label"/>
+            <box class="demo tall align-start">
+              <label text="1" class="item h20"/>
+              <label text="2" class="item h20 self-end"/>
+              <label text="3" class="item h20"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="stretch" class="case-label"/>
+            <box class="demo tall align-start">
+              <label text="1" class="item h20"/>
+              <label text="2" class="item self-stretch"/>
+              <label text="3" class="item h20"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- gap axes -->
+      <box class="section">
+        <label text="row-gap and column-gap" class="caption"/>
+        <label text="The two axes are separate. In a wrapping row, column-gap sits between items on a line and row-gap sits between the lines; gap names both at once, rows first."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="row-gap: 24px" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-start gap-row">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="column-gap: 24px" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-start gap-column">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="gap: 24px 6px" class="case-label"/>
+            <box class="demo h120 w170 wrap ac-start gap-both">
+              <label text="1" class="item tile"/>
+              <label text="2" class="item tile"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- per-line alignment -->
+      <box class="section">
+        <label text="align-items across lines" class="caption"/>
+        <label text="Each line is as deep as its own deepest item, and alignment happens inside that line rather than across the whole box. The first line is 46px deep and the second 34px, so the shallow item on each lands at a different offset under the same value."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="flex-start" class="case-label"/>
+            <box class="demo h150 w110 wrap ac-start align-start">
+              <label text="1" class="item tile tile-deep"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile tile-short"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="center" class="case-label"/>
+            <box class="demo h150 w110 wrap ac-start align-center">
+              <label text="1" class="item tile tile-deep"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile tile-short"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="flex-end" class="case-label"/>
+            <box class="demo h150 w110 wrap ac-start align-end">
+              <label text="1" class="item tile tile-deep"/>
+              <label text="2" class="item tile tile-short"/>
+              <label text="3" class="item tile"/>
+              <label text="4" class="item tile tile-short"/>
+            </box>
+          </box>
+        </box>
+      </box>
+    </box>
+  </window>
+</adi>

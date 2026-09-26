@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate the gallery captures in examples/screenshots/.
+"""Regenerate the gallery captures in demos/screenshots/.
 
 Every capture comes from the app's own renderer through the Adi MCP
 `screenshot` command, so the result is the exact declared render size with
@@ -36,7 +36,7 @@ import example_app as app
 
 ROOT = app.ROOT
 SRC_DIR = app.SRC_DIR
-DEST_DIR = ROOT / "examples" / "screenshots"
+DEST_DIR = ROOT / "demos" / "screenshots"
 
 
 @dataclass
@@ -147,14 +147,14 @@ def capture(name: str, spec: Example, out_dir: Path, timeout: float) -> list[str
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("examples", nargs="*", help="default: every capturable one")
+    ap.add_argument("demos", nargs="*", help="default: every capturable one")
     ap.add_argument("--out-dir", type=Path, default=DEST_DIR)
     ap.add_argument("--no-build", action="store_true")
     ap.add_argument("--timeout", type=float, default=5.0,
                     help="seconds to wait for an example to come up")
     args = ap.parse_args()
 
-    wanted = args.examples or gallery_examples()
+    wanted = args.demos or gallery_examples()
     ready, skipped = app.controllable(wanted)
 
     if skipped:

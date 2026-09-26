@@ -3,10 +3,10 @@
 
 Usage:
     python3 tools/binary_to_ada.py \\
-        --output-dir examples/generated/ \\
+        --output-dir demos/generated/ \\
         --package-name Assets_Example_Bundle \\
-        --base-dir examples/assets/ \\
-        examples/assets/icons.svg examples/assets/happycat.png
+        --base-dir demos/assets/ \\
+        demos/assets/icons.svg demos/assets/happycat.png
 """
 
 from __future__ import annotations

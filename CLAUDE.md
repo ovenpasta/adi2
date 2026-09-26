@@ -56,13 +56,13 @@ alr exec -- tools/run_tests.sh
 alr exec -- gprbuild -j0 -P tests/tests.gpr -XTEST_KIND=css_parser_test
 
 # Build examples (regenerates their generated sources first)
-tools/build_examples.sh stack_example
+tools/build_demos.sh stack_example
 
 # Examples link libAdi.a statically: rebuild one after any src/ change,
 # or it still runs the library it was built against.
 
 # Build a specific example directly (generated sources must be current)
-alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
+tools/build_demos.sh stack_example
 
 # Run Ada tests (built to tests/bin/); one binary per Test_Kind in tests/tests.gpr,
 # of which these are a sample
@@ -132,7 +132,7 @@ python3 tools/css_to_ada.py input.css output.ads --package-name=My_Styles \
 Writes a companion `output.adb` beside the spec, holding the stylesheet's
 `Register_Selectors` procedure.
 
-Incremental build for all examples: `tools/generate_example_styles.sh`. Full reference in `docs/css_styling.md`.
+Incremental build for all examples: `tools/generate_demo_styles.sh`. Full reference in `docs/css_styling.md`.
 
 ### XML → Ada (`tools/xml_to_ada.py`)
 
@@ -140,7 +140,7 @@ Incremental build for all examples: `tools/generate_example_styles.sh`. Full ref
 python3 tools/xml_to_ada.py input.xml --output-dir out/ --package-name My_UI
 ```
 
-Incremental build for examples: `tools/generate_example_ui.sh`. Full reference in `docs/xml_ui_system.md`.
+Incremental build for examples: `tools/generate_demo_ui.sh`. Full reference in `docs/xml_ui_system.md`.
 
 Widget grammar is defined in `tools/widgets.xml` (19 widget types). Extensible via `--grammar`.
 
@@ -148,14 +148,14 @@ Widget grammar is defined in `tools/widgets.xml` (19 widget types). Extensible v
 
 ```bash
 python3 tools/binary_to_ada.py \
-  --output-dir examples/generated/ \
+  --output-dir demos/generated/ \
   --package-name Assets_Example_Bundle \
-  --base-dir examples/assets/ \
-  examples/assets/icons.svg examples/assets/happycat.png \
-  examples/assets/OpenSans-Regular.ttf
+  --base-dir demos/assets/ \
+  demos/assets/icons.svg demos/assets/happycat.png \
+  demos/assets/OpenSans-Regular.ttf
 ```
 
-Incremental build for examples: `tools/generate_example_bundles.sh`. Full reference in `docs/static_assets.md`.
+Incremental build for examples: `tools/generate_demo_bundles.sh`. Full reference in `docs/static_assets.md`.
 
 ## Key Architecture Points
 
@@ -268,10 +268,10 @@ bindings/             Auto-generated SDL3 bindings (reference only, do not use d
 tests/src/            Test programs (built to tests/bin/)
 tests/css/            CSS a test compares against its own runtime parse
 tests/generated/      Auto-generated Ada from tests/css/
-examples/             Example programs (built to examples/bin/)
-examples/css/         CSS source files
-examples/xml/         XML UI definitions
-examples/generated/   Auto-generated Ada from CSS and XML
+demos/src/         Demo programs (built to demos/bin/)
+demos/css/         CSS source files
+demos/xml/         XML UI definitions
+demos/generated/   Auto-generated Ada from CSS and XML
 tools/                Code generators, MCP servers, and build scripts
 docs/                 Reference documentation
 config/               Per-profile and per-platform GPR/Ada configuration

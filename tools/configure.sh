@@ -86,6 +86,13 @@ mkdir -p "${BUILD_DIR}/vendor/plutosvg/obj" "${BUILD_DIR}/vendor/plutosvg/lib"
 mkdir -p "${BUILD_DIR}/vendor/rlottie/obj" "${BUILD_DIR}/vendor/rlottie/lib"
 mkdir -p "${BUILD_DIR}/tests/obj" "${BUILD_DIR}/tests/bin"
 mkdir -p "${BUILD_DIR}/examples/obj" "${BUILD_DIR}/examples/bin"
+# Keep runtime resources beside the standalone examples' bin directory.
+for resource in assets css; do
+  if [[ "${BUILD_DIR}" != "${SOURCE_DIR}" ]]; then
+    mkdir -p "${BUILD_DIR}/examples/${resource}"
+    cp -RL "${SOURCE_DIR}/examples/${resource}/." "${BUILD_DIR}/examples/${resource}/"
+  fi
+done
 
 #  adi.gpr withs config/adi2_config.gpr; supply it when Alire has not.
 bash "${SOURCE_DIR}/tools/ensure_build_config.sh" "${SOURCE_DIR}" || exit 1

@@ -419,7 +419,7 @@ package body Demo_Flex_UI is
 
          Adi.CSS_Source.Set_Dynamic_Sources
            (Source,
-            [Adi.CSS_Source.CSS_File ("examples/css/demo_flex.css")],
+            [Adi.CSS_Source.CSS_File ("css/demo_flex.css")],
             Loaded);
          if Loaded then
             Adi.CSS_Source.Set_Mode

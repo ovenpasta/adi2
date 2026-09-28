@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Example_Paths;
 with Ada.Strings;       use Ada.Strings;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
@@ -40,6 +41,7 @@ procedure Html_View_Example is
    A : Adi.App.App;
 
 begin
+   Example_Paths.Initialize;
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
 
@@ -163,8 +165,8 @@ begin
    begin
       Float_Slider.Set_Step (Zoom_Slider, 0.1);
 
-      Adi.Assets.Add_Path ("examples/assets", Scheme => "app");
-      Adi.Assets.Add_Path ("examples/assets");
+      Adi.Assets.Add_Path ("assets", Scheme => "app");
+      Adi.Assets.Add_Path ("assets");
 
       Pages := Html_Stack.Create_Handle;
 

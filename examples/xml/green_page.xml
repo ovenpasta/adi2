@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <adi>
-  <link rel="stylesheet" href="examples/css/stack_example_green.css"/>
+  <link rel="stylesheet" href="css/stack_example_green.css"/>
 
   <box class="page-green">
     <label text="Green Page" class="page-title"/>

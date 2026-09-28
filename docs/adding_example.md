@@ -22,7 +22,7 @@ If using the XML UI system, create `examples/xml/<name>.xml`. The root element i
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <adi>
-  <link rel="stylesheet" href="examples/css/image_example.css"/>
+  <link rel="stylesheet" href="css/image_example.css"/>
   <window title="Image Example" width="1100" height="700">
     <box id="Root" class="root">
       <label text="Hello" class="title"/>
@@ -95,12 +95,14 @@ with Adi.App;
 with Adi.Layout_Util;            --  only if using the logical-px convention
 with Adi.Window; use Adi.Window;
 with Image_Example_UI;
+with Example_Paths;
 
 procedure Image_Example is
    A : Adi.App.App;
    package UI is new Image_Example_UI.Instance;
    W : Window_Handle;
 begin
+   Example_Paths.Initialize;
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);  --  drop this line for the
                                                --  physical-px convention
@@ -116,29 +118,14 @@ end Image_Example;
 
 ## 5. Register in `examples/examples.gpr`
 
-Add the example name to the `Example_Kind` type on line 4:
+Add `"image_example.adb"` to the project's `Main` list.
 
-```
-type Example_Kind is (..., "image_example");
-```
+## 6. Register in `examples/alire.toml`
 
-This is the list `-XEXAMPLE_KIND` is checked against, so an unlisted name
-cannot be built at all.
-
-## 6. Register in `tools/build_examples.sh`
-
-Add the example name to the `ALL_EXAMPLES` array:
-
-```bash
-ALL_EXAMPLES=(
-  ...
-  image_example
-)
-```
-
-The array is what a bare `tools/build_examples.sh` iterates over. Naming the
-example on the command line builds it either way; only the no-argument run
-needs the entry.
+Add `"image_example"` to `executables`, so `alr run image_example` can select it.
+`tools/build_examples.sh` builds the Alire crate and needs no separate list.
+Call `Example_Paths.Initialize` at the start of the main procedure so resources
+resolve relative to the examples directory regardless of the launch directory.
 
 ## 7. Register in `tools/configure.sh`
 
@@ -165,7 +152,7 @@ The array at `EXAMPLE_KINDS=(`:
 
 ```bash
 # Build just this example
-alr exec -- gprbuild -P examples/examples.gpr -XEXAMPLE_KIND=image_example
+tools/build_examples.sh image_example
 
 # Run it
 ./examples/bin/image_example
@@ -182,8 +169,8 @@ Six registration sites, plus the sources themselves.
 | CSS | `examples/css/<name>.css` | Stylesheet |
 | XML (opt) | `examples/xml/<name>.xml` | UI definition |
 | Ada main | `examples/<name>.adb` | Entry point |
-| Registration 1 | `examples/examples.gpr` | Name in `Example_Kind` |
-| Registration 2 | `tools/build_examples.sh` | Name in `ALL_EXAMPLES` |
+| Registration 1 | `examples/examples.gpr` | Filename in `Main` |
+| Registration 2 | `examples/alire.toml` | Name in `executables` |
 | Registration 3 | `tools/configure.sh` | Name in the generated `Example_Kind` |
 | Registration 4 | `tools/configure.sh` | Name in `EXAMPLE_KINDS` |
 | Registration 5 | `tools/generate_example_styles.sh` | `generate_if_needed` call |

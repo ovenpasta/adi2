@@ -1,4 +1,5 @@
 pragma Ada_2022;
+with Example_Paths;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.MCP;
@@ -16,6 +17,7 @@ procedure Stack_Example is
    end On_Tab;
 
 begin
+   Example_Paths.Initialize;
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);

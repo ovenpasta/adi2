@@ -1,4 +1,5 @@
 pragma Ada_2022;
+with Example_Paths;
 with Ada.Command_Line;
 with Ada.Text_IO;
 with Adi.App;
@@ -40,8 +41,8 @@ procedure Material_Demo is
       UI_OK, Welcome_OK, Quit_OK : Boolean;
       CSS_Path : constant String :=
         (if Active
-         then "examples/css/material_demo.css"
-         else "examples/css/material_demo_light.css");
+         then "css/material_demo.css"
+         else "css/material_demo_light.css");
    begin
       UI.Set_CSS_File (CSS_Path, UI_OK);
       Welcome_UI.Set_CSS_File (CSS_Path, Welcome_OK);
@@ -161,6 +162,7 @@ procedure Material_Demo is
    Welcome_Icon : Adi.Image.Image_Owner;
 
 begin
+   Example_Paths.Initialize;
    I18N_Example_Translations.Register_All;
    declare
       use Ada.Command_Line;

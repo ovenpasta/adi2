@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Example_Paths;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Adi.App;
@@ -79,6 +80,7 @@ procedure Text_Editor_Example is
      "Line 20: quick brown fox jumps over the lazy dog.";
 
 begin
+   Example_Paths.Initialize;
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);

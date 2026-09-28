@@ -108,7 +108,7 @@ package body Material_Demo_UI is
       Box_3 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Label_1 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle (Adi.I18N.T ("Welcome"));
       Label_2 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle (Adi.I18N.T ("A Material Design 3 demo built with Adi."));
-      Label_3 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle (Adi.I18N.T ("Edit examples/css/material_demo.css to live-reload."));
+      Label_3 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle (Adi.I18N.T ("Edit css/material_demo.css to live-reload."));
       Button_1 : constant Adi.Widget.Button.Button_Handle := Adi.Widget.Button.Create_Handle (Adi.I18N.T ("Get Started"));
       Box_4 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
       Box_5 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
@@ -223,7 +223,7 @@ package body Material_Demo_UI is
 
          Adi.CSS_Source.Set_Dynamic_Sources
            (Source,
-            [Adi.CSS_Source.CSS_File ("examples/css/material_demo.css")],
+            [Adi.CSS_Source.CSS_File ("css/material_demo.css")],
             Loaded);
          if Loaded then
             Adi.CSS_Source.Set_Mode

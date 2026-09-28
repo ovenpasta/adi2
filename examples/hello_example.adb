@@ -1,4 +1,5 @@
 pragma Ada_2022;
+with Example_Paths;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.Log;
@@ -18,6 +19,7 @@ procedure Hello_Example is
       Adi.Log.Info ("Hello from Adi!");
    end On_Hello_Click;
 begin
+   Example_Paths.Initialize;
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
@@ -26,7 +28,7 @@ begin
    declare
       OK : Boolean;
    begin
-      UI.Set_CSS_File ("examples/css/hello_example.css", OK);
+      UI.Set_CSS_File ("css/hello_example.css", OK);
       if not OK then
          Adi.Log.Warning ("hello_example: live CSS reload not enabled");
       end if;

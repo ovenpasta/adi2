@@ -23,7 +23,7 @@ A widget toolkit written in Ada on SDL3: CSS styling with live reload, XML layou
 - **Keyboard and clipboard.** Tab and Shift+Tab traverse focusable widgets, overlays trap focus, arrow keys drive lists, combos and sliders. Text inputs and editors take Ctrl+C/V/X/A and open a context menu. An application hook sees every key first, so shortcuts beat focus.
 - **HiDPI units.** `dp`/`dip` for layout, `rem` for typography, `pix` for one renderer pixel exactly, and `px`, which follows the display scale or not, as `Set_Px_Maps_To_Dip` says. See [`docs/css_styling.md`](docs/css_styling.md).
 - **Introspection.** A development-only MCP bridge lets an editor or an assistant screenshot the running app, walk the widget tree, and drive it: clicking buttons, typing into inputs, moving focus, reading performance counters.
-- **The browser.** The examples compile to WebAssembly with GNAT-LLVM and Emscripten: [live demos](https://pizzahack.eu/adi2/demo/), and [`wasm/`](wasm/) for the build.
+- **The browser.** The examples compile to WebAssembly with GNAT-LLVM and Emscripten: [live examples](https://pizzahack.eu/adi2/demo/), and [`wasm/`](wasm/) for the build.
 
 ### What it costs to ship
 
@@ -70,7 +70,7 @@ moved past.
 ![assets_example](examples/screenshots/assets_example.png)
 *`assets_example`*
 
-Full gallery of every example: [`docs/gallery.md`](docs/gallery.md). Or run them yourself, in the browser: [**live demos**](https://pizzahack.eu/adi2/demo/).
+Full gallery of every example: [`docs/gallery.md`](docs/gallery.md). Or run them yourself, in the browser: [**live examples**](https://pizzahack.eu/adi2/demo/).
 
 ---
 
@@ -93,7 +93,7 @@ Full gallery of every example: [`docs/gallery.md`](docs/gallery.md). Or run them
 ```xml
 <!-- examples/xml/hello_example.xml -->
 <adi>
-  <link rel="stylesheet" href="examples/css/hello_example.css"/>
+  <link rel="stylesheet" href="css/hello_example.css"/>
   <callback name="On_Hello_Click" type="Adi.Widget.Button.Click_Callback"/>
   <window title="Hello, Adi" width="320" height="180">
     <box class="root">
@@ -149,7 +149,7 @@ tools/build_examples.sh hello_example hello_raw_example
 alr build -- -j0
 
 # Build and run the test suite
-tools/run_tests.sh
+alr exec -- tools/run_tests.sh
 
 # Build all example programs
 tools/build_examples.sh
@@ -157,10 +157,20 @@ tools/build_examples.sh
 # ...or just one
 tools/build_examples.sh stack_example
 
-# Try a demo
+# Try an example
 ./examples/bin/material_demo
 ./examples/bin/html_view_example
 ```
+
+The examples also form their own Alire crate:
+
+```bash
+cd examples
+alr build -- -j0
+alr run hello_example
+```
+
+See [`examples/README.md`](examples/README.md) for all 27 examples and build options.
 
 To use Adi2 from your own project, `with "adi.gpr"`; the SDL linker options come with it. The library's public specs use Ada 2022 constructs, so units that `with Adi.*` packages need `pragma Ada_2022;` or `-gnat2022`.
 

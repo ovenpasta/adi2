@@ -1,48 +1,54 @@
 # Adi Examples
 
-This directory contains example programs demonstrating how to use the Adi GUI library.
+This Alire crate builds 27 examples against the local Adi library, pinned to `..`.
+Install Alire, a GNAT toolchain with Ada 2022 support, Bash and Python 3. Alire
+resolves the SDL dependencies declared by Adi; see [build requirements](../docs/build.md).
 
-## Building Examples
+## Build and run
 
-### Build all examples
+From the repository root:
+
 ```bash
-tools/build_examples.sh
-```
-`tools/build_examples.sh` regenerates example CSS, XML, bundles and translations
-before compiling. `alr build` builds the library only.
-
-### Build a specific example
-```bash
-tools/build_examples.sh label_example
-```
-
-Or, when the generated sources are already current:
-```bash
-gprbuild -P examples.gpr -XEXAMPLE_KIND=label_example
+cd examples
+alr build -- -j0
+alr run hello_example
+alr run material_demo
 ```
 
-## Running Examples
+`alr build` compiles all mains in `examples.gpr` into `bin/`. Its pre-build action
+regenerates CSS, XML, asset bundles and translations when their inputs change.
+Running `alr build` at the repository root builds only the library.
 
-Examples are built to `examples/bin/`:
+To build just one example, pass its Ada filename to gprbuild through Alire:
+
 ```bash
-./bin/label_example
+alr build -- -j0 label_example.adb
+alr run --skip-build label_example
 ```
+
+For MCP introspection and library logging, build Adi in development mode too:
+
+```bash
+alr build --profiles=adi2=development -- -j0
+```
+
+From the repository root, `tools/build_examples.sh [name ...]` provides the same
+Alire build with the library in development mode. With no names, it builds all examples.
+Do not run builds concurrently: the examples share library and object files.
+
+Executables can also be launched directly as `./bin/label_example` from this
+directory or `./examples/bin/label_example` from the repository root. Each example
+changes to the examples directory, found from its executable location, to resolve
+`assets/` and `css/`, including live stylesheet reloads. Keep these directories
+beside `bin/`.
 
 ## XML or Ada
 
-Some examples declare their tree in `xml/`, others build it in Ada. This
-is intentional.
+Some examples declare their widget tree in `xml/`; others build it directly in this directory.
+XML describes static layout. Ada handles callbacks, generic instantiations,
+runtime content and resource ownership. Generated Ada sources live in `generated/`.
 
-XML for static layout. Ada for what XML cannot express: callbacks,
-generic instantiation, content built at runtime, and resources whose
-owner must outlive the widgets drawing them.
-
-Both reach the same API. A new example goes wherever its subject is
-clearer.
-
-## Available Examples
-
-Everything `tools/build_examples.sh` builds.
+## Available examples
 
 ### hello_example
 The smallest complete app: an XML window with a label and a button, styled from
@@ -107,12 +113,12 @@ Font weights, italic and oblique styles, sizes, text decorations and wrapping,
 with families registered through `Adi.Font`.
 
 ### runtime_css_example
-`Adi.CSS_Source` in `Dynamic_Mode`: edit `examples/css/runtime_css_example.css`
+`Adi.CSS_Source` in `Dynamic_Mode`: edit `css/runtime_css_example.css`
 while the app is open and the window restyles.
 
 ### animated_image_example
 `Adi.Animated_Image` playback controls (`Start`, `Stop`, `Reset`, looping) using
-`examples/assets/animhorse.gif`.
+`assets/animhorse.gif`.
 
 ### rlottie_example
 `Adi.RLottie` with eight Animated Noto Emoji in a grid, each its own animation,
@@ -151,28 +157,22 @@ typed numeric entry clamped to a min/max range.
 `Adi.SVG` rasterising a document again at every window size, rather than
 scaling one raster.
 
-### Example Assets
-- `examples/assets/bg.jpg` (widget demo background)
-- `examples/assets/animhorse.gif` (animated image demo)
-- `examples/assets/happycat.png` (label example icon)
-- `examples/assets/noto_*.json` (eight Animated Noto Emoji, rlottie demo)
-- `examples/assets/html_view_example.html` (HTML view demo content)
+## Assets and shared styles
 
-Third-party terms, where known, are recorded in [`assets/NOTICE.md`](assets/NOTICE.md).
+`assets/` contains images, SVGs, fonts, HTML and the Animated Noto Emoji used by
+the examples. Third-party terms are recorded in [assets/NOTICE.md](assets/NOTICE.md).
+`css/widget_defaults.css` provides shared baseline styles, generated as
+`generated/widget_defaults_styles.ads`.
 
-### Shared Widget Defaults
-`css/widget_defaults.css` defines reusable baseline styles for common widgets (`.button`, `.text-input`, `.list-box`, `.list-row`) and is generated as `generated/widget_defaults_styles.ads` for reuse across examples.
+## Add an example
 
-## Adding New Examples
+1. Create `<name>.adb` and call `Example_Paths.Initialize` before loading resources.
+2. Add `"<name>.adb"` to `Main` in `examples.gpr` and `"<name>"` to `executables` in `alire.toml`.
+3. Register CSS/XML inputs in `../tools/generate_example_styles.sh` and
+   `../tools/generate_example_ui.sh`, as applicable. Bundles and translations have
+   corresponding `generate_example_*` scripts.
+4. If supporting the standalone configure build, add the name to both example lists
+   in `../tools/configure.sh`.
+5. Run `alr build -- -j0 <name>.adb`, then `alr run --skip-build <name>`.
 
-An example has to be registered in six places, or it either fails to build or
-is silently skipped:
-
-1. `examples/examples.gpr` — name in the `Example_Kind` type
-2. `tools/build_examples.sh` — name in `ALL_EXAMPLES`
-3. `tools/configure.sh` — name in the generated `examples_build.gpr` `Example_Kind`
-4. `tools/configure.sh` — name in `EXAMPLE_KINDS`
-5. `tools/generate_example_styles.sh` — `generate_if_needed` call for the CSS
-6. `tools/generate_example_ui.sh` — `generate_if_needed` call for the XML, if any
-
-Full walkthrough in [`../docs/adding_example.md`](../docs/adding_example.md).
+See [the full walkthrough](../docs/adding_example.md).

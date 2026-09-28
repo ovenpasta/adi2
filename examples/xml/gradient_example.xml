@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <adi>
-  <link rel="stylesheet" href="examples/css/gradient_example.css"/>
+  <link rel="stylesheet" href="css/gradient_example.css"/>
   <window title="Gradient Showcase" width="658px" height="617px">
     <box id="Root" class="root">
       <label text="Linear Gradient Showcase" class="title"/>

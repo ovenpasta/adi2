@@ -93,7 +93,7 @@ still running. A setter that grows an emit has to grow a borrow with it.
 ## Animation Ownership
 
 `Adi.RLottie` and `Adi.Animated_Image` each instantiate
-`Adi.Handle_Store` and hand out an `Animation_Handle` of their own. `Load_From_File` registers; `Destroy` tears the
+`Adi.Handle_Store` and hand out an `Animation_Handle` of their own. Loading registers; `Destroy` tears the
 animation down, retires the slot and nulls the handle, so every copy
 goes stale together and a reused slot does not revive them. Operations
 resolve a handle for one call and answer a stale or null one with a

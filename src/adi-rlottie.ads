@@ -37,6 +37,21 @@ package Adi.RLottie is
    --  had been built.
    function Load_From_File (Path : String) return Animation_Handle;
 
+   --  The same, from the JSON itself: what Adi.Assets.Get_String hands
+   --  back, whether the asset is bundled or on disk. Empty Data is
+   --  answered like a file that cannot be read.
+   --
+   --  Key names the parsed model in rlottie's cache, and failures are
+   --  logged under it. A load under a Key the cache holds gets that model
+   --  back and Data is never parsed, so each distinct animation needs its
+   --  own Key; its asset path is the natural one. Load_From_File caches
+   --  under the path it was given.
+   --
+   --  An image the JSON names by path is not loaded, there being no
+   --  directory to find it in. One embedded in it is.
+   function Load_From_Data (Data, Key : String) return Animation_Handle
+     with Pre => Key /= "";
+
    --  The model is loaded. Says nothing about whether frames exist yet.
    function Is_Valid (H : Animation_Handle) return Boolean;
 

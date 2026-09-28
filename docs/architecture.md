@@ -145,6 +145,7 @@
 - Loadable through `Adi.Assets.Get_Animated_Image` for URI-based cached access
 
 **Adi.RLottie** (`adi-rlottie.ads`): Lottie JSON via the rlottie C API.
+- `Load_From_File (Path)` or `Load_From_Data (Data, Key)`, the latter for JSON from `Adi.Assets.Get_String`. rlottie caches parsed models by path or Key, so a second load under the same Key gets the first model and ignores its Data
 - Loading parses the model only. `Prepare (W, H)` records the size frames will be drawn at; each frame is rasterised when playback first reaches it and kept afterwards, so a loop pays for each frame once. A different extent replaces the frames once the request has stood still for 150 ms
 - Every frame image joins its extent's `Texture_Group`, so replacing an extent takes that extent's textures out of every renderer rather than leaving them to be evicted under pressure
 - Residency is per renderer but the group spans them: one animation drawn in two windows has frames in two caches, and releasing reaches both

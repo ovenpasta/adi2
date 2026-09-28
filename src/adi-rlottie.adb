@@ -36,6 +36,14 @@ package body Adi.RLottie is
            Convention    => C,
            External_Name => "lottie_animation_from_file";
 
+   function Animation_From_Data
+     (Data          : Interfaces.C.Strings.chars_ptr;
+      Key           : Interfaces.C.char_array;
+      Resource_Path : Interfaces.C.char_array) return RL_Animation_Ptr
+      with Import        => True,
+           Convention    => C,
+           External_Name => "lottie_animation_from_data";
+
    procedure Animation_Get_Size
      (Animation : RL_Animation_Ptr;
       Width     : access Interfaces.C.size_t;
@@ -264,11 +272,14 @@ package body Adi.RLottie is
       Frame : Positive) return Boolean
    is (Rasterise_Into (Anim, Anim.Active, Frame));
 
-   function Load_From_File (Path : String) return Animation_Handle is
-      use Interfaces.C.Strings;
-
-      C_Path   : chars_ptr;
-      Handle   : RL_Animation_Ptr;
+   --  Takes ownership of Model, which the C library parsed from Source:
+   --  a null one is a failed parse, and one that describes nothing to
+   --  draw is destroyed.
+   function Adopt
+     (Model  : RL_Animation_Ptr;
+      Source : String) return Animation_Handle
+   is
+      Handle   : RL_Animation_Ptr := Model;
       W        : aliased Interfaces.C.size_t := 0;
       H        : aliased Interfaces.C.size_t := 0;
       Count    : Interfaces.C.size_t;
@@ -287,21 +298,15 @@ package body Adi.RLottie is
          end if;
       end Discard_Model;
    begin
-      Ensure_Initialized;
-
-      C_Path := New_String (Path);
-      Handle := Animation_From_File (C_Path);
-      Free (C_Path);
-
       if Handle = null then
-         Adi.Log.Error ("Failed to load rlottie animation: " & Path);
+         Adi.Log.Error ("Failed to load rlottie animation: " & Source);
          return Null_Animation_Handle;
       end if;
 
       Animation_Get_Size (Handle, W'Access, H'Access);
       if W = 0 or else H = 0 then
          Discard_Model;
-         Adi.Log.Error ("rlottie animation reports invalid size: " & Path);
+         Adi.Log.Error ("rlottie animation reports invalid size: " & Source);
          return Null_Animation_Handle;
       end if;
 
@@ -311,7 +316,7 @@ package body Adi.RLottie is
 
       if Count = 0 then
          Discard_Model;
-         Adi.Log.Error ("rlottie animation has zero frames: " & Path);
+         Adi.Log.Error ("rlottie animation has zero frames: " & Source);
          return Null_Animation_Handle;
       end if;
 
@@ -349,7 +354,42 @@ package body Adi.RLottie is
          end if;
          Discard_Model;
          raise;
+   end Adopt;
+
+   function Load_From_File (Path : String) return Animation_Handle is
+      use Interfaces.C.Strings;
+
+      C_Path : chars_ptr;
+      Model  : RL_Animation_Ptr;
+   begin
+      Ensure_Initialized;
+
+      C_Path := New_String (Path);
+      Model := Animation_From_File (C_Path);
+      Free (C_Path);
+
+      return Adopt (Model, Path);
    end Load_From_File;
+
+   function Load_From_Data (Data, Key : String) return Animation_Handle is
+      use Interfaces.C;
+      use Interfaces.C.Strings;
+
+      --  Data can run to megabytes, so it goes on the heap; the key and
+      --  the empty resource directory are small enough for the stack.
+      C_Key  : constant char_array := To_C (Key);
+      No_Dir : constant char_array := To_C ("");
+      C_Data : chars_ptr;
+      Model  : RL_Animation_Ptr;
+   begin
+      Ensure_Initialized;
+
+      C_Data := New_String (Data);
+      Model := Animation_From_Data (C_Data, C_Key, No_Dir);
+      Free (C_Data);
+
+      return Adopt (Model, Key);
+   end Load_From_Data;
 
    ---------------------------------------------------------------------------
    -- Prepare

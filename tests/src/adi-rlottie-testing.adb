@@ -3,11 +3,7 @@
 
 pragma Ada_2022;
 
-with Adi.SDL.Surface;
-
 package body Adi.RLottie.Testing is
-
-   use type Adi.SDL.Surface.SDL_Surface_Ptr;
 
    function A (H : Animation_Handle) return RLottie_Animation_Access
    is (if Animation_Stores.Is_Valid (H.Id)

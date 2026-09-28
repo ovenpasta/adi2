@@ -1,6 +1,6 @@
 pragma Ada_2022;
 
-with Ada.Text_IO;         use Ada.Text_IO;
+with Ada.Streams.Stream_IO;
 with Adi.Clock;
 with Adi.Core;        use Adi.Core;
 with Adi.Image;       use Adi.Image;
@@ -150,6 +150,89 @@ procedure RLottie_Prepare_Test is
               "and the next load registers normally");
       Destroy (H);
    end Test_Load_Failure_Propagates;
+
+   function Read_Fixture return String is
+      package SIO renames Ada.Streams.Stream_IO;
+      F : SIO.File_Type;
+   begin
+      SIO.Open (F, SIO.In_File, Fixture);
+      declare
+         Data : String (1 .. Natural (SIO.Size (F)));
+      begin
+         String'Read (SIO.Stream (F), Data);
+         SIO.Close (F);
+         return Data;
+      end;
+   end Read_Fixture;
+
+   procedure Test_Load_From_Data is
+      Data  : constant String := Read_Fixture;
+      Key   : constant String := "tiny_anim, from its data";
+      Anim  : Animation_Handle := Load_From_Data (Data, Key);
+      Other : Animation_Handle := Null_Animation_Handle;
+      Moved : Boolean;
+      pragma Unreferenced (Moved);
+   begin
+      Section ("an animation loads from its JSON as from its file");
+
+      Assert (Is_Valid (Anim), "the fixture's JSON loads");
+      if not Is_Valid (Anim) then
+         return;
+      end if;
+
+      Other := Load_From_File (Fixture);
+      declare
+         W, H, File_W, File_H : Pixel_Type;
+      begin
+         Get_Size (Anim, W, H);
+         Get_Size (Other, File_W, File_H);
+         Assert (W = File_W and then H = File_H,
+                 "at the size loading the file gives");
+      end;
+      Assert (Get_Frame_Count (Anim) = Get_Frame_Count (Other)
+              and then Get_Frame_Rate (Anim) = Get_Frame_Rate (Other)
+              and then Get_Duration (Anim) = Get_Duration (Other),
+              "with the same frames, rate and duration");
+      Destroy (Other);
+
+      Prepare (Anim, Tiny_W, Tiny_H);
+      Moved := Advance_At (Anim, Adi.Clock.Now);
+      Assert (Get_Current_Image (Anim) /= Adi.Image.Null_Image_Handle,
+              "and draws");
+
+      Assert (Load_From_Data ("", "empty") = Null_Animation_Handle,
+              "Empty data is answered with a null handle");
+      Assert (Load_From_Data ("{""v"":", "truncated") = Null_Animation_Handle,
+              "and so is data that does not parse");
+
+      Other := Load_From_Data ("{""v"":", Key);
+      Assert (Is_Valid (Other),
+              "A Key the cache holds is answered with its model, the data"
+              & " never parsed");
+      Destroy (Other);
+
+      Other := Load_From_Data ("{""v"":", Fixture);
+      Assert (Is_Valid (Other),
+              "and a file's path is the Key its model is held under");
+      Destroy (Other);
+
+      declare
+         Raised : Boolean := False;
+      begin
+         Fail_Next_Load;
+         begin
+            Other := Load_From_Data (Data, Key);
+         exception
+            when Storage_Error =>
+               Raised := True;
+         end;
+         Assert (Raised and then Other = Null_Animation_Handle,
+                 "A load that fails once the model is owned propagates"
+                 & " here too");
+      end;
+
+      Destroy (Anim);
+   end Test_Load_From_Data;
 
    procedure Test_Initial_Preparation is
       Anim : Animation_Handle := Load_From_File (Fixture);
@@ -670,8 +753,9 @@ procedure RLottie_Prepare_Test is
       declare
          From_Reset : constant Natural :=
            Get_Current_Frame_Index (Anim);
+         Anchored   : constant Boolean := Advance_At (Anim, At_Ms (20_000));
+         pragma Unreferenced (Anchored);
       begin
-         Moved := Advance_At (Anim, At_Ms (20_000));
          Assert (Get_Current_Frame_Index (Anim) = From_Reset,
                  "The first sample after a reset anchors rather than"
                  & " replaying everything since the last one");
@@ -774,6 +858,7 @@ begin
 
    Test_Ownership;
    Test_Load_Failure_Propagates;
+   Test_Load_From_Data;
    Test_Initial_Preparation;
    Test_First_Request_Rasterises_Once;
    Test_Second_Loop_Is_Free;

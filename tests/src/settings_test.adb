@@ -1,6 +1,8 @@
 pragma Ada_2022;
 
 with Ada.Directories;
+with Ada.Streams.Stream_IO;
+with Ada.Strings.Fixed;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with Adi.Settings;              use Adi.Settings;
@@ -469,6 +471,46 @@ procedure Settings_Test is
    end Test_Special_Chars;
 
    ---------------------------------------------------------------------------
+   --  Test: The file holds the bytes of the strings saved
+   ---------------------------------------------------------------------------
+
+   procedure Test_Saved_Bytes is
+      function B (Code : Natural) return Character is (Character'Val (Code));
+
+      --  UTF-8 for U+00C8 and U+20AC
+      E_Grave : constant String := B (16#C3#) & B (16#88#);
+      Euro    : constant String := B (16#E2#) & B (16#82#) & B (16#AC#);
+
+      function File_Bytes (Path : String) return String is
+         package SIO renames Ada.Streams.Stream_IO;
+         F : SIO.File_Type;
+      begin
+         SIO.Open (F, SIO.In_File, Path);
+         return Result : String (1 .. Natural (SIO.Size (F))) do
+            String'Read (SIO.Stream (F), Result);
+            SIO.Close (F);
+         end return;
+      end File_Bytes;
+   begin
+      Put_Line ("-- Saved Bytes Tests --");
+
+      declare
+         Backend : aliased JSON_Settings_Backend;
+         Path    : constant String := Tmp_Dir & "settings.json";
+         Data    : Setting_Value := Empty_Map;
+      begin
+         Ensure_Tmp_Dir;
+
+         Insert (Data, "text", To_Value (E_Grave & Euro));
+         Backend.Save (Path, Data);
+
+         Assert (Ada.Strings.Fixed.Index
+                   (File_Bytes (Path), """" & E_Grave & Euro & """") > 0,
+                 "Saved bytes: UTF-8 text is written unchanged");
+      end;
+   end Test_Saved_Bytes;
+
+   ---------------------------------------------------------------------------
    --  Test: Load from non-existent file returns Null_Value
    ---------------------------------------------------------------------------
 
@@ -660,6 +702,7 @@ begin
    Test_Escaped_Dots;
    Test_JSON_Round_Trip;
    Test_Special_Chars;
+   Test_Saved_Bytes;
    Test_Missing_File;
    Test_Save_Failure_Raises;
    Test_Empty_Store;

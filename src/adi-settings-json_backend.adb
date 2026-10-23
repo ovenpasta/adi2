@@ -5,7 +5,6 @@ pragma Ada_2022;
 
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
-with Ada.Text_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 
@@ -154,11 +153,14 @@ package body Adi.Settings.JSON_Backend is
    end Read_File;
 
    procedure Write_File (Path : String; Content : String) is
-      use Ada.Text_IO;
+      use Ada.Streams.Stream_IO;
       F : File_Type;
    begin
       Create (F, Out_File, Path);
-      Put (F, Content);
+      --  Bytes as they are, the way Read_File reads them back. Text_IO
+      --  would encode each byte above 16#7F# again as UTF-8 in a program
+      --  whose main unit is compiled with -gnatW8.
+      String'Write (Stream (F), Content);
       Close (F);
    exception
       when others =>

@@ -49,4 +49,14 @@ private
    --  themselves. Reachable from the testing child for the same reason.
    procedure Write_Style_Stores (W : in out Adi.JSON.JSON_Writer);
 
+   --  Answer the command file Dir/Cmd_Name (cmd_<req_id>.json): delete it
+   --  and write Dir/resp_<req_id>.json. The frame handler calls it for
+   --  each command it finds. Reachable from the testing child so the
+   --  handling of a command file can be asserted without a running
+   --  application.
+   procedure Process_Command_File
+     (Win      : Adi.Window.Window_Handle;
+      Dir      : String;
+      Cmd_Name : String);
+
 end Adi.MCP;

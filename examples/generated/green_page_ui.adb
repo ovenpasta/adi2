@@ -92,7 +92,7 @@ package body Green_Page_UI is
 
          Adi.CSS_Source.Set_Dynamic_Sources
            (Source,
-            [Adi.CSS_Source.CSS_File ("examples/css/stack_example_green.css")],
+            [Adi.CSS_Source.CSS_File ("css/stack_example_green.css")],
             Loaded);
          if Loaded then
             Adi.CSS_Source.Set_Mode

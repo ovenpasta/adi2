@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <adi>
-  <link rel="stylesheet" href="examples/css/stack_example.css"/>
-  <link rel="stylesheet" href="examples/css/stack_example_tabs.css"/>
+  <link rel="stylesheet" href="css/stack_example.css"/>
+  <link rel="stylesheet" href="css/stack_example_tabs.css"/>
 
   <style>
 .page-title::main {

@@ -40,8 +40,7 @@ Rebuilt with GCC's `-fstack-usage` flag, which writes `.su` files reporting
 the static stack size of every compiled function:
 
 ```bash
-alr exec -- gprbuild -P examples/examples.gpr \
-    -XEXAMPLE_KIND=material_demo -f -cargs -fstack-usage
+alr -C examples build -- material_demo.adb -f -cargs -fstack-usage
 ```
 
 Then sorted by stack size:

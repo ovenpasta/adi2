@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Example_Paths;
 with Adi.App;
 with Adi.Layout_Util;
 with Adi.Core;
@@ -19,7 +20,7 @@ procedure Image_Example is
      "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 "
      & "9.19 8.63 2 9.24l5.46 4.73L5.82 21z";
 
-   --  SVG icon paths for tintable demos (24x24 viewbox)
+   --  SVG icon paths for tintable examples (24x24 viewbox)
    Heart_Path : constant String :=
      "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 "
      & "2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09"
@@ -49,6 +50,7 @@ procedure Image_Example is
    Svg_Path_Img, Svg_Img, Png_Img, Jpg_Img, Cat : Adi.Image.Image_Owner;
    Heart, Bolt, Shield, Bell_Img                : Adi.Image.Image_Owner;
 begin
+   Example_Paths.Initialize;
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
@@ -62,22 +64,22 @@ begin
       Set_Image (UI.Img_Svg_Path, Adi.Image.To_Handle (Svg_Path_Img));
    end if;
 
-   Svg_Img := Adi.Image.Load_From_File ("examples/assets/tiger.svg");
+   Svg_Img := Adi.Image.Load_From_File ("assets/tiger.svg");
    if Adi.Image.Is_Owned (Svg_Img) then
       Set_Image (UI.Img_Svg, Adi.Image.To_Handle (Svg_Img));
    end if;
 
-   Png_Img := Adi.Image.Load_From_File ("examples/assets/happycat.png");
+   Png_Img := Adi.Image.Load_From_File ("assets/happycat.png");
    if Adi.Image.Is_Owned (Png_Img) then
       Set_Image (UI.Img_Png, Adi.Image.To_Handle (Png_Img));
    end if;
 
-   Jpg_Img := Adi.Image.Load_From_File ("examples/assets/bg.jpg");
+   Jpg_Img := Adi.Image.Load_From_File ("assets/bg.jpg");
    if Adi.Image.Is_Owned (Jpg_Img) then
       Set_Image (UI.Img_Jpg, Adi.Image.To_Handle (Jpg_Img));
    end if;
 
-   Cat := Adi.Image.Load_From_File ("examples/assets/happycat.png");
+   Cat := Adi.Image.Load_From_File ("assets/happycat.png");
    if Adi.Image.Is_Owned (Cat) then
       Set_Image (UI.Fit_Fill, Adi.Image.To_Handle (Cat));
       Set_Image (UI.Fit_Contain, Adi.Image.To_Handle (Cat));

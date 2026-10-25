@@ -117,7 +117,7 @@ Run the generation scripts manually before building:
 bash tools/generate_example_styles.sh
 bash tools/generate_example_ui.sh
 bash tools/generate_example_bundles.sh
-gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=assets_example
+tools/build_examples.sh assets_example
 ```
 
 ## Example Usage

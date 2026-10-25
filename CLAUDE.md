@@ -62,7 +62,7 @@ tools/build_examples.sh stack_example
 # or it still runs the library it was built against.
 
 # Build a specific example directly (generated sources must be current)
-alr exec -- gprbuild -j0 -P examples/examples.gpr -XEXAMPLE_KIND=stack_example
+tools/build_examples.sh stack_example
 
 # Run Ada tests (built to tests/bin/); one binary per Test_Kind in tests/tests.gpr,
 # of which these are a sample

@@ -14,7 +14,6 @@
 --  See the License for the specific language governing permissions and
 --  limitations under the License.
 
-with Ada.Characters.Handling;
 with Ada.Characters.Latin_1;
 with Ada.Strings.Bounded;
 with Ada.Strings.Unbounded;
@@ -36,10 +35,56 @@ package body JSON.Types is
       Value   : SB.Bounded_String;
       Escaped : Boolean := False;
 
+      --  State of a \u escape: hex digits still to read, the UTF-16 code
+      --  unit read so far, and a high surrogate waiting for its low half.
+      --  The tokenizer has already checked the digits and the pairing.
+      Digits_Left : Natural := 0;
+      Code, High  : Natural := 0;
+
       use Ada.Characters.Latin_1;
+
+      function Hex_Value (C : Character) return Natural is
+        (case C is
+           when '0' .. '9' => Character'Pos (C) - Character'Pos ('0'),
+           when 'a' .. 'f' => Character'Pos (C) - Character'Pos ('a') + 10,
+           when 'A' .. 'F' => Character'Pos (C) - Character'Pos ('A') + 10,
+           when others     => raise Program_Error);
+
+      procedure Append_UTF_8 (Code_Point : Natural) is
+         function Byte (Value : Natural) return Character is (Character'Val (Value));
+      begin
+         if Code_Point < 16#80# then
+            SB.Append (Value, Byte (Code_Point));
+         elsif Code_Point < 16#800# then
+            SB.Append (Value, Byte (16#C0# + Code_Point / 16#40#));
+            SB.Append (Value, Byte (16#80# + Code_Point mod 16#40#));
+         elsif Code_Point < 16#1_0000# then
+            SB.Append (Value, Byte (16#E0# + Code_Point / 16#1000#));
+            SB.Append (Value, Byte (16#80# + Code_Point / 16#40# mod 16#40#));
+            SB.Append (Value, Byte (16#80# + Code_Point mod 16#40#));
+         else
+            SB.Append (Value, Byte (16#F0# + Code_Point / 16#4_0000#));
+            SB.Append (Value, Byte (16#80# + Code_Point / 16#1000# mod 16#40#));
+            SB.Append (Value, Byte (16#80# + Code_Point / 16#40# mod 16#40#));
+            SB.Append (Value, Byte (16#80# + Code_Point mod 16#40#));
+         end if;
+      end Append_UTF_8;
    begin
       for C of Text loop
-         if Escaped then
+         if Digits_Left > 0 then
+            Code := Code * 16 + Hex_Value (C);
+            Digits_Left := Digits_Left - 1;
+            if Digits_Left = 0 then
+               if Code in 16#D800# .. 16#DBFF# then
+                  High := Code;
+               elsif High /= 0 then
+                  Append_UTF_8 (16#1_0000# + (High - 16#D800#) * 16#400# + (Code - 16#DC00#));
+                  High := 0;
+               else
+                  Append_UTF_8 (Code);
+               end if;
+            end if;
+         elsif Escaped then
             case C is
                when '"' | '\' | '/' =>
                   SB.Append (Value, C);
@@ -53,13 +98,19 @@ package body JSON.Types is
                   SB.Append (Value, CR);
                when 't' =>
                   SB.Append (Value, HT);
+               when 'u' =>
+                  Digits_Left := 4;
+                  Code := 0;
                when others =>
                   raise Program_Error;
             end case;
          elsif C = '"' then
             raise Program_Error;
          elsif C /= '\' then
-            if Ada.Characters.Handling.Is_Control (C) then
+            --  Same check as the tokenizer: only U+0000 .. U+001F must be
+            --  escaped. Is_Control would also reject 16#7F# .. 16#9F#,
+            --  which are DEL and UTF-8 continuation bytes.
+            if C in NUL .. US then
                raise Program_Error;
             end if;
             SB.Append (Value, C);

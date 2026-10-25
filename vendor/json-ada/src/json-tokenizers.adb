@@ -27,9 +27,33 @@ package body JSON.Tokenizers is
       C : Character;
       Index, Length : Streams.AS.Stream_Element_Offset := 0;
       Escaped : Boolean := False;
+      Code    : Natural;
 
       use type Streams.AS.Stream_Element_Offset;
       use Ada.Characters.Latin_1;
+
+      --  Read the next character of the string, counting it in Length
+      procedure Next is
+      begin
+         Stream.Read_Character (Index, C);
+         Length := Length + 1;
+      end Next;
+
+      --  Read the four hexadecimal digits of a \u escape into Code
+      procedure Read_Code_Unit is
+      begin
+         Code := 0;
+         for I in 1 .. 4 loop
+            Next;
+            Code := Code * 16 +
+              (case C is
+                 when '0' .. '9' => Character'Pos (C) - Character'Pos ('0'),
+                 when 'a' .. 'f' => Character'Pos (C) - Character'Pos ('a') + 10,
+                 when 'A' .. 'F' => Character'Pos (C) - Character'Pos ('A') + 10,
+                 when others =>
+                    raise Tokenizer_Error with "Expected four hexadecimal digits in escape");
+         end loop;
+      end Read_Code_Unit;
    begin
       loop
          Stream.Read_Character (Index, C);
@@ -44,8 +68,26 @@ package body JSON.Tokenizers is
                when '"' | '\' | '/' | 'b' | 'f' | 'n' | 'r' | 't' =>
                   null;
                when 'u' =>
-                  --  TODO Support escaped unicode
-                  raise Program_Error with "Escaped unicode not supported yet";
+                  --  Code points above U+FFFF are a UTF-16 surrogate pair
+                  --  of two escapes. A surrogate on its own has no UTF-8
+                  --  encoding, so it is rejected (RFC 8259 section 8.2).
+                  Read_Code_Unit;
+                  if Code in 16#DC00# .. 16#DFFF# then
+                     raise Tokenizer_Error with "Unpaired low surrogate in string";
+                  elsif Code in 16#D800# .. 16#DBFF# then
+                     Next;
+                     if C /= '\' then
+                        raise Tokenizer_Error with "Unpaired high surrogate in string";
+                     end if;
+                     Next;
+                     if C /= 'u' then
+                        raise Tokenizer_Error with "Unpaired high surrogate in string";
+                     end if;
+                     Read_Code_Unit;
+                     if Code not in 16#DC00# .. 16#DFFF# then
+                        raise Tokenizer_Error with "Unpaired high surrogate in string";
+                     end if;
+                  end if;
                when others =>
                   raise Tokenizer_Error with "Unexpected escaped character in string";
             end case;

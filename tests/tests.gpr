@@ -87,7 +87,8 @@ project Tests is
       "list_box_visibility_test",
       "idle_tick_test",
       "parser_slots_test",
-      "grid_tracks_test");
+      "grid_tracks_test",
+      "json_test");
    Kind : Test_Kind := external ("TEST_KIND", "styles");
    Platform_Name := external ("ADI_PLATFORM", "linux");
 

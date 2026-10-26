@@ -26,8 +26,10 @@ jobs:
         run: alr build -- -j0
 
       - name: Run the suite
-        shell: bash
         env:
           PYTHON: python
           ADI_SKIP_TREE_GOLDENS: 1
-        run: alr exec -- bash tools/run_tests.sh
+        run: |
+          $msys = "$env:LOCALAPPDATA\alire\cache\msys64"
+          $env:PATH = "$msys\mingw64\bin;$msys\usr\bin;$env:PATH"
+          alr exec -- "$msys\usr\bin\bash.exe" tools/run_tests.sh

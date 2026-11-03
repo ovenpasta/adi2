@@ -63,13 +63,15 @@ GPRBUILD ?= gprbuild
 #  Runtime files the examples expect, mounted at the same example-relative
 #  paths they use natively (Emscripten CWD is "/"): assets/
 #  (images, SVG, html; also the "app://" scheme root), css/
-#  (runtime-loaded stylesheets), plus OpenSans-Regular.ttf, which
-#  font_example loads and pre-js/adi_env.js pins as the fallback face.
-#  ~2.4 MB per example — fine for a showcase.
+#  (runtime-loaded stylesheets), the font variants under vendor/, plus
+#  OpenSans-Regular.ttf, which pre-js/adi_env.js pins as the fallback face.
 EMBED_FLAGS = \
   --embed-file ../examples/assets@/assets \
   --embed-file ../examples/css@/css \
-  --embed-file ../vendor/open-sans/static/OpenSans-Regular.ttf@/OpenSans-Regular.ttf
+  --embed-file ../vendor/open-sans/static/OpenSans-Regular.ttf@/OpenSans-Regular.ttf \
+  --embed-file ../vendor/open-sans/static/OpenSans-Bold.ttf@/vendor/open-sans/static/OpenSans-Bold.ttf \
+  --embed-file ../vendor/open-sans/static/OpenSans-Italic.ttf@/vendor/open-sans/static/OpenSans-Italic.ttf \
+  --embed-file ../vendor/open-sans/static/OpenSans-BoldItalic.ttf@/vendor/open-sans/static/OpenSans-BoldItalic.ttf
 
 #  -fwasm-exceptions is REQUIRED with the -eh runtime (keeps the wasm EH
 #  personality / unwind tables).

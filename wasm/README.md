@@ -168,9 +168,10 @@ site/shell.html   emcc --shell-file for every example page: centered
 
 Embedded into every example at the repo-relative paths it uses natively
 (Emscripten's CWD is `/`): `examples/assets` — also the `app://` root —
-`examples/css`, and `OpenSans-Regular.ttf`, which `adi_env.js` pins as
-the fallback face so text metrics do not depend on the build machine's
-installed fonts.
+`examples/css`, the Bold, Italic and BoldItalic fonts under
+`/vendor/open-sans/static/`, and `OpenSans-Regular.ttf`, which `adi_env.js`
+pins as the fallback face so text metrics do not depend on the build
+machine's installed fonts.
 
 ## Documentation
 

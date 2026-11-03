@@ -149,6 +149,13 @@ needs a definite profile should name it: `tools/run_tests.sh` exports
 `ADI_BUILD_PROFILE=development`, and `configure.sh` passes `-XADI_BUILD_PROFILE`
 on every command it generates.
 
+`tools/build_examples.sh` defaults the library profile to `development`.
+Set `ADI_BUILD_PROFILE` to select another profile:
+
+```bash
+ADI_BUILD_PROFILE=release tools/build_examples.sh font_example
+```
+
 The test suite only builds in `development`. `tests/src/adi-mcp-testing.adb` is
 a child of `Adi.MCP` and reads `Write_Texture_Cache` from its private part,
 which exists in `src/mcp/` but not in the `src/mcp_stub/` that the other

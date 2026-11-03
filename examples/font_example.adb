@@ -68,11 +68,11 @@ procedure Font_Example is
    function Load_Font_With_Variants return Font_Handle is
       use Ada.Directories;
 
-      Asset_Dir   : constant String := "assets/";
-      Base_Regular : constant String := Asset_Dir & "OpenSans-Regular.ttf";
-      Base_Bold    : constant String := Asset_Dir & "OpenSans-Bold.ttf";
-      Base_Italic  : constant String := Asset_Dir & "OpenSans-Italic.ttf";
-      Base_BI      : constant String := Asset_Dir & "OpenSans-BoldItalic.ttf";
+      Variant_Dir  : constant String := "../vendor/open-sans/static/";
+      Base_Regular : constant String := "assets/OpenSans-Regular.ttf";
+      Base_Bold    : constant String := Variant_Dir & "OpenSans-Bold.ttf";
+      Base_Italic  : constant String := Variant_Dir & "OpenSans-Italic.ttf";
+      Base_BI      : constant String := Variant_Dir & "OpenSans-BoldItalic.ttf";
       F            : Font_Handle := Null_Font;
    begin
       if not Exists (Base_Regular) then

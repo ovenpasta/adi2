@@ -2,6 +2,7 @@
 --  SPDX-License-Identifier: Apache-2.0
 
 with Ada.Directories;
+with Adi.Log;
 with Adi.OS;
 
 package body Example_Paths is
@@ -17,7 +18,9 @@ package body Example_Paths is
             --  WebAssembly mounts the example resources beside the program.
             Set_Directory (Base);
          else
-            raise Name_Error with "Cannot locate example assets beside executable";
+            Adi.Log.Warning
+              ("[Example_Paths] Cannot locate example assets beside executable; "
+               & "keeping current directory");
          end if;
       end;
    end Initialize;

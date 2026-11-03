@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build all examples, or the named mains, through the examples Alire crate.
 # Usage: tools/build_examples.sh [label_example ...]
+# ADI_BUILD_PROFILE selects the library profile (default: development).
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # A caller such as `alr exec -- tools/run_tests.sh` exports dependency
@@ -16,4 +17,4 @@ MAINS=()
 for name in "$@"; do
   MAINS+=("${name%.adb}.adb")
 done
-alr build --profiles=adi2=development -- -j0 "${MAINS[@]}"
+alr build --profiles="adi2=${ADI_BUILD_PROFILE:-development}" -- -j0 "${MAINS[@]}"

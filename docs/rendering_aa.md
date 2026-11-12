@@ -16,6 +16,8 @@ All rounded rendering in `src/adi-widget.adb` is built from three procedures:
 
 Each takes a `Min_Segments` parameter that controls arc tessellation. When multiple primitives share a boundary, they **must** use the same `Min_Segments` value to ensure identical point positions.
 
+`Render_Rounded_Border_Ring` and `Render_AA_Fringe` also take one colour per edge (`Edge_FColors`), for a border whose sides differ. Each corner arc switches colour at its midpoint, so the shared `Min_Segments` must be even to put that switch on a vertex.
+
 ---
 
 ## AA Fringe Technique

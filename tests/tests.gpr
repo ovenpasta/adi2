@@ -58,6 +58,7 @@ project Tests is
       "shadow_blur_test",
       "shadow_slice_test",
       "panel_aa_test",
+      "border_edge_colors_test",
       "gradient_stops_test",
       "texture_cache_test",
       "render_textures_test",

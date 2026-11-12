@@ -4082,6 +4082,247 @@ package body Adi.Widget is
           Num_Indices  => int (II));
    end Render_AA_Fringe;
 
+   --  One colour per border edge, for a ring or fringe whose edges differ
+   type Edge_FColors is array (Edge) of SDL_FColor;
+
+   type FPoint_Array is array (Natural range <>) of SDL_FPoint;
+
+   function To_FColor (R, G, B, A : Uint8) return SDL_FColor is
+     (r => Float (R) / 255.0,
+      g => Float (G) / 255.0,
+      b => Float (B) / 255.0,
+      a => Float (A) / 255.0);
+
+   --  The outline the single-colour primitives above walk: four arcs of
+   --  Num_Seg segments, from the top-left corner's left end clockwise,
+   --  with each point's outward normal. Radii are already clamped.
+   procedure Rounded_Outline
+     (Rect    : SDL_FRect;
+      Radii   : Corner_Pixels;
+      Num_Seg : Positive;
+      Points  : out FPoint_Array;
+      Normals : out FPoint_Array)
+   is
+      X0   : constant Float := Rect.x;
+      Y0   : constant Float := Rect.y;
+      X1   : constant Float := Rect.x + Rect.w;
+      Y1   : constant Float := Rect.y + Rect.h;
+      Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
+      K    : Natural := Points'First;
+
+      procedure Arc (Cx, Cy, Radius, Start : Float) is
+      begin
+         for I in 0 .. Num_Seg loop
+            declare
+               Angle : constant Float := Start + Float (I) * Step;
+               CA    : constant Float := Cos (Angle);
+               SA    : constant Float := Sin (Angle);
+            begin
+               Points (K) := (x => Cx + Radius * CA, y => Cy + Radius * SA);
+               Normals (K) := (x => CA, y => SA);
+               K := K + 1;
+            end;
+         end loop;
+      end Arc;
+   begin
+      Arc (X0 + Radii.Top_Left, Y0 + Radii.Top_Left, Radii.Top_Left,
+           Ada.Numerics.Pi);
+      Arc (X1 - Radii.Top_Right, Y0 + Radii.Top_Right, Radii.Top_Right,
+           3.0 * Ada.Numerics.Pi / 2.0);
+      Arc (X1 - Radii.Bottom_Right, Y1 - Radii.Bottom_Right,
+           Radii.Bottom_Right, 0.0);
+      Arc (X0 + Radii.Bottom_Left, Y1 - Radii.Bottom_Left, Radii.Bottom_Left,
+           Ada.Numerics.Pi / 2.0);
+   end Rounded_Outline;
+
+   --  The edge whose colour segment K of a Rounded_Outline takes. A corner
+   --  arc changes colour at its midpoint, where CSS splits a corner between
+   --  equal widths; the straight run after an arc is the edge it ends on.
+   function Outline_Segment_Edge (K : Natural; Num_Seg : Positive) return Edge
+   is
+      type Corner_Edges is array (0 .. 3) of Edge;
+      First_Half  : constant Corner_Edges := [Left, Top, Right, Bottom];
+      Second_Half : constant Corner_Edges := [Top, Right, Bottom, Left];
+      Arc   : constant Natural := (K / (Num_Seg + 1)) mod 4;
+      Local : constant Natural := K mod (Num_Seg + 1);
+   begin
+      return (if Local < Num_Seg / 2 then First_Half (Arc)
+              else Second_Half (Arc));
+   end Outline_Segment_Edge;
+
+   --  Render_Rounded_Border_Ring with a colour per edge. Each segment gets
+   --  its own vertices so colours switch sharply. An even segment count
+   --  puts each corner's colour change on a vertex. An empty dimension of
+   --  Inner_Rect collapses onto the outer centre line, so a border wider
+   --  than the box still fills exactly the outer shape.
+   procedure Render_Rounded_Border_Ring
+      (Renderer     : SDL_Renderer_Ptr;
+       Outer_Rect   : SDL_FRect;
+       Inner_Rect   : SDL_FRect;
+       Outer_Radii  : Corner_Pixels;
+       Inner_Radii  : Corner_Pixels;
+       Colors       : Edge_FColors;
+       Min_Segments : Natural := 0)
+   is
+      Inner : constant SDL_FRect :=
+        (x => (if Inner_Rect.w > 0.0 then Inner_Rect.x
+               else Outer_Rect.x + Outer_Rect.w / 2.0),
+         y => (if Inner_Rect.h > 0.0 then Inner_Rect.y
+               else Outer_Rect.y + Outer_Rect.h / 2.0),
+         w => Float'Max (0.0, Inner_Rect.w),
+         h => Float'Max (0.0, Inner_Rect.h));
+      Clamped_Outer : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max
+          (Outer_Radii, Half_Min_Dimension_Non_Neg (Outer_Rect));
+      Clamped_Inner : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max
+          (Inner_Radii, Half_Min_Dimension_Non_Neg (Inner));
+      Max_R : constant Float :=
+        Float'Max (Float'Max (Clamped_Outer.Top_Left, Clamped_Outer.Top_Right),
+                   Float'Max (Clamped_Outer.Bottom_Right,
+                              Clamped_Outer.Bottom_Left));
+      Num_Seg : constant Positive :=
+        Positive'Max (Segments_For_Radius (Max_R),
+                      (if Min_Segments > 0 then Min_Segments else 1));
+      N_Outline : constant Natural := 4 * (Num_Seg + 1);
+
+      Outer_Pts, Inner_Pts, Normals : FPoint_Array (0 .. N_Outline - 1);
+      Verts : SDL_Vertex_Array (0 .. 4 * N_Outline - 1);
+      Idxs  : Int_Array (0 .. 6 * N_Outline - 1);
+      VI    : Natural := 0;
+      II    : Natural := 0;
+      Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
+      Unused  : Adi.SDL.C_bool;
+
+      procedure Add_Vertex (P : SDL_FPoint; C : SDL_FColor) is
+      begin
+         Verts (VI) := (position => P, color => C, tex_coord => Zero_TC);
+         VI := VI + 1;
+      end Add_Vertex;
+
+      procedure Add_Triangle (IA, IB, IC : Natural) is
+      begin
+         Idxs (II)     := int (IA);
+         Idxs (II + 1) := int (IB);
+         Idxs (II + 2) := int (IC);
+         II := II + 3;
+      end Add_Triangle;
+   begin
+      if not Is_Visible_FRect (Outer_Rect) then
+         return;
+      end if;
+
+      Rounded_Outline (Outer_Rect, Clamped_Outer, Num_Seg, Outer_Pts, Normals);
+      Rounded_Outline (Inner, Clamped_Inner, Num_Seg, Inner_Pts, Normals);
+
+      for K in 0 .. N_Outline - 1 loop
+         declare
+            Next : constant Natural := (K + 1) mod N_Outline;
+            C    : constant SDL_FColor :=
+              Colors (Outline_Segment_Edge (K, Num_Seg));
+            V    : constant Natural := VI;
+         begin
+            Add_Vertex (Outer_Pts (K), C);
+            Add_Vertex (Outer_Pts (Next), C);
+            Add_Vertex (Inner_Pts (Next), C);
+            Add_Vertex (Inner_Pts (K), C);
+            Add_Triangle (V, V + 1, V + 2);
+            Add_Triangle (V, V + 2, V + 3);
+         end;
+      end loop;
+
+      SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                  "SDL_SetRenderDrawBlendMode");
+      Unused := SDL_RenderGeometry
+         (Renderer     => Renderer,
+          Texture      => null,
+          Vertices     => Verts (0)'Access,
+          Num_Vertices => int (VI),
+          Indices      => Idxs (0)'Access,
+          Num_Indices  => int (II));
+   end Render_Rounded_Border_Ring;
+
+   --  Render_AA_Fringe with a colour per edge, split as the ring above is
+   procedure Render_AA_Fringe
+      (Renderer     : SDL_Renderer_Ptr;
+       Rect         : SDL_FRect;
+       Radii        : Corner_Pixels;
+       Colors       : Edge_FColors;
+       Min_Segments : Natural := 0;
+       Inward       : Boolean := False)
+   is
+      Fringe : constant Float := (if Inward then -1.0 else 1.0);
+      Clamped : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max (Radii, Half_Min_Dimension_Non_Neg (Rect));
+      Max_R : constant Float :=
+        Float'Max (Float'Max (Clamped.Top_Left, Clamped.Top_Right),
+                   Float'Max (Clamped.Bottom_Right, Clamped.Bottom_Left));
+      Num_Seg : constant Positive :=
+        Positive'Max (Segments_For_Radius (Max_R),
+                      (if Min_Segments > 0 then Min_Segments else 1));
+      N_Outline : constant Natural := 4 * (Num_Seg + 1);
+
+      Pts, Normals : FPoint_Array (0 .. N_Outline - 1);
+      Verts : SDL_Vertex_Array (0 .. 4 * N_Outline - 1);
+      Idxs  : Int_Array (0 .. 6 * N_Outline - 1);
+      VI    : Natural := 0;
+      II    : Natural := 0;
+      Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
+      Unused  : Adi.SDL.C_bool;
+
+      procedure Add_Vertex (P : SDL_FPoint; C : SDL_FColor) is
+      begin
+         Verts (VI) := (position => P, color => C, tex_coord => Zero_TC);
+         VI := VI + 1;
+      end Add_Vertex;
+
+      procedure Add_Triangle (IA, IB, IC : Natural) is
+      begin
+         Idxs (II)     := int (IA);
+         Idxs (II + 1) := int (IB);
+         Idxs (II + 2) := int (IC);
+         II := II + 3;
+      end Add_Triangle;
+
+      function Offset (K : Natural) return SDL_FPoint is
+        (x => Pts (K).x + Normals (K).x * Fringe,
+         y => Pts (K).y + Normals (K).y * Fringe);
+   begin
+      if not Is_Visible_FRect (Rect) then
+         return;
+      end if;
+
+      Rounded_Outline (Rect, Clamped, Num_Seg, Pts, Normals);
+
+      --  Per segment: the boundary at full alpha, offset to alpha 0
+      for K in 0 .. N_Outline - 1 loop
+         declare
+            Next  : constant Natural := (K + 1) mod N_Outline;
+            Solid : constant SDL_FColor :=
+              Colors (Outline_Segment_Edge (K, Num_Seg));
+            Clear : constant SDL_FColor := (Solid with delta a => 0.0);
+            V     : constant Natural := VI;
+         begin
+            Add_Vertex (Pts (K), Solid);
+            Add_Vertex (Offset (K), Clear);
+            Add_Vertex (Pts (Next), Solid);
+            Add_Vertex (Offset (Next), Clear);
+            Add_Triangle (V, V + 2, V + 1);
+            Add_Triangle (V + 1, V + 2, V + 3);
+         end;
+      end loop;
+
+      SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
+                  "SDL_SetRenderDrawBlendMode");
+      Unused := SDL_RenderGeometry
+         (Renderer     => Renderer,
+          Texture      => null,
+          Vertices     => Verts (0)'Access,
+          Num_Vertices => int (VI),
+          Indices      => Idxs (0)'Access,
+          Num_Indices  => int (II));
+   end Render_AA_Fringe;
+
    function Apply_Opacity (A : Uint8; O : Float) return Uint8 is
    begin
       if O >= 1.0 then
@@ -4785,6 +5026,32 @@ package body Adi.Widget is
                      "SDL_SetRenderDrawColor");
       end Set_Edge_Color;
 
+      --  Edge E's border colour as declared, before opacity
+      procedure Declared_Edge_Color (E : Edge; ER, EG, EB, EA : out Uint8) is
+      begin
+         case Style.Border_Color.Kind is
+            when Gap_Uniform =>
+               CSS_Color_To_SDL (Style.Border_Color.All_Edges, ER, EG, EB, EA);
+            when Per_Edge =>
+               CSS_Color_To_SDL (Style.Border_Color.Edges (E), ER, EG, EB, EA);
+         end case;
+      end Declared_Edge_Color;
+
+      function Declared_Edge_Alpha (E : Edge) return Uint8 is
+         ER, EG, EB, EA : Uint8;
+      begin
+         Declared_Edge_Color (E, ER, EG, EB, EA);
+         return EA;
+      end Declared_Edge_Alpha;
+
+      --  Edge E's border colour as painted, opacity folded in
+      function Edge_FColor (E : Edge) return SDL_FColor is
+         ER, EG, EB, EA : Uint8;
+      begin
+         Declared_Edge_Color (E, ER, EG, EB, EA);
+         return To_FColor (ER, EG, EB, Apply_Opacity (EA, Op));
+      end Edge_FColor;
+
       procedure Draw_Edge_Borders (Respect_Radius : Boolean := False) is
          Edge_Rect : aliased SDL_FRect;
          Top_X     : Float;
@@ -5301,12 +5568,22 @@ package body Adi.Widget is
             --  Compute segment count once from the outer radius so the
             --  ring's inner boundary and the fill share identical tessellation.
             declare
-               Seg : constant Positive :=
+               Border_Colors : constant Edge_FColors :=
+                  [for E in Edge => Edge_FColor (E)];
+               Per_Edge_Colors : constant Boolean :=
+                  (for some E in Edge =>
+                     Border_Colors (E) /= Border_Colors (Top));
+               Base_Seg : constant Positive :=
                   Segments_For_Radius
                      (if Uniform then Max_Rad
                       else Float'Max
                         (Float'Max (Radius_Px.Top_Left, Radius_Px.Top_Right),
                          Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left)));
+               --  Edges of differing colours switch at each corner's
+               --  midpoint, which an even count puts on a vertex
+               Seg : constant Positive :=
+                  (if Per_Edge_Colors then Base_Seg + Base_Seg mod 2
+                   else Base_Seg);
                Inner : constant SDL_FRect :=
                   (x => Rect.x + BW_Top,
                    y => Rect.y + BW_Top,
@@ -5335,14 +5612,22 @@ package body Adi.Widget is
                                        R, G, B, Declared_BA);
                end case;
                R := BR; G := BG; B := BB;
-               Render_Rounded_Border_Ring
-                  (Renderer, Rect, Inner, Radius_Px, Inner_Radii, R, G, B, A,
-                   Min_Segments => Seg);
-
-               Render_AA_Fringe
-                  (Renderer, Rect, Radius_Px,
-                   BR, BG, BB, BA,
-                   Min_Segments => Seg);
+               if Per_Edge_Colors then
+                  Render_Rounded_Border_Ring
+                     (Renderer, Rect, Inner, Radius_Px, Inner_Radii,
+                      Border_Colors, Min_Segments => Seg);
+                  Render_AA_Fringe
+                     (Renderer, Rect, Radius_Px, Border_Colors,
+                      Min_Segments => Seg);
+               else
+                  Render_Rounded_Border_Ring
+                     (Renderer, Rect, Inner, Radius_Px, Inner_Radii,
+                      R, G, B, A, Min_Segments => Seg);
+                  Render_AA_Fringe
+                     (Renderer, Rect, Radius_Px,
+                      BR, BG, BB, BA,
+                      Min_Segments => Seg);
+               end if;
 
                if Style.Background_Color.Kind /= Named
                   or else Style.Background_Color.Name /= Transparent
@@ -5373,7 +5658,26 @@ package body Adi.Widget is
                      --  the backdrop, and fading the fill over it would
                      --  eat a one-pixel border. A transparent one supplies
                      --  nothing, so the fill carries the whole blend.
-                     if not Has_Gradient and then Declared_BA < 255 then
+                     if Per_Edge_Colors then
+                        if not Has_Gradient then
+                           declare
+                              function Fill_Alpha (E : Edge) return Uint8 is
+                                (Uint8 (Float (A)
+                                   * (1.0 - Float (Declared_Edge_Alpha (E))
+                                              / 255.0)));
+                              Fill : constant Edge_FColors :=
+                                 [for E in Edge =>
+                                    To_FColor (R, G, B, Fill_Alpha (E))];
+                           begin
+                              if (for some E in Edge => Fill (E).a > 0.0)
+                              then
+                                 Render_AA_Fringe
+                                    (Renderer, Inner, Inner_Radii, Fill,
+                                     Min_Segments => Seg);
+                              end if;
+                           end;
+                        end if;
+                     elsif not Has_Gradient and then Declared_BA < 255 then
                         declare
                            Blend : constant Float :=
                               1.0 - Float (Declared_BA) / 255.0;
@@ -5414,11 +5718,18 @@ package body Adi.Widget is
                --  Inner AA fringe (always render — smooths border inner
                --  edge regardless of background transparency)
                if Inner.w > 0.0 and then Inner.h > 0.0 then
-                  Render_AA_Fringe
-                     (Renderer, Inner, Inner_Radii,
-                      BR, BG, BB, BA,
-                      Min_Segments => Seg,
-                      Inward => True);
+                  if Per_Edge_Colors then
+                     Render_AA_Fringe
+                        (Renderer, Inner, Inner_Radii, Border_Colors,
+                         Min_Segments => Seg,
+                         Inward => True);
+                  else
+                     Render_AA_Fringe
+                        (Renderer, Inner, Inner_Radii,
+                         BR, BG, BB, BA,
+                         Min_Segments => Seg,
+                         Inward => True);
+                  end if;
                end if;
             end;
 

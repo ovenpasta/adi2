@@ -9,6 +9,7 @@ accept it.
 | Name | GitHub | Accepted | Agreement | Statement |
 |------|--------|----------|-----------|-----------|
 | Olivier Henley | ohenley | 2026-09-28 | [`4d589e6`](https://github.com/ovenpasta/adi2/blob/4d589e6779510426cc202c914d47a5a7243b397d/CLA.md) | [PR #9](https://github.com/ovenpasta/adi2/pull/9#issuecomment-5873584054) |
+| Peter Tihanyi | tipeter | 2026-11-12 | [`a86ecca`](https://github.com/ovenpasta/adi2/blob/a86ecca6a3339a90ae75d8af7c7e1684df6e61b1/CLA.md) | [Issue #11](https://github.com/ovenpasta/adi2/issues/11#issuecomment-6837656543) |
 | Lucio Martin Bruno | luciomartinbruno-web | 2026-10-23 | [`4d589e6`](https://github.com/ovenpasta/adi2/blob/4d589e6779510426cc202c914d47a5a7243b397d/CLA.md) | [PR #14](https://github.com/ovenpasta/adi2/pull/14#issuecomment-6368959482), [PR #15](https://github.com/ovenpasta/adi2/pull/15#issuecomment-6368966487) |
 
 ## Contributions
@@ -16,5 +17,6 @@ accept it.
 | Contribution | Contributor | Commits |
 |--------------|-------------|---------|
 | [PR #9](https://github.com/ovenpasta/adi2/pull/9): examples runnable with Alire | Olivier Henley | `e427f62`, `f17a453` |
+| [Issue #11](https://github.com/ovenpasta/adi2/issues/11): first-frame fix and its test, from the attached patch | Peter Tihanyi | `e4b0e9c` |
 | [PR #14](https://github.com/ovenpasta/adi2/pull/14): settings file written byte for byte, JSON tests for non-ASCII and escapes | Lucio Martin Bruno | `a707717`, `575909f` |
 | [PR #15](https://github.com/ovenpasta/adi2/pull/15): MCP answers unparsable commands, reads long ones whole | Lucio Martin Bruno | `f0bd4ea`, `5948ab9`, `dcdbb99`, `f387bcb` |

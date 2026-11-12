@@ -9,6 +9,7 @@ project Tests is
       "flex_justify_test",
       "css_parser_test",
       "window_extent_test",
+      "window_first_frame_test",
       "css_source_test",
       "text_buffer_test",
       "text_layout_test",

@@ -937,6 +937,47 @@ package body Adi.Window is
       Maximized : Boolean := False) return Window_Handle is
      (Create_Window_Sized (Title, S, Maximized, Hidden => False));
 
+   --  A Window around an SDL window and its renderer, registered. S is the
+   --  SDL window size, in logical points on HiDPI platforms; Adi exposes
+   --  pixels everywhere, so the framebuffer's pixel size is stored.
+   function Adopt_Window
+     (Win_Ptr : Adi.SDL.Video.SDL_Window_Ptr;
+      Ren_Ptr : Adi.SDL.Render.SDL_Renderer_Ptr;
+      S       : Size_2D) return Window_Handle
+   is
+      W : constant Window_Access := new Window;
+      Pixel_Size : Size_2D := S;
+      W_Px       : aliased int := 0;
+      H_Px       : aliased int := 0;
+   begin
+      W.Internal := new Internal;
+      W.Internal.win := Win_Ptr;
+      W.Internal.ren := Ren_Ptr;
+      Adi.Render.Create (W.Ctx, Ren_Ptr);
+      if Adi.SDL.Video.SDL_GetWindowSizeInPixels
+           (Win_Ptr, W_Px'Access, H_Px'Access)
+      then
+         Pixel_Size := (Width  => Pixel_Type (W_Px),
+                        Height => Pixel_Type (H_Px));
+      end if;
+      W.Size := Pixel_Size;
+      W.Geometry := (0.0, 0.0, Pixel_Size.Width, Pixel_Size.Height);
+      Apply_Render_Logical_Presentation (W.all);
+      if Refresh_DIP_Scale (W.all) then
+         null;
+      end if;
+      Refresh_Viewport_Size (W.all);
+      Register_Live_Window (W);
+      declare
+         Id : constant Window_Stores.Object_Id :=
+           Window_Stores.Register (Window_Class_Access (W));
+      begin
+         W.Store_Index := Natural (Id.Index);
+         W.Store_Gen   := Natural (Id.Gen);
+      end;
+      return Get_Handle (W.all);
+   end Adopt_Window;
+
    function Create_Window_Sized
      (Title     : String;
       S         : Size_2D;
@@ -973,42 +1014,7 @@ package body Adi.Window is
            "SDL_CreateWindowAndRenderer failed: "
            & Interfaces.C.Strings.Value (Adi.SDL.SDL_GetError);
       end if;
-      declare
-         W : constant Window_Access := new Window;
-         Pixel_Size : Size_2D := S;
-         W_Px       : aliased int := 0;
-         H_Px       : aliased int := 0;
-      begin
-         W.Internal := new Internal;
-         W.Internal.win := Win_Ptr;
-         W.Internal.ren := Ren_Ptr;
-         Adi.Render.Create (W.Ctx, Ren_Ptr);
-         --  S is the SDL window size (interpreted by SDL as logical points
-         --  on HiDPI platforms). Adi's API exposes pixels everywhere, so
-         --  store the actual framebuffer pixel size in W.Size/W.Geometry.
-         if Adi.SDL.Video.SDL_GetWindowSizeInPixels
-              (Win_Ptr, W_Px'Access, H_Px'Access)
-         then
-            Pixel_Size := (Width  => Pixel_Type (W_Px),
-                           Height => Pixel_Type (H_Px));
-         end if;
-         W.Size := Pixel_Size;
-         W.Geometry := (0.0, 0.0, Pixel_Size.Width, Pixel_Size.Height);
-         Apply_Render_Logical_Presentation (W.all);
-         if Refresh_DIP_Scale (W.all) then
-            null;
-         end if;
-         Refresh_Viewport_Size (W.all);
-         Register_Live_Window (W);
-         declare
-            Id : constant Window_Stores.Object_Id :=
-              Window_Stores.Register (Window_Class_Access (W));
-         begin
-            W.Store_Index := Natural (Id.Index);
-            W.Store_Gen   := Natural (Id.Gen);
-         end;
-         return Get_Handle (W.all);
-      end;
+      return Adopt_Window (Win_Ptr, Ren_Ptr, S);
    end Create_Window_Sized;
 
 
@@ -3191,10 +3197,20 @@ function Get_Size (W : in out Window) return Size_2D is
       --  only knowable once a window exists, and SDL_SetWindowSize has no
       --  effect on a maximized window, so maximizing waits until the
       --  restore size has been established. Nothing is shown until the
-      --  requested size has actually been applied.
-      H : Window_Handle :=
-        Create_Window_Sized (Title, (100.0, 100.0), Maximized => False,
-                             Hidden => True);
+      --  requested size has actually been applied. The renderer comes
+      --  once the window has its size: made at the bootstrap size, on
+      --  Wayland it drew its first frame into a 100x100 buffer. It comes
+      --  before the window is shown, since SDL recreates the native window
+      --  for a GL or Vulkan renderer, which shown would appear twice.
+      use Interfaces.C.Strings;
+      C_Title : chars_ptr := New_String (Title);
+      Win : constant Adi.SDL.Video.SDL_Window_Ptr :=
+        Adi.SDL.Video.SDL_Window_Ptr
+          (Adi.SDL.Video.SDL_CreateWindow
+             (C_Title, 100, 100,
+              SDL_WINDOW_RESIZABLE or SDL_WINDOW_HIGH_PIXEL_DENSITY
+              or SDL_WINDOW_HIDDEN));
+      Ren : Adi.SDL.Render.SDL_Renderer_Ptr := null;
 
       Wants_Bounds : constant Boolean :=
         S.Width.Unit = Pct or else S.Height.Unit = Pct;
@@ -3208,11 +3224,16 @@ function Get_Size (W : in out Window) return Size_2D is
             then ": " & Interfaces.C.Strings.Value (Adi.SDL.SDL_GetError)
             else "");
       begin
-         Destroy (H);
+         if Ren /= null then
+            Adi.SDL.Render.SDL_DestroyRenderer (Ren);
+         end if;
+         if Win /= null then
+            Adi.SDL.Video.SDL_DestroyWindow (Win);
+         end if;
          raise Adi.SDL.SDL_Error with Message & Detail;
       end Fail;
-      Win : constant Adi.SDL.Video.SDL_Window_Ptr := Get_SDL_Window (H);
    begin
+      Free (C_Title);
       if Win = null then
          Fail ("window could not be created");
       end if;
@@ -3261,10 +3282,15 @@ function Get_Size (W : in out Window) return Size_2D is
             end if;
          end;
 
-         --  SetWindowSize is asynchronous, so read back only once the
-         --  window manager has acted on it.
+         --  SetWindowSize is asynchronous, so go on only once the window
+         --  manager has acted on it.
          if not Boolean (Adi.SDL.Video.SDL_SyncWindow (Win)) then
             Fail ("window size change was not applied");
+         end if;
+
+         Ren := Adi.SDL.Render.SDL_CreateRenderer (Win, Null_Ptr);
+         if Ren = null then
+            Fail ("window renderer could not be created");
          end if;
 
          --  The size a window ends up with is whatever was granted, so
@@ -3275,17 +3301,22 @@ function Get_Size (W : in out Window) return Size_2D is
          then
             Fail ("window size could not be read back");
          end if;
-         Handle_Resize (H, (Pixel_Type (W_Px), Pixel_Type (H_Px)));
 
          if not Boolean (Adi.SDL.Video.SDL_ShowWindow (Win)) then
             Fail ("window could not be shown");
          end if;
 
          if Maximized then
-            Maximize (H);
+            declare
+               Ignored : constant Adi.SDL.C_bool :=
+                 Adi.SDL.Video.SDL_MaximizeWindow (Win);
+            begin
+               null;
+            end;
          end if;
+
+         return Adopt_Window (Win, Ren, (Pixel_Type (W_Px), Pixel_Type (H_Px)));
       end;
-      return H;
    end Create_Window_Handle;
 
 

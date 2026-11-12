@@ -2,6 +2,9 @@
 --
 --  Copyright (c) 2016 onox <denkpadje@gmail.com>
 --
+--  Modified for Adi2: \u escapes and bytes 16#80# .. 16#9F#, from
+--  onox/json-ada#17; a key holding an escape is looked up decoded.
+--
 --  Licensed under the Apache License, Version 2.0 (the "License");
 --  you may not use this file except in compliance with the License.
 --  You may obtain a copy of the License at
@@ -14,10 +17,10 @@
 --  See the License for the specific language governing permissions and
 --  limitations under the License.
 
-with Ada.Characters.Handling;
 with Ada.Characters.Latin_1;
 with Ada.Strings.Bounded;
 with Ada.Strings.Unbounded;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 
 package body JSON.Types is
 
@@ -33,16 +36,54 @@ package body JSON.Types is
       --  Add 1 so that the length is always positive
       package SB is new Ada.Strings.Bounded.Generic_Bounded_Length (Max => Text'Length + 1);
 
-      Value   : SB.Bounded_String;
-      Escaped : Boolean := False;
+      Value : SB.Bounded_String;
+      Pos   : Integer := Text'First;
+
+      function Code_Unit (First : Positive) return Natural is
+        (Natural'Value ("16#" & Text (First .. First + 3) & "#"));
+      --  The tokenizer has verified that these are four hexadecimal digits
+
+      procedure Append_Escaped_Unicode is
+         --  Pos is at the 'u' on entry, and at the last digit used on exit
+         subtype High_Surrogates is Natural range 16#D800# .. 16#DBFF#;
+         subtype Low_Surrogates  is Natural range 16#DC00# .. 16#DFFF#;
+
+         Code : Natural := Code_Unit (Pos + 1);
+      begin
+         Pos := Pos + 4;
+
+         --  Characters outside the BMP are given as a surrogate pair
+
+         if Code in High_Surrogates
+           and then Pos + 6 <= Text'Last
+           and then Text (Pos + 1 .. Pos + 2) = "\u"
+           and then Code_Unit (Pos + 3) in Low_Surrogates
+         then
+            Code := 16#1_0000#
+              + (Code - High_Surrogates'First) * 16#400#
+              + (Code_Unit (Pos + 3) - Low_Surrogates'First);
+            Pos  := Pos + 6;
+
+         --  JSON allows unpaired surrogates, but UTF-8 cannot encode them
+
+         elsif Code in High_Surrogates | Low_Surrogates then
+            Code := 16#FFFD#; -- The replacement character
+         end if;
+
+         SB.Append (Value,
+                    Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode
+                      ((1 => Wide_Wide_Character'Val (Code))));
+      end Append_Escaped_Unicode;
 
       use Ada.Characters.Latin_1;
    begin
-      for C of Text loop
-         if Escaped then
-            case C is
+      while Pos <= Text'Last loop
+         if Text (Pos) = '\' then
+            Pos := Pos + 1;
+
+            case Text (Pos) is
                when '"' | '\' | '/' =>
-                  SB.Append (Value, C);
+                  SB.Append (Value, Text (Pos));
                when 'b' =>
                   SB.Append (Value, BS);
                when 'f' =>
@@ -53,19 +94,22 @@ package body JSON.Types is
                   SB.Append (Value, CR);
                when 't' =>
                   SB.Append (Value, HT);
+               when 'u' =>
+                  Append_Escaped_Unicode;
                when others =>
                   raise Program_Error;
             end case;
-         elsif C = '"' then
+         elsif Text (Pos) = '"' or else Text (Pos) in NUL .. US then
+            --  Only these are not allowed. Bytes in 16#80# .. 16#9F# would be
+            --  control characters in Latin-1, but here they are part of UTF-8.
             raise Program_Error;
-         elsif C /= '\' then
-            if Ada.Characters.Handling.Is_Control (C) then
-               raise Program_Error;
-            end if;
-            SB.Append (Value, C);
+         else
+            SB.Append (Value, Text (Pos));
          end if;
-         Escaped := not Escaped and C = '\';
+
+         Pos := Pos + 1;
       end loop;
+
       return SB.To_String (Value);
    end Unescape;
 
@@ -154,10 +198,28 @@ package body JSON.Types is
    -----------------------------------------------------------------------------
 
    function "=" (Left : String; Right : JSON_Value) return Boolean is
-     (if Right.Kind = String_Kind then
-        Right.Stream.Is_Equal_String (Right.String_Offset, Right.String_Length, Left)
-      else
-        False);
+   begin
+      if Right.Kind /= String_Kind then
+         return False;
+      --  Decoding never lengthens a string, so this needs no copy
+      elsif Long_Integer (Right.String_Length) < Long_Integer (Left'Length) then
+         return False;
+      end if;
+
+      declare
+         Text : constant String := Right.Stream.Get_String
+           (Right.String_Offset, Right.String_Length);
+      begin
+         --  A key holding an escape compares by what it decodes to, as
+         --  Value reads it
+         if (for some C of Text => C = '\') then
+            return Unescape (Text) = Left;
+         end if;
+      end;
+
+      return Right.Stream.Is_Equal_String
+        (Right.String_Offset, Right.String_Length, Left);
+   end "=";
 
    function Value (Object : JSON_Value) return String is
    begin

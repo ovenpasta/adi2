@@ -2,6 +2,8 @@
 --
 --  Copyright (c) 2016 onox <denkpadje@gmail.com>
 --
+--  Modified for Adi2: \u escapes, from onox/json-ada#17.
+--
 --  Licensed under the Apache License, Version 2.0 (the "License");
 --  you may not use this file except in compliance with the License.
 --  You may obtain a copy of the License at
@@ -44,8 +46,16 @@ package body JSON.Tokenizers is
                when '"' | '\' | '/' | 'b' | 'f' | 'n' | 'r' | 't' =>
                   null;
                when 'u' =>
-                  --  TODO Support escaped unicode
-                  raise Program_Error with "Escaped unicode not supported yet";
+                  --  Only validated here, as Types.Unescape does the decoding
+                  for Digit in 1 .. 4 loop
+                     Stream.Read_Character (Index, C);
+                     Length := Length + 1;
+
+                     if C not in '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' then
+                        raise Tokenizer_Error with
+                          "Expected four hexadecimal digits after \u in string";
+                     end if;
+                  end loop;
                when others =>
                   raise Tokenizer_Error with "Unexpected escaped character in string";
             end case;

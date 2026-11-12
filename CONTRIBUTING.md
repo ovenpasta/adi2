@@ -87,6 +87,9 @@ accept a new version before making a subsequent non-exempt Contribution
 if the Agreement is materially amended. Corrections limited to
 typography, links, or formatting do not require renewed acceptance.
 
+Each accepted Agreement, and the Contributions it covers, is recorded in
+[CONTRIBUTORS.md](CONTRIBUTORS.md).
+
 Execution on paper or by email is available on request. A contributor
 whose employer owns or may have rights in a submitted work must comply
 with Section 3(c) of the Agreement, including by obtaining the required

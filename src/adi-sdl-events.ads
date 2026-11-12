@@ -287,6 +287,8 @@ package Adi.SDL.Events is
       Y          : C_float;
    end record with Convention => C;
 
+   --  As in SDL 3.2. SDL 3.4 appends integer_x and integer_y; X and Y
+   --  carry the same notches in both, fractional from a touchpad.
    type SDL_MouseWheelEvent is record
       Event_Type : SDL_EventType;
       Reserved   : Uint32;
@@ -298,8 +300,6 @@ package Adi.SDL.Events is
       Direction  : SDL_MouseWheelDirection;
       Mouse_X    : C_float;
       Mouse_Y    : C_float;
-      Integer_X  : Sint32;
-      Integer_Y  : Sint32;
    end record with Convention => C;
 
    type SDL_JoyAxisEvent is record

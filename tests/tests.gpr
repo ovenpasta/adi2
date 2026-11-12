@@ -61,6 +61,7 @@ project Tests is
       "border_edge_colors_test",
       "oversized_radius_test",
       "rounded_uneven_border_test",
+      "wheel_event_test",
       "gradient_stops_test",
       "texture_cache_test",
       "render_textures_test",

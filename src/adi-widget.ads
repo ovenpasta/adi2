@@ -848,6 +848,13 @@ package Adi.Widget is
 
 private
 
+   --  For a widget that steps once per wheel notch: adds Delta_Y to
+   --  Accum and answers +1 or -1 when a whole notch has gathered, else 0.
+   --  A touchpad reports a notch in fractions; a turn back drops what
+   --  the other way had gathered.
+   function Wheel_Notch
+     (Accum : in out Pixel_Type; Delta_Y : Pixel_Type) return Integer;
+
    --  Widgets are reached through Widget_Handle.  The pointer type, the
    --  resolver and the registrar are here so the library's own child
    --  packages can build widgets; defining one outside the library goes

@@ -625,11 +625,14 @@ package body Adi.Widget.Slider_Impl is
          return;
       end if;
 
-      if Delta_Y > 0.0 then
-         Set_Value (W, Clamp (W.Value + Inc, W.Min_Value, W.Max_Value));
-      elsif Delta_Y < 0.0 then
-         Set_Value (W, Clamp (W.Value - Inc, W.Min_Value, W.Max_Value));
-      end if;
+      case Wheel_Notch (W.Wheel_Accum, Delta_Y) is
+         when 1 =>
+            Set_Value (W, Clamp (W.Value + Inc, W.Min_Value, W.Max_Value));
+         when -1 =>
+            Set_Value (W, Clamp (W.Value - Inc, W.Min_Value, W.Max_Value));
+         when others =>
+            return;
+      end case;
 
       Fire_Changed (W);
    end On_Mouse_Wheel;

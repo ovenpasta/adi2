@@ -261,8 +261,8 @@ package body Adi.App is
                                   (Main,
                                    X => Adi.Core.Pixel_Type (Wheel_Event.Mouse_X),
                                     Y       => Adi.Core.Pixel_Type (Wheel_Event.Mouse_Y),
-                                    Delta_X => Adi.Core.Pixel_Type (Wheel_Event.Integer_X),
-                                    Delta_Y => Adi.Core.Pixel_Type (Wheel_Event.Integer_Y));
+                                    Delta_X => Adi.Core.Pixel_Type (Wheel_Event.X),
+                                    Delta_Y => Adi.Core.Pixel_Type (Wheel_Event.Y));
                             end;
                         end if;
 

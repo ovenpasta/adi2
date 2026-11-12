@@ -126,6 +126,7 @@ private
       Dir       : Orientation := Horizontal;
       Dragging  : Boolean := False;
       Drag_Offset : Pixel_Type := 0.0;
+      Wheel_Accum : Pixel_Type := 0.0;
       Changed : Value_Changed_Signals.Signal;
    end record;
 

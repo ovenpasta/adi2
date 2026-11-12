@@ -399,11 +399,11 @@ package body Adi.Widget.Value_Input_Impl is
    is
       pragma Unreferenced (Delta_X);
    begin
-      if Delta_Y > 0.0 then
-         Apply_Step (W, Up => True);
-      elsif Delta_Y < 0.0 then
-         Apply_Step (W, Up => False);
-      end if;
+      case Wheel_Notch (W.Wheel_Accum, Delta_Y) is
+         when 1      => Apply_Step (W, Up => True);
+         when -1     => Apply_Step (W, Up => False);
+         when others => null;
+      end case;
    end On_Mouse_Wheel;
 
 end Adi.Widget.Value_Input_Impl;

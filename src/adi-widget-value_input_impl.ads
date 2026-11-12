@@ -110,6 +110,7 @@ private
       Max_Value      : Value_Type := Zero;
       Step           : Value_Type := Zero;
       Updating_Text  : Boolean := False;
+      Wheel_Accum    : Pixel_Type := 0.0;
       Value_Changed : Value_Changed_Signals.Signal;
    end record;
 

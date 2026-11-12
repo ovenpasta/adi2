@@ -3127,6 +3127,23 @@ package body Adi.Widget is
       end if;
    end Handle_Scroll_Mouse_Up;
 
+   function Wheel_Notch
+     (Accum : in out Pixel_Type; Delta_Y : Pixel_Type) return Integer is
+   begin
+      if (Delta_Y > 0.0 and then Accum < 0.0)
+        or else (Delta_Y < 0.0 and then Accum > 0.0)
+      then
+         Accum := 0.0;
+      end if;
+      Accum := Accum + Delta_Y;
+      if abs Accum < 1.0 then
+         return 0;
+      end if;
+      return Notch : constant Integer := (if Accum > 0.0 then 1 else -1) do
+         Accum := Accum - Pixel_Type'Truncation (Accum);
+      end return;
+   end Wheel_Notch;
+
    procedure Handle_Scroll_Mouse_Wheel
      (W                : in out Widget'Class;
       Delta_X, Delta_Y : Pixel_Type)

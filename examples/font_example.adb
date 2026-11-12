@@ -69,7 +69,7 @@ procedure Font_Example is
       use Ada.Directories;
 
       Variant_Dir  : constant String := "../vendor/open-sans/static/";
-      Base_Regular : constant String := "assets/OpenSans-Regular.ttf";
+      Base_Regular : constant String := Variant_Dir & "OpenSans-Regular.ttf";
       Base_Bold    : constant String := Variant_Dir & "OpenSans-Bold.ttf";
       Base_Italic  : constant String := Variant_Dir & "OpenSans-Italic.ttf";
       Base_BI      : constant String := Variant_Dir & "OpenSans-BoldItalic.ttf";

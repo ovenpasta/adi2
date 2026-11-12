@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GENERATOR="$ROOT_DIR/tools/binary_to_ada.py"
 ASSETS_DIR="$ROOT_DIR/examples/assets"
+FONT="$ROOT_DIR/vendor/open-sans/static/OpenSans-Regular.ttf"
 OUT_DIR="$ROOT_DIR/examples/generated"
 
 mkdir -p "$OUT_DIR"
@@ -16,7 +17,7 @@ if [[ ! -f "$OUT_FILE" ]]; then
 elif [[ "$GENERATOR" -nt "$OUT_FILE" ]]; then
   needs_regen=1
 else
-  for f in "$ASSETS_DIR"/icons.svg "$ASSETS_DIR"/happycat.png "$ASSETS_DIR"/OpenSans-Regular.ttf; do
+  for f in "$ASSETS_DIR"/icons.svg "$ASSETS_DIR"/happycat.png "$FONT"; do
     if [[ -f "$f" && "$f" -nt "$OUT_FILE" ]]; then
       needs_regen=1
       break
@@ -31,7 +32,7 @@ if [[ "$needs_regen" -eq 1 ]]; then
     --package-name Assets_Example_Bundle \
     --base-dir "$ASSETS_DIR" \
     "$ASSETS_DIR/icons.svg" "$ASSETS_DIR/happycat.png" \
-    "$ASSETS_DIR/OpenSans-Regular.ttf"
+    --named OpenSans-Regular.ttf "$FONT"
 else
   echo "[bundles] skip:     assets_example_bundle"
 fi

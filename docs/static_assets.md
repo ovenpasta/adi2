@@ -64,6 +64,7 @@ python3 tools/binary_to_ada.py \
 
 `--base-dir` strips the directory prefix so registered paths are clean
 relative paths (e.g. `icons.svg` instead of `examples/assets/icons.svg`).
+`--named KEY PATH` registers PATH under KEY as given, and may be repeated.
 
 The generated package exposes a single `Register_All` procedure. Constants are
 placed in the package **body** to avoid recompilation churn — body-level

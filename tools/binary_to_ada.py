@@ -6,7 +6,8 @@ Usage:
         --output-dir examples/generated/ \\
         --package-name Assets_Example_Bundle \\
         --base-dir examples/assets/ \\
-        examples/assets/icons.svg examples/assets/happycat.png
+        examples/assets/icons.svg examples/assets/happycat.png \\
+        --named OpenSans-Regular.ttf vendor/open-sans/static/OpenSans-Regular.ttf
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ import argparse
 import os
 import re
 import sys
+from collections.abc import Sequence
 
 
 def file_to_identifier(path: str) -> str:
@@ -56,13 +58,17 @@ def relative_key(filepath: str, base_dir: str | None) -> str:
 
 
 def generate(files: list[str], output_dir: str, package_name: str,
-             base_dir: str | None) -> tuple[str, str]:
-    """Generate Ada spec and body source strings."""
+             base_dir: str | None,
+             named: Sequence[tuple[str, str]] = ()) -> tuple[str, str]:
+    """Generate Ada spec and body source strings.
+
+    named holds (key, path) pairs bundled under key as given.
+    """
     entries = []
-    for filepath in files:
+    sources = [(relative_key(p, base_dir), p) for p in files] + list(named)
+    for key, filepath in sources:
         with open(filepath, 'rb') as f:
             data = f.read()
-        key = relative_key(filepath, base_dir)
         ident = file_to_identifier(key) + '_Data'
         entries.append((key, ident, data))
 
@@ -115,7 +121,10 @@ def generate(files: list[str], output_dir: str, package_name: str,
 def main():
     parser = argparse.ArgumentParser(
         description='Convert binary files to Ada Storage_Array constants')
-    parser.add_argument('files', nargs='+', help='Input files')
+    parser.add_argument('files', nargs='*', help='Input files')
+    parser.add_argument('--named', nargs=2, action='append', default=[],
+                        metavar=('KEY', 'PATH'),
+                        help='Bundle PATH under KEY; may be repeated')
     parser.add_argument('--output-dir', required=True,
                         help='Output directory for generated Ada files')
     parser.add_argument('--package-name', required=True,
@@ -123,11 +132,13 @@ def main():
     parser.add_argument('--base-dir', default=None,
                         help='Base directory to strip from paths for keys')
     args = parser.parse_args()
+    if not args.files and not args.named:
+        parser.error('no input files')
 
     os.makedirs(args.output_dir, exist_ok=True)
 
     spec, body = generate(args.files, args.output_dir, args.package_name,
-                          args.base_dir)
+                          args.base_dir, [tuple(n) for n in args.named])
 
     base_name = args.package_name.lower().replace('.', '-')
     spec_path = os.path.join(args.output_dir, base_name + '.ads')

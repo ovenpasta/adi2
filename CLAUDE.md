@@ -152,7 +152,7 @@ python3 tools/binary_to_ada.py \
   --package-name Assets_Example_Bundle \
   --base-dir examples/assets/ \
   examples/assets/icons.svg examples/assets/happycat.png \
-  examples/assets/OpenSans-Regular.ttf
+  --named OpenSans-Regular.ttf vendor/open-sans/static/OpenSans-Regular.ttf
 ```
 
 Incremental build for examples: `tools/generate_example_bundles.sh`. Full reference in `docs/static_assets.md`.

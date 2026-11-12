@@ -96,9 +96,3 @@ it.
 ## cat.svg, happycat.png, bg.jpg, html_view_example.html, html/
 
 Original to this repository, under its Apache-2.0 licence.
-
-## OpenSans-Regular.ttf, OpenSans-Bold.ttf, OpenSans-Italic.ttf, OpenSans-BoldItalic.ttf
-
-Unmodified fonts from `vendor/open-sans/static/`, under the SIL Open Font
-License 1.1. Source: [Google Fonts Open Sans](https://github.com/googlefonts/opensans).
-Copyright 2020 The Open Sans Project Authors. See `vendor/open-sans/OFL.txt`.

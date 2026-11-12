@@ -2,6 +2,7 @@
 """Tests for binary_to_ada.py"""
 
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -144,6 +145,74 @@ class TestGenerate(unittest.TestCase):
             self.assertIn('B_Bin_Data', body)
             self.assertIn('"a.bin"', body)
             self.assertIn('"b.bin"', body)
+
+    def test_named_beside_plain(self):
+        """A named file keeps its key as given; --base-dir leaves it alone."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sub = os.path.join(tmpdir, 'assets')
+            other = os.path.join(tmpdir, 'vendor', 'fonts')
+            os.makedirs(sub)
+            os.makedirs(other)
+            plain = os.path.join(sub, 'icon.svg')
+            font = os.path.join(other, 'Face.ttf')
+            with open(plain, 'wb') as f:
+                f.write(b'<svg/>')
+            with open(font, 'wb') as f:
+                f.write(b'\x01\x02')
+
+            spec, body = generate([plain], tmpdir, 'N', sub,
+                                  [('fonts/Face.ttf', font)])
+            self.assertIn('Adi.Assets.Register ("icon.svg", ', body)
+            self.assertIn('Adi.Assets.Register ("fonts/Face.ttf", ', body)
+            self.assertIn('[1,2]', body)
+            self.assertNotIn('vendor', body)
+            self.assertNotIn('../', body)
+
+    def test_named_only(self):
+        """Named files alone are enough."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            font = os.path.join(tmpdir, 'x=y.ttf')
+            with open(font, 'wb') as f:
+                f.write(b'\x05')
+
+            spec, body = generate([], tmpdir, 'Only', None,
+                                  [('Face.ttf', font)])
+            self.assertIn('Adi.Assets.Register ("Face.ttf", ', body)
+            self.assertIn('[5]', body)
+
+
+class TestCommandLine(unittest.TestCase):
+    SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          'binary_to_ada.py')
+
+    def run_tool(self, *args):
+        return subprocess.run([sys.executable, self.SCRIPT, *args],
+                              capture_output=True, text=True)
+
+    def test_named_option(self):
+        """--named KEY PATH reaches the generated body, and may repeat."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            a = os.path.join(tmpdir, 'a.bin')
+            b = os.path.join(tmpdir, 'b.bin')
+            for path, byte in ((a, b'\x0A'), (b, b'\x0B')):
+                with open(path, 'wb') as f:
+                    f.write(byte)
+
+            r = self.run_tool('--output-dir', tmpdir, '--package-name', 'Cli',
+                              '--named', 'first.bin', a,
+                              '--named', 'second.bin', b)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            with open(os.path.join(tmpdir, 'cli.adb')) as f:
+                body = f.read()
+            self.assertIn('Adi.Assets.Register ("first.bin", ', body)
+            self.assertIn('Adi.Assets.Register ("second.bin", ', body)
+
+    def test_no_input_is_an_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            r = self.run_tool('--output-dir', tmpdir, '--package-name', 'None')
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn('no input files', r.stderr)
+            self.assertFalse(os.path.exists(os.path.join(tmpdir, 'none.adb')))
 
 
 if __name__ == '__main__':

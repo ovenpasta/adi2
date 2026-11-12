@@ -3,5 +3,5 @@
 //  Adi.Font reads this once, before its system scan.
 Module['preRun'] = Module['preRun'] || [];
 Module['preRun'].push(function () {
-  ENV.ADI_FALLBACK_FONT = '/OpenSans-Regular.ttf';
+  ENV.ADI_FALLBACK_FONT = '/vendor/open-sans/static/OpenSans-Regular.ttf';
 });

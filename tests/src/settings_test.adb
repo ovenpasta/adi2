@@ -511,6 +511,94 @@ procedure Settings_Test is
    end Test_Saved_Bytes;
 
    ---------------------------------------------------------------------------
+   --  Test: Non-ASCII text survives a save and load
+   ---------------------------------------------------------------------------
+
+   procedure Test_Non_ASCII is
+      function B (Code : Natural) return Character is (Character'Val (Code));
+
+      --  The second byte of each is in 16#80# .. 16#9F#
+      E_Grave : constant String := B (16#C3#) & B (16#88#);
+      Euro    : constant String := B (16#E2#) & B (16#82#) & B (16#AC#);
+      Em_Dash : constant String := B (16#E2#) & B (16#80#) & B (16#94#);
+   begin
+      Put_Line ("-- Non-ASCII Tests --");
+
+      declare
+         Backend : aliased JSON_Settings_Backend;
+         Path    : constant String := Tmp_Dir & "settings.json";
+         Data    : Setting_Value := Empty_Map;
+      begin
+         Ensure_Tmp_Dir;
+
+         Insert (Data, "e_grave", To_Value (E_Grave));
+         Insert (Data, "euro", To_Value (Euro));
+         Insert (Data, "em_dash", To_Value (Em_Dash));
+         Insert (Data, "plain", To_Value ("kept"));
+
+         Backend.Save (Path, Data);
+
+         declare
+            Loaded : constant Setting_Value := Backend.Load (Path);
+         begin
+            Assert (Kind (Loaded) = Map_Kind,
+                    "Non-ASCII: the file loads back as a map");
+            if Kind (Loaded) = Map_Kind then
+               Assert (As_String (Get (Loaded, "e_grave")) = E_Grave,
+                       "Non-ASCII: U+00C8 round-trip");
+               Assert (As_String (Get (Loaded, "euro")) = Euro,
+                       "Non-ASCII: U+20AC round-trip");
+               Assert (As_String (Get (Loaded, "em_dash")) = Em_Dash,
+                       "Non-ASCII: U+2014 round-trip");
+               Assert (As_String (Get (Loaded, "plain")) = "kept",
+                       "Non-ASCII: the other settings are kept");
+            end if;
+         end;
+      end;
+   end Test_Non_ASCII;
+
+   ---------------------------------------------------------------------------
+   --  Test: Control characters survive a save and load
+   ---------------------------------------------------------------------------
+
+   procedure Test_Control_Chars is
+      --  Escape_String writes these as backslash-u escapes
+      Esc_Text  : constant String := "a" & Character'Val (16#1B#) & "b";
+      Soh_Text  : constant String := (1 => Character'Val (16#01#));
+   begin
+      Put_Line ("-- Control Character Tests --");
+
+      declare
+         Backend : aliased JSON_Settings_Backend;
+         Path    : constant String := Tmp_Dir & "settings.json";
+         Data    : Setting_Value := Empty_Map;
+      begin
+         Ensure_Tmp_Dir;
+
+         Insert (Data, "esc", To_Value (Esc_Text));
+         Insert (Data, "soh", To_Value (Soh_Text));
+         Insert (Data, "plain", To_Value ("kept"));
+
+         Backend.Save (Path, Data);
+
+         declare
+            Loaded : constant Setting_Value := Backend.Load (Path);
+         begin
+            Assert (Kind (Loaded) = Map_Kind,
+                    "Control chars: the file loads back as a map");
+            if Kind (Loaded) = Map_Kind then
+               Assert (As_String (Get (Loaded, "esc")) = Esc_Text,
+                       "Control chars: ESC round-trip");
+               Assert (As_String (Get (Loaded, "soh")) = Soh_Text,
+                       "Control chars: U+0001 round-trip");
+               Assert (As_String (Get (Loaded, "plain")) = "kept",
+                       "Control chars: the other settings are kept");
+            end if;
+         end;
+      end;
+   end Test_Control_Chars;
+
+   ---------------------------------------------------------------------------
    --  Test: Load from non-existent file returns Null_Value
    ---------------------------------------------------------------------------
 
@@ -703,6 +791,8 @@ begin
    Test_JSON_Round_Trip;
    Test_Special_Chars;
    Test_Saved_Bytes;
+   Test_Non_ASCII;
+   Test_Control_Chars;
    Test_Missing_File;
    Test_Save_Failure_Raises;
    Test_Empty_Store;

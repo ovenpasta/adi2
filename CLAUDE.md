@@ -81,6 +81,7 @@ tools/build_examples.sh stack_example
 ./tests/bin/mcp_test
 ./tests/bin/bundle_test
 ./tests/bin/settings_test
+./tests/bin/json_test
 ./tests/bin/close_request_test
 ./tests/bin/text_editor_test
 ./tests/bin/dialog_test

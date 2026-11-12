@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <adi>
-  <link rel="stylesheet" href="examples/css/image_example.css"/>
+  <link rel="stylesheet" href="css/image_example.css"/>
 
   <window title="Image Example" width="754px" height="620px">
     <box id="Root" class="root">

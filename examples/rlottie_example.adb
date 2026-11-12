@@ -1,6 +1,6 @@
 pragma Ada_2022;
 
-with Ada.Directories;
+with Example_Paths;
 with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Layout_Util;
@@ -49,22 +49,13 @@ procedure RLottie_Example is
          when Tears_Of_Joy  => "JOY",
          when Star          => "STAR");
 
-   --  Examples are run from the repository root, from their own directory
-   --  and from a build tree, so the asset is looked for in each.
    function Resolve_Asset (File : String) return String is
    begin
-      if Ada.Directories.Exists ("examples/assets/" & File) then
-         return "examples/assets/" & File;
-      elsif Ada.Directories.Exists ("assets/" & File) then
-         return "assets/" & File;
-      elsif Ada.Directories.Exists ("../examples/assets/" & File) then
-         return "../examples/assets/" & File;
-      else
-         return "examples/assets/" & File;
-      end if;
+      return "assets/" & File;
    end Resolve_Asset;
 
 begin
+   Example_Paths.Initialize;
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
@@ -244,7 +235,7 @@ begin
 
       if Loaded = 0 then
          Adi.Widget.Label.Set_Text
-           (Status, "FAILED TO LOAD examples/assets/noto_*.json");
+           (Status, "FAILED TO LOAD assets/noto_*.json");
       else
          Adi.Widget.Label.Set_Text
            (Status,

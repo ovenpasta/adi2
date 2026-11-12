@@ -1,4 +1,5 @@
 pragma Ada_2022;
+with Example_Paths;
 with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.Log;
 with Adi.App;
@@ -36,6 +37,7 @@ procedure Button_Example is
    end On_Align_Changed;
 
 begin
+   Example_Paths.Initialize;
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);

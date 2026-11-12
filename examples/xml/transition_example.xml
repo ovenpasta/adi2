@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <adi>
-  <link rel="stylesheet" href="examples/css/transition_example.css"/>
+  <link rel="stylesheet" href="css/transition_example.css"/>
 
   <window title="Transition Examples" width="617px" height="480px">
     <box class="root">

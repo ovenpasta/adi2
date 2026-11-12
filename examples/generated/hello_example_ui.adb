@@ -110,7 +110,7 @@ package body Hello_Example_UI is
 
          Adi.CSS_Source.Set_Dynamic_Sources
            (Source,
-            [Adi.CSS_Source.CSS_File ("examples/css/hello_example.css")],
+            [Adi.CSS_Source.CSS_File ("css/hello_example.css")],
             Loaded);
          if Loaded then
             Adi.CSS_Source.Set_Mode

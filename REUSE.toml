@@ -200,7 +200,7 @@ SPDX-FileCopyrightText = "microugly (https://openclipart.org/detail/176055/Clipa
 SPDX-License-Identifier = "CC-PDDC"
 
 [[annotations]]
-path = "examples/assets/OpenSans-Regular.ttf"
+path = "examples/assets/OpenSans-*.ttf"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2020 The Open Sans Project Authors (https://github.com/googlefonts/opensans)"
 SPDX-License-Identifier = "OFL-1.1"

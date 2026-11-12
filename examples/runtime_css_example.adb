@@ -1,6 +1,6 @@
 pragma Ada_2022;
 
-with Ada.Directories;
+with Example_Paths;
 
 with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
@@ -24,22 +24,10 @@ procedure Runtime_Css_Example is
    use type Adi.Widget.Label.Label_Handle;
    use type Runtime_Css_Live_Root.Handle;
 
-   function Resolve_CSS_Path return String is
-   begin
-      if Ada.Directories.Exists ("examples/css/runtime_css_example.css") then
-         return "examples/css/runtime_css_example.css";
-      elsif Ada.Directories.Exists ("css/runtime_css_example.css") then
-         return "css/runtime_css_example.css";
-      elsif Ada.Directories.Exists ("../css/runtime_css_example.css") then
-         return "../css/runtime_css_example.css";
-      else
-         return "examples/css/runtime_css_example.css";
-      end if;
-   end Resolve_CSS_Path;
-
    A : Adi.App.App;
 
 begin
+   Example_Paths.Initialize;
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
 
@@ -49,7 +37,7 @@ begin
 
       Source : Adi.CSS_Source.Style_Source
         renames Runtime_Css_Live_Root.Source;
-      CSS_Path : constant String := Resolve_CSS_Path;
+      CSS_Path : constant String := "css/runtime_css_example.css";
       Loaded : Boolean := False;
       Mode_OK : Boolean := False;
 

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -53,20 +54,9 @@ def controllable(names: list[str]) -> tuple[list[str], list[str]]:
 
 
 def all_examples() -> list[str]:
-    """Every example the build script knows about.
-
-    One list, kept where the build already keeps it. The array ends at a
-    parenthesis in the first column, so a comment holding one does not
-    cut the list short.
-    """
-    script = (ROOT / "tools" / "build_examples.sh").read_text()
-    body = script.split("ALL_EXAMPLES=(", 1)[1].split("\n)", 1)[0]
-    names = []
-    for line in body.splitlines():
-        name = line.split("#", 1)[0].strip()
-        if name:
-            names.append(name)
-    return sorted(names)
+    """Every demo main declared in the Alire project."""
+    project = (ROOT / "examples" / "examples.gpr").read_text()
+    return sorted(re.findall(r'"(\w+)\.adb"', project))
 
 
 def build(*names: str) -> None:

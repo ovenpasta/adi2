@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Example_Paths;
 with Adi.CSS_Styles;  use Adi.CSS_Styles;
 with Adi.App;
 with Adi.Layout_Util;
@@ -22,6 +23,7 @@ procedure Animated_Image_Example is
    use type Adi.Widget.Animated_Widget.Animated_Widget_Handle;
 
 begin
+   Example_Paths.Initialize;
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);
@@ -145,7 +147,7 @@ begin
       Add_Child (+Root, +Status);
 
       Animation :=
-        Adi.Animated_Image.Load_From_File ("examples/assets/animhorse.gif");
+        Adi.Animated_Image.Load_From_File ("assets/animhorse.gif");
       if not Is_Valid (Animation) then
          Adi.Widget.Label.Set_Text (Status, "Failed to load animhorse.gif");
       else

@@ -1,5 +1,6 @@
 pragma Ada_2022;
 
+with Example_Paths;
 with Ada.Strings;            use Ada.Strings;
 with Ada.Strings.Fixed;      use Ada.Strings.Fixed;
 with Adi.CSS_Styles;  use Adi.CSS_Styles;
@@ -36,6 +37,7 @@ procedure Text_Input_Example is
    end On_Input_Changed;
 
 begin
+   Example_Paths.Initialize;
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);
    A.Set_Target_FPS (60);

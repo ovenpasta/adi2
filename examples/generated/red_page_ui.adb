@@ -195,7 +195,7 @@ package body Red_Page_UI is
 
          Adi.CSS_Source.Set_Dynamic_Sources
            (Source,
-            [Adi.CSS_Source.CSS_File ("examples/css/stack_example.css"),
+            [Adi.CSS_Source.CSS_File ("css/stack_example.css"),
              Adi.CSS_Source.CSS_Text (Inline_CSS)],
             Loaded);
          if Loaded then

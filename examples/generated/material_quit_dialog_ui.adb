@@ -110,7 +110,7 @@ package body Material_Quit_Dialog_UI is
 
          Adi.CSS_Source.Set_Dynamic_Sources
            (Source,
-            [Adi.CSS_Source.CSS_File ("examples/css/material_demo.css")],
+            [Adi.CSS_Source.CSS_File ("css/material_demo.css")],
             Loaded);
          if Loaded then
             Adi.CSS_Source.Set_Mode

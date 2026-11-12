@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <adi>
-  <link rel="stylesheet" href="examples/css/demo_block.css"/>
+  <link rel="stylesheet" href="css/demo_block.css"/>
 
   <window title="Block Layout Reference" width="617px" height="617px">
     <box id="Root" class="root">

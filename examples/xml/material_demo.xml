@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <adi>
-  <link rel="stylesheet" href="examples/css/material_demo.css"/>
+  <link rel="stylesheet" href="css/material_demo.css"/>
 
   <enum name="Page" values="Home, Forms, Settings, Controls"/>
   <generic name="Page_Stack" package="Adi.Widget.Stack" type-param="Page"/>
@@ -36,7 +36,7 @@
             <box class="card">
               <label text="Welcome" class="label-inline card-title"/>
               <label text="A Material Design 3 demo built with Adi." class="label-inline card-body"/>
-              <label text="Edit examples/css/material_demo.css to live-reload." class="label-inline card-hint"/>
+              <label text="Edit css/material_demo.css to live-reload." class="label-inline card-hint"/>
               <button text="Get Started" class="btn btn-primary" on-clicked="On_Get_Started"/>
             </box>
           </box>

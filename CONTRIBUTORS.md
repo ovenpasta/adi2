@@ -16,4 +16,5 @@ accept it.
 | Contribution | Contributor | Commits |
 |--------------|-------------|---------|
 | [PR #9](https://github.com/ovenpasta/adi2/pull/9): examples runnable with Alire | Olivier Henley | `e427f62`, `f17a453` |
+| [PR #14](https://github.com/ovenpasta/adi2/pull/14): settings file written byte for byte, JSON tests for non-ASCII and escapes | Lucio Martin Bruno | `a707717`, `575909f` |
 | [PR #15](https://github.com/ovenpasta/adi2/pull/15): MCP answers unparsable commands, reads long ones whole | Lucio Martin Bruno | `f0bd4ea`, `5948ab9`, `dcdbb99`, `f387bcb` |

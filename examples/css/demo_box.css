@@ -127,6 +127,15 @@
   background-color: rgb(46, 52, 64);
 }
 
+/*  The bottom is not drawn, so its corners belong to the sides */
+.bw-open {
+  border-width: 3px;
+  border-radius: 12px;
+  border-bottom-style: none;
+  border-color: rgb(136, 192, 208);
+  background-color: rgb(46, 52, 64);
+}
+
 /* Each edge its own colour */
 .four-colours {
   border-width: 5px;

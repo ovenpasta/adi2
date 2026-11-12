@@ -106,121 +106,128 @@ package body Demo_Box_Styles is
    procedure Register_Selectors_15
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("four-colours", Four_Colours_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("bw-open", Bw_Open_Class_Part_Styles));
    end Register_Selectors_15;
    pragma No_Inline (Register_Selectors_15);
 
    procedure Register_Selectors_16
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("rounded", Rounded_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("four-colours", Four_Colours_Class_Part_Styles));
    end Register_Selectors_16;
    pragma No_Inline (Register_Selectors_16);
 
    procedure Register_Selectors_17
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("raised", Raised_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("rounded", Rounded_Class_Part_Styles));
    end Register_Selectors_17;
    pragma No_Inline (Register_Selectors_17);
 
    procedure Register_Selectors_18
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("sunken", Sunken_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("raised", Raised_Class_Part_Styles));
    end Register_Selectors_18;
    pragma No_Inline (Register_Selectors_18);
 
    procedure Register_Selectors_19
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("r-12", R_12_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("sunken", Sunken_Class_Part_Styles));
    end Register_Selectors_19;
    pragma No_Inline (Register_Selectors_19);
 
    procedure Register_Selectors_20
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("r-alternate", R_Alternate_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("r-12", R_12_Class_Part_Styles));
    end Register_Selectors_20;
    pragma No_Inline (Register_Selectors_20);
 
    procedure Register_Selectors_21
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("r-top", R_Top_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("r-alternate", R_Alternate_Class_Part_Styles));
    end Register_Selectors_21;
    pragma No_Inline (Register_Selectors_21);
 
    procedure Register_Selectors_22
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("r-pill", R_Pill_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("r-top", R_Top_Class_Part_Styles));
    end Register_Selectors_22;
    pragma No_Inline (Register_Selectors_22);
 
    procedure Register_Selectors_23
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("ol-plain", Ol_Plain_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("r-pill", R_Pill_Class_Part_Styles));
    end Register_Selectors_23;
    pragma No_Inline (Register_Selectors_23);
 
    procedure Register_Selectors_24
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("ol-offset", Ol_Offset_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("ol-plain", Ol_Plain_Class_Part_Styles));
    end Register_Selectors_24;
    pragma No_Inline (Register_Selectors_24);
 
    procedure Register_Selectors_25
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("ol-rounded", Ol_Rounded_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("ol-offset", Ol_Offset_Class_Part_Styles));
    end Register_Selectors_25;
    pragma No_Inline (Register_Selectors_25);
 
    procedure Register_Selectors_26
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("sh-drop", Sh_Drop_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("ol-rounded", Ol_Rounded_Class_Part_Styles));
    end Register_Selectors_26;
    pragma No_Inline (Register_Selectors_26);
 
    procedure Register_Selectors_27
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("sh-hard", Sh_Hard_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("sh-drop", Sh_Drop_Class_Part_Styles));
    end Register_Selectors_27;
    pragma No_Inline (Register_Selectors_27);
 
    procedure Register_Selectors_28
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("sh-glow", Sh_Glow_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("sh-hard", Sh_Hard_Class_Part_Styles));
    end Register_Selectors_28;
    pragma No_Inline (Register_Selectors_28);
 
    procedure Register_Selectors_29
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("bg-gradient", Bg_Gradient_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("sh-glow", Sh_Glow_Class_Part_Styles));
    end Register_Selectors_29;
    pragma No_Inline (Register_Selectors_29);
 
    procedure Register_Selectors_30
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("bg-over-colour", Bg_Over_Colour_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("bg-gradient", Bg_Gradient_Class_Part_Styles));
    end Register_Selectors_30;
    pragma No_Inline (Register_Selectors_30);
 
    procedure Register_Selectors_31
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
-      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("bg-faded", Bg_Faded_Class_Part_Styles));
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("bg-over-colour", Bg_Over_Colour_Class_Part_Styles));
    end Register_Selectors_31;
    pragma No_Inline (Register_Selectors_31);
+
+   procedure Register_Selectors_32
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("bg-faded", Bg_Faded_Class_Part_Styles));
+   end Register_Selectors_32;
+   pragma No_Inline (Register_Selectors_32);
 
    procedure Register_Selectors
      (S : in out Adi.CSS_Source.Style_Source) is
@@ -256,6 +263,7 @@ package body Demo_Box_Styles is
       Register_Selectors_29 (S);
       Register_Selectors_30 (S);
       Register_Selectors_31 (S);
+      Register_Selectors_32 (S);
    end Register_Selectors;
 
 end Demo_Box_Styles;

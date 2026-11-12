@@ -9,7 +9,7 @@
       <!-- border widths -->
       <box class="section">
         <label text="Border width, side by side" class="caption"/>
-        <label text="A border sits inside the box's size, between its edge and its padding. Each side takes its own width, and a side of width 0 paints nothing."
+        <label text="A border sits inside the box's size, between its edge and its padding. Each side takes its own width, and a side of width 0 or style none paints nothing."
                class="note"/>
         <box class="cases">
           <box class="case">
@@ -23,6 +23,10 @@
           <box class="case">
             <label text="border-left only" class="case-label"/>
             <box class="stage"><box class="swatch bw-accent"/></box>
+          </box>
+          <box class="case">
+            <label text="rounded, bottom none" class="case-label"/>
+            <box class="stage"><box class="swatch bw-open"/></box>
           </box>
         </box>
       </box>

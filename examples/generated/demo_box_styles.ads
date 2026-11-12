@@ -273,6 +273,23 @@ package Demo_Box_Styles is
       others => <>
    ];
 
+   --  Style for class 'bw-open'
+   Bw_Open_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Background (RGB (46, 52, 64))
+        .Border_Width (Border_Width (Px (3.0)))
+        .Border_Style (Bottom, None_Style)
+        .Border_Color (Border_Color (RGB (136, 192, 208)))
+        .Radius (Radius (Px (12.0)))
+     .Build;
+
+   --  Part styles bundle for class 'bw-open'
+   Bw_Open_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Bw_Open_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
    --  Style for class 'four-colours'
    Four_Colours_Class_Widget : constant Widget_Style :=
      Style_Of

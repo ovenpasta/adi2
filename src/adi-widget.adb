@@ -4090,7 +4090,9 @@ package body Adi.Widget is
    --  Num_Seg segments, from the top-left corner's left end clockwise,
    --  with each point's outward normal. Corner K is an ellipse of radii
    --  Radii_X (K) and Radii_Y (K); equal radii give the circular outline
-   --  point for point.
+   --  point for point. A corner with one radius 0 is a straight run that
+   --  turns at its end, where the normal is the 1px miter of the two
+   --  sides.
    procedure Rounded_Outline
      (Rect    : SDL_FRect;
       Radii_X : Corner_Pixels;
@@ -4106,7 +4108,8 @@ package body Adi.Widget is
       Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
       K    : Natural := Points'First;
 
-      procedure Arc (Cx, Cy, RX, RY, Start : Float) is
+      --  SX, SY: the corner's outward direction on each axis
+      procedure Arc (Cx, Cy, RX, RY, Start, SX, SY : Float) is
       begin
          for I in 0 .. Num_Seg loop
             declare
@@ -4116,10 +4119,17 @@ package body Adi.Widget is
                NX    : constant Float := CA * RY;
                NY    : constant Float := SA * RX;
                Len   : constant Float := Sqrt (NX * NX + NY * NY);
+               --  The end of a straight run where it meets the other side
+               Turns : constant Boolean :=
+                 (if RX = 0.0 then abs SA > 0.9999 else abs CA > 0.9999);
             begin
                Points (K) := (x => Cx + RX * CA, y => Cy + RY * SA);
                Normals (K) :=
-                 (if RX = RY or else Len = 0.0 then (x => CA, y => SA)
+                 (if RX = RY then (x => CA, y => SA)
+                  elsif RX = 0.0 or else RY = 0.0 then
+                    (if Turns then (x => SX, y => SY)
+                     elsif RX = 0.0 then (x => SX, y => 0.0)
+                     else (x => 0.0, y => SY))
                   else (x => NX / Len, y => NY / Len));
                K := K + 1;
             end;
@@ -4127,13 +4137,15 @@ package body Adi.Widget is
       end Arc;
    begin
       Arc (X0 + Radii_X.Top_Left, Y0 + Radii_Y.Top_Left,
-           Radii_X.Top_Left, Radii_Y.Top_Left, Ada.Numerics.Pi);
+           Radii_X.Top_Left, Radii_Y.Top_Left, Ada.Numerics.Pi, -1.0, -1.0);
       Arc (X1 - Radii_X.Top_Right, Y0 + Radii_Y.Top_Right,
-           Radii_X.Top_Right, Radii_Y.Top_Right, 3.0 * Ada.Numerics.Pi / 2.0);
+           Radii_X.Top_Right, Radii_Y.Top_Right, 3.0 * Ada.Numerics.Pi / 2.0,
+           1.0, -1.0);
       Arc (X1 - Radii_X.Bottom_Right, Y1 - Radii_Y.Bottom_Right,
-           Radii_X.Bottom_Right, Radii_Y.Bottom_Right, 0.0);
+           Radii_X.Bottom_Right, Radii_Y.Bottom_Right, 0.0, 1.0, 1.0);
       Arc (X0 + Radii_X.Bottom_Left, Y1 - Radii_Y.Bottom_Left,
-           Radii_X.Bottom_Left, Radii_Y.Bottom_Left, Ada.Numerics.Pi / 2.0);
+           Radii_X.Bottom_Left, Radii_Y.Bottom_Left, Ada.Numerics.Pi / 2.0,
+           -1.0, 1.0);
    end Rounded_Outline;
 
    --  The edge whose colour segment K of a Rounded_Outline takes. A corner
@@ -4901,7 +4913,8 @@ package body Adi.Widget is
       Radii        : Corner_Pixels;
       G            : Linear_Gradient_Value;
       Opacity      : Float;
-      Min_Segments : Natural := 0)
+      Min_Segments : Natural := 0;
+      Bordered     : Edge_Flags := [others => False])
    is
       Max_Dim : constant Float := Half_Min_Dimension_Non_Neg (Rect);
       Clamped_Radii : constant Corner_Pixels :=
@@ -5012,8 +5025,12 @@ package body Adi.Widget is
             Inner_B : constant Natural := 2 * Next_K;
             Outer_B : constant Natural := 2 * Next_K + 1;
          begin
-            Add_Triangle (Inner_A, Inner_B, Outer_A);
-            Add_Triangle (Outer_A, Inner_B, Outer_B);
+            --  A bordered side, and the corners it owns, take their edge
+            --  from the border
+            if not Bordered (Outline_Segment_Edge (K, Num_Seg, Bordered)) then
+               Add_Triangle (Inner_A, Inner_B, Outer_A);
+               Add_Triangle (Outer_A, Inner_B, Outer_B);
+            end if;
          end;
       end loop;
 
@@ -5592,21 +5609,20 @@ package body Adi.Widget is
                   end if;
                end if;
 
-               --  With a border, tessellated as the ring; with one on every
-               --  side, that border is the edge and the gradient's own
-               --  fringe would show as a rim outside it
+               --  With a border, tessellated as the ring and fringed only on
+               --  the sides it leaves bare: under it, the gradient's fringe
+               --  would show as a rim outside it
                if Has_Gradient then
                   Render_Gradient_Rounded_Rect
                     (Renderer, Rect, Radius_Px,
                      Style.Background_Image.Gradient.all, Op,
                      Min_Segments => (if Has_Border then Seg else 0));
-                  if not Has_Border
-                    or else (for some E in Edge => not Shown (E))
-                  then
+                  if (for some E in Edge => not Shown (E)) then
                      Render_Gradient_AA_Fringe
                        (Renderer, Rect, Radius_Px,
                         Style.Background_Image.Gradient.all, Op,
-                        Min_Segments => (if Has_Border then Seg else 0));
+                        Min_Segments => (if Has_Border then Seg else 0),
+                        Bordered     => Shown);
                   end if;
                end if;
 

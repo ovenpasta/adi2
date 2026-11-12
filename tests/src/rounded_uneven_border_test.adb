@@ -164,6 +164,21 @@ procedure Rounded_Uneven_Border_Test is
       return Rim;
    end Rim_Pixels;
 
+   --  The same from the right, on the rows of the right curves
+   function Rim_Pixels_Right return Natural is
+      Rim : Natural := 0;
+   begin
+      for Y in 20 .. 59 loop
+         for X in reverse 80 .. Canvas_W - 1 loop
+            exit when Near (Pixel (X, Y), Border, 24);
+            if Pixel (X, Y).G > 70 then
+               Rim := Rim + 1;
+            end if;
+         end loop;
+      end loop;
+      return Rim;
+   end Rim_Pixels_Right;
+
    procedure Test_No_Fill_Rim is
    begin
       Section ("The background shows no rim outside the border");
@@ -171,7 +186,34 @@ procedure Rounded_Uneven_Border_Test is
       Assert (Rim_Pixels = 0, "no rim of background colour");
       Render_Uneven (Filled => False, Gradient => True);
       Assert (Rim_Pixels = 0, "no rim of gradient");
+
+      --  The left side undrawn: the gradient keeps its own fringe there,
+      --  and still none under the border on the right
+      Render_Box (Border_Width (Px (3.0), Px (3.0), Px (7.0), Px (3.0)),
+                  Border_Style (Solid, Solid, Solid, None_Style),
+                  Border_Color (To_CSS (Border)),
+                  Corner => 20.0, Filled => False, Gradient => True);
+      Assert (Rim_Pixels_Right = 0,
+              "no rim of gradient beside a side left undrawn");
    end Test_No_Fill_Rim;
+
+   --  Radius 8 and a 10px left side: the inner top-left corner is sharp,
+   --  at (30, 22), its curve flattened into the left side. The inner
+   --  fringe still runs the whole of both inner edges and round the turn.
+   procedure Test_Sharp_Inner_Corner is
+      function Blend (P : RGB_Pixel) return Boolean is
+        (P.R > Backdrop.R + 30 and then P.R < Border.R - 30);
+   begin
+      Section ("A sharp inner corner keeps its inner fringe");
+      Render_Box (Border_Width (Px (2.0), Px (2.0), Px (2.0), Px (10.0)),
+                  Border_Style (Solid), Border_Color (To_CSS (Border)),
+                  Corner => 8.0, Filled => False);
+      Assert (Blend (Pixel (40, 22)), "the inner top edge is antialiased");
+      Assert (Blend (Pixel (32, 22)), "up to the corner");
+      Assert (Blend (Pixel (30, 30)), "the inner left edge is antialiased");
+      Assert (not Near (Pixel (30, 22), Backdrop, 6),
+              "the corner pixel is covered");
+   end Test_Sharp_Inner_Corner;
 
    --  Right border 70px on an 80px box: the inner corners have 5px of
    --  width left between them, and nothing is drawn past the box
@@ -278,6 +320,7 @@ begin
          Test_Antialiased_Curve;
          Test_No_Fill_Rim;
          Test_Border_Wider_Than_Box;
+         Test_Sharp_Inner_Corner;
          Test_Side_Styled_None;
          Test_Zero_Width_Side;
          Test_Edge_Colours;

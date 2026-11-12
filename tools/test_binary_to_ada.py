@@ -180,6 +180,29 @@ class TestGenerate(unittest.TestCase):
             self.assertIn('Adi.Assets.Register ("Face.ttf", ', body)
             self.assertIn('[5]', body)
 
+    def test_duplicate_key(self):
+        """A named key equal to a plain file's key is refused."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            a = os.path.join(tmpdir, 'a.bin')
+            b = os.path.join(tmpdir, 'b.bin')
+            for path in (a, b):
+                open(path, 'wb').close()
+            with self.assertRaisesRegex(ValueError, "duplicate key 'a.bin'"):
+                generate([a], tmpdir, 'D', None, [('a.bin', b)])
+
+    def test_duplicate_identifier(self):
+        """Keys whose basenames share an Ada constant name are refused."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.makedirs(os.path.join(tmpdir, 'x'))
+            plain = os.path.join(tmpdir, 'x', 'f.bin')
+            other = os.path.join(tmpdir, 'g.bin')
+            for path in (plain, other):
+                open(path, 'wb').close()
+            for key in ('k/f.bin', 'F.BIN', 'f-bin'):
+                with self.subTest(key=key):
+                    with self.assertRaisesRegex(ValueError, 'F_Bin_Data'):
+                        generate([plain], tmpdir, 'D', tmpdir, [(key, other)])
+
 
 class TestCommandLine(unittest.TestCase):
     SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -213,6 +236,17 @@ class TestCommandLine(unittest.TestCase):
             self.assertNotEqual(r.returncode, 0)
             self.assertIn('no input files', r.stderr)
             self.assertFalse(os.path.exists(os.path.join(tmpdir, 'none.adb')))
+
+    def test_duplicate_is_an_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            a = os.path.join(tmpdir, 'a.bin')
+            open(a, 'wb').close()
+            out = os.path.join(tmpdir, 'out')
+            r = self.run_tool('--output-dir', out, '--package-name', 'Dup',
+                              a, '--named', 'a.bin', a)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("duplicate key 'a.bin'", r.stderr)
+            self.assertFalse(os.path.exists(out))
 
 
 if __name__ == '__main__':

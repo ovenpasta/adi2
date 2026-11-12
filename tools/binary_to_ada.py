@@ -62,14 +62,24 @@ def generate(files: list[str], output_dir: str, package_name: str,
              named: Sequence[tuple[str, str]] = ()) -> tuple[str, str]:
     """Generate Ada spec and body source strings.
 
-    named holds (key, path) pairs bundled under key as given.
+    named holds (key, path) pairs bundled under key as given. Raises
+    ValueError when two entries share a key or an Ada constant name.
     """
     entries = []
     sources = [(relative_key(p, base_dir), p) for p in files] + list(named)
+    keys: dict[str, str] = {}
+    idents: dict[str, str] = {}
     for key, filepath in sources:
+        ident = file_to_identifier(key) + '_Data'
+        if key in keys:
+            raise ValueError(f'duplicate key {key!r}: {keys[key]} and {filepath}')
+        if ident.lower() in idents:
+            raise ValueError(f'keys {idents[ident.lower()]!r} and {key!r} '
+                             f'both map to the Ada constant {ident}')
+        keys[key] = filepath
+        idents[ident.lower()] = key
         with open(filepath, 'rb') as f:
             data = f.read()
-        ident = file_to_identifier(key) + '_Data'
         entries.append((key, ident, data))
 
     spec_lines = [
@@ -135,10 +145,13 @@ def main():
     if not args.files and not args.named:
         parser.error('no input files')
 
-    os.makedirs(args.output_dir, exist_ok=True)
+    try:
+        spec, body = generate(args.files, args.output_dir, args.package_name,
+                              args.base_dir, [tuple(n) for n in args.named])
+    except ValueError as e:
+        parser.error(str(e))
 
-    spec, body = generate(args.files, args.output_dir, args.package_name,
-                          args.base_dir, [tuple(n) for n in args.named])
+    os.makedirs(args.output_dir, exist_ok=True)
 
     base_name = args.package_name.lower().replace('.', '-')
     spec_path = os.path.join(args.output_dir, base_name + '.ads')

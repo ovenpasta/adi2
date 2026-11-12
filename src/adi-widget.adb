@@ -5436,10 +5436,17 @@ package body Adi.Widget is
       end if;
 
       Border_W := Get_Border_Width_Px (Style);
+      --  Clamped as the primitives clamp, so segment counts and the
+      --  per-edge strips and corner sectors follow the radius drawn: a
+      --  pill's 9999px would otherwise tessellate 5000 segments a corner
       Radius_Px :=
-        Resolve_Border_Radius_Px (Style.Border_Radius,
-                                   Container_Width  => Geom.Width,
-                                   Container_Height => Geom.Height);
+        Clamp_Corner_Radii_To_Max
+          (Resolve_Border_Radius_Px (Style.Border_Radius,
+                                     Container_Width  => Geom.Width,
+                                     Container_Height => Geom.Height),
+           Float'Max (0.0,
+                      Float'Min (Float (Geom.Width), Float (Geom.Height))
+                      / 2.0));
       Max_Rad := Float'Max
          (Float'Max (Radius_Px.Top_Left, Radius_Px.Top_Right),
           Float'Max (Radius_Px.Bottom_Right, Radius_Px.Bottom_Left));

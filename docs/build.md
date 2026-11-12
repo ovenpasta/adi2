@@ -121,6 +121,11 @@ end My_App;
 ## External Dependencies
 - **SDL3**, **SDL3_ttf**, **SDL3_image** — all required
 
+### Windows `PATH`
+On `PATH`, the GNAT toolchain's `bin` comes first, then MSYS2's
+`mingw64\bin`, then everything else. Other directories such as Git's or
+Strawberry Perl's ship incompatible DLLs under the same names.
+
 ## Vendored Dependencies
 - **plutosvg** / **plutovg** — SVG rendering (in `vendor/plutosvg/`)
 - **rlottie** — Lottie animation rendering (in `vendor/rlottie/`)

@@ -24,4 +24,10 @@ package body Adi.MCP.Testing is
       Adi.MCP.Write_Style_Stores (W);
    end Write_Style_Stores;
 
+   procedure Process_Command_File (Dir : String; Cmd_Name : String) is
+   begin
+      Adi.MCP.Process_Command_File
+        (Adi.Window.Null_Window_Handle, Dir, Cmd_Name);
+   end Process_Command_File;
+
 end Adi.MCP.Testing;

@@ -29,4 +29,9 @@ package Adi.MCP.Testing is
    --  figure a caller supplies. Asserted for its schema the same way.
    procedure Write_Style_Stores (W : in out Adi.JSON.JSON_Writer);
 
+   --  What the frame handler does with the command file Dir/Cmd_Name,
+   --  run without a window. Commands that need one cannot be answered
+   --  this way; reading, rejecting and answering the file can.
+   procedure Process_Command_File (Dir : String; Cmd_Name : String);
+
 end Adi.MCP.Testing;

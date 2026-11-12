@@ -215,6 +215,47 @@ class TestSendCommand(unittest.TestCase):
             self.assertEqual(result["status"], "ok")
             self.assertEqual(result["frame_no"], 42)
 
+    def test_non_ascii_written_as_utf8(self):
+        """Non-ASCII text reaches the command file as UTF-8, unescaped."""
+        import threading
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pid = 99993
+            parent = Path(tmpdir) / ".adi_mcp"
+            parent.mkdir()
+            mcp_dir = parent / str(pid)
+            mcp_dir.mkdir()
+            (mcp_dir / "ready").write_text(str(pid))
+            written = []
+
+            def answer():
+                """Record the command bytes, then answer like the app."""
+                deadline = time.monotonic() + 2.0
+                while time.monotonic() < deadline:
+                    for f in mcp_dir.glob("cmd_*.json"):
+                        raw = f.read_bytes()
+                        written.append(raw)
+                        req_id = json.loads(raw.decode("utf-8"))["req_id"]
+                        f.unlink()
+                        resp = mcp_dir / f"resp_{req_id}.json"
+                        resp.write_bytes(json.dumps(
+                            {"status": "ok", "req_id": req_id},
+                            ensure_ascii=False).encode("utf-8"))
+                        return
+                    time.sleep(0.02)
+
+            with patch.object(adi_mcp_server, 'MCP_DIR_PARENT', parent):
+                t = threading.Thread(target=answer)
+                t.start()
+                adi_mcp_server.send_command(
+                    {"command": "find_by_text", "query": "gi\u00e0 \u20ac"},
+                    pid=pid)
+                t.join()
+
+            self.assertEqual(len(written), 1)
+            self.assertIn("gi\u00e0 \u20ac".encode("utf-8"), written[0])
+            self.assertNotIn(b"\\u", written[0])
+
     def test_perf_stats_keeps_every_payload_key(self):
         """perf_stats surfaces what the app sent, minus the envelope.
 

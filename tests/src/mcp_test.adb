@@ -1,5 +1,7 @@
 pragma Ada_2022;
 
+with Ada.Directories;
+with Ada.Streams.Stream_IO;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
@@ -17,6 +19,7 @@ with Adi.Widget.Introspection; use Adi.Widget.Introspection;
 with Adi.Widget_Styles;        use Adi.Widget_Styles;
 with Adi.MCP;
 with Adi.MCP.Testing;
+with Adi.OS;
 with Adi.Render;
 with Adi.Texture_Cache;
 with Adi.Window;
@@ -833,6 +836,115 @@ procedure MCP_Test is
          raise;
    end Test_Font_Budget_Beyond_A_Natural;
 
+   ---------------------------------------------------------------------------
+   --  Test: command files, answered without a window
+   ---------------------------------------------------------------------------
+
+   Cmd_Dir : constant String := Adi.OS.Temp_Path ("adi_mcp_test_commands");
+
+   procedure Write_Bytes (Path : String; Content : String) is
+      package SIO renames Ada.Streams.Stream_IO;
+      F : SIO.File_Type;
+   begin
+      SIO.Create (F, SIO.Out_File, Path);
+      String'Write (SIO.Stream (F), Content);
+      SIO.Close (F);
+   end Write_Bytes;
+
+   function Read_Bytes (Path : String) return String is
+      package SIO renames Ada.Streams.Stream_IO;
+      F : SIO.File_Type;
+   begin
+      SIO.Open (F, SIO.In_File, Path);
+      return Result : String (1 .. Natural (SIO.Size (F))) do
+         String'Read (SIO.Stream (F), Result);
+         SIO.Close (F);
+      end return;
+   end Read_Bytes;
+
+   --  Write cmd_<Req_Id>.json holding Content, let the MCP code handle
+   --  it, and return the response file, or "" when there is none.
+   --  Raised is set if the handling raised.
+   function Answer
+     (Req_Id  : String;
+      Content : String;
+      Raised  : out Boolean) return String
+   is
+      use Ada.Directories;
+      Cmd_Name  : constant String := "cmd_" & Req_Id & ".json";
+      Resp_Path : constant String := Cmd_Dir & "/resp_" & Req_Id & ".json";
+   begin
+      if not Exists (Cmd_Dir) then
+         Create_Path (Cmd_Dir);
+      end if;
+      Write_Bytes (Cmd_Dir & "/" & Cmd_Name, Content);
+
+      Raised := False;
+      begin
+         Adi.MCP.Testing.Process_Command_File (Cmd_Dir, Cmd_Name);
+      exception
+         when others =>
+            Raised := True;
+      end;
+
+      if Exists (Cmd_Dir & "/" & Cmd_Name) then
+         Delete_File (Cmd_Dir & "/" & Cmd_Name);
+      end if;
+      if not Exists (Resp_Path) then
+         return "";
+      end if;
+      return Response : constant String := Read_Bytes (Resp_Path) do
+         Delete_File (Resp_Path);
+      end return;
+   end Answer;
+
+   --  The "error" field of Response, or "" if it has none
+   function Error_Of (Response : String) return String is
+      use Adi.JSON;
+   begin
+      declare
+         P    : Parsers.Parser := Parsers.Create (Response);
+         Root : constant Types.JSON_Value := P.Parse;
+      begin
+         return (if Root.Contains ("error") then Root.Get ("error").Value
+                 else "");
+      end;
+   exception
+      when others =>
+         return "";
+   end Error_Of;
+
+   procedure Test_Unreadable_Command is
+      Raised   : Boolean;
+      Response : constant String :=
+        Answer ("bad1", "{""command"": ""widget_tree"", ""req_id"": ""bad1"",}",
+                Raised);
+   begin
+      Section ("Command file that does not parse");
+
+      Assert (not Raised, "an unreadable command does not raise");
+      Assert (Response'Length > 0,
+              "an unreadable command gets a response");
+      Assert (Ada.Strings.Fixed.Index
+                (Error_Of (Response), "invalid command JSON") = 1,
+              "the response says the command JSON is invalid");
+   end Test_Unreadable_Command;
+
+   procedure Test_Long_Command is
+      Pad      : constant String (1 .. 5000) := [others => 'x'];
+      Raised   : Boolean;
+      --  No command field: answered without a window, after a full read
+      Response : constant String :=
+        Answer ("long1", "{""req_id"": ""long1"", ""pad"": """ & Pad & """}",
+                Raised);
+   begin
+      Section ("Command line longer than 4096 bytes");
+
+      Assert (not Raised, "a long command does not raise");
+      Assert (Error_Of (Response) = "missing command field",
+              "a long command is read whole and parses");
+   end Test_Long_Command;
+
 begin
    Start_Suite ("MCP Test Suite");
    Put_Line ("");
@@ -852,6 +964,8 @@ begin
    Test_Frame_Stats_Schema;
    Test_Style_Stores_Schema;
    Test_Font_Budget_Beyond_A_Natural;
+   Test_Unreadable_Command;
+   Test_Long_Command;
 
    Test_Support.Finish;
 end MCP_Test;

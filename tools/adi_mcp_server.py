@@ -188,8 +188,11 @@ def send_command(cmd: dict, pid: int | None = None,
         tmp_path = mcp_dir / f"cmd_{req_id}.json.tmp"
         resp_path = mcp_dir / f"resp_{req_id}.json"
 
-        # Atomic write: write to .tmp, rename to final
-        tmp_path.write_text(json.dumps(cmd))
+        # Atomic write: write to .tmp, rename to final. Non-ASCII text
+        # goes as UTF-8 rather than \u escapes, and the encoding is named
+        # so it does not depend on the locale (cp1252 on Windows).
+        tmp_path.write_text(json.dumps(cmd, ensure_ascii=False),
+                            encoding="utf-8")
         tmp_path.rename(cmd_path)
 
         if not await_reply:
@@ -202,7 +205,7 @@ def send_command(cmd: dict, pid: int | None = None,
         while time.monotonic() < deadline:
             if resp_path.exists():
                 try:
-                    data = json.loads(resp_path.read_text())
+                    data = json.loads(resp_path.read_text(encoding="utf-8"))
                     resp_path.unlink(missing_ok=True)
                     return data
                 except (json.JSONDecodeError, OSError):

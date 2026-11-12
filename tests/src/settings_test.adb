@@ -564,7 +564,7 @@ procedure Settings_Test is
    procedure Test_Control_Chars is
       --  Escape_String writes these as backslash-u escapes
       Esc_Text  : constant String := "a" & Character'Val (16#1B#) & "b";
-      Soh_Text  : constant String := (1 => Character'Val (16#01#));
+      Soh_Text  : constant String := [1 => Character'Val (16#01#)];
    begin
       Put_Line ("-- Control Character Tests --");
 
@@ -597,6 +597,48 @@ procedure Settings_Test is
          end;
       end;
    end Test_Control_Chars;
+
+   --  Keys the file must escape: Load looks each one up by its decoded
+   --  name, and one it cannot find loses the whole file
+   procedure Test_Escaped_Keys is
+      Quote_Key : constant String := "say ""hi""";
+      Slash_Key : constant String := "a\b";
+      Esc_Key   : constant String := "x" & Character'Val (16#1B#) & "y";
+   begin
+      Put_Line ("-- Escaped Key Tests --");
+
+      declare
+         Backend : aliased JSON_Settings_Backend;
+         Path    : constant String := Tmp_Dir & "settings.json";
+         Data    : Setting_Value := Empty_Map;
+      begin
+         Ensure_Tmp_Dir;
+
+         Insert (Data, Quote_Key, To_Value ("q"));
+         Insert (Data, Slash_Key, To_Value ("s"));
+         Insert (Data, Esc_Key, To_Value ("e"));
+         Insert (Data, "plain", To_Value ("kept"));
+
+         Backend.Save (Path, Data);
+
+         declare
+            Loaded : constant Setting_Value := Backend.Load (Path);
+         begin
+            Assert (Kind (Loaded) = Map_Kind,
+                    "Escaped keys: the file loads back as a map");
+            if Kind (Loaded) = Map_Kind then
+               Assert (As_String (Get (Loaded, Quote_Key)) = "q",
+                       "Escaped keys: a key holding quotes");
+               Assert (As_String (Get (Loaded, Slash_Key)) = "s",
+                       "Escaped keys: a key holding a backslash");
+               Assert (As_String (Get (Loaded, Esc_Key)) = "e",
+                       "Escaped keys: a key holding ESC");
+               Assert (As_String (Get (Loaded, "plain")) = "kept",
+                       "Escaped keys: the other settings are kept");
+            end if;
+         end;
+      end;
+   end Test_Escaped_Keys;
 
    ---------------------------------------------------------------------------
    --  Test: Load from non-existent file returns Null_Value
@@ -793,6 +835,7 @@ begin
    Test_Saved_Bytes;
    Test_Non_ASCII;
    Test_Control_Chars;
+   Test_Escaped_Keys;
    Test_Missing_File;
    Test_Save_Failure_Raises;
    Test_Empty_Store;

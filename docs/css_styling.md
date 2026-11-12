@@ -485,6 +485,7 @@ A flex container whose own main size is still being decided — the question a p
 | `border-top-left/top-right/bottom-right/bottom-left-radius` | single length/percent | `border-top-left-radius: 10px;` |
 
 Runtime (`Adi.CSS_Parser`) and compile-time (`css_to_ada.py`) both support `border` shorthand and side/corner longhands with standard declaration order semantics (later declarations win).
+On a rounded box, a side's inner corner is the outer radius less that side's width, as in CSS, and a corner changes colour at its midpoint. A side of width 0 or style `none`/`hidden` is not drawn and gives its corners to the sides beside it. A radius past half the box's shorter side draws as that half.
 For asymmetric corners, prefer `border-radius` shorthand when possible (for example, top-only rounding: `border-radius: 8px 8px 0px 0px;`) and use corner longhands only for targeted overrides.
 A corner longhand takes one length.
 

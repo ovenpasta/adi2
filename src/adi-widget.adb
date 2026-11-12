@@ -3401,18 +3401,6 @@ package body Adi.Widget is
       return Positive'Max (8, Safe_Floor_To_Natural (Radius * 0.5) + 1);
    end Segments_For_Radius;
 
-   function Segments_For_Span
-     (Base_Seg : Positive;
-      Span     : Float) return Positive
-   is
-      Safe_Span : constant Float := Float'Max (0.0, Span);
-   begin
-      return Positive'Max
-        (2,
-         Safe_Floor_To_Natural
-           (Float (Base_Seg) * Safe_Span / (Ada.Numerics.Pi / 2.0)) + 1);
-   end Segments_For_Span;
-
    procedure Render_Rounded_Rect
       (Renderer      : SDL_Renderer_Ptr;
        Rect          : SDL_FRect;
@@ -4085,6 +4073,11 @@ package body Adi.Widget is
    --  One colour per border edge, for a ring or fringe whose edges differ
    type Edge_FColors is array (Edge) of SDL_FColor;
 
+   --  Which edges a ring draws. A corner between a drawn edge and one that
+   --  is not belongs wholly to the drawn one.
+   type Edge_Flags is array (Edge) of Boolean;
+   All_Edges_Shown : constant Edge_Flags := [others => True];
+
    type FPoint_Array is array (Natural range <>) of SDL_FPoint;
 
    function To_FColor (R, G, B, A : Uint8) return SDL_FColor is
@@ -4095,10 +4088,13 @@ package body Adi.Widget is
 
    --  The outline the single-colour primitives above walk: four arcs of
    --  Num_Seg segments, from the top-left corner's left end clockwise,
-   --  with each point's outward normal. Radii are already clamped.
+   --  with each point's outward normal. Corner K is an ellipse of radii
+   --  Radii_X (K) and Radii_Y (K); equal radii give the circular outline
+   --  point for point.
    procedure Rounded_Outline
      (Rect    : SDL_FRect;
-      Radii   : Corner_Pixels;
+      Radii_X : Corner_Pixels;
+      Radii_Y : Corner_Pixels;
       Num_Seg : Positive;
       Points  : out FPoint_Array;
       Normals : out FPoint_Array)
@@ -4110,59 +4106,77 @@ package body Adi.Widget is
       Step : constant Float := Ada.Numerics.Pi / 2.0 / Float (Num_Seg);
       K    : Natural := Points'First;
 
-      procedure Arc (Cx, Cy, Radius, Start : Float) is
+      procedure Arc (Cx, Cy, RX, RY, Start : Float) is
       begin
          for I in 0 .. Num_Seg loop
             declare
                Angle : constant Float := Start + Float (I) * Step;
                CA    : constant Float := Cos (Angle);
                SA    : constant Float := Sin (Angle);
+               NX    : constant Float := CA * RY;
+               NY    : constant Float := SA * RX;
+               Len   : constant Float := Sqrt (NX * NX + NY * NY);
             begin
-               Points (K) := (x => Cx + Radius * CA, y => Cy + Radius * SA);
-               Normals (K) := (x => CA, y => SA);
+               Points (K) := (x => Cx + RX * CA, y => Cy + RY * SA);
+               Normals (K) :=
+                 (if RX = RY or else Len = 0.0 then (x => CA, y => SA)
+                  else (x => NX / Len, y => NY / Len));
                K := K + 1;
             end;
          end loop;
       end Arc;
    begin
-      Arc (X0 + Radii.Top_Left, Y0 + Radii.Top_Left, Radii.Top_Left,
-           Ada.Numerics.Pi);
-      Arc (X1 - Radii.Top_Right, Y0 + Radii.Top_Right, Radii.Top_Right,
-           3.0 * Ada.Numerics.Pi / 2.0);
-      Arc (X1 - Radii.Bottom_Right, Y1 - Radii.Bottom_Right,
-           Radii.Bottom_Right, 0.0);
-      Arc (X0 + Radii.Bottom_Left, Y1 - Radii.Bottom_Left, Radii.Bottom_Left,
-           Ada.Numerics.Pi / 2.0);
+      Arc (X0 + Radii_X.Top_Left, Y0 + Radii_Y.Top_Left,
+           Radii_X.Top_Left, Radii_Y.Top_Left, Ada.Numerics.Pi);
+      Arc (X1 - Radii_X.Top_Right, Y0 + Radii_Y.Top_Right,
+           Radii_X.Top_Right, Radii_Y.Top_Right, 3.0 * Ada.Numerics.Pi / 2.0);
+      Arc (X1 - Radii_X.Bottom_Right, Y1 - Radii_Y.Bottom_Right,
+           Radii_X.Bottom_Right, Radii_Y.Bottom_Right, 0.0);
+      Arc (X0 + Radii_X.Bottom_Left, Y1 - Radii_Y.Bottom_Left,
+           Radii_X.Bottom_Left, Radii_Y.Bottom_Left, Ada.Numerics.Pi / 2.0);
    end Rounded_Outline;
 
    --  The edge whose colour segment K of a Rounded_Outline takes. A corner
    --  arc changes colour at its midpoint, where CSS splits a corner between
-   --  equal widths; the straight run after an arc is the edge it ends on.
-   function Outline_Segment_Edge (K : Natural; Num_Seg : Positive) return Edge
+   --  equal widths, unless one of its edges is not shown; the straight run
+   --  after an arc is the edge it ends on.
+   function Outline_Segment_Edge
+     (K       : Natural;
+      Num_Seg : Positive;
+      Shown   : Edge_Flags) return Edge
    is
       type Corner_Edges is array (0 .. 3) of Edge;
       First_Half  : constant Corner_Edges := [Left, Top, Right, Bottom];
       Second_Half : constant Corner_Edges := [Top, Right, Bottom, Left];
       Arc   : constant Natural := (K / (Num_Seg + 1)) mod 4;
       Local : constant Natural := K mod (Num_Seg + 1);
+      First  : constant Edge := First_Half (Arc);
+      Second : constant Edge := Second_Half (Arc);
    begin
-      return (if Local < Num_Seg / 2 then First_Half (Arc)
-              else Second_Half (Arc));
+      if Local = Num_Seg or else not Shown (First) then
+         return Second;
+      elsif not Shown (Second) then
+         return First;
+      end if;
+      return (if Local < Num_Seg / 2 then First else Second);
    end Outline_Segment_Edge;
 
-   --  Render_Rounded_Border_Ring with a colour per edge. Each segment gets
-   --  its own vertices so colours switch sharply. An even segment count
-   --  puts each corner's colour change on a vertex. An empty dimension of
-   --  Inner_Rect collapses onto the outer centre line, so a border wider
-   --  than the box still fills exactly the outer shape.
-   procedure Render_Rounded_Border_Ring
-      (Renderer     : SDL_Renderer_Ptr;
-       Outer_Rect   : SDL_FRect;
-       Inner_Rect   : SDL_FRect;
-       Outer_Radii  : Corner_Pixels;
-       Inner_Radii  : Corner_Pixels;
-       Colors       : Edge_FColors;
-       Min_Segments : Natural := 0)
+   --  The ring between a rounded outer outline and an inner one whose
+   --  corners are ellipses, each segment in its edge's colour with its own
+   --  vertices so colours switch sharply. Radii are final: nothing here
+   --  clamps them. An empty dimension of Inner_Rect collapses onto the
+   --  outer centre line, so a border wider than the box fills exactly the
+   --  outer shape.
+   procedure Render_Edge_Ring
+     (Renderer    : SDL_Renderer_Ptr;
+      Outer_Rect  : SDL_FRect;
+      Outer_Radii : Corner_Pixels;
+      Inner_Rect  : SDL_FRect;
+      Inner_RX    : Corner_Pixels;
+      Inner_RY    : Corner_Pixels;
+      Colors      : Edge_FColors;
+      Shown       : Edge_Flags;
+      Num_Seg     : Positive)
    is
       Inner : constant SDL_FRect :=
         (x => (if Inner_Rect.w > 0.0 then Inner_Rect.x
@@ -4171,19 +4185,6 @@ package body Adi.Widget is
                else Outer_Rect.y + Outer_Rect.h / 2.0),
          w => Float'Max (0.0, Inner_Rect.w),
          h => Float'Max (0.0, Inner_Rect.h));
-      Clamped_Outer : constant Corner_Pixels :=
-        Clamp_Corner_Radii_To_Max
-          (Outer_Radii, Half_Min_Dimension_Non_Neg (Outer_Rect));
-      Clamped_Inner : constant Corner_Pixels :=
-        Clamp_Corner_Radii_To_Max
-          (Inner_Radii, Half_Min_Dimension_Non_Neg (Inner));
-      Max_R : constant Float :=
-        Float'Max (Float'Max (Clamped_Outer.Top_Left, Clamped_Outer.Top_Right),
-                   Float'Max (Clamped_Outer.Bottom_Right,
-                              Clamped_Outer.Bottom_Left));
-      Num_Seg : constant Positive :=
-        Positive'Max (Segments_For_Radius (Max_R),
-                      (if Min_Segments > 0 then Min_Segments else 1));
       N_Outline : constant Natural := 4 * (Num_Seg + 1);
 
       Outer_Pts, Inner_Pts, Normals : FPoint_Array (0 .. N_Outline - 1);
@@ -4212,14 +4213,15 @@ package body Adi.Widget is
          return;
       end if;
 
-      Rounded_Outline (Outer_Rect, Clamped_Outer, Num_Seg, Outer_Pts, Normals);
-      Rounded_Outline (Inner, Clamped_Inner, Num_Seg, Inner_Pts, Normals);
+      Rounded_Outline
+        (Outer_Rect, Outer_Radii, Outer_Radii, Num_Seg, Outer_Pts, Normals);
+      Rounded_Outline (Inner, Inner_RX, Inner_RY, Num_Seg, Inner_Pts, Normals);
 
       for K in 0 .. N_Outline - 1 loop
          declare
             Next : constant Natural := (K + 1) mod N_Outline;
             C    : constant SDL_FColor :=
-              Colors (Outline_Segment_Edge (K, Num_Seg));
+              Colors (Outline_Segment_Edge (K, Num_Seg, Shown));
             V    : constant Natural := VI;
          begin
             Add_Vertex (Outer_Pts (K), C);
@@ -4240,26 +4242,21 @@ package body Adi.Widget is
           Num_Vertices => int (VI),
           Indices      => Idxs (0)'Access,
           Num_Indices  => int (II));
-   end Render_Rounded_Border_Ring;
+   end Render_Edge_Ring;
 
-   --  Render_AA_Fringe with a colour per edge, split as the ring above is
-   procedure Render_AA_Fringe
-      (Renderer     : SDL_Renderer_Ptr;
-       Rect         : SDL_FRect;
-       Radii        : Corner_Pixels;
-       Colors       : Edge_FColors;
-       Min_Segments : Natural := 0;
-       Inward       : Boolean := False)
+   --  The 1px AA fringe along an outline of Render_Edge_Ring, each segment
+   --  in its edge's colour fading to alpha 0 outward, or inward
+   procedure Render_Edge_Fringe
+     (Renderer : SDL_Renderer_Ptr;
+      Rect     : SDL_FRect;
+      Radii_X  : Corner_Pixels;
+      Radii_Y  : Corner_Pixels;
+      Colors   : Edge_FColors;
+      Shown    : Edge_Flags;
+      Num_Seg  : Positive;
+      Inward   : Boolean := False)
    is
       Fringe : constant Float := (if Inward then -1.0 else 1.0);
-      Clamped : constant Corner_Pixels :=
-        Clamp_Corner_Radii_To_Max (Radii, Half_Min_Dimension_Non_Neg (Rect));
-      Max_R : constant Float :=
-        Float'Max (Float'Max (Clamped.Top_Left, Clamped.Top_Right),
-                   Float'Max (Clamped.Bottom_Right, Clamped.Bottom_Left));
-      Num_Seg : constant Positive :=
-        Positive'Max (Segments_For_Radius (Max_R),
-                      (if Min_Segments > 0 then Min_Segments else 1));
       N_Outline : constant Natural := 4 * (Num_Seg + 1);
 
       Pts, Normals : FPoint_Array (0 .. N_Outline - 1);
@@ -4292,14 +4289,14 @@ package body Adi.Widget is
          return;
       end if;
 
-      Rounded_Outline (Rect, Clamped, Num_Seg, Pts, Normals);
+      Rounded_Outline (Rect, Radii_X, Radii_Y, Num_Seg, Pts, Normals);
 
       --  Per segment: the boundary at full alpha, offset to alpha 0
       for K in 0 .. N_Outline - 1 loop
          declare
             Next  : constant Natural := (K + 1) mod N_Outline;
             Solid : constant SDL_FColor :=
-              Colors (Outline_Segment_Edge (K, Num_Seg));
+              Colors (Outline_Segment_Edge (K, Num_Seg, Shown));
             Clear : constant SDL_FColor := (Solid with delta a => 0.0);
             V     : constant Natural := VI;
          begin
@@ -4321,6 +4318,60 @@ package body Adi.Widget is
           Num_Vertices => int (VI),
           Indices      => Idxs (0)'Access,
           Num_Indices  => int (II));
+   end Render_Edge_Fringe;
+
+   --  Render_Rounded_Border_Ring with a colour per edge: radii clamped as
+   --  the single-colour ring clamps them. An even segment count puts each
+   --  corner's colour change on a vertex.
+   procedure Render_Rounded_Border_Ring
+      (Renderer     : SDL_Renderer_Ptr;
+       Outer_Rect   : SDL_FRect;
+       Inner_Rect   : SDL_FRect;
+       Outer_Radii  : Corner_Pixels;
+       Inner_Radii  : Corner_Pixels;
+       Colors       : Edge_FColors;
+       Min_Segments : Natural := 0)
+   is
+      Clamped_Outer : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max
+          (Outer_Radii, Half_Min_Dimension_Non_Neg (Outer_Rect));
+      Clamped_Inner : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max
+          (Inner_Radii,
+           Float'Max (0.0, Float'Min (Inner_Rect.w, Inner_Rect.h) / 2.0));
+      Max_R : constant Float :=
+        Float'Max (Float'Max (Clamped_Outer.Top_Left, Clamped_Outer.Top_Right),
+                   Float'Max (Clamped_Outer.Bottom_Right,
+                              Clamped_Outer.Bottom_Left));
+   begin
+      Render_Edge_Ring
+        (Renderer, Outer_Rect, Clamped_Outer,
+         Inner_Rect, Clamped_Inner, Clamped_Inner,
+         Colors, All_Edges_Shown,
+         Positive'Max (Segments_For_Radius (Max_R),
+                       (if Min_Segments > 0 then Min_Segments else 1)));
+   end Render_Rounded_Border_Ring;
+
+   --  Render_AA_Fringe with a colour per edge, split as the ring above is
+   procedure Render_AA_Fringe
+      (Renderer     : SDL_Renderer_Ptr;
+       Rect         : SDL_FRect;
+       Radii        : Corner_Pixels;
+       Colors       : Edge_FColors;
+       Min_Segments : Natural := 0;
+       Inward       : Boolean := False)
+   is
+      Clamped : constant Corner_Pixels :=
+        Clamp_Corner_Radii_To_Max (Radii, Half_Min_Dimension_Non_Neg (Rect));
+      Max_R : constant Float :=
+        Float'Max (Float'Max (Clamped.Top_Left, Clamped.Top_Right),
+                   Float'Max (Clamped.Bottom_Right, Clamped.Bottom_Left));
+   begin
+      Render_Edge_Fringe
+        (Renderer, Rect, Clamped, Clamped, Colors, All_Edges_Shown,
+         Positive'Max (Segments_For_Radius (Max_R),
+                       (if Min_Segments > 0 then Min_Segments else 1)),
+         Inward);
    end Render_AA_Fringe;
 
    function Apply_Opacity (A : Uint8; O : Float) return Uint8 is
@@ -5052,7 +5103,7 @@ package body Adi.Widget is
          return To_FColor (ER, EG, EB, Apply_Opacity (EA, Op));
       end Edge_FColor;
 
-      procedure Draw_Edge_Borders (Respect_Radius : Boolean := False) is
+      procedure Draw_Edge_Borders is
          Edge_Rect : aliased SDL_FRect;
          Top_X     : Float;
          Top_W     : Float;
@@ -5066,10 +5117,6 @@ package body Adi.Widget is
          if Is_Visible_Edge (Top, BW_Top) then
             Top_X := Rect.x;
             Top_W := Rect.w;
-            if Respect_Radius then
-               Top_X := Top_X + Radius_Px.Top_Left;
-               Top_W := Top_W - Radius_Px.Top_Left - Radius_Px.Top_Right;
-            end if;
             if Top_W > 0.0 then
                Set_Edge_Color (Top);
                Edge_Rect :=
@@ -5085,10 +5132,6 @@ package body Adi.Widget is
          if Is_Visible_Edge (Bottom, BW_Bottom) then
             Bottom_X := Rect.x;
             Bottom_W := Rect.w;
-            if Respect_Radius then
-               Bottom_X := Bottom_X + Radius_Px.Bottom_Left;
-               Bottom_W := Bottom_W - Radius_Px.Bottom_Left - Radius_Px.Bottom_Right;
-            end if;
             if Bottom_W > 0.0 then
                Set_Edge_Color (Bottom);
                Edge_Rect :=
@@ -5104,10 +5147,6 @@ package body Adi.Widget is
          if Is_Visible_Edge (Left, BW_Left) then
             Left_Y := Rect.y;
             Left_H := Rect.h;
-            if Respect_Radius then
-               Left_Y := Left_Y + Radius_Px.Top_Left;
-               Left_H := Left_H - Radius_Px.Top_Left - Radius_Px.Bottom_Left;
-            end if;
             if Left_H > 0.0 then
                Set_Edge_Color (Left);
                Edge_Rect :=
@@ -5123,10 +5162,6 @@ package body Adi.Widget is
          if Is_Visible_Edge (Right, BW_Right) then
             Right_Y := Rect.y;
             Right_H := Rect.h;
-            if Respect_Radius then
-               Right_Y := Right_Y + Radius_Px.Top_Right;
-               Right_H := Right_H - Radius_Px.Top_Right - Radius_Px.Bottom_Right;
-            end if;
             if Right_H > 0.0 then
                Set_Edge_Color (Right);
                Edge_Rect :=
@@ -5139,295 +5174,6 @@ package body Adi.Widget is
             end if;
          end if;
       end Draw_Edge_Borders;
-
-      procedure Draw_Corner_Sector
-        (Cx, Cy      : Float;
-         Outer_R     : Float;
-         Start_Thickness : Float;
-         End_Thickness   : Float;
-         Start_Angle : Float;
-         End_Angle   : Float)
-      is
-         Span    : constant Float := End_Angle - Start_Angle;
-         Safe_Span : constant Float := Float'Max (0.0, Span);
-         Base_Seg : constant Positive :=
-           Segments_For_Radius (Float'Max (1.0, Outer_R));
-         Num_Seg : constant Positive :=
-           Segments_For_Span (Base_Seg, Span);
-
-         Total_Verts   : constant Natural := 2 * (Num_Seg + 1);
-         Total_Indices : constant Natural := Num_Seg * 6;
-         Verts         : SDL_Vertex_Array (0 .. Total_Verts - 1);
-         Idxs          : Int_Array (0 .. Total_Indices - 1);
-         VI            : Natural := 0;
-         II            : Natural := 0;
-
-         FC : constant SDL_FColor :=
-           (r => Float (R) / 255.0,
-            g => Float (G) / 255.0,
-            b => Float (B) / 255.0,
-            a => Float (A) / 255.0);
-         Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
-         Unused : Adi.SDL.C_bool;
-         begin
-         if Outer_R <= 0.0
-           or else Float'Max (Start_Thickness, End_Thickness) <= 0.0
-           or else Safe_Span <= 0.0
-         then
-            return;
-         end if;
-
-         for I in 0 .. Num_Seg loop
-            declare
-               T     : constant Float := Float (I) / Float (Num_Seg);
-               Angle : constant Float := Start_Angle + T * Safe_Span;
-               Thickness : constant Float :=
-                 Float'Max
-                   (0.0,
-                    Start_Thickness + T * (End_Thickness - Start_Thickness));
-               Inner_R : constant Float := Float'Max (0.0, Outer_R - Thickness);
-               CA    : constant Float := Cos (Angle);
-               SA    : constant Float := Sin (Angle);
-            begin
-               Verts (VI) :=
-                 (position  => (x => Cx + Outer_R * CA, y => Cy + Outer_R * SA),
-                  color     => FC,
-                  tex_coord => Zero_TC);
-               VI := VI + 1;
-               Verts (VI) :=
-                 (position  => (x => Cx + Inner_R * CA, y => Cy + Inner_R * SA),
-                  color     => FC,
-                  tex_coord => Zero_TC);
-               VI := VI + 1;
-            end;
-         end loop;
-
-         for I in 0 .. Num_Seg - 1 loop
-            declare
-               O_A : constant Natural := 2 * I;
-               I_A : constant Natural := 2 * I + 1;
-               O_B : constant Natural := 2 * (I + 1);
-               I_B : constant Natural := 2 * (I + 1) + 1;
-            begin
-               Idxs (II) := int (O_A);
-               Idxs (II + 1) := int (O_B);
-               Idxs (II + 2) := int (I_B);
-               II := II + 3;
-
-               Idxs (II) := int (O_A);
-               Idxs (II + 1) := int (I_B);
-               Idxs (II + 2) := int (I_A);
-               II := II + 3;
-            end;
-         end loop;
-
-         SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
-                     "SDL_SetRenderDrawBlendMode");
-         Unused := SDL_RenderGeometry
-           (Renderer     => Renderer,
-            Texture      => null,
-            Vertices     => Verts (0)'Access,
-            Num_Vertices => int (VI),
-            Indices      => Idxs (0)'Access,
-            Num_Indices  => int (II));
-      end Draw_Corner_Sector;
-
-      procedure Draw_Rounded_Corner_Borders is
-         Split_Angle : constant Float := Ada.Numerics.Pi / 4.0;
-         Mid_T       : Float;
-      begin
-         --  Top-left corner
-         if Radius_Px.Top_Left > 0.0 then
-            if Is_Visible_Edge (Left, BW_Left)
-              and then Is_Visible_Edge (Top, BW_Top)
-            then
-               Mid_T := 0.5 * (BW_Left + BW_Top);
-               Set_Edge_Color (Left);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Radius_Px.Top_Left,
-                 Cy => Rect.y + Radius_Px.Top_Left,
-                 Outer_R => Radius_Px.Top_Left,
-                 Start_Thickness => BW_Left,
-                 End_Thickness => Mid_T,
-                 Start_Angle => Ada.Numerics.Pi,
-                 End_Angle => Ada.Numerics.Pi + Split_Angle);
-
-               Set_Edge_Color (Top);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Radius_Px.Top_Left,
-                 Cy => Rect.y + Radius_Px.Top_Left,
-                 Outer_R => Radius_Px.Top_Left,
-                 Start_Thickness => Mid_T,
-                 End_Thickness => BW_Top,
-                 Start_Angle => Ada.Numerics.Pi + Split_Angle,
-                 End_Angle => 3.0 * Ada.Numerics.Pi / 2.0);
-            elsif Is_Visible_Edge (Left, BW_Left) then
-               Set_Edge_Color (Left);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Radius_Px.Top_Left,
-                 Cy => Rect.y + Radius_Px.Top_Left,
-                 Outer_R => Radius_Px.Top_Left,
-                 Start_Thickness => BW_Left,
-                 End_Thickness => BW_Left,
-                 Start_Angle => Ada.Numerics.Pi,
-                 End_Angle => 3.0 * Ada.Numerics.Pi / 2.0);
-            elsif Is_Visible_Edge (Top, BW_Top) then
-               Set_Edge_Color (Top);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Radius_Px.Top_Left,
-                 Cy => Rect.y + Radius_Px.Top_Left,
-                 Outer_R => Radius_Px.Top_Left,
-                 Start_Thickness => BW_Top,
-                 End_Thickness => BW_Top,
-                 Start_Angle => Ada.Numerics.Pi,
-                 End_Angle => 3.0 * Ada.Numerics.Pi / 2.0);
-            end if;
-         end if;
-
-         --  Top-right corner
-         if Radius_Px.Top_Right > 0.0 then
-            if Is_Visible_Edge (Top, BW_Top)
-              and then Is_Visible_Edge (Right, BW_Right)
-            then
-               Mid_T := 0.5 * (BW_Top + BW_Right);
-               Set_Edge_Color (Top);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Rect.w - Radius_Px.Top_Right,
-                 Cy => Rect.y + Radius_Px.Top_Right,
-                 Outer_R => Radius_Px.Top_Right,
-                 Start_Thickness => BW_Top,
-                 End_Thickness => Mid_T,
-                 Start_Angle => 3.0 * Ada.Numerics.Pi / 2.0,
-                 End_Angle => 3.0 * Ada.Numerics.Pi / 2.0 + Split_Angle);
-
-               Set_Edge_Color (Right);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Rect.w - Radius_Px.Top_Right,
-                 Cy => Rect.y + Radius_Px.Top_Right,
-                 Outer_R => Radius_Px.Top_Right,
-                 Start_Thickness => Mid_T,
-                 End_Thickness => BW_Right,
-                 Start_Angle => 3.0 * Ada.Numerics.Pi / 2.0 + Split_Angle,
-                 End_Angle => 2.0 * Ada.Numerics.Pi);
-            elsif Is_Visible_Edge (Top, BW_Top) then
-               Set_Edge_Color (Top);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Rect.w - Radius_Px.Top_Right,
-                 Cy => Rect.y + Radius_Px.Top_Right,
-                 Outer_R => Radius_Px.Top_Right,
-                 Start_Thickness => BW_Top,
-                 End_Thickness => BW_Top,
-                 Start_Angle => 3.0 * Ada.Numerics.Pi / 2.0,
-                 End_Angle => 2.0 * Ada.Numerics.Pi);
-            elsif Is_Visible_Edge (Right, BW_Right) then
-               Set_Edge_Color (Right);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Rect.w - Radius_Px.Top_Right,
-                 Cy => Rect.y + Radius_Px.Top_Right,
-                 Outer_R => Radius_Px.Top_Right,
-                 Start_Thickness => BW_Right,
-                 End_Thickness => BW_Right,
-                 Start_Angle => 3.0 * Ada.Numerics.Pi / 2.0,
-                 End_Angle => 2.0 * Ada.Numerics.Pi);
-            end if;
-         end if;
-
-         --  Bottom-right corner
-         if Radius_Px.Bottom_Right > 0.0 then
-            if Is_Visible_Edge (Right, BW_Right)
-              and then Is_Visible_Edge (Bottom, BW_Bottom)
-            then
-               Mid_T := 0.5 * (BW_Right + BW_Bottom);
-               Set_Edge_Color (Right);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Rect.w - Radius_Px.Bottom_Right,
-                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Right,
-                 Outer_R => Radius_Px.Bottom_Right,
-                 Start_Thickness => BW_Right,
-                 End_Thickness => Mid_T,
-                 Start_Angle => 0.0,
-                 End_Angle => Split_Angle);
-
-               Set_Edge_Color (Bottom);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Rect.w - Radius_Px.Bottom_Right,
-                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Right,
-                 Outer_R => Radius_Px.Bottom_Right,
-                 Start_Thickness => Mid_T,
-                 End_Thickness => BW_Bottom,
-                 Start_Angle => Split_Angle,
-                 End_Angle => Ada.Numerics.Pi / 2.0);
-            elsif Is_Visible_Edge (Right, BW_Right) then
-               Set_Edge_Color (Right);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Rect.w - Radius_Px.Bottom_Right,
-                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Right,
-                 Outer_R => Radius_Px.Bottom_Right,
-                 Start_Thickness => BW_Right,
-                 End_Thickness => BW_Right,
-                 Start_Angle => 0.0,
-                 End_Angle => Ada.Numerics.Pi / 2.0);
-            elsif Is_Visible_Edge (Bottom, BW_Bottom) then
-               Set_Edge_Color (Bottom);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Rect.w - Radius_Px.Bottom_Right,
-                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Right,
-                 Outer_R => Radius_Px.Bottom_Right,
-                 Start_Thickness => BW_Bottom,
-                 End_Thickness => BW_Bottom,
-                 Start_Angle => 0.0,
-                 End_Angle => Ada.Numerics.Pi / 2.0);
-            end if;
-         end if;
-
-         --  Bottom-left corner
-         if Radius_Px.Bottom_Left > 0.0 then
-            if Is_Visible_Edge (Bottom, BW_Bottom)
-              and then Is_Visible_Edge (Left, BW_Left)
-            then
-               Mid_T := 0.5 * (BW_Bottom + BW_Left);
-               Set_Edge_Color (Bottom);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Radius_Px.Bottom_Left,
-                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Left,
-                 Outer_R => Radius_Px.Bottom_Left,
-                 Start_Thickness => BW_Bottom,
-                 End_Thickness => Mid_T,
-                 Start_Angle => Ada.Numerics.Pi / 2.0,
-                 End_Angle => Ada.Numerics.Pi / 2.0 + Split_Angle);
-
-               Set_Edge_Color (Left);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Radius_Px.Bottom_Left,
-                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Left,
-                 Outer_R => Radius_Px.Bottom_Left,
-                 Start_Thickness => Mid_T,
-                 End_Thickness => BW_Left,
-                 Start_Angle => Ada.Numerics.Pi / 2.0 + Split_Angle,
-                 End_Angle => Ada.Numerics.Pi);
-            elsif Is_Visible_Edge (Bottom, BW_Bottom) then
-               Set_Edge_Color (Bottom);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Radius_Px.Bottom_Left,
-                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Left,
-                 Outer_R => Radius_Px.Bottom_Left,
-                 Start_Thickness => BW_Bottom,
-                 End_Thickness => BW_Bottom,
-                 Start_Angle => Ada.Numerics.Pi / 2.0,
-                 End_Angle => Ada.Numerics.Pi);
-            elsif Is_Visible_Edge (Left, BW_Left) then
-               Set_Edge_Color (Left);
-               Draw_Corner_Sector (
-                 Cx => Rect.x + Radius_Px.Bottom_Left,
-                 Cy => Rect.y + Rect.h - Radius_Px.Bottom_Left,
-                 Outer_R => Radius_Px.Bottom_Left,
-                 Start_Thickness => BW_Left,
-                 End_Thickness => BW_Left,
-                 Start_Angle => Ada.Numerics.Pi / 2.0,
-                 End_Angle => Ada.Numerics.Pi);
-            end if;
-         end if;
-      end Draw_Rounded_Corner_Borders;
    begin
       if Style.Display = Display_None
         or else Normalize_Visibility (Style.Visibility) = Visibility_Hidden
@@ -5436,9 +5182,8 @@ package body Adi.Widget is
       end if;
 
       Border_W := Get_Border_Width_Px (Style);
-      --  Clamped as the primitives clamp, so segment counts and the
-      --  per-edge strips and corner sectors follow the radius drawn: a
-      --  pill's 9999px would otherwise tessellate 5000 segments a corner
+      --  Clamped as the primitives clamp, so everything below works from
+      --  the radius drawn
       Radius_Px :=
         Clamp_Corner_Radii_To_Max
           (Resolve_Border_Radius_Px (Style.Border_Radius,
@@ -5570,7 +5315,9 @@ package body Adi.Widget is
 
       if Has_Radius then
 
-         if Has_Border and then Uniform_Border_Width and then BW_Top > 0.0 then
+         if Has_Border and then Uniform_Border_Width and then BW_Top > 0.0
+           and then (for all E in Edge => Is_Visible_Edge (E, BW_Top))
+         then
             --  Render border as a ring (annulus), then fill the interior.
             --  Compute segment count once from the outer radius so the
             --  ring's inner boundary and the fill share identical tessellation.
@@ -5741,49 +5488,141 @@ package body Adi.Widget is
             end;
 
          else
-            --  Rounded corners with non-uniform/partial borders: render
-            --  rounded background, then draw per-edge borders as strips.
-            if Style.Background_Color.Kind /= Named
-               or else Style.Background_Color.Name /= Transparent
-            then
-               CSS_Color_To_SDL (Style.Background_Color, R, G, B, A);
-               A := Apply_Opacity (A, Op);
-               if Uniform then
-                  Render_Rounded_Rect (Renderer, Rect, Max_Rad, R, G, B, A);
-               else
-                  Render_Rounded_Rect (Renderer, Rect, Radius_Px, R, G, B, A);
+            --  Rounded corners with sides of differing width, or a side
+            --  not drawn: the background under the whole box, then a ring
+            --  whose inner corners are the outer radius less each side's
+            --  width, as CSS shapes them.
+            declare
+               function Drawn (E : Edge; W : Float) return Float is
+                 (if Is_Visible_Edge (E, W) then W else 0.0);
+               W_T : constant Float := Drawn (Top, BW_Top);
+               W_R : constant Float := Drawn (Right, BW_Right);
+               W_B : constant Float := Drawn (Bottom, BW_Bottom);
+               W_L : constant Float := Drawn (Left, BW_Left);
+               Shown : constant Edge_Flags :=
+                  [Top => W_T > 0.0, Right => W_R > 0.0,
+                   Bottom => W_B > 0.0, Left => W_L > 0.0];
+               Colors : constant Edge_FColors :=
+                  [for E in Edge =>
+                     (if Shown (E) then Edge_FColor (E)
+                      else (Edge_FColor (E) with delta a => 0.0))];
+               Inner : constant SDL_FRect :=
+                  (x => Rect.x + W_L,
+                   y => Rect.y + W_T,
+                   w => Float'Max (0.0, Rect.w - W_L - W_R),
+                   h => Float'Max (0.0, Rect.h - W_T - W_B));
+               function Less (R, W : Float) return Float is
+                 (Float'Max (0.0, R - W));
+               Raw_RX : constant Corner_Pixels :=
+                  (Top_Left     => Less (Radius_Px.Top_Left, W_L),
+                   Top_Right    => Less (Radius_Px.Top_Right, W_R),
+                   Bottom_Right => Less (Radius_Px.Bottom_Right, W_R),
+                   Bottom_Left  => Less (Radius_Px.Bottom_Left, W_L));
+               Raw_RY : constant Corner_Pixels :=
+                  (Top_Left     => Less (Radius_Px.Top_Left, W_T),
+                   Top_Right    => Less (Radius_Px.Top_Right, W_T),
+                   Bottom_Right => Less (Radius_Px.Bottom_Right, W_B),
+                   Bottom_Left  => Less (Radius_Px.Bottom_Left, W_B));
+               --  Two radii sharing a side of the inner rect, scaled down
+               --  together when a wide border leaves them too little of it
+               function Fit (A, B, Span : Float) return Float is
+                 (if A + B > Span then Span / (A + B) else 1.0);
+               X_Top    : constant Float :=
+                  Fit (Raw_RX.Top_Left, Raw_RX.Top_Right, Inner.w);
+               X_Bottom : constant Float :=
+                  Fit (Raw_RX.Bottom_Left, Raw_RX.Bottom_Right, Inner.w);
+               Y_Left   : constant Float :=
+                  Fit (Raw_RY.Top_Left, Raw_RY.Bottom_Left, Inner.h);
+               Y_Right  : constant Float :=
+                  Fit (Raw_RY.Top_Right, Raw_RY.Bottom_Right, Inner.h);
+               Inner_RX : constant Corner_Pixels :=
+                  (Top_Left     => Raw_RX.Top_Left * X_Top,
+                   Top_Right    => Raw_RX.Top_Right * X_Top,
+                   Bottom_Right => Raw_RX.Bottom_Right * X_Bottom,
+                   Bottom_Left  => Raw_RX.Bottom_Left * X_Bottom);
+               Inner_RY : constant Corner_Pixels :=
+                  (Top_Left     => Raw_RY.Top_Left * Y_Left,
+                   Top_Right    => Raw_RY.Top_Right * Y_Right,
+                   Bottom_Right => Raw_RY.Bottom_Right * Y_Right,
+                   Bottom_Left  => Raw_RY.Bottom_Left * Y_Left);
+               Base_Seg : constant Positive := Segments_For_Radius (Max_Rad);
+               --  Even, so each corner's colour change falls on a vertex
+               Seg : constant Positive := Base_Seg + Base_Seg mod 2;
+            begin
+               if Style.Background_Color.Kind /= Named
+                  or else Style.Background_Color.Name /= Transparent
+               then
+                  CSS_Color_To_SDL (Style.Background_Color, R, G, B, A);
+                  A := Apply_Opacity (A, Op);
+                  if not Has_Border then
+                     if Uniform then
+                        Render_Rounded_Rect
+                          (Renderer, Rect, Max_Rad, R, G, B, A);
+                     else
+                        Render_Rounded_Rect
+                          (Renderer, Rect, Radius_Px, R, G, B, A);
+                     end if;
+                     if not Has_Gradient then
+                        Render_AA_Fringe (Renderer, Rect, Radius_Px, R, G, B, A);
+                     end if;
+                  else
+                     --  Tessellated as the ring, so no fill shows past it
+                     if Uniform then
+                        Render_Rounded_Rect
+                          (Renderer, Rect, Max_Rad, R, G, B, A,
+                           Min_Segments => Seg);
+                     else
+                        Render_Rounded_Rect
+                          (Renderer, Rect, Radius_Px, R, G, B, A,
+                           Min_Segments => Seg);
+                     end if;
+                     --  The fill fringes only the sides no border covers:
+                     --  under one it would show as a rim of fill colour
+                     --  outside the border
+                     if not Has_Gradient
+                       and then (for some E in Edge => not Shown (E))
+                     then
+                        Render_Edge_Fringe
+                          (Renderer, Rect, Radius_Px, Radius_Px,
+                           [for E in Edge =>
+                              To_FColor (R, G, B,
+                                         (if Shown (E) then 0 else A))],
+                           Shown, Seg);
+                     end if;
+                  end if;
                end if;
-               if not Has_Gradient then
-                  Render_AA_Fringe (Renderer, Rect, Radius_Px, R, G, B, A);
-               end if;
-            end if;
 
-            if Has_Gradient then
-               if Uniform then
-                  Render_Gradient_Rounded_Rect
-                    (Renderer, Rect,
-                     (Top_Left | Top_Right | Bottom_Right | Bottom_Left =>
-                        Max_Rad),
-                     Style.Background_Image.Gradient.all, Op);
-                  Render_Gradient_AA_Fringe
-                    (Renderer, Rect,
-                     (Top_Left | Top_Right | Bottom_Right | Bottom_Left =>
-                        Max_Rad),
-                     Style.Background_Image.Gradient.all, Op);
-               else
+               --  With a border, tessellated as the ring; with one on every
+               --  side, that border is the edge and the gradient's own
+               --  fringe would show as a rim outside it
+               if Has_Gradient then
                   Render_Gradient_Rounded_Rect
                     (Renderer, Rect, Radius_Px,
-                     Style.Background_Image.Gradient.all, Op);
-                  Render_Gradient_AA_Fringe
-                    (Renderer, Rect, Radius_Px,
-                     Style.Background_Image.Gradient.all, Op);
+                     Style.Background_Image.Gradient.all, Op,
+                     Min_Segments => (if Has_Border then Seg else 0));
+                  if not Has_Border
+                    or else (for some E in Edge => not Shown (E))
+                  then
+                     Render_Gradient_AA_Fringe
+                       (Renderer, Rect, Radius_Px,
+                        Style.Background_Image.Gradient.all, Op,
+                        Min_Segments => (if Has_Border then Seg else 0));
+                  end if;
                end if;
-            end if;
 
-            if Has_Border then
-               Draw_Edge_Borders (Respect_Radius => True);
-               Draw_Rounded_Corner_Borders;
-            end if;
+               if Has_Border then
+                  Render_Edge_Ring
+                    (Renderer, Rect, Radius_Px, Inner, Inner_RX, Inner_RY,
+                     Colors, Shown, Seg);
+                  Render_Edge_Fringe
+                    (Renderer, Rect, Radius_Px, Radius_Px, Colors, Shown, Seg);
+                  if Inner.w > 0.0 and then Inner.h > 0.0 then
+                     Render_Edge_Fringe
+                       (Renderer, Inner, Inner_RX, Inner_RY, Colors, Shown,
+                        Seg, Inward => True);
+                  end if;
+               end if;
+            end;
          end if;
 
       else

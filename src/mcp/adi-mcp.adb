@@ -396,21 +396,42 @@ package body Adi.MCP is
       when others => return Default;
    end JSON_Get_Bool;
 
-   --  Why JSON_Text does not parse, or "" when it does
-   function JSON_Error (JSON_Text : String) return String is
+   --  What a command file holds, from one parse. Error is why the text
+   --  does not parse ("" when it does); Command and Req_Id are "" when
+   --  absent or not strings.
+   type Command_Envelope is record
+      Error   : Unbounded_String;
+      Command : Unbounded_String;
+      Req_Id  : Unbounded_String;
+   end record;
+
+   function Read_Envelope (JSON_Text : String) return Command_Envelope is
       use Adi.JSON;
    begin
       declare
          P    : Parsers.Parser := Parsers.Create (JSON_Text);
          Root : constant Types.JSON_Value := P.Parse;
-         pragma Unreferenced (Root);
+
+         function Field (Key : String) return Unbounded_String is
+         begin
+            if Root.Contains (Key) then
+               return To_Unbounded_String (String'(Root.Get (Key).Value));
+            end if;
+            return Null_Unbounded_String;
+         exception
+            when others => return Null_Unbounded_String;
+         end Field;
       begin
-         return "";
+         return (Error   => Null_Unbounded_String,
+                 Command => Field ("command"),
+                 Req_Id  => Field ("req_id"));
       end;
    exception
       when E : others =>
-         return Ada.Exceptions.Exception_Message (E);
-   end JSON_Error;
+         return (Error   => To_Unbounded_String
+                              (Ada.Exceptions.Exception_Message (E)),
+                 others  => Null_Unbounded_String);
+   end Read_Envelope;
 
    ---------------------------------------------------------------------------
    --  Error Response Helper
@@ -1592,9 +1613,10 @@ package body Adi.MCP is
       use Ada.Directories;
       Cmd_Path  : constant String := Dir & "/" & Cmd_Name;
       JSON      : constant String := Read_File (Cmd_Path);
-      Parse_Err : constant String := JSON_Error (JSON);
-      Cmd       : constant String := JSON_Get_String (JSON, "command");
-      Req_Id_J  : constant String := JSON_Get_String (JSON, "req_id");
+      Envelope  : constant Command_Envelope := Read_Envelope (JSON);
+      Parse_Err : constant String := To_String (Envelope.Error);
+      Cmd       : constant String := To_String (Envelope.Command);
+      Req_Id_J  : constant String := To_String (Envelope.Req_Id);
 
       function Req_Id_From_Filename return String is
          Prefix : constant String := "cmd_";

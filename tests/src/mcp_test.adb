@@ -945,6 +945,32 @@ procedure MCP_Test is
               "a long command is read whole and parses");
    end Test_Long_Command;
 
+   procedure Test_Envelope_Fields is
+      Raised : Boolean;
+   begin
+      Section ("Command fields that are not strings");
+
+      Assert (Error_Of (Answer ("num1",
+                "{""command"": 5, ""req_id"": ""num1""}", Raised))
+              = "missing command field",
+              "a numeric command counts as missing");
+      Assert (not Raised, "a numeric command does not raise");
+
+      Assert (Error_Of (Answer ("num2", "{""req_id"": 7}", Raised))
+              = "missing command field",
+              "a numeric req_id falls back to the file name");
+      Assert (not Raised, "a numeric req_id does not raise");
+
+      Assert (Error_Of (Answer ("arr1", "[1, 2]", Raised))
+              = "missing command field",
+              "an array command counts as missing a command");
+      Assert (not Raised, "an array command does not raise");
+
+      if Ada.Directories.Exists (Cmd_Dir) then
+         Ada.Directories.Delete_Tree (Cmd_Dir);
+      end if;
+   end Test_Envelope_Fields;
+
 begin
    Start_Suite ("MCP Test Suite");
    Put_Line ("");
@@ -966,6 +992,7 @@ begin
    Test_Font_Budget_Beyond_A_Natural;
    Test_Unreadable_Command;
    Test_Long_Command;
+   Test_Envelope_Fields;
 
    Test_Support.Finish;
 end MCP_Test;

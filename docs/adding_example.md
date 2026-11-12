@@ -148,7 +148,16 @@ The array at `EXAMPLE_KINDS=(`:
   image_example
 ```
 
-## 8. Build and run
+## 8. Gallery and wasm
+
+An example that calls `Adi.MCP.Initialize` is captured by
+`tools/capture_screenshots.py <name>` into `examples/screenshots/`, and its
+images get lines in `docs/gallery.md`. One taller than a screen also needs a
+`MULTI_SHOT` entry in the script, naming each scrolled capture. One that
+builds for wasm goes in the showcase list in `wasm/Makefile` and the example
+picker in `wasm/site/index.html`.
+
+## 9. Build and run
 
 ```bash
 # Build just this example
@@ -162,7 +171,7 @@ Or build every example with `tools/build_examples.sh`.
 
 ## Checklist
 
-Six registration sites, plus the sources themselves.
+Six registration sites, plus the sources themselves, the gallery and wasm.
 
 | Step | File | What to add |
 |------|------|-------------|
@@ -176,3 +185,5 @@ Six registration sites, plus the sources themselves.
 | Registration 5 | `tools/generate_example_styles.sh` | `generate_if_needed` call |
 | Registration 6 | `tools/generate_example_ui.sh` | `generate_if_needed` call (if XML) |
 | Bundle gen | `tools/generate_example_bundles.sh` | A copy of the existing generate block (if bundling assets) |
+| Gallery | `examples/screenshots/`, `docs/gallery.md` | Captured images and their lines (if MCP-enabled); `MULTI_SHOT` entry if taller than a screen |
+| Wasm | `wasm/Makefile`, `wasm/site/index.html` | Showcase list entry, picker option (if it builds for wasm) |

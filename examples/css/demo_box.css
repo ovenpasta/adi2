@@ -1,0 +1,230 @@
+/*  The bar sits over the content rather than beside it, so both track
+    and knob stay translucent and firm up only under the pointer. */
+
+.root::scroll {
+  width: 10px;
+  background-color: rgba(94, 129, 172, 0.06);
+  border-radius: 5px;
+  transition: background-color 160ms ease-out;
+}
+
+.root::scroll:hover {
+  background-color: rgba(94, 129, 172, 0.16);
+}
+
+.root::knob {
+  background-image: linear-gradient(to right,
+                                    rgba(129, 161, 193, 0.30),
+                                    rgba(94, 129, 172, 0.30));
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(236, 239, 244, 0.10);
+  border-radius: 5px;
+  transition: background-image 160ms ease-out, border-color 160ms ease-out;
+}
+
+.root::knob:hover {
+  background-image: linear-gradient(to right,
+                                    rgba(143, 176, 209, 0.85),
+                                    rgba(108, 143, 186, 0.85));
+  border-color: rgba(236, 239, 244, 0.28);
+}
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+  overflow-y: auto;
+  background-color: rgb(24, 26, 33);
+}
+
+.title::label {
+  color: rgb(236, 239, 244);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  padding-right: 14px;
+}
+
+.caption::label {
+  color: rgb(163, 190, 140);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.note::label {
+  color: rgb(150, 158, 172);
+  font-size: 12px;
+}
+
+.cases {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/*  Zero basis: the cases in a row come out the same width whatever
+    their labels say, so two of them can be compared by eye. */
+.case {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-basis: 0px;
+  flex-grow: 1;
+  min-width: 0px;
+}
+
+.case-label::label {
+  color: rgb(150, 158, 172);
+  font-size: 11px;
+}
+
+/*  Padded so an outline or shadow, which take no room, still show whole */
+.stage {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border-radius: 6px;
+  background-color: rgb(35, 38, 48);
+}
+
+.swatch {
+  height: 52px;
+  border-style: solid;
+}
+
+/*  A fill to read the edge against, for the sections about something else */
+.filled {
+  background-color: rgb(94, 129, 172);
+}
+
+/* Border width, side by side */
+.bw-uniform {
+  border-width: 2px;
+  border-color: rgb(136, 192, 208);
+  background-color: rgb(46, 52, 64);
+}
+
+.bw-sides {
+  border-width: 1px 4px 8px 2px;
+  border-color: rgb(136, 192, 208);
+  background-color: rgb(46, 52, 64);
+}
+
+.bw-accent {
+  border-width: 0px;
+  border-left-width: 6px;
+  border-color: rgb(235, 203, 139);
+  background-color: rgb(46, 52, 64);
+}
+
+/* Each edge its own colour */
+.four-colours {
+  border-width: 5px;
+  border-top-color: rgb(191, 97, 106);
+  border-right-color: rgb(163, 190, 140);
+  border-bottom-color: rgb(94, 129, 172);
+  border-left-color: rgb(235, 203, 139);
+  background-color: rgb(46, 52, 64);
+}
+
+.rounded {
+  border-radius: 16px;
+}
+
+/*  Light from the top left: the lit sides pale, the far ones dark.
+    Swapping the two pairs presses the same box in. */
+.raised {
+  border-width: 3px;
+  border-radius: 10px;
+  border-top-color: rgb(216, 222, 233);
+  border-left-color: rgb(216, 222, 233);
+  border-right-color: rgb(15, 17, 22);
+  border-bottom-color: rgb(15, 17, 22);
+  background-color: rgb(76, 86, 106);
+}
+
+.sunken {
+  border-width: 3px;
+  border-radius: 10px;
+  border-top-color: rgb(15, 17, 22);
+  border-left-color: rgb(15, 17, 22);
+  border-right-color: rgb(216, 222, 233);
+  border-bottom-color: rgb(216, 222, 233);
+  background-color: rgb(59, 66, 82);
+}
+
+/* Corner radius */
+.r-12        { border-radius: 12px; }
+.r-alternate { border-radius: 20px 4px; }
+.r-top       { border-radius: 12px 12px 0px 0px; }
+
+/*  Sides of differing width meet at a rounded corner too */
+.r-pill {
+  border-radius: 26px;
+  border-width: 2px 2px 6px 2px;
+  border-color: rgb(180, 142, 173);
+  background-color: rgb(46, 52, 64);
+}
+
+/* Outline */
+.ol-plain {
+  outline: 2px solid rgb(235, 203, 139);
+}
+
+.ol-offset {
+  outline: 2px solid rgb(235, 203, 139);
+  outline-offset: 4px;
+}
+
+.ol-rounded {
+  border-width: 2px;
+  border-color: rgb(136, 192, 208);
+  border-radius: 12px;
+  background-color: rgb(46, 52, 64);
+  outline: 2px solid rgb(235, 203, 139);
+  outline-offset: 3px;
+}
+
+/* Box shadow */
+.sh-drop {
+  border-radius: 8px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.6);
+}
+
+.sh-hard {
+  box-shadow: 6px 6px 0px rgb(15, 17, 22);
+}
+
+.sh-glow {
+  border-radius: 8px;
+  box-shadow: 0px 0px 12px 2px rgba(136, 192, 208, 0.7);
+}
+
+/* Background */
+.bg-gradient {
+  border-width: 0px;
+  border-radius: 8px;
+  background-image: linear-gradient(to right, rgb(94, 129, 172), rgb(180, 142, 173));
+}
+
+.bg-over-colour {
+  border-width: 2px;
+  border-color: rgba(236, 239, 244, 0.35);
+  border-radius: 8px;
+  background-color: rgb(163, 190, 140);
+  background-image: linear-gradient(to bottom, rgba(46, 52, 64, 0.0), rgba(46, 52, 64, 0.9));
+}
+
+.bg-faded {
+  opacity: 0.5;
+}

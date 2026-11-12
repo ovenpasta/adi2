@@ -15,6 +15,7 @@ project Examples is
       "text_editor_example.adb",
       "demo_flex.adb",
       "demo_block.adb",
+      "demo_box.adb",
       "stack_example.adb",
       "list_box_example.adb",
       "combo_box_example.adb",

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<adi>
+  <link rel="stylesheet" href="css/demo_box.css"/>
+
+  <window title="Box Painting Reference" width="617px" height="617px">
+    <box id="Root" class="root">
+      <label text="Box Painting Reference" class="title"/>
+
+      <!-- border widths -->
+      <box class="section">
+        <label text="Border width, side by side" class="caption"/>
+        <label text="A border sits inside the box's size, between its edge and its padding. Each side takes its own width, and a side of width 0 paints nothing."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="2px all round" class="case-label"/>
+            <box class="stage"><box class="swatch bw-uniform"/></box>
+          </box>
+          <box class="case">
+            <label text="1px 4px 8px 2px" class="case-label"/>
+            <box class="stage"><box class="swatch bw-sides"/></box>
+          </box>
+          <box class="case">
+            <label text="border-left only" class="case-label"/>
+            <box class="stage"><box class="swatch bw-accent"/></box>
+          </box>
+        </box>
+      </box>
+
+      <!-- border colours -->
+      <box class="section">
+        <label text="Each edge its own colour" class="caption"/>
+        <label text="border-top-color and its siblings paint one side each. A rounded corner changes from one side's colour to the next at its midpoint, the way a square corner changes on its diagonal."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="square corners" class="case-label"/>
+            <box class="stage"><box class="swatch four-colours"/></box>
+          </box>
+          <box class="case">
+            <label text="rounded corners" class="case-label"/>
+            <box class="stage"><box class="swatch four-colours rounded"/></box>
+          </box>
+          <box class="case">
+            <label text="raised" class="case-label"/>
+            <box class="stage"><box class="swatch raised"/></box>
+          </box>
+          <box class="case">
+            <label text="sunken" class="case-label"/>
+            <box class="stage"><box class="swatch sunken"/></box>
+          </box>
+        </box>
+      </box>
+
+      <!-- corner radius -->
+      <box class="section">
+        <label text="Corner radius" class="caption"/>
+        <label text="border-radius takes one to four lengths, clockwise from the top left. Background, border, outline and shadow all follow the same curve."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="12px" class="case-label"/>
+            <box class="stage"><box class="swatch filled r-12"/></box>
+          </box>
+          <box class="case">
+            <label text="20px 4px" class="case-label"/>
+            <box class="stage"><box class="swatch filled r-alternate"/></box>
+          </box>
+          <box class="case">
+            <label text="12px 12px 0 0" class="case-label"/>
+            <box class="stage"><box class="swatch filled r-top"/></box>
+          </box>
+          <box class="case">
+            <label text="pill, thicker bottom" class="case-label"/>
+            <box class="stage"><box class="swatch r-pill"/></box>
+          </box>
+        </box>
+      </box>
+
+      <!-- outline -->
+      <box class="section">
+        <label text="Outline" class="caption"/>
+        <label text="An outline is drawn outside the border and takes no room: nothing around it moves. outline-offset opens a gap between the two."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="2px solid" class="case-label"/>
+            <box class="stage"><box class="swatch filled ol-plain"/></box>
+          </box>
+          <box class="case">
+            <label text="offset 4px" class="case-label"/>
+            <box class="stage"><box class="swatch filled ol-offset"/></box>
+          </box>
+          <box class="case">
+            <label text="over a border, rounded" class="case-label"/>
+            <box class="stage"><box class="swatch ol-rounded"/></box>
+          </box>
+        </box>
+      </box>
+
+      <!-- box shadow -->
+      <box class="section">
+        <label text="Box shadow" class="caption"/>
+        <label text="box-shadow takes an offset, a blur, a spread and a colour. Like an outline it takes no room, so the stage pads round each box to show it whole."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="0 4px 10px" class="case-label"/>
+            <box class="stage"><box class="swatch filled sh-drop"/></box>
+          </box>
+          <box class="case">
+            <label text="6px 6px 0, no blur" class="case-label"/>
+            <box class="stage"><box class="swatch filled sh-hard"/></box>
+          </box>
+          <box class="case">
+            <label text="0 0 12px 2px, a glow" class="case-label"/>
+            <box class="stage"><box class="swatch filled sh-glow"/></box>
+          </box>
+        </box>
+      </box>
+
+      <!-- backgrounds -->
+      <box class="section">
+        <label text="Background" class="caption"/>
+        <label text="A gradient paints over background-color, so a translucent one shows the colour through. opacity fades the whole box, border and all."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="linear-gradient" class="case-label"/>
+            <box class="stage"><box class="swatch bg-gradient"/></box>
+          </box>
+          <box class="case">
+            <label text="translucent gradient" class="case-label"/>
+            <box class="stage"><box class="swatch bg-over-colour"/></box>
+          </box>
+          <box class="case">
+            <label text="opacity: 0.5" class="case-label"/>
+            <box class="stage"><box class="swatch raised bg-faded"/></box>
+          </box>
+        </box>
+      </box>
+    </box>
+  </window>
+</adi>

@@ -86,6 +86,10 @@ Block layout reference: what a box does when no rule declares `display`, how a
 child's declared width and height are read, and what a percentage resolves
 against.
 
+### demo_box
+Box painting reference: border widths and per-edge colours, corner radius,
+outline, box shadow and backgrounds, each with a worked case.
+
 ### stack_example
 `Adi.Widget.Stack` paging between XML-defined pages, each with its own
 stylesheet.

@@ -21,12 +21,16 @@ builds the renderer and ignores it afterwards — and then read back what
 you were actually given rather than assuming:
 
 ```ada
-Adi.Window.Prefer_Render_Driver ("opengl");   --  before any window
+Adi.Window.Prefer_Render_Driver (Adi.Render_Drivers.OpenGL);  --  before the window
 ...
 if Adi.Window.Render_Driver (W) /= Driver_Name (OpenGL) then
    --  The request was not granted. Fall back to Set_Pixels.
 end if;
 ```
+
+It also takes a list, `[OpenGL, OpenGLES2]`, tried in order. Naming a
+driver SDL does not build for the platform, such as `Metal` on Linux, is a
+compile-time warning.
 
 `Driver_Name (Backend)` gives the renderer name each backend answers to,
 so the comparison does not hard-code a string.

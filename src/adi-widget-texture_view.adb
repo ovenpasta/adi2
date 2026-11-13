@@ -7,6 +7,7 @@ with Ada.Unchecked_Deallocation;
 with Interfaces.C.Strings;
 with System.Storage_Elements;
 with Adi.Clock;
+with Adi.Render_Drivers;
 with Adi.SDL;
 with Adi.SDL.Pixelformat;
 with Adi.SDL.Properties;
@@ -123,13 +124,14 @@ package body Adi.Widget.Texture_View is
    -----------------
 
    function Driver_Name (Backend : Backend_Kind) return String is
-     (case Backend is
-         when OpenGL     => "opengl",
-         when OpenGLES2  => "opengles2",
-         when Vulkan     => "vulkan",
-         when D3D11      => "direct3d11",
-         when D3D12      => "direct3d12",
-         when GPU        => "gpu");
+     (Adi.Render_Drivers.Name
+        (case Backend is
+            when OpenGL    => Adi.Render_Drivers.OpenGL,
+            when OpenGLES2 => Adi.Render_Drivers.OpenGLES2,
+            when Vulkan    => Adi.Render_Drivers.Vulkan,
+            when D3D11     => Adi.Render_Drivers.Direct3D11,
+            when D3D12     => Adi.Render_Drivers.Direct3D12,
+            when GPU       => Adi.Render_Drivers.GPU));
 
    ---------------------------------------------------------------------------
    --  What the cache holds for a view

@@ -15,6 +15,7 @@ with Adi.SDL.Events;
 with Adi.Signal;
 with Adi.Handle_Store;
 with Adi.Texture_Cache;
+with Adi.Build_Target;
 
 package Adi.Window is
     --  Windows and their handles belong to the thread that runs the
@@ -34,17 +35,25 @@ package Adi.Window is
                                     Maximized : Boolean := False)
       return Window_Handle;
 
-    --  Ask SDL for a particular 2D backend: "opengl", "opengles2",
-    --  "vulkan", "gpu", "software". Only a request -- SDL keeps its own
-    --  choice if the driver is unavailable, so call Render_Driver
-    --  afterwards to find out what happened rather than assuming.
+    --  Renderers in order of preference. The literals are in
+    --  Adi.Render_Drivers; Adi.Build_Target.Render_Driver admits only
+    --  those SDL builds for this platform.
+    type Render_Driver_List is
+      array (Positive range <>) of Adi.Build_Target.Render_Driver;
+
+    --  Ask SDL for a 2D renderer, or for the first of several that it can
+    --  build. Only a request: if none of them can be built on this
+    --  machine, the window gets SDL's default renderer, so call
+    --  Render_Driver afterwards to find out what happened rather than
+    --  assuming.
     --
-    --  Has to run before the first window is created; SDL reads the hint
-    --  when it builds the renderer and ignores it after. Matters to an
+    --  Applies to the windows created after it. Matters to an
     --  application that draws with OpenGL itself, because a GL texture
     --  cannot be handed to a Direct3D or Metal renderer -- and those are
     --  the defaults on Windows and macOS.
-    procedure Prefer_Render_Driver (Name : String);
+    procedure Prefer_Render_Driver (Driver : Adi.Build_Target.Render_Driver);
+    procedure Prefer_Render_Driver (Drivers : Render_Driver_List)
+      with Pre => Drivers'Length > 0;
 
     --  The backend SDL actually built, e.g. "opengl". Empty if the window
     --  has no renderer.

@@ -7,8 +7,10 @@ with Adi.Clock; use Adi.Clock;
 with Ada.Environment_Variables;
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings;
+with Ada.Strings.Unbounded;
 with Adi.Font;
 with Adi.Log;
+with Adi.Render_Drivers;
 with Adi.SDL; use Adi.SDL;
 with Adi.Layout_Util; use Adi.Layout_Util;
 with Adi.CSS_Styles; use Adi.CSS_Styles;
@@ -906,16 +908,64 @@ package body Adi.Window is
    --------------------------
    -- Prefer_Render_Driver --
    --------------------------
-   procedure Prefer_Render_Driver (Name : String) is
+
+   --  Whether SDL's render-driver hint holds a preference set here, and
+   --  which drivers it names
+   Driver_Preferred : Boolean := False;
+   Preferred_Names  : Ada.Strings.Unbounded.Unbounded_String;
+
+   --  Sets SDL's render-driver hint to Value; Null_Ptr clears it and
+   --  leaves the choice to SDL
+   procedure Set_Render_Driver_Hint
+     (Value : Interfaces.C.Strings.chars_ptr)
+   is
       use Interfaces.C.Strings;
-      C_Hint  : chars_ptr := New_String (Adi.SDL.SDL_HINT_RENDER_DRIVER);
-      C_Value : chars_ptr := New_String (Name);
-      Unused  : Adi.SDL.C_bool;
+      C_Hint : chars_ptr := New_String (Adi.SDL.SDL_HINT_RENDER_DRIVER);
+      Unused : Adi.SDL.C_bool;
    begin
-      Unused := Adi.SDL.SDL_SetHint (C_Hint, C_Value);
+      Unused := Adi.SDL.SDL_SetHint (C_Hint, Value);
       Free (C_Hint);
+   end Set_Render_Driver_Hint;
+
+   procedure Prefer_Render_Driver_Names (Names : String) is
+      use Interfaces.C.Strings;
+      C_Value : chars_ptr := New_String (Names);
+   begin
+      Set_Render_Driver_Hint (C_Value);
       Free (C_Value);
+      Driver_Preferred := True;
+      Preferred_Names := Ada.Strings.Unbounded.To_Unbounded_String (Names);
+   end Prefer_Render_Driver_Names;
+
+   procedure Prefer_Render_Driver (Driver : Adi.Build_Target.Render_Driver) is
+   begin
+      Prefer_Render_Driver_Names (Adi.Render_Drivers.Name (Driver));
    end Prefer_Render_Driver;
+
+   procedure Prefer_Render_Driver (Drivers : Render_Driver_List) is
+      function Names (From : Positive) return String is
+        (Adi.Render_Drivers.Name (Drivers (From))
+         & (if From < Drivers'Last then "," & Names (From + 1) else ""));
+   begin
+      Prefer_Render_Driver_Names (Names (Drivers'First));
+   end Prefer_Render_Driver;
+
+   --  Called after a renderer could not be built: clears the preference
+   --  set here and logs why, so the next attempt gets SDL's default.
+   --  False if there was none, as retrying would then fail the same way.
+   function Drop_Render_Driver_Preference return Boolean is
+   begin
+      if not Driver_Preferred then
+         return False;
+      end if;
+      --  Not SDL_GetError: SDL's cleanup after the failure replaces it
+      Adi.Log.Warning
+        ("render driver " & Ada.Strings.Unbounded.To_String (Preferred_Names)
+         & " unavailable, using SDL's default");
+      Set_Render_Driver_Hint (Interfaces.C.Strings.Null_Ptr);
+      Driver_Preferred := False;
+      return True;
+   end Drop_Render_Driver_Preference;
 
    -------------------
    -- Render_Driver --
@@ -1020,6 +1070,17 @@ package body Adi.Window is
          Flags,
          Win_Ptr,
          Ren_Ptr);
+      --  On failure SDL has destroyed the window it made, so the retry
+      --  creates both again
+      if not Boolean (Success) and then Drop_Render_Driver_Preference then
+         Success := Adi.SDL.Render.SDL_CreateWindowAndRenderer
+           (C_Title_Str,
+            int (S.Width),
+            int (S.Height),
+            Flags,
+            Win_Ptr,
+            Ren_Ptr);
+      end if;
       Free (C_Title_Str);
       --  Not SDL_Assert: assertions are off in release builds, and
       --  carrying on would register a Window holding null SDL pointers.
@@ -3308,6 +3369,9 @@ function Get_Size (W : in out Window) return Size_2D is
          end if;
 
          Ren := Adi.SDL.Render.SDL_CreateRenderer (Win, Null_Ptr);
+         if Ren = null and then Drop_Render_Driver_Preference then
+            Ren := Adi.SDL.Render.SDL_CreateRenderer (Win, Null_Ptr);
+         end if;
          if Ren = null then
             Fail ("window renderer could not be created");
          end if;

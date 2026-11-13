@@ -14,6 +14,7 @@ with Adi.App;
 with Adi.Layout_Util;
 with Adi.MCP;
 with Adi.OS;
+with Adi.Render_Drivers;
 with Adi.SDL;
 with Adi.SDL.Render;
 with Adi.Widget;
@@ -589,7 +590,7 @@ procedure GL_Triangle is
 begin
    --  Before the window: SDL reads the driver when it builds the
    --  renderer, and a GL texture cannot be handed to a D3D or Metal one.
-   Adi.Window.Prefer_Render_Driver ("opengl");
+   Adi.Window.Prefer_Render_Driver (Adi.Render_Drivers.OpenGL);
 
    A.Init;
    Adi.Layout_Util.Set_Px_Maps_To_Dip (True);

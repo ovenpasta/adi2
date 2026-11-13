@@ -680,7 +680,7 @@ package body Adi.Widget.Combo_Box is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
       Ensure_Host_Window (W);
-      if W.Open or else not Adi.Window.Is_Valid (W.Host_Window)
+      if Is_Open (W) or else not Adi.Window.Is_Valid (W.Host_Window)
         or else not Popup_Lists.Is_Valid (W.Popup)
       then
          return;
@@ -705,7 +705,6 @@ package body Adi.Widget.Combo_Box is
          Adi.Window.Add_Overlay (W.Host_Window, Get_Handle (Dismiss.all));
       end if;
       Adi.Window.Add_Overlay (W.Host_Window, +W.Popup);
-      W.Open := True;
       if Dismiss /= null then
          Mark_Dirty (Dismiss.all);
       end if;
@@ -716,7 +715,9 @@ package body Adi.Widget.Combo_Box is
    procedure Close_Dropdown (W : in out Combo_Box_Widget) is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
-      if not W.Open or else not Adi.Window.Is_Valid (W.Host_Window)
+      --  Both are removed whether or not the popup still is an overlay:
+      --  a dismiss layer left behind would swallow every click
+      if not Adi.Window.Is_Valid (W.Host_Window)
         or else not Popup_Lists.Is_Valid (W.Popup)
       then
          return;
@@ -733,22 +734,25 @@ package body Adi.Widget.Combo_Box is
       if Dismiss /= null then
          Adi.Window.Remove_Overlay (W.Host_Window, Get_Handle (Dismiss.all));
       end if;
-      W.Open := False;
       Mark_Dirty (W);
    end Close_Dropdown;
 
    procedure Toggle_Dropdown (W : in out Combo_Box_Widget) is
    begin
-      if W.Open then
+      if Is_Open (W) then
          Close_Dropdown (W);
       else
          Open_Dropdown (W);
       end if;
    end Toggle_Dropdown;
 
+   --  Asked of the window rather than remembered, so that a dropdown
+   --  removed with the window's overlays reads as closed
    function Is_Open (W : Combo_Box_Widget) return Boolean is
    begin
-      return W.Open;
+      return Adi.Window.Is_Valid (W.Host_Window)
+        and then Popup_Lists.Is_Valid (W.Popup)
+        and then Adi.Window.Has_Overlay (W.Host_Window, +W.Popup);
    end Is_Open;
 
    overriding procedure Build_Items (W : in out Combo_Box_Widget) is
@@ -791,7 +795,7 @@ package body Adi.Widget.Combo_Box is
          Found : Boolean := False;
       begin
          Ind_It.Image_Source :=
-           (if W.Open then W.Arrow_Up_Img else W.Arrow_Down_Img);
+           (if Is_Open (W) then W.Arrow_Up_Img else W.Arrow_Down_Img);
          Ind_It.Geometry := (0.0, 0.0, 0.0, 0.0);
          for L_Item of W.Layout_Items loop
             if L_Item.Part = Indicator_Part then
@@ -897,7 +901,7 @@ package body Adi.Widget.Combo_Box is
       if Indicator_Visible then
          declare
             Img : constant Image_Handle :=
-              (if W.Open then W.Arrow_Up_Img else W.Arrow_Down_Img);
+              (if Is_Open (W) then W.Arrow_Up_Img else W.Arrow_Down_Img);
             Width_Fixed  : constant Boolean := Ind_Style.Width.Kind = Fixed;
             Height_Fixed : constant Boolean := Ind_Style.Height.Kind = Fixed;
             Intrinsic    : Size_2D;
@@ -1038,7 +1042,7 @@ package body Adi.Widget.Combo_Box is
          Container_Style => Main_Style,
          Items           => W.Layout_Items);
 
-      if W.Open and then Adi.Window.Is_Valid (W.Host_Window)
+      if Is_Open (W) and then Adi.Window.Is_Valid (W.Host_Window)
         and then Popup_Lists.Is_Valid (W.Popup)
       then
          Position_Dismiss_Layer (W);
@@ -1069,7 +1073,7 @@ package body Adi.Widget.Combo_Box is
    begin
       case Scancode is
          when SDL_SCANCODE_DOWN | SDL_SCANCODE_UP =>
-            if not W.Open then
+            if not Is_Open (W) then
                Open_Dropdown (W);
             elsif Popup_Lists.Is_Valid (W.Popup) then
                declare
@@ -1097,7 +1101,7 @@ package body Adi.Widget.Combo_Box is
    overriding procedure On_Destroy (W : in out Combo_Box_Widget) is
    begin
       --  Close dropdown if open (removes overlays from window)
-      if W.Open and then Adi.Window.Is_Valid (W.Host_Window) then
+      if Is_Open (W) and then Adi.Window.Is_Valid (W.Host_Window) then
          Close_Dropdown (W);
       end if;
 
@@ -1348,7 +1352,7 @@ package body Adi.Widget.Combo_Box is
             B : constant Popup_Binding := Popup_Bindings.Element (I);
          begin
             if B.Owner /= null
-              and then B.Owner.Open
+              and then Is_Open (B.Owner.all)
               and then Popup_Lists.Is_Valid (B.Owner.Popup)
               and then Is_Within
                          (Widget'Class (B.Owner.all)'Unchecked_Access,

@@ -78,9 +78,7 @@ package body Adi.Widget.Context_Menu is
       end if;
 
       --  Hide (removes popup/dismiss overlays from window)
-      if Obj.Open then
-         Hide (Obj.all);
-      end if;
+      Hide (Obj.all);
 
       --  Destroy owned popup and dismiss widgets, then remove binding.
       --  Use stored Widget_Handles — raw access may be dangling if the
@@ -658,7 +656,7 @@ package body Adi.Widget.Context_Menu is
    is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
-      if Menu.Open
+      if Is_Shown (Menu)
         or else not Adi.Window.Is_Valid (Menu.Host_Window)
         or else not Popup_Lists.Is_Valid (Menu.Popup)
       then
@@ -681,7 +679,6 @@ package body Adi.Widget.Context_Menu is
 
       Adi.Window.Add_Overlay (Menu.Host_Window, Get_Handle (Dismiss.all));
       Adi.Window.Add_Overlay (Menu.Host_Window, +Menu.Popup);
-      Menu.Open := True;
       Mark_Dirty (Dismiss.all);
       Mark_Dirty (+Menu.Popup);
    end Show_At;
@@ -701,7 +698,11 @@ package body Adi.Widget.Context_Menu is
    procedure Hide (Menu : in out Context_Menu) is
       Dismiss : Dismiss_Layer_Widget_Access := null;
    begin
-      if not Menu.Open or else not Adi.Window.Is_Valid (Menu.Host_Window) or else not Popup_Lists.Is_Valid (Menu.Popup) then
+      --  Both are removed whether or not the popup still is an overlay:
+      --  a dismiss layer left behind would swallow every click
+      if not Adi.Window.Is_Valid (Menu.Host_Window)
+        or else not Popup_Lists.Is_Valid (Menu.Popup)
+      then
          return;
       end if;
 
@@ -716,7 +717,6 @@ package body Adi.Widget.Context_Menu is
       if Dismiss /= null then
          Adi.Window.Remove_Overlay (Menu.Host_Window, Get_Handle (Dismiss.all));
       end if;
-      Menu.Open := False;
    end Hide;
 
    procedure Hide (Menu : Menu_Handle) is
@@ -727,9 +727,13 @@ package body Adi.Widget.Context_Menu is
       end if;
    end Hide;
 
+   --  Asked of the window rather than remembered, so that a popup
+   --  removed with the window's overlays reads as closed
    function Is_Shown (Menu : Context_Menu) return Boolean is
    begin
-      return Menu.Open;
+      return Adi.Window.Is_Valid (Menu.Host_Window)
+        and then Popup_Lists.Is_Valid (Menu.Popup)
+        and then Adi.Window.Has_Overlay (Menu.Host_Window, +Menu.Popup);
    end Is_Shown;
 
    function Is_Shown (Menu : Menu_Handle) return Boolean is

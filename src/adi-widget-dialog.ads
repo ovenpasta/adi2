@@ -227,7 +227,6 @@ private
       Custom_Content : Widget_Handle := Null_Handle;
       Button_Row     : Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Null_Box_Handle;
       Buttons       : Button_Vectors.Vector;
-      Shown         : Boolean := False;
       Dismiss_On_Backdrop_Flag : Boolean := True;
       Dismiss_On_Escape_Flag   : Boolean := True;
       Auto_Close_Flag          : Boolean := True;

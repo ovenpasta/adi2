@@ -218,7 +218,7 @@ package body Adi.Widget.Dialog is
       begin CB (H, 0, ""); end Call;
       procedure Emit is new Result_Signals.For_Each (Call);
    begin
-      if not W.Shown then
+      if not Is_Shown (W) then
          return;  --  Already dismissed (guard against double-dispatch)
       end if;
       Emit (W.Result);
@@ -527,7 +527,7 @@ package body Adi.Widget.Dialog is
 
    procedure Show (W : in out Dialog_Widget) is
    begin
-      if W.Shown or else not Adi.Window.Is_Valid (W.Host_Window) then
+      if Is_Shown (W) or else not Adi.Window.Is_Valid (W.Host_Window) then
          return;
       end if;
 
@@ -538,7 +538,6 @@ package body Adi.Widget.Dialog is
       end;
 
       Adi.Window.Add_Overlay (W.Host_Window, Get_Handle (W));
-      W.Shown := True;
 
       --  Auto-focus the default button now that the overlay is in the
       --  window tree.  Set_Focus only checks focus candidacy (visible,
@@ -556,18 +555,20 @@ package body Adi.Widget.Dialog is
 
    procedure Hide (W : in out Dialog_Widget) is
    begin
-      if not W.Shown or else not Adi.Window.Is_Valid (W.Host_Window) then
+      if not Is_Shown (W) then
          return;
       end if;
 
       Adi.Window.Remove_Overlay (W.Host_Window, Get_Handle (W));
-      W.Shown := False;
       Mark_Dirty (W);
    end Hide;
 
+   --  Asked of the window rather than remembered, so that a dialog
+   --  removed with the window's overlays reads as hidden
    function Is_Shown (W : Dialog_Widget) return Boolean is
    begin
-      return W.Shown;
+      return Adi.Window.Is_Valid (W.Host_Window)
+        and then Adi.Window.Has_Overlay (W.Host_Window, Get_Handle (W));
    end Is_Shown;
 
    ---------------------------------------------------------------------------

@@ -3937,6 +3937,16 @@ function Get_Size (W : in out Window) return Size_2D is
       end if;
    end On_Finger_Cancel;
 
+   function Has_Overlay
+     (H : Window_Handle; Overlay : Widget_Handle) return Boolean
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      return Ptr /= null
+        and then Is_Valid (Overlay)
+        and then Overlay_Index (Ptr.all, Overlay) > 0;
+   end Has_Overlay;
+
    procedure Cancel_Touch (H : Window_Handle) is
       Ptr : constant Window_Access := Live (H);
    begin

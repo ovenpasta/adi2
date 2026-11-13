@@ -216,6 +216,10 @@ package Adi.Window is
     function Get_Focus_Handle (H : Window_Handle) return Widget_Handle;
 
     procedure Add_Overlay    (H : Window_Handle; Overlay : Widget_Handle);
+    --  Whether Overlay is one of the window's overlays now, however it
+    --  stopped being one (Remove_Overlay, Clear_Overlays)
+    function  Has_Overlay
+      (H : Window_Handle; Overlay : Widget_Handle) return Boolean;
     procedure Remove_Overlay (H : Window_Handle; Overlay : Widget_Handle);
     procedure Clear_Overlays (H : Window_Handle);
     function  Overlay_Count  (H : Window_Handle) return Natural;

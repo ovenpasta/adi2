@@ -180,7 +180,6 @@ private
       Option_Row_Styles     : Part_Style_Array := Empty_Part_Styles;
       Has_Option_Row_Styles : Boolean := False;
       Selected    : Natural := 0;
-      Open        : Boolean := False;
       Changed : Selection_Changed_Signals.Signal;
       Layout_Items : Layout_Item_List.Vector;
       Arrow_Down_Img : Adi.Image.Image_Handle := Adi.Image.Null_Image_Handle;

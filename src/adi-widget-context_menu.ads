@@ -143,7 +143,6 @@ private
       Items       : String_Vectors.Vector;
       Disabled    : Bool_Vectors.Vector;
       Row_Styles  : Part_Style_Holders.Holder;
-      Open        : Boolean := False;
       Item_Selected : Item_Selected_Signals.Signal;
 
       --  Handle store slot (raw Naturals; Menu_Stores after full type)

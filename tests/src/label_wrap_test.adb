@@ -588,5 +588,68 @@ begin
 
    New_Line;
 
+   ----------------------------------------------------------------------
+   --  A wrapping label beside an icon, centred in its row: the text
+   --  slot narrows to the room the icon leaves and is as tall as the
+   --  lines it wraps to, so the text stays inside the padding
+   ----------------------------------------------------------------------
+
+   Put_Line ("--- wrapped text slot beside an icon ---");
+   declare
+      Lbl : constant Widget_Handle :=
+        +Adi.Widget.Label.Create_Handle ("Save Document");
+      Main_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Row),
+         Align_Items    => Set (Center),
+         Gap            => Set (Gap (Px (8.0))),
+         Padding        => Set (CSS_Box (Px (10.0), Px (10.0),
+                                         Px (10.0), Px (10.0))),
+         others         => <>);
+      Icon_Rules : constant Style_Rules :=
+        (Width  => Set (Size (Px (24.0))),
+         Height => Set (Size (Px (24.0))),
+         others => <>);
+      Text_Rules : constant Style_Rules :=
+        (Font_Size => Set_Font (Px (16.0)), others => <>);
+      One_Line_H, Width, Height : Pixel_Type;
+      Slot : Rectangle;
+   begin
+      Set_Part_Style (Lbl, Main_Part, From (Main_Rules).Build);
+      Set_Part_Style (Lbl, Icon_Part, From (Icon_Rules).Build);
+      Set_Part_Style (Lbl, Label_Part, From (Text_Rules).Build);
+      Adi.Widget.Label.Set_Icon
+        (Adi.Widget.Label.Try_As_Label (Lbl),
+         Test_Support.Keep (Adi.Image.Create_Empty));
+
+      One_Line_H := Get_Preferred_Size (Lbl).Height;
+      --  label_example's width when narrowed: room for the icon, the
+      --  gap and the widest word, not the phrase
+      Width  := 134.0;
+      Height := Measure_At_Width (Lbl, Width).Height;
+      Set_Geometry (Lbl, (0.0, 0.0, Width, Height));
+      Layout (Lbl);
+      Update (Lbl);
+      Slot := Get_Items_For_Part (Lbl, Label_Part).First_Element.Geometry;
+
+      Put_Line ("  label" & Pixel_Type'Image (Width) & " x"
+                & Pixel_Type'Image (Height) & ", one line"
+                & Pixel_Type'Image (One_Line_H) & ", text slot y"
+                & Pixel_Type'Image (Slot.Y) & " h"
+                & Pixel_Type'Image (Slot.Height) & " w"
+                & Pixel_Type'Image (Slot.Width));
+
+      Check ("the text wraps at this width", Height > One_Line_H);
+      Check ("the slot is as tall as the wrapped lines",
+             Slot.Height = Height - 20.0);
+      Check ("the slot starts at the top padding", Slot.Y = 10.0);
+      Check ("the slot ends inside the bottom padding",
+             Slot.Y + Slot.Height <= Height - 10.0);
+      Check ("the slot is no wider than the room beside the icon",
+             Slot.Width <= Width - 20.0 - 24.0 - 8.0 + 0.001);
+   end;
+
+   New_Line;
+
    Test_Support.Finish;
 end Label_Wrap_Test;

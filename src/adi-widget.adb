@@ -8099,11 +8099,11 @@ package body Adi.Widget is
                   Info.Content_Cross := Pixel_Type (Item.Content_Width);
                end if;
 
-               --  Keep overflow-visible content floor for non-shrinkable or
-               --  explicitly constrained items. Shrinkable items with no min
-               --  (e.g. wrapping text) must still be allowed to contract.
+               --  Keep overflow-visible content floor for non-shrinkable
+               --  items. A shrinkable item contracts down to its own min:
+               --  wrapping text to its widest word, not its one-line width.
                if Main_Axis_Overflow (Container_Style, Container_Style.Flex_Direction) = Overflow_Visible
-                 and then (Info.Min_Main > 0.0 or else Info.Flex_Shrink = 0.0)
+                 and then Info.Flex_Shrink = 0.0
                then
                   Info.Min_Main := Pixel_Type'Max (Info.Min_Main, Info.Content_Main);
                end if;

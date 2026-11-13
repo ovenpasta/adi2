@@ -798,9 +798,29 @@ package body Adi.Window is
       return False;
    end Is_Any_Overlay_Layout_Dirty;
 
-   --  The usable area of the window's display, or unbounded if unknown.
-   --  Content needing more is squeezed, so the window stays reachable.
+   --  Pixels per window coordinate: 2 on a HiDPI display that SDL sizes
+   --  in points, where window sizes and display bounds are in points
+   --  and layout is in pixels
+   function Pixel_Density (W : Window) return Pixel_Type is
+   begin
+      if Is_Live (W) then
+         declare
+            D : constant Float :=
+              Adi.SDL.Video.SDL_GetWindowPixelDensity (W.Internal.win);
+         begin
+            if D > 0.0 then
+               return Pixel_Type (D);
+            end if;
+         end;
+      end if;
+      return 1.0;
+   end Pixel_Density;
+
+   --  The usable area of the window's display, in pixels, or unbounded
+   --  if unknown. Content needing more is squeezed, so the window stays
+   --  reachable.
    function Display_Usable (W : Window) return Size_2D is
+      Density : constant Pixel_Type := Pixel_Density (W);
    begin
       if Is_Live (W) then
          declare
@@ -815,8 +835,8 @@ package body Adi.Window is
               and then Boolean (Adi.SDL.Video.SDL_GetDisplayUsableBounds
                          (Display_ID, Usable'Access))
             then
-               return (Width  => Pixel_Type (int'Max (1, Usable.w)),
-                       Height => Pixel_Type (int'Max (1, Usable.h)));
+               return (Width  => Pixel_Type (int'Max (1, Usable.w)) * Density,
+                       Height => Pixel_Type (int'Max (1, Usable.h)) * Density);
             end if;
          end;
       end if;
@@ -860,10 +880,14 @@ package body Adi.Window is
       end if;
 
       declare
-         Min   : constant Size_2D :=
+         Min     : constant Size_2D :=
            Window_Minimum (W, Display_Usable (W));
-         Min_W : constant Integer := Integer (Min.Width);
-         Min_H : constant Integer := Integer (Min.Height);
+         --  SDL takes window coordinates
+         Density : constant Pixel_Type := Pixel_Density (W);
+         Min_W   : constant Integer :=
+           Integer (Pixel_Type'Ceiling (Min.Width / Density));
+         Min_H   : constant Integer :=
+           Integer (Pixel_Type'Ceiling (Min.Height / Density));
       begin
          --  Only on a change: SDL also grows a window that is smaller
          --  than the minimum it is given, and a compositor that let the

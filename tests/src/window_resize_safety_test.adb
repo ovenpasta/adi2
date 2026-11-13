@@ -710,6 +710,47 @@ procedure Window_Resize_Safety_Test is
          Assert (False, "Unexpected exception: " & Exception_Name (E));
    end Test_Wrapped_Labels_Do_Not_Overlap_In_Short_Window;
 
+   --  An OpenGL driver may resize its buffer only when a frame is
+   --  presented, so the first frame after a size change can show at the
+   --  old size: the window draws one more
+   procedure Test_Resize_Draws_A_Second_Frame is
+      Ready : Boolean;
+      W     : Adi.Window.Window_Handle;
+      Root  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Before : Natural;
+      function Frames return Natural is
+        (Adi.Window.Get_Frame_Stats (W).Frame_No);
+   begin
+      Put_Line ("Test: a size change draws a second frame");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      W := Adi.Window.Create_Window_Handle ("Second Frame", (300.0, 200.0));
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+      Adi.Window.Render (W);
+      Before := Frames;
+      Adi.Window.Render (W);
+      Assert (Frames = Before, "an unchanged window draws nothing");
+
+      Adi.Window.Handle_Resize (W, (Width => 320.0, Height => 220.0));
+      Adi.Window.Render (W);
+      Assert (Frames = Before + 1, "a size change draws a frame");
+      Adi.Window.Render (W);
+      Assert (Frames = Before + 2, "and the next render draws one more");
+      Adi.Window.Render (W);
+      Assert (Frames = Before + 2, "and then nothing");
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Resize_Draws_A_Second_Frame;
+
    procedure Test_Dialog_Overlay_Reflows_On_Resize_Without_Hover is
       Ready : Boolean := False;
       W : Adi.Window.Window_Handle;
@@ -2081,6 +2122,7 @@ begin
    Test_Root_Follows_Window_Without_Enforcement;
    Test_Min_Height_Does_Not_Follow_Width;
    Test_Wrapped_Labels_Do_Not_Overlap_In_Short_Window;
+   Test_Resize_Draws_A_Second_Frame;
    Test_Dialog_Overlay_Reflows_On_Resize_Without_Hover;
    Test_Dialog_Default_Button_Demotion_Resets_Style;
    Test_Clear_Overlays_Clears_Focus_When_Focus_In_Overlay;

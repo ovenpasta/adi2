@@ -668,6 +668,11 @@ private
         Needs_Layout   : Boolean       := True;
         Resize_Triggered_Layout : Boolean := False;
         Force_Redraw   : Boolean       := False;
+        --  The window changed size: draw the next frame as well. An
+        --  OpenGL driver may resize its buffer only when a frame is
+        --  presented, so the first frame after the change can be shown
+        --  at the old size, cut and shifted, until another one comes.
+        Redraw_After_Resize : Boolean  := False;
         Tick_Sig       : Tick_Signals.Signal;
         Key_Down_Sig   : Key_Down_Signals.Signal;
         Post_Render    : Post_Render_Signals.Signal;

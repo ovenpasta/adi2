@@ -1290,7 +1290,8 @@ package body Adi.Window is
        --  (e.g. window exposed by the compositor).
        if Root_Dirty or else Overlay_Dirty or else W.Force_Redraw
        then
-          W.Force_Redraw := False;
+          W.Force_Redraw := W.Redraw_After_Resize;
+          W.Redraw_After_Resize := False;
           W.Stats_Frame_No := W.Stats_Frame_No + 1;
           W.Stats_Layout_Count := 0;
           Render_Start := Now;
@@ -3471,6 +3472,7 @@ function Get_Size (W : in out Window) return Size_2D is
 
           W.Needs_Layout := True;
           W.Resize_Triggered_Layout := True;
+          W.Redraw_After_Resize := True;
        end if;
 
        Apply_Render_Logical_Presentation (W);

@@ -62,6 +62,9 @@ package body Adi.Window is
      (Root    : Widget_Handle;
       Current : Widget_Handle) return Widget_Handle;
    procedure Apply_Window_Min_Size_From_Layout (W : in out Window);
+   --  The window's area, grown to the root's minimum while the window
+   --  enforces it: content is clipped rather than squeezed below it.
+   function Root_Geometry (W : Window) return Rectangle;
    function Is_Any_Overlay_Dirty (W : Window) return Boolean;
    function Is_Any_Overlay_Layout_Dirty (W : Window) return Boolean;
    function Overlay_Index
@@ -793,9 +796,54 @@ package body Adi.Window is
       return False;
    end Is_Any_Overlay_Layout_Dirty;
 
+   --  The usable area of the window's display, or unbounded if unknown.
+   --  Content needing more is squeezed, so the window stays reachable.
+   function Display_Usable (W : Window) return Size_2D is
+   begin
+      if Is_Live (W) then
+         declare
+            Display_ID : Adi.SDL.Video.SDL_DisplayID :=
+              Adi.SDL.Video.SDL_GetDisplayForWindow (W.Internal.win);
+            Usable : aliased SDL_Rect := (x => 0, y => 0, w => 0, h => 0);
+         begin
+            if Display_ID = Adi.SDL.Video.SDL_DisplayID (0) then
+               Display_ID := Adi.SDL.Video.SDL_GetPrimaryDisplay;
+            end if;
+            if Display_ID /= Adi.SDL.Video.SDL_DisplayID (0)
+              and then Boolean (Adi.SDL.Video.SDL_GetDisplayUsableBounds
+                         (Display_ID, Usable'Access))
+            then
+               return (Width  => Pixel_Type (int'Max (1, Usable.w)),
+                       Height => Pixel_Type (int'Max (1, Usable.h)));
+            end if;
+         end;
+      end if;
+      return (Width => Pixel_Type'Last, Height => Pixel_Type'Last);
+   end Display_Usable;
+
+   --  The smallest the content can be squeezed to, at any width, in
+   --  whole pixels and within Usable. Wrapped text adds height as the
+   --  window narrows, but a minimum that moved with the width would
+   --  change under the user's drag.
+   function Window_Minimum
+     (W : Window; Usable : Size_2D) return Size_2D
+   is
+      Min_W  : Pixel_Type := 1.0;
+      Min_H  : Pixel_Type := 1.0;
+   begin
+      if Is_Valid (W.Root) then
+         declare
+            Floor : constant Size_2D := Effective_Min_Size (W.Root);
+         begin
+            Min_W := Pixel_Type'Ceiling (Pixel_Type'Max (1.0, Floor.Width));
+            Min_H := Pixel_Type'Ceiling (Pixel_Type'Max (1.0, Floor.Height));
+         end;
+      end if;
+      return (Width  => Pixel_Type'Min (Min_W, Usable.Width),
+              Height => Pixel_Type'Min (Min_H, Usable.Height));
+   end Window_Minimum;
+
    procedure Apply_Window_Min_Size_From_Layout (W : in out Window) is
-      Min_W : int := 1;
-      Min_H : int := 1;
       Success : Adi.SDL.C_bool;
    begin
       if not W.Enforce_Layout_Min_Size or else not Is_Live (W) then
@@ -809,84 +857,51 @@ package body Adi.Window is
          return;
       end if;
 
-      if Is_Valid (W.Root) then
-         declare
-            Pref : constant Size_2D := Get_Preferred_Size (W.Root);
-            Floor : constant Size_2D := Effective_Min_Size (W.Root);
-            Root_Geom : constant Rectangle := Get_Geometry (W.Root);
-
-            --  How tall the content is at the width the window actually
-            --  has. Preferred height would be the unwrapped one, which
-            --  is too short to hold wrapped text -- and asking at the
-            --  current width is what lets the floor drop again when the
-            --  user widens and the text unwraps.
-            Fitted : constant Size_2D :=
-              (if Root_Geom.Width > 0.0
-               then Measure_At_Width (W.Root, Root_Geom.Width)
-               else Pref);
-
-            --  The smallest the content can be squeezed to, which is
-            --  what a minimum means. Preferred width is the max-content
-            --  width -- for wrapping content, the width at which it
-            --  would rather not wrap at all -- and pinning the window
-            --  there would deny the wrapping the layout is willing to
-            --  do. Taking the smaller of the two would instead ignore an
-            --  explicit min-width that exceeds the preferred width.
-            Wf   : constant Float := Float'Max (1.0, Float (Floor.Width));
-            --  Same rule as the width: an explicit min-height is a
-            --  floor, whatever the content at this width measures.
-            Hf   : constant Float :=
-              Float'Max (1.0,
-                         Float'Max (Float (Fitted.Height),
-                                    Float (Floor.Height)));
-         begin
-            Min_W := int (Integer (Float'Ceiling (Wf)));
-            Min_H := int (Integer (Float'Ceiling (Hf)));
-         end;
-      end if;
-
-      --  Keep minimums recoverable: never exceed monitor usable bounds.
       declare
-         Display_ID : Adi.SDL.Video.SDL_DisplayID :=
-           Adi.SDL.Video.SDL_GetDisplayForWindow (W.Internal.win);
-         Usable : aliased SDL_Rect := (x => 0, y => 0, w => 0, h => 0);
+         Min   : constant Size_2D :=
+           Window_Minimum (W, Display_Usable (W));
+         Min_W : constant Integer := Integer (Min.Width);
+         Min_H : constant Integer := Integer (Min.Height);
       begin
-         if Display_ID = Adi.SDL.Video.SDL_DisplayID (0) then
-            Display_ID := Adi.SDL.Video.SDL_GetPrimaryDisplay;
-         end if;
-         if Display_ID /= Adi.SDL.Video.SDL_DisplayID (0) then
-            if Adi.SDL.Video.SDL_GetDisplayUsableBounds
-                 (Display_ID, Usable'Access)
-            then
-               Min_W := int'Min (Min_W, int'Max (1, Usable.w));
-               Min_H := int'Min (Min_H, int'Max (1, Usable.h));
-            end if;
-         end if;
-      end;
-
-      Success := Adi.SDL.Video.SDL_SetWindowMinimumSize (W.Internal.win, Min_W, Min_H);
-      SDL_Assert (Success, "SDL_SetWindowMinimumSize");
-
-      --  SDL_SetWindowMinimumSize only prevents future resizes below the
-      --  minimum; it does not resize a window that is already too small.
-      --  If the user resized faster than layout could respond, clamp now.
-      declare
-         Cur_W : aliased int := 0;
-         Cur_H : aliased int := 0;
-      begin
-         if Adi.SDL.Video.SDL_GetWindowSize
-              (W.Internal.win, Cur_W'Access, Cur_H'Access)
-         then
-            if Cur_W < Min_W or else Cur_H < Min_H then
-               Success := Adi.SDL.Video.SDL_SetWindowSize
-                 (W.Internal.win,
-                  int'Max (Cur_W, Min_W),
-                  int'Max (Cur_H, Min_H));
-               SDL_Assert (Success, "SDL_SetWindowSize (min clamp)");
-            end if;
+         --  Only on a change: SDL also grows a window that is smaller
+         --  than the minimum it is given, and a compositor that let the
+         --  user drag below the minimum would see the window jump back
+         --  on every relayout. Root_Geometry keeps the layout at it.
+         if Min_W /= W.Applied_Min_W or else Min_H /= W.Applied_Min_H then
+            Success := Adi.SDL.Video.SDL_SetWindowMinimumSize
+              (W.Internal.win, int (Min_W), int (Min_H));
+            SDL_Assert (Success, "SDL_SetWindowMinimumSize");
+            W.Applied_Min_W := Min_W;
+            W.Applied_Min_H := Min_H;
          end if;
       end;
    end Apply_Window_Min_Size_From_Layout;
+
+   function Root_Geometry (W : Window) return Rectangle is
+   begin
+      if not W.Enforce_Layout_Min_Size or else not Is_Valid (W.Root) then
+         return W.Geometry;
+      end if;
+      declare
+         Usable : constant Size_2D := Display_Usable (W);
+         Min    : constant Size_2D := Window_Minimum (W, Usable);
+         Width  : constant Pixel_Type :=
+           Pixel_Type'Max (W.Geometry.Width, Min.Width);
+         --  Wrapped text needs more height at this width than the
+         --  window minimum, which holds at any width, guarantees
+         At_Width : constant Pixel_Type :=
+           Pixel_Type'Min
+             (Effective_Min_Size_At_Width (W.Root, Width).Height,
+              Usable.Height);
+      begin
+         return (X      => W.Geometry.X,
+                 Y      => W.Geometry.Y,
+                 Width  => Width,
+                 Height => Pixel_Type'Max
+                             (W.Geometry.Height,
+                              Pixel_Type'Max (Min.Height, At_Width)));
+      end;
+   end Root_Geometry;
 
    --------------------------
    -- Prefer_Render_Driver --
@@ -1231,6 +1246,8 @@ package body Adi.Window is
           if Needs_Relayout then
              if Root_Valid then
                 Debug_Log ("relayout tick=" & Natural'Image (Debug_Tick_No));
+                --  The minimum follows the content, which may have changed
+                Set_Geometry (W.Root, Root_Geometry (W));
                 Layout_Tree (W.Root);
                 Adi.Widget.Update (W.Root);
                 Apply_Window_Min_Size_From_Layout (W);
@@ -1350,7 +1367,7 @@ package body Adi.Window is
    begin
       W.Root := Root;
       if Is_Valid (W.Root) then
-         Set_Geometry (W.Root, W.Geometry);
+         Set_Geometry (W.Root, Root_Geometry (W));
          W.Needs_Layout := True;
          W.Resize_Triggered_Layout := False;
       end if;
@@ -1392,6 +1409,8 @@ package body Adi.Window is
       elsif W.Internal /= null and then W.Internal.win /= null then
          Success := Adi.SDL.Video.SDL_SetWindowMinimumSize (W.Internal.win, 1, 1);
          SDL_Assert (Success, "SDL_SetWindowMinimumSize");
+         W.Applied_Min_W := 1;
+         W.Applied_Min_H := 1;
       end if;
    end Set_Enforce_Layout_Min_Size;
 
@@ -2966,7 +2985,7 @@ function Get_Size (W : in out Window) return Size_2D is
           W.Geometry := (0.0, 0.0, New_Size.Width, New_Size.Height);
 
           if Is_Valid (W.Root) then
-             Set_Geometry (W.Root, W.Geometry);
+             Set_Geometry (W.Root, Root_Geometry (W));
              Mark_Dirty (W.Root);
           end if;
 

@@ -458,33 +458,26 @@ procedure Window_Resize_Safety_Test is
             "Unexpected exception: " & Exception_Name (E));
    end Test_Hidden_Page_Activation_Does_Not_Lock_Window_Min_Width;
 
-   procedure Test_Widening_Unwraps_Text_And_Lowers_Min_Height is
-      Ready : Boolean := False;
-      W : Adi.Window.Window_Handle;
-      Root : constant Adi.Widget.Box.Box_Handle :=
+   --  A compositor can resize a window below the minimum it was given.
+   --  The root then keeps its minimum layout and is clipped, and the
+   --  window is left at the size the compositor chose.
+   procedure Test_Root_Kept_At_Minimum_Below_Window_Minimum is
+      Ready : Boolean;
+      W     : Adi.Window.Window_Handle;
+      Root  : constant Adi.Widget.Box.Box_Handle :=
         Adi.Widget.Box.Create_Handle;
-      Lbl : constant Adi.Widget.Label.Label_Handle :=
-        Adi.Widget.Label.Create_Handle
-          ("This text is intentionally long so wrapping increases the "
-           & "required height at narrow widths and should shrink when widened.");
       Root_Rules : constant Style_Rules :=
         (Display        => Set (Flex),
-         Flex_Direction => Set (Column),
-         Padding        => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Min_Width      => Set (Size (Px (300.0))),
+         Min_Height     => Set (Size (Px (200.0))),
          others         => <>);
-      Label_Main_Rules : constant Style_Rules :=
-        (Display => Set (Inline_Flex),
-         others  => <>);
-      Label_Rules : constant Style_Rules :=
-        (Font_Size => Set_Font (Px (64.0)),
-         others    => <>);
-      Min_W_Narrow : aliased int := 0;
-      Min_H_Narrow : aliased int := 0;
-      Min_W_Wide   : aliased int := 0;
-      Min_H_Wide   : aliased int := 0;
-      Got_Min      : Adi.SDL.C_bool;
+      Min_W, Min_H : aliased int := 0;
+      Cur_W, Cur_H : aliased int := 0;
+      Unused : Adi.SDL.C_bool;
+      G      : Rectangle;
    begin
-      Put_Line ("Test: widening wrapped text lowers window minimum height");
+      Put_Line ("Test: root keeps its minimum in a window below it");
 
       Ensure_SDL_Initialized (Ready);
       if not Ready then
@@ -492,37 +485,230 @@ procedure Window_Resize_Safety_Test is
       end if;
 
       Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
-      Set_Part_Style (+Lbl, Main_Part, From (Label_Main_Rules).Build);
-      Set_Part_Style (+Lbl, Label_Part, From (Label_Rules).Build);
-      Add_Child (+Root, +Lbl);
 
-      W := Adi.Window.Create_Window_Handle ("Unwrap Height Probe", (520.0, 900.0));
+      W := Adi.Window.Create_Window_Handle ("Below Minimum Probe", (600.0, 400.0));
       Adi.Window.Set_Enforce_Layout_Min_Size (W, True);
       Adi.Window.Set_Root (W, +Root);
-
-      --  Narrow width => more wrapping => higher min height.
-      Adi.Window.Handle_Resize (W, (Width => 420.0, Height => 900.0));
       Adi.Window.Render (W);
-      Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W), Min_W_Narrow'Access, Min_H_Narrow'Access);
-      Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (narrow)");
 
-      --  Wider width => less wrapping => lower/equal min height.
-      Adi.Window.Handle_Resize (W, (Width => 1200.0, Height => 900.0));
+      Assert (Boolean (Adi.SDL.Video.SDL_GetWindowMinimumSize
+                (Adi.Window.Get_SDL_Window (W), Min_W'Access, Min_H'Access)),
+              "SDL_GetWindowMinimumSize should succeed");
+      Assert (Min_W = 300 and then Min_H = 200,
+              "the window minimum is the root's minimum");
+
+      --  What a compositor ignoring the minimum leaves the window at
+      Unused := Adi.SDL.Video.SDL_SetWindowMinimumSize
+        (Adi.Window.Get_SDL_Window (W), 1, 1);
+      Unused := Adi.SDL.Video.SDL_SetWindowSize
+        (Adi.Window.Get_SDL_Window (W), 120, 60);
+      Unused := Adi.SDL.Video.SDL_SyncWindow (Adi.Window.Get_SDL_Window (W));
+      Adi.Window.Handle_Resize (W, (Width => 120.0, Height => 60.0));
       Adi.Window.Render (W);
-      Got_Min := Adi.SDL.Video.SDL_GetWindowMinimumSize
-        (Adi.Window.Get_SDL_Window (W), Min_W_Wide'Access, Min_H_Wide'Access);
-      Assert (Boolean (Got_Min), "SDL_GetWindowMinimumSize should succeed (wide)");
-      Assert
-        (Min_H_Wide <= Min_H_Narrow,
-         "Window minimum height should decrease or stay equal after widening");
+      Mark_Dirty (+Root);
+      Adi.Window.Render (W);
+
+      G := Get_Geometry (+Root);
+      Put_Line ("    root =" & G.Width'Image & " x" & G.Height'Image);
+      Assert (G.Width = 300.0 and then G.Height = 200.0,
+              "the root is laid out at its minimum, not at the window's size");
+
+      Assert (Boolean (Adi.SDL.Video.SDL_GetWindowSize
+                (Adi.Window.Get_SDL_Window (W), Cur_W'Access, Cur_H'Access)),
+              "SDL_GetWindowSize should succeed");
+      Put_Line ("    window =" & Cur_W'Image & " x" & Cur_H'Image);
+      Assert (Cur_W = 120 and then Cur_H = 60,
+              "a relayout does not resize the window back to the minimum");
+
+      --  Widening past the minimum gives the root the window's width
+      Adi.Window.Handle_Resize (W, (Width => 500.0, Height => 60.0));
+      Adi.Window.Render (W);
+      G := Get_Geometry (+Root);
+      Assert (G.Width = 500.0 and then G.Height = 200.0,
+              "each axis follows the window above its minimum");
+
       Adi.Window.Destroy (W);
    exception
       when E : others =>
-         Assert
-           (False,
-            "Unexpected exception: " & Exception_Name (E));
-   end Test_Widening_Unwraps_Text_And_Lowers_Min_Height;
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Root_Kept_At_Minimum_Below_Window_Minimum;
+
+   --  Without enforcement the root follows the window down
+   procedure Test_Root_Follows_Window_Without_Enforcement is
+      Ready : Boolean;
+      W     : Adi.Window.Window_Handle;
+      Root  : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Min_Width      => Set (Size (Px (300.0))),
+         Min_Height     => Set (Size (Px (200.0))),
+         others         => <>);
+      G : Rectangle;
+   begin
+      Put_Line ("Test: without enforcement the root follows the window");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+
+      W := Adi.Window.Create_Window_Handle ("No Minimum Probe", (600.0, 400.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Handle_Resize (W, (Width => 120.0, Height => 60.0));
+      Adi.Window.Render (W);
+
+      G := Get_Geometry (+Root);
+      Assert (G.Width = 120.0 and then G.Height = 60.0,
+              "the root takes the window's size");
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Root_Follows_Window_Without_Enforcement;
+
+   --  Wrapped text needs more height at narrower widths; the window's
+   --  minimum stays the same, so it cannot change during a drag
+   procedure Test_Min_Height_Does_Not_Follow_Width is
+      Ready : Boolean := False;
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Lbl : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
+          ("This text is long enough to wrap onto several lines once the "
+           & "window is narrow, and onto one when it is wide.");
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Column),
+         Padding        => Set (CSS_Box (Px (20.0), Px (20.0), Px (20.0), Px (20.0))),
+         others         => <>);
+      Label_Rules : constant Style_Rules :=
+        (Font_Size => Set_Font (Px (32.0)),
+         others    => <>);
+      Min_W_Narrow, Min_H_Narrow : aliased int := 0;
+      Min_W_Wide, Min_H_Wide     : aliased int := 0;
+      Narrow_H : Pixel_Type;
+   begin
+      Put_Line ("Test: window minimum height does not follow the width");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+Lbl, Label_Part, From (Label_Rules).Build);
+      Add_Child (+Root, +Lbl);
+
+      W := Adi.Window.Create_Window_Handle ("Min Height Probe", (1600.0, 900.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, True);
+      Adi.Window.Set_Root (W, +Root);
+
+      Adi.Window.Handle_Resize (W, (Width => 400.0, Height => 900.0));
+      Adi.Window.Render (W);
+      Narrow_H := Get_Geometry (+Lbl).Height;
+      Assert (Boolean (Adi.SDL.Video.SDL_GetWindowMinimumSize
+                (Adi.Window.Get_SDL_Window (W),
+                 Min_W_Narrow'Access, Min_H_Narrow'Access)),
+              "SDL_GetWindowMinimumSize should succeed (narrow)");
+
+      Adi.Window.Handle_Resize (W, (Width => 1600.0, Height => 900.0));
+      Adi.Window.Render (W);
+      Assert (Boolean (Adi.SDL.Video.SDL_GetWindowMinimumSize
+                (Adi.Window.Get_SDL_Window (W),
+                 Min_W_Wide'Access, Min_H_Wide'Access)),
+              "SDL_GetWindowMinimumSize should succeed (wide)");
+
+      Put_Line ("    label height narrow =" & Narrow_H'Image
+                & ", wide =" & Get_Geometry (+Lbl).Height'Image);
+      Put_Line ("    minimum narrow =" & Min_W_Narrow'Image & " x"
+                & Min_H_Narrow'Image & ", wide =" & Min_W_Wide'Image
+                & " x" & Min_H_Wide'Image);
+      Assert (Narrow_H > Get_Geometry (+Lbl).Height,
+              "the text wraps onto more lines when narrow");
+      Assert (Min_W_Narrow = Min_W_Wide and then Min_H_Narrow = Min_H_Wide,
+              "the window minimum is the same at both widths");
+      Assert (Pixel_Type (Min_H_Narrow) < Narrow_H,
+              "the minimum height is not the wrapped text's height");
+      Assert (Pixel_Type (Min_H_Narrow)
+                = Pixel_Type'Ceiling (Effective_Min_Size (+Root).Height),
+              "the minimum height is the root's own minimum");
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Min_Height_Does_Not_Follow_Width;
+
+   --  In a window too short for the text wrapped at its width, the root
+   --  grows to hold it: each label keeps its wrapped height and the
+   --  window clips the bottom, rather than the lines overlapping
+   procedure Test_Wrapped_Labels_Do_Not_Overlap_In_Short_Window is
+      Ready : Boolean := False;
+      W : Adi.Window.Window_Handle;
+      Root : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      First : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
+          ("The first label wraps onto several lines in a narrow window.");
+      Second : constant Adi.Widget.Label.Label_Handle :=
+        Adi.Widget.Label.Create_Handle
+          ("The second label sits below it and must not be overlapped.");
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Column),
+         Padding        => Set (CSS_Box (Px (10.0), Px (10.0), Px (10.0), Px (10.0))),
+         others         => <>);
+      Label_Rules : constant Style_Rules :=
+        (Font_Size => Set_Font (Px (24.0)),
+         others    => <>);
+      G1, G2, R : Rectangle;
+   begin
+      Put_Line ("Test: wrapped labels do not overlap in a short window");
+
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      Set_Part_Style (+First, Label_Part, From (Label_Rules).Build);
+      Set_Part_Style (+Second, Label_Part, From (Label_Rules).Build);
+      Add_Child (+Root, +First);
+      Add_Child (+Root, +Second);
+
+      W := Adi.Window.Create_Window_Handle ("Short Window Probe", (1600.0, 200.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, True);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+
+      Adi.Window.Handle_Resize (W, (Width => 250.0, Height => 60.0));
+      Adi.Window.Render (W);
+
+      G1 := Get_Geometry (+First);
+      G2 := Get_Geometry (+Second);
+      R  := Get_Geometry (+Root);
+      Put_Line ("    first y =" & G1.Y'Image & " h =" & G1.Height'Image
+                & ", second y =" & G2.Y'Image & " h =" & G2.Height'Image
+                & ", root h =" & R.Height'Image);
+      Assert (G1.Height >= Measure_At_Width (+First, G1.Width).Height,
+              "the first label is as tall as its wrapped text");
+      Assert (G1.Y + G1.Height <= G2.Y,
+              "the second label starts below the first");
+      Assert (G2.Y + G2.Height <= R.Y + R.Height,
+              "the root holds both labels");
+
+      Adi.Window.Destroy (W);
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Wrapped_Labels_Do_Not_Overlap_In_Short_Window;
 
    procedure Test_Dialog_Overlay_Reflows_On_Resize_Without_Hover is
       Ready : Boolean := False;
@@ -1891,7 +2077,10 @@ begin
    Test_Root_Min_Width_Is_Honoured;
    Test_Wrap_Label_Min_Width_Does_Not_Ratchet_With_Window_Width;
    Test_Hidden_Page_Activation_Does_Not_Lock_Window_Min_Width;
-   Test_Widening_Unwraps_Text_And_Lowers_Min_Height;
+   Test_Root_Kept_At_Minimum_Below_Window_Minimum;
+   Test_Root_Follows_Window_Without_Enforcement;
+   Test_Min_Height_Does_Not_Follow_Width;
+   Test_Wrapped_Labels_Do_Not_Overlap_In_Short_Window;
    Test_Dialog_Overlay_Reflows_On_Resize_Without_Hover;
    Test_Dialog_Default_Button_Demotion_Resets_Style;
    Test_Clear_Overlays_Clears_Focus_When_Focus_In_Overlay;

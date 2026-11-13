@@ -66,8 +66,9 @@ flex — has its limits applied once the distribution ends.
 ## Percentage heights reach the window
 
 `height: 100%` resolves against the parent, joins the minimum the
-subtree demands, and `Apply_Window_Min_Size_From_Layout` makes that a
-floor the window cannot shrink below. Inside `overflow-y: auto` it also
+subtree demands, and so becomes the window minimum: the root is never
+laid out below it, even where the window manager lets the window shrink
+further. Inside `overflow-y: auto` it also
 defeats scrolling: the box grows to its content, so nothing overflows.
 
 Fill the cross axis with the container's default `align-items: stretch`

@@ -544,6 +544,9 @@ private
         Root_Font_Size  : Adi.CSS_Styles.Length_Value :=
                             (Amount => 16.0, Unit => Adi.CSS_Styles.Px);
         Enforce_Layout_Min_Size : Boolean := True;
+        --  The minimum last given to SDL; 0 until one is
+        Applied_Min_W  : Integer       := 0;
+        Applied_Min_H  : Integer       := 0;
         Needs_Layout   : Boolean       := True;
         Resize_Triggered_Layout : Boolean := False;
         Force_Redraw   : Boolean       := False;

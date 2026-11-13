@@ -118,6 +118,9 @@ package Adi.Widget.Text_Input is
    overriding procedure On_Text_Input (W : in out Text_Input_Widget; Text : String);
    overriding procedure On_Focus_Gained (W : in out Text_Input_Widget);
    overriding procedure On_Focus_Lost (W : in out Text_Input_Widget);
+   overriding function Selects_Word_On_Long_Press
+     (W : Text_Input_Widget) return Boolean is (True);
+
    overriding procedure On_Mouse_Down
      (W      : in out Text_Input_Widget;
       X, Y   : Pixel_Type;

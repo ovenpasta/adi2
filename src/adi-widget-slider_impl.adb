@@ -266,6 +266,8 @@ package body Adi.Widget.Slider_Impl is
    begin
       Set_Flag (Result.all, Clickable, True);
       Set_Flag (Result.all, Focusable, True);
+      --  A finger drag moves the knob rather than scrolling the page
+      Set_Flag (Result.all, Draggable, True);
       Set_Flag (Result.all, Visible, True);
       Result.Min_Value := Min;
       Result.Max_Value := Max;

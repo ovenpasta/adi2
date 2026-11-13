@@ -3234,6 +3234,34 @@ package body Adi.Widget is
       Set_Part_State (W, Knob_Part, State_Pressed, Fast);
    end Tick_Scroll_Animations;
 
+   procedure Set_Scroll_Velocity_Y (H : Widget_Handle; Velocity : Pixel_Type)
+   is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      if Ptr = null then
+         return;
+      end if;
+      Ptr.Scroll_Velocity_Y :=
+        (if Scroll_Inertia_Enabled and then Is_Scroll_Enabled (Ptr.all)
+         then Clamp (Velocity, -Max_Scroll_Speed, Max_Scroll_Speed)
+         else 0.0);
+      if Has_Scroll_Work (Ptr.all) then
+         Request_Tick (Ptr.all);
+      end if;
+   end Set_Scroll_Velocity_Y;
+
+   function Get_Scroll_Velocity_Y (H : Widget_Handle) return Pixel_Type is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      return (if Ptr = null then 0.0 else Ptr.Scroll_Velocity_Y);
+   end Get_Scroll_Velocity_Y;
+
+   function Selects_Word_On_Long_Press (H : Widget_Handle) return Boolean is
+      Ptr : constant Widget_Access := Resolve_Handle (H);
+   begin
+      return Ptr /= null and then Selects_Word_On_Long_Press (Ptr.all);
+   end Selects_Word_On_Long_Press;
+
    procedure Set_Scroll_Inertia_Enabled (Enabled : Boolean := True) is
    begin
       Scroll_Inertia_Enabled := Enabled;

@@ -2691,21 +2691,18 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
    -- On_Mouse_Wheel --
    --------------------
 
-   procedure On_Mouse_Wheel
-      (W                : in out Window;
-       X, Y             : Pixel_Type;
-       Delta_X, Delta_Y : Pixel_Type)
+   --  The scrollable widget a wheel or a finger at X, Y moves, if any.
+   --  Over an overlay, only one inside an overlay: the content below it
+   --  does not scroll. In_Overlay tells whether the point is over one.
+   function Scroll_Target_At
+     (W          : Window;
+      X, Y       : Pixel_Type;
+      In_Overlay : out Boolean) return Widget_Handle
    is
-      Guard      : Dispatch_Guard;
-      pragma Unreferenced (Guard);
-      Target     : Widget_Handle := Null_Handle;
-      In_Overlay : Boolean := False;
+      Target : Widget_Handle := Find_Scrolling_Widget_At (W, X, Y);
    begin
-      W.Mouse_X := X;
-      W.Mouse_Y := Y;
-
-      --  Check if cursor is over any overlay subtree, using the same
-      --  participation/visibility eligibility as normal hit-testing.
+      In_Overlay := False;
+      --  Same participation/visibility eligibility as normal hit-testing
       for I in reverse 1 .. Natural (W.Overlays.Length) loop
          declare
             Overlay : constant Widget_Handle := W.Overlays.Element (I);
@@ -2722,43 +2719,427 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
          end;
       end loop;
 
-      Target := Find_Scrolling_Widget_At (W, X, Y);
-
-      if In_Overlay then
-         --  Cursor is over an overlay: only accept a scrollable target that
-         --  belongs to an overlay subtree.  Discard any target found in root.
-         if Is_Valid (Target) then
-            declare
-               In_Overlay_Tree : Boolean := False;
-            begin
-               for I in 1 .. Natural (W.Overlays.Length) loop
-                  if Is_In_Subtree (W.Overlays.Element (I), Target) then
-                     In_Overlay_Tree := True;
-                     exit;
-                  end if;
-               end loop;
-               if not In_Overlay_Tree then
-                  Target := Null_Handle;
+      if In_Overlay and then Is_Valid (Target) then
+         declare
+            In_Overlay_Tree : Boolean := False;
+         begin
+            for I in 1 .. Natural (W.Overlays.Length) loop
+               if Is_In_Subtree (W.Overlays.Element (I), Target) then
+                  In_Overlay_Tree := True;
+                  exit;
                end if;
-            end;
-         end if;
-         --  No focus fallback when cursor is over an overlay.
-      else
-         --  No overlay under cursor: allow focus fallback to focused
-         --  scrollable widget.
-         if not Is_Valid (Target) then
-            if Is_Valid (W.Focused_Widget)
-              and then Adi.Widget.Is_Scroll_Enabled (W.Focused_Widget)
-            then
-               Target := W.Focused_Widget;
+            end loop;
+            if not In_Overlay_Tree then
+               Target := Null_Handle;
             end if;
-         end if;
+         end;
+      end if;
+      return Target;
+   end Scroll_Target_At;
+
+   procedure On_Mouse_Wheel
+      (W                : in out Window;
+       X, Y             : Pixel_Type;
+       Delta_X, Delta_Y : Pixel_Type)
+   is
+      Guard      : Dispatch_Guard;
+      pragma Unreferenced (Guard);
+      In_Overlay : Boolean;
+      Target     : Widget_Handle := Scroll_Target_At (W, X, Y, In_Overlay);
+   begin
+      W.Mouse_X := X;
+      W.Mouse_Y := Y;
+
+      --  No overlay under the cursor: a wheel over nothing scrollable
+      --  goes to the focused widget, if that scrolls
+      if not In_Overlay and then not Is_Valid (Target)
+        and then Is_Valid (W.Focused_Widget)
+        and then Adi.Widget.Is_Scroll_Enabled (W.Focused_Widget)
+      then
+         Target := W.Focused_Widget;
       end if;
 
       if Is_Valid (Target) and then not Is_Disabled (Target) then
          Adi.Widget.On_Mouse_Wheel (Target, Delta_X, Delta_Y);
       end if;
    end On_Mouse_Wheel;
+
+   ---------------------------------------------------------------------------
+   --  Touch
+   ---------------------------------------------------------------------------
+
+   --  How far a finger moves, in device-independent pixels, before it
+   --  drags rather than taps; also how near a second tap lands to make a
+   --  double tap
+   Touch_Slop_Dip       : constant Pixel_Type := 8.0;
+   --  How long a finger rests before the widget under it shows pressed,
+   --  and before a rest is a long press
+   Touch_Press_Delay    : constant Duration := 0.1;
+   Touch_Long_Press     : constant Duration := 0.5;
+   --  How soon after a tap the next one makes a double tap
+   Touch_Double_Tap     : constant Duration := 0.3;
+   --  The span of the latest movement a fling's speed is taken from
+   Touch_Speed_Window   : constant Duration := 0.1;
+   --  Slower than these, in device-independent pixels per second, a
+   --  lifted finger leaves the content still, and a touch does not stop
+   --  a scrolling widget
+   Touch_Min_Fling_Dip  : constant Pixel_Type := 100.0;
+   Touch_Stop_Speed_Dip : constant Pixel_Type := 50.0;
+
+   function Dip (Amount : Pixel_Type) return Pixel_Type is
+     (Amount * Adi.Layout_Util.Get_Active_DIP_Scale);
+
+   function Beyond_Slop (T : Touch_State; X, Y : Pixel_Type) return Boolean
+   is (abs (X - T.Start_X) > Dip (Touch_Slop_Dip)
+       or else abs (Y - T.Start_Y) > Dip (Touch_Slop_Dip));
+
+   procedure Record_Touch_Sample
+     (T : in out Touch_State; Y : Pixel_Type; Time : Duration) is
+   begin
+      T.Sample_Count := T.Sample_Count + 1;
+      T.Samples ((T.Sample_Count - 1) mod T.Samples'Length + 1) :=
+        (Time => Time, Y => Y);
+   end Record_Touch_Sample;
+
+   --  The finger's vertical speed over its latest movement, in pixels
+   --  per second, positive downward
+   function Touch_Speed (T : Touch_State) return Pixel_Type is
+      Count  : constant Natural :=
+        Natural'Min (T.Sample_Count, T.Samples'Length);
+      Newest : Touch_Sample;
+      Oldest : Touch_Sample;
+   begin
+      if Count < 2 then
+         return 0.0;
+      end if;
+      Newest := T.Samples ((T.Sample_Count - 1) mod T.Samples'Length + 1);
+      Oldest := Newest;
+      for K in 1 .. Count - 1 loop
+         declare
+            S : constant Touch_Sample :=
+              T.Samples ((T.Sample_Count - 1 - K) mod T.Samples'Length + 1);
+         begin
+            exit when Newest.Time - S.Time > Touch_Speed_Window;
+            Oldest := S;
+         end;
+      end loop;
+      if Newest.Time <= Oldest.Time then
+         return 0.0;
+      end if;
+      return (Newest.Y - Oldest.Y)
+        / Pixel_Type (Newest.Time - Oldest.Time);
+   end Touch_Speed;
+
+   --  The widget a finger at X, Y scrolls: the nearest under it with
+   --  content to scroll. One that scrolls nothing, such as a short list
+   --  in a long page, passes the finger on to the page.
+   function Touch_Scroll_Target
+     (W : Window; X, Y : Pixel_Type) return Widget_Handle
+   is
+      In_Overlay : Boolean;
+      Node       : Widget_Handle := Scroll_Target_At (W, X, Y, In_Overlay);
+   begin
+      while Is_Valid (Node) loop
+         if Adi.Widget.Is_Scroll_Enabled (Node)
+           and then Get_Scroll_Max_Offset_Y (Node) > 0.0
+           and then not Is_Disabled (Node)
+         then
+            return Node;
+         end if;
+         Node := Get_Parent_Handle (Node);
+      end loop;
+      return Null_Handle;
+   end Touch_Scroll_Target;
+
+   --  Stop every widget under X, Y that is scrolling on its own faster
+   --  than a touch lets through; True if one was
+   function Stop_Scrolling_At (W : Window; X, Y : Pixel_Type) return Boolean
+   is
+      In_Overlay : Boolean;
+      Node       : Widget_Handle := Scroll_Target_At (W, X, Y, In_Overlay);
+      Stopped    : Boolean := False;
+   begin
+      while Is_Valid (Node) loop
+         if abs Get_Scroll_Velocity_Y (Node) > Dip (Touch_Stop_Speed_Dip)
+         then
+            Set_Scroll_Velocity_Y (Node, 0.0);
+            Stopped := True;
+         end if;
+         Node := Get_Parent_Handle (Node);
+      end loop;
+      return Stopped;
+   end Stop_Scrolling_At;
+
+   procedure Clear_Touch_Press (T : in out Touch_State) is
+   begin
+      if Is_Valid (T.Pressed) then
+         Set_Part_State (T.Pressed, T.Pressed_Part,
+                         Adi.Widget_Styles.State_Pressed, False);
+         Set_Pressed (T.Pressed, False);
+      end if;
+      T.Pressed := Null_Handle;
+      T.Pressed_Part := Main_Part;
+   end Clear_Touch_Press;
+
+   --  The finger has rested long enough: show the widget under it as
+   --  pressed, without telling it anything yet
+   procedure Show_Touch_Press (W : in out Window) is
+      X : constant Pixel_Type := W.Touch.Start_X;
+      Y : constant Pixel_Type := W.Touch.Start_Y;
+      Target : constant Widget_Handle :=
+        Find_Widget_At_With_Flag (W, X, Y, Clickable);
+   begin
+      if Is_Valid (Target) and then not Is_Disabled (Target) then
+         W.Touch.Pressed := Target;
+         W.Touch.Pressed_Part :=
+           Get_Part_At (Target, X, Mapped_Y (Target, X, Y));
+         Set_Pressed (Target, True);
+         Set_Part_State (Target, W.Touch.Pressed_Part,
+                         Adi.Widget_Styles.State_Pressed, True);
+      end if;
+   end Show_Touch_Press;
+
+   --  The finger has rested long enough for a long press
+   procedure Touch_Long_Pressed (W : in out Window) is
+      X : constant Pixel_Type := W.Touch.Start_X;
+      Y : constant Pixel_Type := W.Touch.Start_Y;
+      Word_Target : constant Widget_Handle :=
+        Find_Widget_At_With_Flag (W, X, Y, Focusable);
+   begin
+      Clear_Touch_Press (W.Touch);
+      if Is_Valid (Word_Target)
+        and then not Is_Disabled (Word_Target)
+        and then Selects_Word_On_Long_Press (Word_Target)
+      then
+         --  As a double click held down: lifted where it is, it selects
+         --  the word; dragged, it selects from here to the finger
+         W.Touch.Phase := Touch_Captured;
+         W.Touch.Menu_On_Lift := True;
+         On_Mouse_Down (W, X, Y, Left_Button, Clicks => 2);
+      else
+         W.Touch.Phase := Touch_Spent;
+         On_Mouse_Down (W, X, Y, Right_Button);
+      end if;
+   end Touch_Long_Pressed;
+
+   procedure Advance_Touch (W : in out Window; DT : Duration) is
+   begin
+      if W.Touch.Phase = Touch_Idle then
+         return;
+      end if;
+      --  Counted from the first tick after the finger landed: a frame
+      --  that began before it does not count towards a long press
+      if not W.Touch.Ticked then
+         W.Touch.Ticked := True;
+         return;
+      end if;
+      W.Touch.Held := W.Touch.Held + DT;
+      if W.Touch.Phase in Touch_Pending | Touch_Pressed
+        and then W.Touch.Held >= Touch_Long_Press
+      then
+         Touch_Long_Pressed (W);
+      elsif W.Touch.Phase = Touch_Pending
+        and then W.Touch.Held >= Touch_Press_Delay
+      then
+         Show_Touch_Press (W);
+         W.Touch.Phase := Touch_Pressed;
+      end if;
+   end Advance_Touch;
+
+   --  End the gesture in progress without anything it began completing.
+   --  The touch state is cleared before the widgets hear of it.
+   procedure End_Touch (W : in out Window) is
+      T : Touch_State := W.Touch;
+   begin
+      W.Touch := (others => <>);
+      Clear_Touch_Press (T);
+      if T.Phase = Touch_Captured then
+         --  Away from every widget, so that nothing clicks
+         On_Mouse_Up (W, -1.0, -1.0, Left_Button);
+         On_Mouse_Move (W, -1.0, -1.0);
+      end if;
+   end End_Touch;
+
+   procedure On_Finger_Down
+      (W      : in out Window;
+       Finger : Finger_Id;
+       X, Y   : Pixel_Type;
+       Time   : Duration)
+   is
+      Guard   : Dispatch_Guard;
+      pragma Unreferenced (Guard);
+      Dragged : Widget_Handle;
+   begin
+      if W.Touch.Phase /= Touch_Idle then
+         if Finger /= W.Touch.Finger then
+            return;
+         end if;
+         --  The same finger down again: its lift never arrived
+         End_Touch (W);
+      end if;
+
+      W.Touch := (Phase   => Touch_Pending,
+                  Finger  => Finger,
+                  Start_X => X,
+                  Start_Y => Y,
+                  others  => <>);
+      Record_Touch_Sample (W.Touch, Y, Time);
+
+      if Stop_Scrolling_At (W, X, Y) then
+         W.Touch.Phase := Touch_Stopped;
+         return;
+      end if;
+
+      Dragged := Find_Scroll_Widget_At (W, X, Y);
+      if not Is_Valid (Dragged) then
+         Dragged := Find_Widget_At_With_Flag (W, X, Y, Draggable);
+      end if;
+      if Is_Valid (Dragged) and then not Is_Disabled (Dragged) then
+         W.Touch.Phase := Touch_Captured;
+         On_Mouse_Down (W, X, Y, Left_Button);
+      end if;
+   end On_Finger_Down;
+
+   procedure On_Finger_Move
+      (W      : in out Window;
+       Finger : Finger_Id;
+       X, Y   : Pixel_Type;
+       Time   : Duration)
+   is
+      Guard : Dispatch_Guard;
+      pragma Unreferenced (Guard);
+   begin
+      if W.Touch.Phase = Touch_Idle or else Finger /= W.Touch.Finger then
+         return;
+      end if;
+      Record_Touch_Sample (W.Touch, Y, Time);
+
+      case W.Touch.Phase is
+         when Touch_Captured =>
+            On_Mouse_Move (W, X, Y);
+
+         when Touch_Pending | Touch_Pressed | Touch_Stopped =>
+            if Beyond_Slop (W.Touch, X, Y) then
+               Clear_Touch_Press (W.Touch);
+               declare
+                  Target : constant Widget_Handle :=
+                    Touch_Scroll_Target
+                      (W, W.Touch.Start_X, W.Touch.Start_Y);
+               begin
+                  if Is_Valid (Target) then
+                     W.Touch.Phase := Touch_Panning;
+                     W.Touch.Pan_Target := Target;
+                     W.Touch.Pan_Offset := Get_Scroll_Offset_Y (Target);
+                     --  From here, not from where the finger went down:
+                     --  the content does not jump by the slop
+                     W.Touch.Pan_Y := Y;
+                  else
+                     W.Touch.Phase := Touch_Spent;
+                  end if;
+               end;
+            end if;
+
+         when Touch_Panning =>
+            if Is_Valid (W.Touch.Pan_Target) then
+               Set_Scroll_Offset_Y
+                 (W.Touch.Pan_Target,
+                  W.Touch.Pan_Offset - (Y - W.Touch.Pan_Y));
+            end if;
+
+         when Touch_Idle | Touch_Spent =>
+            null;
+      end case;
+   end On_Finger_Move;
+
+   procedure On_Finger_Up
+      (W      : in out Window;
+       Finger : Finger_Id;
+       X, Y   : Pixel_Type;
+       Time   : Duration)
+   is
+      Guard : Dispatch_Guard;
+      pragma Unreferenced (Guard);
+      T     : Touch_State;
+   begin
+      if W.Touch.Phase = Touch_Idle or else Finger /= W.Touch.Finger then
+         return;
+      end if;
+      --  Cleared before any widget hears of the lift, so that what a
+      --  click starts finds no gesture in progress
+      T := W.Touch;
+      W.Touch := (others => <>);
+      Record_Touch_Sample (T, Y, Time);
+      Clear_Touch_Press (T);
+
+      case T.Phase is
+         when Touch_Captured =>
+            On_Mouse_Up (W, X, Y, Left_Button);
+            if T.Menu_On_Lift then
+               On_Mouse_Down (W, X, Y, Right_Button);
+            end if;
+            --  Touch leaves nothing hovered behind
+            On_Mouse_Move (W, -1.0, -1.0);
+
+         when Touch_Pending | Touch_Pressed =>
+            --  A lift reported away from the start, with no move to say
+            --  so, is no tap
+            if not Beyond_Slop (T, X, Y) then
+               declare
+                  Double : constant Boolean :=
+                    W.Last_Tap_Valid
+                    and then Time - W.Last_Tap_Time <= Touch_Double_Tap
+                    and then abs (T.Start_X - W.Last_Tap_X)
+                               <= Dip (Touch_Slop_Dip)
+                    and then abs (T.Start_Y - W.Last_Tap_Y)
+                               <= Dip (Touch_Slop_Dip);
+               begin
+                  --  A third tap starts over rather than tripling
+                  W.Last_Tap_Valid := not Double;
+                  W.Last_Tap_Time := Time;
+                  W.Last_Tap_X := T.Start_X;
+                  W.Last_Tap_Y := T.Start_Y;
+                  --  At the point it went down: what was pressed is what
+                  --  clicks, however the finger rolled within the slop
+                  On_Mouse_Down (W, T.Start_X, T.Start_Y, Left_Button,
+                                 Clicks => (if Double then 2 else 1));
+                  On_Mouse_Up (W, T.Start_X, T.Start_Y, Left_Button);
+               end;
+            end if;
+
+         when Touch_Panning =>
+            declare
+               Speed : constant Pixel_Type := Touch_Speed (T);
+            begin
+               if Is_Valid (T.Pan_Target)
+                 and then abs Speed >= Dip (Touch_Min_Fling_Dip)
+               then
+                  --  The content follows the finger: down is backward
+                  Set_Scroll_Velocity_Y (T.Pan_Target, -Speed);
+               end if;
+            end;
+
+         when Touch_Idle | Touch_Stopped | Touch_Spent =>
+            null;
+      end case;
+   end On_Finger_Up;
+
+   procedure On_Finger_Cancel (W : in out Window; Finger : Finger_Id) is
+      Guard : Dispatch_Guard;
+      pragma Unreferenced (Guard);
+   begin
+      if W.Touch.Phase /= Touch_Idle and then Finger = W.Touch.Finger then
+         End_Touch (W);
+      end if;
+   end On_Finger_Cancel;
+
+   procedure Cancel_Touch (W : in out Window) is
+      Guard : Dispatch_Guard;
+      pragma Unreferenced (Guard);
+   begin
+      if W.Touch.Phase /= Touch_Idle then
+         End_Touch (W);
+      end if;
+   end Cancel_Touch;
 
    -----------------
    -- On_Key_Down --
@@ -2896,6 +3277,7 @@ procedure On_Mouse_Move (W : in out Window; X, Y : Pixel_Type) is
    begin
       Debug_Tick_No := Debug_Tick_No + 1;
       W.Stats_Last_DT := DT;
+      Advance_Touch (W, DT);
 
       declare
          D : constant Duration := DT;
@@ -3507,6 +3889,61 @@ function Get_Size (W : in out Window) return Size_2D is
          On_Mouse_Up (Ptr.all, X, Y, Button);
       end if;
    end On_Mouse_Up;
+
+   procedure On_Finger_Down
+     (H      : Window_Handle;
+      Finger : Finger_Id;
+      X, Y   : Pixel_Type;
+      Time   : Duration)
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         On_Finger_Down (Ptr.all, Finger, X, Y, Time);
+      end if;
+   end On_Finger_Down;
+
+   procedure On_Finger_Move
+     (H      : Window_Handle;
+      Finger : Finger_Id;
+      X, Y   : Pixel_Type;
+      Time   : Duration)
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         On_Finger_Move (Ptr.all, Finger, X, Y, Time);
+      end if;
+   end On_Finger_Move;
+
+   procedure On_Finger_Up
+     (H      : Window_Handle;
+      Finger : Finger_Id;
+      X, Y   : Pixel_Type;
+      Time   : Duration)
+   is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         On_Finger_Up (Ptr.all, Finger, X, Y, Time);
+      end if;
+   end On_Finger_Up;
+
+   procedure On_Finger_Cancel (H : Window_Handle; Finger : Finger_Id) is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         On_Finger_Cancel (Ptr.all, Finger);
+      end if;
+   end On_Finger_Cancel;
+
+   procedure Cancel_Touch (H : Window_Handle) is
+      Ptr : constant Window_Access := Live (H);
+   begin
+      if Ptr /= null then
+         Cancel_Touch (Ptr.all);
+      end if;
+   end Cancel_Touch;
 
    ---------------------------------------------------------------------------
    --  Subscription management by handle

@@ -246,6 +246,10 @@ Each tool below is a subcommand of the same name. `--cli --help` lists them; `--
 | `find_by_type(type_name)` | Find widgets by type name, case-insensitive substring |
 | `click_widget(id, path)` | Mouse down+up at the widget's centre |
 | `scroll(dy, dx, id, path, x, y)` | Simulate mouse wheel notches |
+| `tap(id, path, x, y)` | Finger tap |
+| `swipe(dy, dx, id, path, x, y, duration_ms, steps)` | Finger drag; a fast one flings |
+| `long_press(id, path, x, y, duration_ms)` | Finger held still, then lifted |
+| `resize_window(width, height)` | Resize the window; returns the size it got |
 | `send_keys(keys)` | Send keystrokes to the focused widget |
 | `set_text(id, text)` | Set widget text directly, without simulating input |
 | `get_focus()` | The currently focused widget |

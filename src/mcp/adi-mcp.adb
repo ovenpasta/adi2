@@ -21,6 +21,7 @@ with Adi.Screenshot;
 with Adi.SDL.Events;             use Adi.SDL.Events;
 with Adi.Texture_Cache;
 with Adi.SDL.Render;             use Adi.SDL.Render;
+with Adi.SDL.Video;
 with Adi.Widget;                 use Adi.Widget;
 with Adi.Widget.Introspection;   use Adi.Widget.Introspection;
 with Adi.Widget.Label;
@@ -576,6 +577,64 @@ package body Adi.MCP is
          return Root_H;
       end if;
    end Resolve_Widget;
+
+   --  The point an interaction aims at: the centre of the widget named by
+   --  id or path, else x and y, else the middle of the window. "" when
+   --  found, else what is wrong. The point is in window space, so widgets
+   --  are located there too rather than in the layout space Get_Geometry
+   --  reports: once an ancestor has scrolled, the two no longer agree.
+   function Aim_Point
+     (JSON          : String;
+      Cmd           : String;
+      PX, PY        : out Pixel_Type;
+      Resolved_Path : out Unbounded_String) return String
+   is
+      Id_Val   : constant Integer := JSON_Get_Int (JSON, "id");
+      Path_Val : constant String  := JSON_Get_String (JSON, "path");
+      --  Coordinates are never negative, so -1 reads as "not given"
+      X_Val    : constant Integer := JSON_Get_Int (JSON, "x", -1);
+      Y_Val    : constant Integer := JSON_Get_Int (JSON, "y", -1);
+   begin
+      PX := 0.0;
+      PY := 0.0;
+      Resolved_Path := Null_Unbounded_String;
+
+      if Id_Val /= 0 or else Path_Val'Length > 0 then
+         declare
+            Target : constant Widget_Handle :=
+              Resolve_Widget (JSON, Resolved_Path);
+         begin
+            if not Is_Valid (Target) then
+               return "widget not found";
+            end if;
+            declare
+               Geom : constant Rectangle :=
+                 Adi.Window.Geometry_In_Window (Target);
+            begin
+               PX := Geom.X + Geom.Width / 2.0;
+               PY := Geom.Y + Geom.Height / 2.0;
+            end;
+         end;
+      elsif (X_Val >= 0) /= (Y_Val >= 0) then
+         return Cmd & " needs both x and y, or neither";
+      elsif X_Val >= 0 then
+         PX := Pixel_Type (X_Val);
+         PY := Pixel_Type (Y_Val);
+      else
+         declare
+            Size : constant Size_2D := Adi.Window.Actual_Size (MCP_Window);
+         begin
+            PX := Size.Width / 2.0;
+            PY := Size.Height / 2.0;
+         end;
+      end if;
+      return "";
+   end Aim_Point;
+
+   --  Touch event times: any steady clock serves
+   MCP_Epoch : constant Adi.Clock.Time := Adi.Clock.Now;
+   function Touch_Time return Duration is
+     (Adi.Clock.To_Duration (Adi.Clock."-" (Adi.Clock.Now, MCP_Epoch)));
 
    ---------------------------------------------------------------------------
    --  Widget Tree Serialization
@@ -1337,12 +1396,6 @@ package body Adi.MCP is
          declare
             Delta_X  : constant Integer := JSON_Get_Int (JSON, "dx", 0);
             Delta_Y  : constant Integer := JSON_Get_Int (JSON, "dy", 0);
-            Id_Val   : constant Integer := JSON_Get_Int (JSON, "id");
-            Path_Val : constant String  := JSON_Get_String (JSON, "path");
-            --  Coordinates are never negative, so -1 reads as "not given".
-            X_Val    : constant Integer := JSON_Get_Int (JSON, "x", -1);
-            Y_Val    : constant Integer := JSON_Get_Int (JSON, "y", -1);
-
             Resolved_Path : Unbounded_String;
             PX, PY        : Pixel_Type;
             W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
@@ -1352,47 +1405,16 @@ package body Adi.MCP is
                  (Req_Id, "scroll requires a non-zero dx or dy");
             end if;
 
-            if (X_Val >= 0) /= (Y_Val >= 0) then
-               return Error_Response
-                 (Req_Id, "scroll needs both x and y, or neither");
-            end if;
-
             --  A wheel event goes to whichever scrollable widget sits under
-            --  the pointer, so the caller has to aim it: at a widget, at a
-            --  point, or by default at the middle of the window. The point
-            --  is in window space, so widgets are located there too rather
-            --  than in the layout space Get_Geometry reports: once an
-            --  ancestor has scrolled, the two no longer agree.
-            if Id_Val /= 0 or else Path_Val'Length > 0 then
-               declare
-                  Target : constant Widget_Handle :=
-                    Resolve_Widget (JSON, Resolved_Path);
-               begin
-                  if not Is_Valid (Target) then
-                     return Error_Response (Req_Id, "widget not found");
-                  end if;
-                  declare
-                     Geom : constant Rectangle :=
-                       Adi.Window.Geometry_In_Window (Target);
-                  begin
-                     PX := Geom.X + Geom.Width / 2.0;
-                     PY := Geom.Y + Geom.Height / 2.0;
-                  end;
-               end;
-            elsif X_Val >= 0 and then Y_Val >= 0 then
-               PX := Pixel_Type (X_Val);
-               PY := Pixel_Type (Y_Val);
-            else
-               declare
-                  Root : constant Widget_Handle :=
-                    Adi.Window.Get_Root_Handle (Win);
-                  Geom : constant Rectangle :=
-                    Adi.Window.Geometry_In_Window (Root);
-               begin
-                  PX := Geom.X + Geom.Width / 2.0;
-                  PY := Geom.Y + Geom.Height / 2.0;
-               end;
-            end if;
+            --  the pointer, so the caller has to aim it
+            declare
+               Problem : constant String :=
+                 Aim_Point (JSON, Cmd, PX, PY, Resolved_Path);
+            begin
+               if Problem'Length > 0 then
+                  return Error_Response (Req_Id, Problem);
+               end if;
+            end;
 
             Adi.Window.On_Mouse_Wheel
               (Win, PX, PY,
@@ -1408,6 +1430,150 @@ package body Adi.MCP is
             W.Key_Value ("dy", Adi.JSON.JSON_Integer (Delta_Y));
             W.End_Object;
             return W.To_String;
+         end;
+
+      elsif Cmd = "touch" or else Cmd = "tap" or else Cmd = "swipe" then
+         declare
+            Action   : constant String := JSON_Get_String (JSON, "action");
+            Finger   : constant Adi.Window.Finger_Id :=
+              Adi.Window.Finger_Id
+                (Integer'Max (0, JSON_Get_Int (JSON, "finger", 1)));
+            Delta_X  : constant Integer := JSON_Get_Int (JSON, "dx", 0);
+            Delta_Y  : constant Integer := JSON_Get_Int (JSON, "dy", 0);
+            Millis   : constant Integer :=
+              JSON_Get_Int (JSON, "duration_ms", 150);
+            Steps    : constant Integer := JSON_Get_Int (JSON, "steps", 10);
+            Resolved_Path : Unbounded_String;
+            PX, PY        : Pixel_Type;
+            T0            : constant Duration := Touch_Time;
+            W             : Adi.JSON.JSON_Writer := Adi.JSON.Create;
+         begin
+            if Cmd = "touch"
+              and then Action not in "down" | "move" | "up" | "cancel"
+            then
+               return Error_Response
+                 (Req_Id, "touch action must be down, move, up or cancel");
+            end if;
+            if Cmd = "swipe" then
+               if Delta_X = 0 and then Delta_Y = 0 then
+                  return Error_Response
+                    (Req_Id, "swipe requires a non-zero dx or dy");
+               end if;
+               if Millis <= 0 or else Steps <= 0 then
+                  return Error_Response
+                    (Req_Id, "swipe needs a positive duration_ms and steps");
+               end if;
+            end if;
+
+            declare
+               Problem : constant String :=
+                 Aim_Point (JSON, Cmd, PX, PY, Resolved_Path);
+            begin
+               if Problem'Length > 0 then
+                  return Error_Response (Req_Id, Problem);
+               end if;
+            end;
+
+            if Cmd = "tap" then
+               Adi.Window.On_Finger_Down (Win, Finger, PX, PY, T0);
+               Adi.Window.On_Finger_Up (Win, Finger, PX, PY, T0);
+            elsif Cmd = "swipe" then
+               --  All within this frame, with the times the moves would
+               --  have had, so that a fast swipe flings
+               Adi.Window.On_Finger_Down (Win, Finger, PX, PY, T0);
+               for K in 1 .. Steps loop
+                  declare
+                     F : constant Pixel_Type :=
+                       Pixel_Type (K) / Pixel_Type (Steps);
+                  begin
+                     Adi.Window.On_Finger_Move
+                       (Win, Finger,
+                        PX + Pixel_Type (Delta_X) * F,
+                        PY + Pixel_Type (Delta_Y) * F,
+                        T0 + Duration (Millis) / 1000 * K / Steps);
+                  end;
+               end loop;
+               Adi.Window.On_Finger_Up
+                 (Win, Finger,
+                  PX + Pixel_Type (Delta_X), PY + Pixel_Type (Delta_Y),
+                  T0 + Duration (Millis) / 1000);
+            elsif Action = "down" then
+               Adi.Window.On_Finger_Down (Win, Finger, PX, PY, T0);
+            elsif Action = "move" then
+               Adi.Window.On_Finger_Move (Win, Finger, PX, PY, T0);
+            elsif Action = "up" then
+               Adi.Window.On_Finger_Up (Win, Finger, PX, PY, T0);
+            else
+               Adi.Window.On_Finger_Cancel (Win, Finger);
+            end if;
+            Adi.Window.Request_Redraw (Win);
+
+            W.Start_Object;
+            W.Key_Value ("status", "ok");
+            W.Key_Value ("req_id", Req_Id);
+            W.Key_Value ("x", Adi.JSON.JSON_Integer (PX));
+            W.Key_Value ("y", Adi.JSON.JSON_Integer (PY));
+            W.End_Object;
+            return W.To_String;
+         end;
+
+      elsif Cmd = "resize_window" then
+         declare
+            Width  : constant Integer := JSON_Get_Int (JSON, "width");
+            Height : constant Integer := JSON_Get_Int (JSON, "height");
+            SDL_Win : constant Adi.SDL.Video.SDL_Window_Ptr :=
+              Adi.Window.Get_SDL_Window (MCP_Window);
+            W       : Adi.JSON.JSON_Writer := Adi.JSON.Create;
+         begin
+            if Width <= 0 or else Height <= 0 then
+               return Error_Response
+                 (Req_Id, "resize_window needs a positive width and height");
+            end if;
+            --  As the window manager would: SDL keeps the window at its
+            --  minimum, and the window gets the size SDL settles on
+            if not Boolean (Adi.SDL.Video.SDL_SetWindowSize
+                              (SDL_Win, Interfaces.C.int (Width),
+                               Interfaces.C.int (Height)))
+            then
+               return Error_Response
+                 (Req_Id, "resize_window: SDL refused the size");
+            end if;
+            --  A window manager that does not act in time leaves the old
+            --  size, which the reply then reports
+            declare
+               Ignored : constant Adi.SDL.C_bool :=
+                 Adi.SDL.Video.SDL_SyncWindow (SDL_Win);
+               pragma Unreferenced (Ignored);
+            begin
+               null;
+            end;
+            Adi.Window.Handle_Resize
+              (MCP_Window, Adi.Window.Actual_Size (MCP_Window));
+            Adi.Window.Request_Redraw (Win);
+
+            declare
+               Pixels : constant Size_2D :=
+                 Adi.Window.Actual_Size (MCP_Window);
+               Got_W, Got_H : aliased Interfaces.C.int := 0;
+               Got : constant Boolean := Boolean
+                 (Adi.SDL.Video.SDL_GetWindowSize
+                    (SDL_Win, Got_W'Access, Got_H'Access));
+            begin
+               W.Start_Object;
+               W.Key_Value ("status", "ok");
+               W.Key_Value ("req_id", Req_Id);
+               --  In the units of the request, and in pixels, which
+               --  differ on a HiDPI display
+               if Got then
+                  W.Key_Value ("width", Adi.JSON.JSON_Integer (Got_W));
+                  W.Key_Value ("height", Adi.JSON.JSON_Integer (Got_H));
+               end if;
+               W.Key_Value ("pixel_width", Adi.JSON.JSON_Integer (Pixels.Width));
+               W.Key_Value
+                 ("pixel_height", Adi.JSON.JSON_Integer (Pixels.Height));
+               W.End_Object;
+               return W.To_String;
+            end;
          end;
 
       elsif Cmd = "send_keys" then

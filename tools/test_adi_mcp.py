@@ -474,6 +474,80 @@ class TestScroll(unittest.TestCase):
             self._call(ok=False, dy=-1, path="99.99")
 
 
+class TestTouchTools(unittest.TestCase):
+    """Tests for tap, swipe, long_press and resize_window."""
+
+    def _send(self, reply=None):
+        reply = reply or {"status": "ok", "x": 150, "y": 40,
+                          "width": 300, "height": 200,
+                          "pixel_width": 600, "pixel_height": 400}
+        return patch.object(adi_mcp_server, "send_command",
+                            return_value=reply)
+
+    def test_tap_payload(self):
+        """A tap is one command, aimed like scroll."""
+        with self._send() as sender:
+            result = adi_mcp_server.tap(path="1.2")
+        cmd = sender.call_args[0][0]
+        self.assertEqual(cmd["command"], "tap")
+        self.assertEqual(cmd["path"], "1.2")
+        self.assertEqual(json.loads(result), {"x": 150, "y": 40})
+
+    def test_swipe_payload(self):
+        """Travel, timing and aim reach send_command."""
+        with self._send() as sender:
+            adi_mcp_server.swipe(dy=-120, x=150, y=180, duration_ms=80)
+        cmd = sender.call_args[0][0]
+        self.assertEqual(cmd["command"], "swipe")
+        self.assertEqual((cmd["dx"], cmd["dy"]), (0, -120))
+        self.assertEqual((cmd["x"], cmd["y"]), (150, 180))
+        self.assertEqual((cmd["duration_ms"], cmd["steps"]), (80, 10))
+
+    def test_swipe_rejects_bad_arguments(self):
+        """No travel, no time, or half a point is a caller error."""
+        for kwargs in ({}, {"dy": 10, "duration_ms": 0},
+                       {"dy": 10, "steps": 0}, {"dy": 10, "x": 5}):
+            with self.assertRaises(ValueError):
+                adi_mcp_server.swipe(**kwargs)
+
+    def test_long_press_lifts_where_it_went_down(self):
+        """Down at the aim, a pause, then up at the point down reported."""
+        with self._send() as sender, \
+                patch.object(adi_mcp_server.time, "sleep") as sleeper:
+            adi_mcp_server.long_press(id=7, duration_ms=650)
+        down, up = (c[0][0] for c in sender.call_args_list)
+        self.assertEqual((down["command"], down["action"], down["id"]),
+                         ("touch", "down", 7))
+        sleeper.assert_called_once_with(0.65)
+        self.assertEqual((up["action"], up["x"], up["y"], up["id"]),
+                         ("up", 150, 40, 0))
+
+    def test_resize_window(self):
+        """The requested size goes out; the size granted comes back."""
+        with self._send() as sender:
+            result = adi_mcp_server.resize_window(320, 240)
+        cmd = sender.call_args[0][0]
+        self.assertEqual((cmd["command"], cmd["width"], cmd["height"]),
+                         ("resize_window", 320, 240))
+        self.assertEqual(json.loads(result),
+                         {"width": 300, "height": 200,
+                          "pixel_width": 600, "pixel_height": 400})
+        with self.assertRaises(ValueError):
+            adi_mcp_server.resize_window(0, 100)
+
+    def test_widget_aim_ignores_half_point(self):
+        """With a widget named, a stray x alone is not an error."""
+        with self._send() as sender:
+            adi_mcp_server.tap(id=3, x=5)
+        self.assertEqual(sender.call_args[0][0]["id"], 3)
+
+    def test_errors_surface(self):
+        """An error reply raises rather than returning nothing."""
+        with self._send({"status": "error", "error": "widget not found"}):
+            with self.assertRaises(RuntimeError):
+                adi_mcp_server.tap(id=99)
+
+
 class TestCLI(unittest.TestCase):
     """Tests for the command line surface over the same tools."""
 
@@ -492,7 +566,8 @@ class TestCLI(unittest.TestCase):
     def test_registry_matches_the_tools(self):
         """Every tool is reachable by name, so the two surfaces agree."""
         for name in ("screenshot", "widget_tree", "perf_stats", "send_keys",
-                     "scroll", "css_values", "quit_app"):
+                     "scroll", "css_values", "quit_app", "tap", "swipe",
+                     "long_press", "resize_window"):
             self.assertIn(name, adi_mcp_server.CLI_TOOLS)
             self.assertIs(adi_mcp_server.CLI_TOOLS[name],
                           getattr(adi_mcp_server, name))

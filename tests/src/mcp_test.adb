@@ -1,6 +1,7 @@
 pragma Ada_2022;
 
 with Ada.Directories;
+with Ada.Environment_Variables;
 with Ada.Streams.Stream_IO;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Fixed;
@@ -8,11 +9,13 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Characters.Handling;
 with Ada.Tags;
 
+with Adi.Core;                 use Adi.Core;
 with Adi.CSS_Styles;           use Adi.CSS_Styles;
 with Adi.Font;
 with Adi.JSON;
 with Adi.Widget;               use Adi.Widget;
 with Adi.Widget.Box;
+with Adi.Widget.Button;
 use type Adi.Widget.Box.Box_Handle;
 with Adi.Widget.Label;
 with Adi.Widget.Introspection; use Adi.Widget.Introspection;
@@ -21,6 +24,8 @@ with Adi.MCP;
 with Adi.MCP.Testing;
 with Adi.OS;
 with Adi.Render;
+with Adi.SDL;
+with Adi.SDL.TTF;
 with Adi.Texture_Cache;
 with Adi.Window;
 
@@ -971,6 +976,145 @@ procedure MCP_Test is
       end if;
    end Test_Envelope_Fields;
 
+   ---------------------------------------------------------------------------
+   --  Test: touch and resize commands, answered through a window
+   ---------------------------------------------------------------------------
+
+   Window_Clicks : Natural := 0;
+
+   procedure Count_Click (W : Widget_Handle) is
+      pragma Unreferenced (W);
+   begin
+      Window_Clicks := Window_Clicks + 1;
+   end Count_Click;
+
+   --  Field Key of Response as an integer, or -1 if it has none
+   function Int_Of (Response : String; Key : String) return Integer is
+      use Adi.JSON;
+   begin
+      declare
+         P    : Parsers.Parser := Parsers.Create (Response);
+         Root : constant Types.JSON_Value := P.Parse;
+      begin
+         if not Root.Contains (Key) then
+            return -1;
+         end if;
+         return Integer (JSON_Integer'(Root.Get (Key).Value));
+      end;
+   exception
+      when others =>
+         return -1;
+   end Int_Of;
+
+   procedure Test_Window_Commands is
+      use type Adi.Widget.Button.Button_Handle;
+      use type Adi.SDL.SDL_InitFlags;
+      Raised : Boolean;
+      Ready  : Boolean;
+      W      : Adi.Window.Window_Handle;
+      Root   : constant Adi.Widget.Box.Box_Handle :=
+        Adi.Widget.Box.Create_Handle;
+      Root_Rules : constant Style_Rules :=
+        (Display        => Set (Flex),
+         Flex_Direction => Set (Adi.CSS_Styles.Column),
+         Overflow_Y     => Set (Overflow_Auto),
+         others         => <>);
+      Item_Rules : constant Style_Rules :=
+        (Height     => Set (Size (Px (80.0))),
+         Min_Height => Set (Size (Px (80.0))),
+         others     => <>);
+
+      function Ask (Req_Id, Fields : String) return String is
+        (Answer (Req_Id, "{""req_id"": """ & Req_Id & """, " & Fields & "}",
+                 Raised));
+   begin
+      Section ("Touch and resize commands through a window");
+
+      Ada.Environment_Variables.Set ("SDL_VIDEODRIVER", "dummy");
+      Ready := Boolean (Adi.SDL.SDL_Init
+                          (Adi.SDL.SDL_INIT_VIDEO or Adi.SDL.SDL_INIT_EVENTS))
+        and then Boolean (Adi.SDL.TTF.TTF_Init);
+      Assert (Ready, "SDL and SDL_ttf initialise");
+      if not Ready then
+         return;
+      end if;
+
+      Set_Part_Style (+Root, Main_Part, From (Root_Rules).Build);
+      for I in 1 .. 10 loop
+         declare
+            B : constant Adi.Widget.Button.Button_Handle :=
+              Adi.Widget.Button.Create_Handle ("Item" & I'Image);
+         begin
+            Set_Part_Style (+B, Main_Part, From (Item_Rules).Build);
+            Adi.Widget.Button.Connect_Clicked
+              (B, Count_Click'Unrestricted_Access);
+            Add_Child (+Root, +B);
+         end;
+      end loop;
+      W := Adi.Window.Create_Window_Handle ("MCP Touch", (300.0, 200.0));
+      Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+      Adi.Window.Set_Root (W, +Root);
+      Adi.Window.Render (W);
+      Adi.MCP.Initialize (W, Adi.OS.Temp_Path ("adi_mcp_test_window"));
+
+      Window_Clicks := 0;
+      Assert (Error_Of (Ask ("tap1", """command"": ""tap"", ""x"": 150, ""y"": 40"))
+              = "" and then Window_Clicks = 1,
+              "tap at a point clicks what is there");
+      Assert (Error_Of (Ask ("tap2", """command"": ""tap"", ""path"": ""2"""))
+              = "" and then Window_Clicks = 2,
+              "tap at a widget clicks it");
+      Assert (Error_Of (Ask ("tap3", """command"": ""tap"", ""x"": 150"))
+              = "tap needs both x and y, or neither",
+              "tap with half a point is refused");
+
+      Window_Clicks := 0;
+      Assert (Error_Of (Ask ("tch1", """command"": ""touch"", ""action"": ""down"", ""x"": 150, ""y"": 40"))
+              = "", "touch down");
+      Assert (Error_Of (Ask ("tch2", """command"": ""touch"", ""action"": ""down"", ""x"": 150, ""y"": 120"))
+              = "", "touch down again, its lift lost");
+      Assert (Error_Of (Ask ("tch3", """command"": ""touch"", ""action"": ""up"", ""x"": 150, ""y"": 120"))
+              = "" and then Window_Clicks = 1,
+              "the second down and its lift make a tap");
+      Assert (Error_Of (Ask ("tch4", """command"": ""touch"", ""action"": ""poke"""))
+              = "touch action must be down, move, up or cancel",
+              "an unknown touch action is refused");
+
+      Window_Clicks := 0;
+      Assert (Error_Of (Ask ("sw1", """command"": ""swipe"", ""x"": 150, ""y"": 180, ""dy"": -120, ""duration_ms"": 2000"))
+              = "", "a slow swipe");
+      Assert (Get_Scroll_Offset_Y (+Root) > 100.0
+                and then Get_Scroll_Offset_Y (+Root) <= 120.0,
+              "scrolls by its travel less the slop");
+      Assert (Window_Clicks = 0, "and clicks nothing");
+      Assert (Error_Of (Ask ("sw2", """command"": ""swipe"", ""x"": 150, ""y"": 180"))
+              = "swipe requires a non-zero dx or dy",
+              "a swipe without travel is refused");
+
+      declare
+         R : constant String :=
+           Ask ("rs1", """command"": ""resize_window"", ""width"": 400, ""height"": 300");
+      begin
+         Assert (Error_Of (R) = "", "resize_window");
+         Assert (Int_Of (R, "width") = 400 and then Int_Of (R, "height") = 300,
+                 "replies with the size in window coordinates");
+         Assert (Int_Of (R, "pixel_width") = 400,
+                 "and in pixels, the same at density 1");
+         Assert (Get_Geometry (+Root).Width = 400.0,
+                 "and the layout follows");
+      end;
+      Assert (Error_Of (Ask ("rs2", """command"": ""resize_window"", ""width"": 0, ""height"": 300"))
+              = "resize_window needs a positive width and height",
+              "a zero size is refused");
+      Assert (not Raised, "no command raised");
+
+      Adi.MCP.Finalize;
+      Adi.Window.Destroy (W);
+      if Ada.Directories.Exists (Cmd_Dir) then
+         Ada.Directories.Delete_Tree (Cmd_Dir);
+      end if;
+   end Test_Window_Commands;
+
 begin
    Start_Suite ("MCP Test Suite");
    Put_Line ("");
@@ -993,6 +1137,7 @@ begin
    Test_Unreadable_Command;
    Test_Long_Command;
    Test_Envelope_Fields;
+   Test_Window_Commands;
 
    Test_Support.Finish;
 end MCP_Test;

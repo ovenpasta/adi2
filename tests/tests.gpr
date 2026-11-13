@@ -38,6 +38,7 @@ project Tests is
       "frame_stats_test",
       "window_resize_safety_test",
       "render_driver_test",
+      "touch_test",
       "mcp_test",
       "bundle_test",
       "signal_test",

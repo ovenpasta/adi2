@@ -347,6 +347,12 @@ package Adi.Widget is
    function  Get_Scroll_Content_Height (H : Widget_Handle) return Pixel_Type;
    function  Get_Scroll_Max_Offset_Y (W : Widget'Class) return Pixel_Type;
    function  Get_Scroll_Max_Offset_Y (H : Widget_Handle) return Pixel_Type;
+   --  The vertical speed, in pixels per second, at which momentum carries
+   --  the content on, slowing down, as after a flick of a finger;
+   --  positive scrolls down and zero stops it. Without scroll inertia
+   --  (Set_Scroll_Inertia_Enabled) the speed stays zero.
+   procedure Set_Scroll_Velocity_Y (H : Widget_Handle; Velocity : Pixel_Type);
+   function  Get_Scroll_Velocity_Y (H : Widget_Handle) return Pixel_Type;
 
    --  The Scrollable flag the widget was given, or an overflow-y its
    --  stylesheet scrolls.
@@ -483,6 +489,13 @@ package Adi.Widget is
    --  (no child per row) override this to report the document size without
    --  materialising the children.
    function Get_Scroll_Content_Height (W : Widget) return Pixel_Type;
+
+   --  Whether a long press of a finger selects the word under it, before
+   --  the context menu opens, as it does in text widgets. The window then
+   --  delivers it as a double click. Default False.
+   function Selects_Word_On_Long_Press (W : Widget) return Boolean
+   is (False);
+   function Selects_Word_On_Long_Press (H : Widget_Handle) return Boolean;
 
    --  Mouse-up within a clickable widget's bounds. Default does nothing.
    procedure On_Click (W : in out Widget) is null;

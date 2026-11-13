@@ -433,6 +433,143 @@ def scroll(dy: int = 0, dx: int = 0, id: int = 0, path: str = "",
     )
 
 
+def _check_aim(name: str, id: int, path: str, x: int, y: int) -> None:
+    #  A widget, when named, wins over the point
+    if id == 0 and not path and (x >= 0) != (y >= 0):
+        raise ValueError(f"{name} needs both x and y, or neither")
+
+
+def _touch(action: str, id: int, path: str, x: int, y: int) -> dict:
+    result = send_command(
+        {"command": "touch", "action": action,
+         "id": id, "path": path, "x": x, "y": y},
+        _target_pid,
+    )
+    if result.get("status") != "ok":
+        raise RuntimeError(result.get("error", "touch failed"))
+    return result
+
+
+@tool
+def tap(id: int = 0, path: str = "", x: int = -1, y: int = -1) -> str:
+    """Tap with a finger: touch down and up at the same point.
+
+    Aim at a widget (id or path), at a point (x and y), or leave all of
+    them out to use the middle of the window. A tap clicks what it lands
+    on, unless that is scrolling, which it stops instead.
+
+    Args:
+        id: Unique widget ID to aim at (takes precedence over path).
+        path: Dot-separated 1-based child indices (e.g. "1.2.3").
+        x: Window X to aim at; used only when no id or path is given.
+        y: Window Y to aim at; used only when no id or path is given.
+
+    Returns the point tapped.
+    """
+    _check_aim("tap", id, path, x, y)
+    result = send_command(
+        {"command": "tap", "id": id, "path": path, "x": x, "y": y},
+        _target_pid,
+    )
+    if result.get("status") != "ok":
+        raise RuntimeError(result.get("error", "tap failed"))
+    return json.dumps({k: result.get(k) for k in ("x", "y")}, indent=2)
+
+
+@tool
+def swipe(dy: int = 0, dx: int = 0, id: int = 0, path: str = "",
+          x: int = -1, y: int = -1, duration_ms: int = 150,
+          steps: int = 10) -> str:
+    """Drag a finger by dx, dy pixels over duration_ms, then lift it.
+
+    Starts at a widget (id or path), at a point (x and y), or at the
+    middle of the window. The content follows the finger: a negative dy
+    (finger moving up) scrolls down. It moves by the travel less the
+    first 8 dp, which only tell a drag from a tap, and a swipe faster
+    than 100 dp/s leaves it moving on. Travel within 8 dp is a tap.
+    On a slider or a scrollbar the finger drags it instead.
+
+    Args:
+        dy: Vertical finger travel in pixels; positive moves down.
+        dx: Horizontal finger travel in pixels; positive moves right.
+        id: Unique widget ID to start on (takes precedence over path).
+        path: Dot-separated 1-based child indices (e.g. "1.2.3").
+        x: Window X to start at; used only when no id or path is given.
+        y: Window Y to start at; used only when no id or path is given.
+        duration_ms: How long the finger takes to travel.
+        steps: How many moves the travel is split into.
+
+    Returns the point the swipe started at.
+    """
+    if dx == 0 and dy == 0:
+        raise ValueError("swipe requires a non-zero dx or dy")
+    if duration_ms <= 0 or steps <= 0:
+        raise ValueError("swipe needs a positive duration_ms and steps")
+    _check_aim("swipe", id, path, x, y)
+    result = send_command(
+        {"command": "swipe", "dy": dy, "dx": dx, "id": id, "path": path,
+         "x": x, "y": y, "duration_ms": duration_ms, "steps": steps},
+        _target_pid,
+    )
+    if result.get("status") != "ok":
+        raise RuntimeError(result.get("error", "swipe failed"))
+    return json.dumps({k: result.get(k) for k in ("x", "y")}, indent=2)
+
+
+@tool
+def long_press(id: int = 0, path: str = "", x: int = -1, y: int = -1,
+               duration_ms: int = 700) -> str:
+    """Hold a finger still for duration_ms, then lift it.
+
+    Held 500 ms or more, it opens the context menu of what it is on, after
+    selecting the word under it in a text widget. Aim as for tap.
+
+    Args:
+        id: Unique widget ID to aim at (takes precedence over path).
+        path: Dot-separated 1-based child indices (e.g. "1.2.3").
+        x: Window X to aim at; used only when no id or path is given.
+        y: Window Y to aim at; used only when no id or path is given.
+        duration_ms: How long the finger rests.
+
+    Returns the point pressed.
+    """
+    if duration_ms <= 0:
+        raise ValueError("long_press needs a positive duration_ms")
+    _check_aim("long_press", id, path, x, y)
+    down = _touch("down", id, path, x, y)
+    time.sleep(duration_ms / 1000)
+    #  Lift where it went down, even if the widget has moved meanwhile
+    _touch("up", 0, "", down["x"], down["y"])
+    return json.dumps({k: down.get(k) for k in ("x", "y")}, indent=2)
+
+
+@tool
+def resize_window(width: int, height: int) -> str:
+    """Resize the window, as dragging its edge to width x height would.
+
+    SDL keeps the window at its minimum, so it may end up larger than
+    asked. Returns the size it got in the same window coordinates as the
+    request, and in pixels, which differ on a HiDPI display.
+
+    Args:
+        width: Requested width in window coordinates.
+        height: Requested height in window coordinates.
+    """
+    if width <= 0 or height <= 0:
+        raise ValueError("resize_window needs a positive width and height")
+    result = send_command(
+        {"command": "resize_window", "width": width, "height": height},
+        _target_pid,
+    )
+    if result.get("status") != "ok":
+        raise RuntimeError(result.get("error", "resize_window failed"))
+    return json.dumps(
+        {k: result.get(k)
+         for k in ("width", "height", "pixel_width", "pixel_height")},
+        indent=2,
+    )
+
+
 @tool
 def quit_app() -> str:
     """Ask the application to exit.

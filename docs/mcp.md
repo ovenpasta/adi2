@@ -104,6 +104,10 @@ Only serving MCP needs the `mcp` package; `--cli` reaches the application throug
 |------|-------------|
 | `click_widget(id, path)` | Simulate mouse click at widget center |
 | `scroll(dy, dx, id, path, x, y)` | Simulate mouse wheel notches. Positive `dy` scrolls up, negative down |
+| `tap(id, path, x, y)` | Finger down and up at one point |
+| `swipe(dy, dx, id, path, x, y, duration_ms, steps)` | Drag a finger by `dx`, `dy` pixels over `duration_ms`, then lift |
+| `long_press(id, path, x, y, duration_ms)` | Hold a finger still, then lift it |
+| `resize_window(width, height)` | Resize the window; returns the size it got |
 | `quit_app()` | Ask the app to exit through its ordinary quit path; a close handler may refuse |
 | `send_keys(keys)` | Send keystrokes to focused widget. Regular chars as text, special keys via `{Name}` syntax |
 | `set_text(id, text)` | Set widget text directly (model mutation, not input simulation) |
@@ -127,6 +131,8 @@ All tools that target a widget accept both `id` (integer) and `path` (string):
 Lookup scans the root widget tree and all overlays. `click_widget` requires an explicit `id` or `path` — omitting both returns an error rather than clicking root.
 
 `scroll` is aimed rather than targeted: a wheel event goes to whichever scrollable widget sits under the pointer, so it takes a widget (`id`/`path`), an explicit point (`x`/`y`), or neither, in which case it uses the middle of the window. It requires a non-zero `dx` or `dy`. Use it to reach parts of a window that are out of view — a scroll container that is not keyboard-focusable cannot be moved with `send_keys`.
+
+`tap`, `swipe` and `long_press` are aimed the same way and go through the window's touch handling (see `docs/architecture.md`, Touch): a swipe scrolls what it starts on by its travel less the first 8 dp (which tell a drag from a tap; a travel within them is a tap), and one faster than 100 dp/s leaves it moving. `tap` and `swipe` complete within one frame, with the times their moves would have had; `long_press` holds the finger for real, so it takes `duration_ms`. `resize_window` is subject to the window minimum, as a drag of the window edge is; it replies with the size the window got in window coordinates, as requested, and in pixels.
 
 ## send_keys Syntax
 

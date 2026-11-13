@@ -79,6 +79,8 @@ package body Adi.App is
            (SDL_Event, SDL_KeyboardEvent);
         function To_Text_Input_Event is new Ada.Unchecked_Conversion
            (SDL_Event, SDL_TextInputEvent);
+        function To_Touch_Finger_Event is new Ada.Unchecked_Conversion
+           (SDL_Event, SDL_TouchFingerEvent);
         pragma Warnings
           (On, "types for unchecked conversion have different sizes");
 
@@ -174,8 +176,13 @@ package body Adi.App is
                             end;
                         end if;
 
+                    --  Touches arrive as finger events below; SDL's mouse
+                    --  copies of them are dropped
                     when SDL_EVENT_MOUSE_MOTION =>
-                        if Have_Main then
+                        if Have_Main
+                          and then To_Mouse_Motion_Event (Event).Which
+                                     /= SDL_TOUCH_MOUSEID
+                        then
                             Convert_Event_To_Render_Coordinates;
                             declare
                                 Motion_Event : constant SDL_MouseMotionEvent :=
@@ -197,7 +204,10 @@ package body Adi.App is
                         end if;
 
                     when SDL_EVENT_MOUSE_BUTTON_DOWN =>
-                        if Have_Main then
+                        if Have_Main
+                          and then To_Mouse_Button_Event (Event).Which
+                                     /= SDL_TOUCH_MOUSEID
+                        then
                             Convert_Event_To_Render_Coordinates;
                             declare
                                 Button_Event : constant SDL_MouseButtonEvent :=
@@ -228,7 +238,10 @@ package body Adi.App is
                         end if;
 
                     when SDL_EVENT_MOUSE_BUTTON_UP =>
-                        if Have_Main then
+                        if Have_Main
+                          and then To_Mouse_Button_Event (Event).Which
+                                     /= SDL_TOUCH_MOUSEID
+                        then
                             Convert_Event_To_Render_Coordinates;
                             declare
                                 Button_Event : constant SDL_MouseButtonEvent :=
@@ -263,6 +276,50 @@ package body Adi.App is
                                     Y       => Adi.Core.Pixel_Type (Wheel_Event.Mouse_Y),
                                     Delta_X => Adi.Core.Pixel_Type (Wheel_Event.X),
                                     Delta_Y => Adi.Core.Pixel_Type (Wheel_Event.Y));
+                            end;
+                        end if;
+
+                    --  A lift may then go to another window
+                    when SDL_EVENT_WINDOW_FOCUS_LOST =>
+                        if Have_Main then
+                            Adi.Window.Cancel_Touch (Main);
+                        end if;
+
+                    when SDL_EVENT_FINGER_DOWN | SDL_EVENT_FINGER_MOTION
+                       | SDL_EVENT_FINGER_UP | SDL_EVENT_FINGER_CANCELED =>
+                        if Have_Main then
+                            Convert_Event_To_Render_Coordinates;
+                            declare
+                                F : constant SDL_TouchFingerEvent :=
+                                   To_Touch_Finger_Event (Event);
+                                Id : constant Adi.Window.Finger_Id :=
+                                   Adi.Window.Finger_Id (F.Finger_ID);
+                                X : constant Adi.Core.Pixel_Type :=
+                                   Adi.Core.Pixel_Type (F.X);
+                                Y : constant Adi.Core.Pixel_Type :=
+                                   Adi.Core.Pixel_Type (F.Y);
+                                --  Nanoseconds, to microsecond precision
+                                Time : constant Duration :=
+                                   Duration (Long_Long_Integer
+                                               (F.Timestamp / 1_000))
+                                   / 1_000_000;
+                            begin
+                                if Event.Event_Type = SDL_EVENT_FINGER_DOWN
+                                then
+                                    Adi.Window.On_Finger_Down
+                                      (Main, Id, X, Y, Time);
+                                elsif Event.Event_Type
+                                        = SDL_EVENT_FINGER_MOTION
+                                then
+                                    Adi.Window.On_Finger_Move
+                                      (Main, Id, X, Y, Time);
+                                elsif Event.Event_Type = SDL_EVENT_FINGER_UP
+                                then
+                                    Adi.Window.On_Finger_Up
+                                      (Main, Id, X, Y, Time);
+                                else
+                                    Adi.Window.On_Finger_Cancel (Main, Id);
+                                end if;
                             end;
                         end if;
 

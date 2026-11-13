@@ -280,6 +280,46 @@ package Adi.Window is
         Repeat   : Boolean);
     procedure On_Text_Input (W : in out Window; Text : String);
 
+    --  A finger on a touchscreen, as SDL numbers it while it is down
+    type Finger_Id is mod 2**64;
+
+    --  Touch input, at points in the same window space as the mouse
+    --  procedures. Time is when the event happened, on any steady clock;
+    --  only differences between events are used, to tell how fast a
+    --  finger moved and how soon one tap followed another.
+    --
+    --  The first finger down is followed until it lifts; the others are
+    --  ignored. A tap is a left click, and a second one soon after at the
+    --  same spot a double click. A drag scrolls the nearest widget under
+    --  the finger with content to scroll and leaves it moving at the
+    --  finger's speed; a widget that is scrolling when touched stops. A
+    --  long press opens the context menu; in a text widget it first
+    --  selects the word under the finger, a drag before lifting selects
+    --  from there to the finger, and the menu opens on lifting. A widget
+    --  flagged Draggable, or a scrollbar, receives the drag as a mouse
+    --  drag instead. Tick advances the press timers.
+    procedure On_Finger_Down
+       (W      : in out Window;
+        Finger : Finger_Id;
+        X, Y   : Pixel_Type;
+        Time   : Duration);
+    procedure On_Finger_Move
+       (W      : in out Window;
+        Finger : Finger_Id;
+        X, Y   : Pixel_Type;
+        Time   : Duration);
+    procedure On_Finger_Up
+       (W      : in out Window;
+        Finger : Finger_Id;
+        X, Y   : Pixel_Type;
+        Time   : Duration);
+    --  The finger was taken over by the system: nothing it began
+    --  completes
+    procedure On_Finger_Cancel (W : in out Window; Finger : Finger_Id);
+    --  The same for whatever finger is being followed, as when the window
+    --  loses focus and its lift may go elsewhere
+    procedure Cancel_Touch (W : in out Window);
+
     ---------------------------------------------------------------------
     --  The same operations by handle.  A handle that no longer resolves
     --  is not an error here: a procedure does nothing, and a function
@@ -304,6 +344,23 @@ package Adi.Window is
        (H      : Window_Handle;
         X, Y   : Pixel_Type;
         Button : Mouse_Button);
+    procedure On_Finger_Down
+       (H      : Window_Handle;
+        Finger : Finger_Id;
+        X, Y   : Pixel_Type;
+        Time   : Duration);
+    procedure On_Finger_Move
+       (H      : Window_Handle;
+        Finger : Finger_Id;
+        X, Y   : Pixel_Type;
+        Time   : Duration);
+    procedure On_Finger_Up
+       (H      : Window_Handle;
+        Finger : Finger_Id;
+        X, Y   : Pixel_Type;
+        Time   : Duration);
+    procedure On_Finger_Cancel (H : Window_Handle; Finger : Finger_Id);
+    procedure Cancel_Touch (H : Window_Handle);
 
     --  Per-frame callback, invoked before animations
     type Tick_Callback is access procedure (DT : Duration);
@@ -529,6 +586,48 @@ private
 
     package Overlay_Vectors is new Ada.Containers.Vectors (Positive, Widget_Handle);
 
+    --  What the finger being followed is doing
+    type Touch_Phase is
+      (Touch_Idle,      --  no finger down
+       Touch_Pending,   --  down: may become a tap, a drag or a long press
+       Touch_Pressed,   --  as Pending, with the pressed style showing
+       Touch_Stopped,   --  stopped a scrolling widget: a drag, never a tap
+       Touch_Captured,  --  delivered as a mouse drag
+       Touch_Panning,   --  scrolling Pan_Target
+       Touch_Spent);    --  done until the finger lifts
+
+    --  Where the finger was, and when, for its speed
+    type Touch_Sample is record
+       Time : Duration   := 0.0;
+       Y    : Pixel_Type := 0.0;
+    end record;
+    type Touch_Sample_Array is array (1 .. 8) of Touch_Sample;
+
+    type Touch_State is record
+       Phase        : Touch_Phase   := Touch_Idle;
+       Finger       : Finger_Id     := 0;
+       Start_X      : Pixel_Type    := 0.0;
+       Start_Y      : Pixel_Type    := 0.0;
+       --  Time since the finger went down, advanced by Tick
+       Held         : Duration      := 0.0;
+       --  The widget showing the pressed style, and its part
+       Pressed      : Widget_Handle := Null_Handle;
+       Pressed_Part : Part_Kind     := Main_Part;
+       --  The widget being scrolled, its offset and the finger's Y when
+       --  the pan began
+       Pan_Target   : Widget_Handle := Null_Handle;
+       Pan_Offset   : Pixel_Type    := 0.0;
+       Pan_Y        : Pixel_Type    := 0.0;
+       --  A long press in a text widget: the finger drags out a
+       --  selection, and the context menu opens when it lifts
+       Menu_On_Lift : Boolean       := False;
+       --  Whether a Tick has come since the finger landed
+       Ticked       : Boolean       := False;
+       --  The latest samples, Samples (Sample_Count mod 8 + 1) next
+       Samples      : Touch_Sample_Array;
+       Sample_Count : Natural       := 0;
+    end record;
+
     type Internal;
     type Internal_Access is access Internal;
     type Window is new Ada.Finalization.Limited_Controlled with record
@@ -548,6 +647,12 @@ private
         Hovered_Part   : Part_Kind     := Main_Part;
         Pressed_Part   : Part_Kind     := Main_Part;
         Scroll_Claimed : Boolean       := False;
+        Touch          : Touch_State;
+        --  The last tap, which the next can make a double tap; event time
+        Last_Tap_Valid : Boolean       := False;
+        Last_Tap_Time  : Duration      := 0.0;
+        Last_Tap_X     : Pixel_Type    := 0.0;
+        Last_Tap_Y     : Pixel_Type    := 0.0;
         Focused_Widget : Widget_Handle := Null_Handle;
         Overlays       : Overlay_Vectors.Vector;
         Root_Font_Size  : Adi.CSS_Styles.Length_Value :=

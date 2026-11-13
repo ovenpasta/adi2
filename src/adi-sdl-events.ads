@@ -12,6 +12,8 @@ package Adi.SDL.Events is
    type SDL_WindowID is new Uint32;
    type SDL_KeyboardID is new Uint32;
    type SDL_MouseID is new Uint32;
+   --  The Which of a mouse event SDL made up from a touch
+   SDL_TOUCH_MOUSEID : constant SDL_MouseID := SDL_MouseID'Last;
    type SDL_JoystickID is new Uint32;
    type SDL_AudioDeviceID is new Uint32;
    type SDL_CameraID is new Uint32;

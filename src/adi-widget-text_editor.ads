@@ -91,6 +91,9 @@ package Adi.Widget.Text_Editor is
      (W : in out Text_Editor_Widget; Text : String);
    overriding procedure On_Focus_Gained (W : in out Text_Editor_Widget);
    overriding procedure On_Focus_Lost (W : in out Text_Editor_Widget);
+   overriding function Selects_Word_On_Long_Press
+     (W : Text_Editor_Widget) return Boolean is (True);
+
    overriding procedure On_Mouse_Down
      (W      : in out Text_Editor_Widget;
       X, Y   : Pixel_Type;

@@ -4,6 +4,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Adi.Image;
+with Adi.Widget.Html_View.Testing;
 
 package body Html_View_Dump is
 
@@ -115,5 +116,29 @@ package body Html_View_Dump is
 
       return To_String (Out_S);
    end Snapshot;
+
+   function Document_Snapshot
+     (W : Adi.Widget.Html_View.Html_View_Handle) return String
+   is
+      use Adi.Widget.Html_View;
+      package T renames Adi.Widget.Html_View.Testing;
+      Out_S : Unbounded_String := Null_Unbounded_String;
+   begin
+      for I in 1 .. T.Document_Item_Count (W) loop
+         Append (Out_S, Item_Line (I, T.Document_Item (W, I)) & ASCII.LF);
+      end loop;
+
+      Append (Out_S,
+              "doc: " & Px_Image (Get_Preferred_Size (+W).Width)
+              & "x" & Px_Image (Get_Preferred_Size (+W).Height) & ASCII.LF);
+
+      for I in 1 .. T.Document_Link_Count (W) loop
+         Append (Out_S,
+                 "link [" & Rect_Image (T.Document_Link_Geometry (W, I)) & "] -> "
+                 & T.Document_Link_Href (W, I) & ASCII.LF);
+      end loop;
+
+      return To_String (Out_S);
+   end Document_Snapshot;
 
 end Html_View_Dump;

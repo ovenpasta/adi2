@@ -209,11 +209,76 @@
     border-radius: 6px;
   }
 
+  .flex-tile-half {
+    width: 45%;
+  }
+
   .flex-chip {
     padding: 3px 10px;
     background-color: rgb(44, 104, 164);
     color: rgb(255, 255, 255);
     border-radius: 999px;
+  }
+  .demo-label {
+    margin: 12px 0px 4px 0px;
+    color: rgb(110, 96, 80);
+    font-size: 13px;
+  }
+
+  .flex-strip {
+    display: flex;
+    gap: 6px;
+    margin: 4px 0px;
+    padding: 6px;
+    background-color: rgb(246, 238, 226);
+    border-radius: 6px;
+  }
+
+  .flex-pill {
+    padding: 3px 10px;
+    background-color: rgb(127, 103, 75);
+    color: rgb(255, 252, 247);
+    border-radius: 999px;
+  }
+
+  .flex-pill-tall {
+    padding: 14px 10px;
+    border-radius: 8px;
+  }
+
+  .flex-panel {
+    padding: 8px 10px;
+    background-color: rgb(252, 248, 240);
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(224, 212, 196);
+    border-radius: 6px;
+  }
+
+  .grid-demo {
+    display: grid;
+    gap: 8px;
+    margin: 6px 0px 12px 0px;
+  }
+
+  .grid-cell {
+    padding: 8px 10px;
+    background-color: rgb(236, 244, 250);
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(190, 211, 228);
+    border-radius: 6px;
+  }
+
+  .grid-cell-strong {
+    background-color: rgb(44, 104, 164);
+    color: rgb(255, 255, 255);
+    border-color: rgb(44, 104, 164);
+  }
+
+  .grid-key {
+    color: rgb(110, 96, 80);
+    font-weight: 600;
   }
 </style>
 
@@ -447,9 +512,120 @@ exactly as for normal blocks.</p>
     <span class="flex-chip">gap: 6px</span>
   </div>
 
+  <p class="demo-label">justify-content: flex-start, center, flex-end, space-around, space-evenly</p>
+  <div class="flex-strip"><span class="flex-pill">one</span><span class="flex-pill">two</span><span class="flex-pill">three</span></div>
+  <div class="flex-strip" style="justify-content: center;"><span class="flex-pill">one</span><span class="flex-pill">two</span><span class="flex-pill">three</span></div>
+  <div class="flex-strip" style="justify-content: flex-end;"><span class="flex-pill">one</span><span class="flex-pill">two</span><span class="flex-pill">three</span></div>
+  <div class="flex-strip" style="justify-content: space-around;"><span class="flex-pill">one</span><span class="flex-pill">two</span><span class="flex-pill">three</span></div>
+  <div class="flex-strip" style="justify-content: space-evenly;"><span class="flex-pill">one</span><span class="flex-pill">two</span><span class="flex-pill">three</span></div>
+
+  <p class="demo-label">align-items: flex-start, center, flex-end, stretch; the last item overrides with align-self: center</p>
+  <div class="flex-strip" style="align-items: flex-start;"><span class="flex-pill flex-pill-tall">tall</span><span class="flex-pill">start</span></div>
+  <div class="flex-strip" style="align-items: center;"><span class="flex-pill flex-pill-tall">tall</span><span class="flex-pill">center</span></div>
+  <div class="flex-strip" style="align-items: flex-end;"><span class="flex-pill flex-pill-tall">tall</span><span class="flex-pill">end</span></div>
+  <div class="flex-strip"><span class="flex-pill flex-pill-tall">tall</span><span class="flex-pill">stretched</span><span class="flex-pill" style="align-self: center;">self: center</span></div>
+
+  <p class="demo-label">row-reverse and column-reverse</p>
+  <div class="flex-strip" style="flex-direction: row-reverse;"><span class="flex-pill">first</span><span class="flex-pill">second</span><span class="flex-pill">third</span></div>
+  <div class="flex-strip" style="flex-direction: column-reverse; align-items: flex-start;"><span class="flex-pill">first</span><span class="flex-pill">second</span></div>
+
+  <p class="demo-label">flex-shrink: 0 sidebar, min-width and max-width</p>
+  <div class="flex-row">
+    <div class="flex-panel" style="width: 140px; flex-shrink: 0;">Fixed 140px, never shrinks</div>
+    <div class="flex-panel">Shrinks and wraps its text when the window gets narrow, while the sidebar keeps its width.</div>
+  </div>
+  <div class="flex-row">
+    <div class="flex-panel" style="flex-grow: 1; min-width: 180px;">min-width: 180px</div>
+    <div class="flex-panel" style="flex-grow: 1; max-width: 120px;">max-width: 120px caps this one</div>
+    <div class="flex-panel" style="flex-grow: 1;">grows</div>
+  </div>
+
+  <p class="demo-label">Three tiles at 45% wrap two to a line: flex-wrap: wrap-reverse, then align-content: space-between in a 150px container</p>
+  <div class="flex-wrap" style="flex-wrap: wrap-reverse;">
+    <div class="flex-tile flex-tile-half">Tile 1</div>
+    <div class="flex-tile flex-tile-half">Tile 2</div>
+    <div class="flex-tile flex-tile-half">Tile 3</div>
+  </div>
+  <div class="flex-wrap" style="height: 150px; align-content: space-between; background-color: rgb(236, 244, 250);">
+    <div class="flex-tile flex-tile-half">Tile 1</div>
+    <div class="flex-tile flex-tile-half">Tile 2</div>
+    <div class="flex-tile flex-tile-half">Tile 3</div>
+  </div>
+
+  <p class="demo-label">Text between elements becomes an item of its own; items nest</p>
+  <div class="flex-row" style="align-items: center;">
+    Loose text, then <span class="flex-pill">a span item</span> and <a href="app://flex/link">a link item</a>,
+    <div class="flex-panel"><div class="flex-strip" style="margin: 0px;"><span class="flex-pill">nested</span><span class="flex-pill">flex</span></div></div>
+  </div>
+
   <hr>
 
-  <h2>12) Long Scroll Content</h2>
+  <h2>12) Grid Layout</h2>
+  <p class="demo-label">grid-template-columns: repeat(3, 1fr)</p>
+  <div class="grid-demo" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="grid-cell">One</div>
+    <div class="grid-cell">Two</div>
+    <div class="grid-cell">Three, with text long enough to wrap and make its row taller</div>
+    <div class="grid-cell">Four</div>
+    <div class="grid-cell">Five</div>
+    <div class="grid-cell">Six</div>
+  </div>
+
+  <p class="demo-label">grid-template-columns: 140px 1fr</p>
+  <div class="grid-demo" style="grid-template-columns: 140px 1fr;">
+    <div class="grid-cell grid-cell-strong">Sidebar</div>
+    <div class="grid-cell">The main column takes the rest of the width and wraps when the window narrows.</div>
+  </div>
+
+  <p class="demo-label">grid-template-columns: auto 1fr, with column-gap and row-gap</p>
+  <div class="grid-demo" style="grid-template-columns: auto 1fr; column-gap: 16px; row-gap: 4px;">
+    <span class="grid-key">Name</span><span>Ada Lovelace</span>
+    <span class="grid-key">Occupation</span><span>Mathematician and writer</span>
+    <span class="grid-key">Known for</span><span>The first published algorithm</span>
+  </div>
+
+  <p class="demo-label">Spans and auto-placement around them; explicit placement</p>
+  <div class="grid-demo" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="grid-cell grid-cell-strong" style="grid-column: span 2;">grid-column: span 2</div>
+    <div class="grid-cell grid-cell-strong" style="grid-row: span 2;">grid-row: span 2</div>
+    <div class="grid-cell">auto</div>
+    <div class="grid-cell">auto</div>
+    <div class="grid-cell">auto</div>
+    <div class="grid-cell">auto</div>
+    <div class="grid-cell grid-cell-strong" style="grid-column: 4; grid-row: 3;">column 4, row 3</div>
+  </div>
+
+  <p class="demo-label">grid-template-rows: repeat(2, 1fr) in a 140px container</p>
+  <div class="grid-demo" style="grid-template-columns: 1fr 1fr; grid-template-rows: repeat(2, 1fr); height: 140px;">
+    <div class="grid-cell">Rows share</div>
+    <div class="grid-cell">the declared</div>
+    <div class="grid-cell">height</div>
+    <div class="grid-cell">equally</div>
+  </div>
+
+  <p class="demo-label">Sizes inside cells: width: 50%, max-width, margins</p>
+  <div class="grid-demo" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="grid-cell" style="width: 50%;">width: 50% of its cell</div>
+    <div class="grid-cell" style="max-width: 90px;">max-width: 90px</div>
+    <div class="grid-cell" style="margin: 8px 16px;">margin: 8px 16px</div>
+  </div>
+
+  <p class="demo-label">Grid inside flex, flex inside grid</p>
+  <div class="flex-row">
+    <div class="flex-panel">
+      <div class="grid-demo" style="grid-template-columns: 1fr 1fr; margin: 0px;">
+        <span class="flex-pill">grid</span><span class="flex-pill">in a flex item</span>
+      </div>
+    </div>
+    <div class="grid-demo" style="grid-template-columns: 1fr 1fr; margin: 0px; flex-grow: 1;">
+      <div class="grid-cell"><div class="flex-strip" style="margin: 0px;"><span class="flex-pill">flex</span><span class="flex-pill">in a cell</span></div></div>
+      <div class="grid-cell">plain cell</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <h2>13) Long Scroll Content</h2>
   <p>Row 01: The quick brown fox jumps over the lazy dog.</p>
   <p>Row 02: Pack my box with five dozen liquor jugs.</p>
   <p>Row 03: Sphinx of black quartz, judge my vow.</p>

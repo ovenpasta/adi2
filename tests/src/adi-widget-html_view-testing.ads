@@ -15,4 +15,15 @@ package Adi.Widget.Html_View.Testing is
 
    function Layout_Pass_Count (H : Html_View_Handle) return Layout_Pass_Counter;
 
+   --  The last layout of the whole document, in document space and
+   --  regardless of the viewport: item 1 is a placeholder for the
+   --  widget's own box.
+   function Document_Item_Count (H : Html_View_Handle) return Natural;
+   function Document_Item (H : Html_View_Handle; I : Positive) return Item;
+
+   function Document_Link_Count (H : Html_View_Handle) return Natural;
+   function Document_Link_Geometry
+     (H : Html_View_Handle; I : Positive) return Rectangle;
+   function Document_Link_Href (H : Html_View_Handle; I : Positive) return String;
+
 end Adi.Widget.Html_View.Testing;

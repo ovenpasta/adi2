@@ -30,4 +30,9 @@ package Html_View_Dump is
    --  the middle of each text item.
    function Snapshot (W : Adi.Widget.Html_View.Html_View_Handle) return String;
 
+   --  Every item and link of the document as last laid out, in document
+   --  space, whatever part of it the viewport shows.
+   function Document_Snapshot
+     (W : Adi.Widget.Html_View.Html_View_Handle) return String;
+
 end Html_View_Dump;

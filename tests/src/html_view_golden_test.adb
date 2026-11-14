@@ -21,7 +21,9 @@ with Test_Support;
 
 --  Lays out every tests/html/layout/*.html in each of Passes, under
 --  tests/html/layout/default.css and the vendored Open Sans, and holds
---  the result against tests/goldens/html/<name>.txt.
+--  the result against tests/goldens/html/<name>.txt. The html_view
+--  example's document is the case `example`, under its own stylesheets
+--  and assets.
 --
 --  `tests/bin/html_view_golden_test --update` rewrites the goldens.
 procedure Html_View_Golden_Test is
@@ -34,6 +36,19 @@ procedure Html_View_Golden_Test is
    Golden_Dir : constant String := "tests/goldens/html";
    Stylesheet : constant String := Case_Dir & "/default.css";
    Font_Dir   : constant String := "vendor/open-sans/static";
+   Asset_Dir  : constant String := "examples/assets";
+
+   --  What a case lays out and how it is recorded. A Whole_Document case
+   --  sits in a fixed view of ordinary height, so vh is not the culling
+   --  height, and is recorded from the document layout rather than the
+   --  viewport's items.
+   type Case_Source is record
+      Name           : Unbounded_String;
+      HTML           : Unbounded_String;
+      Stylesheet     : Unbounded_String;
+      View_H         : Pixel_Type;
+      Whole_Document : Boolean;
+   end record;
 
    --  A view width and content scale. Twice the scale in twice the width
    --  lays out at about twice the size, so a length that misses the
@@ -56,14 +71,53 @@ procedure Html_View_Golden_Test is
 
    Cat : Adi.Image.Image_Owner := Adi.Image.Null_Image_Owner;
 
+   --  Images the example's document names as app://<file>, loaded from
+   --  Asset_Dir once and held for the run.
+   type Owned_Image is record
+      URI   : Unbounded_String;
+      Owner : Adi.Image.Image_Owner;
+   end record;
+   package Owned_Image_Vectors is new Ada.Containers.Vectors (Positive, Owned_Image);
+   Owned : Owned_Image_Vectors.Vector;
+
+   App : constant String := "app://";
+
+   function App_Path (URI : String) return String is
+     (if URI'Length > App'Length
+        and then URI (URI'First .. URI'First + App'Length - 1) = App
+      then Asset_Dir & "/" & URI (URI'First + App'Length .. URI'Last)
+      else "");
+
    function Load_Asset (Self : HV.Html_View_Handle; URI : String)
      return Adi.Image.Image_Handle
    is
       pragma Unreferenced (Self);
+      Path : constant String := App_Path (URI);
    begin
-      return (if URI = "cat.svg" then Adi.Image.To_Handle (Cat)
-              else Adi.Image.Null_Image_Handle);
+      if URI = "cat.svg" then
+         return Adi.Image.To_Handle (Cat);
+      end if;
+      if Path = "" or else not Ada.Directories.Exists (Path) then
+         return Adi.Image.Null_Image_Handle;
+      end if;
+      for O of Owned loop
+         if O.URI = URI then
+            return Adi.Image.To_Handle (O.Owner);
+         end if;
+      end loop;
+      Owned.Append (Owned_Image'(To_Unbounded_String (URI), Adi.Image.Load_From_File (Path)));
+      return Adi.Image.To_Handle (Owned.Last_Element.Owner);
    end Load_Asset;
+
+   function Read_File (Path : String) return String;
+
+   function Load_Resource (Self : HV.Html_View_Handle; URI : String) return String is
+      pragma Unreferenced (Self);
+      Path : constant String := App_Path (URI);
+   begin
+      return (if Path /= "" and then Ada.Directories.Exists (Path)
+              then Read_File (Path) else "");
+   end Load_Resource;
 
    function Read_File (Path : String) return String is
       use Ada.Streams.Stream_IO;
@@ -91,26 +145,29 @@ procedure Html_View_Golden_Test is
    function Width_Image (W : Pixel_Type) return String is
      (Ada.Strings.Fixed.Trim (Integer'Image (Integer (W)), Ada.Strings.Both));
 
-   function Lay_Out (HTML : String; Name : String) return String is
+   function Lay_Out (Src : Case_Source) return String is
+      Name  : constant String := To_String (Src.Name);
       Out_S : Unbounded_String;
    begin
       for P of Passes loop
          declare
             View : constant HV.Html_View_Handle := HV.Create_Handle;
             W    : constant Pixel_Type := P.Width;
-            H    : constant Pixel_Type := View_H * P.Scale;
+            H    : constant Pixel_Type := Src.View_H * P.Scale;
          begin
             HV.Set_Content_Scale (View, P.Scale);
-            HV.Set_Default_Stylesheet (View, Stylesheet);
+            HV.Set_Default_Stylesheet (View, To_String (Src.Stylesheet));
             HV.Set_On_Load_Asset (View, Load_Asset'Unrestricted_Access);
+            HV.Set_On_Load_Resource (View, Load_Resource'Unrestricted_Access);
             HV.Connect_Link_Click (View, Html_View_Dump.Record_Link'Access);
-            HV.Set_HTML (View, HTML);
+            HV.Set_HTML (View, Read_File (To_String (Src.HTML)));
             Adi.Widget.Set_Geometry
               (+View, (X => 0.0, Y => 0.0, Width => W, Height => H));
             Adi.Widget.Build_Items (+View);
 
             Test_Support.Assert
-              (Adi.Widget.Get_Preferred_Size (+View).Height <= H,
+              (Src.Whole_Document
+               or else Adi.Widget.Get_Preferred_Size (+View).Height <= H,
                Name & " fits the " & Width_Image (H) & " px view at width "
                & Width_Image (W));
 
@@ -119,7 +176,10 @@ procedure Html_View_Golden_Test is
                     & (if P.Scale = 1.0 then ""
                        else " scale " & Width_Image (P.Scale))
                     & ASCII.LF);
-            Append (Out_S, Html_View_Dump.Snapshot (View));
+            Append (Out_S,
+                    (if Src.Whole_Document
+                     then Html_View_Dump.Document_Snapshot (View)
+                     else Html_View_Dump.Snapshot (View)));
             declare
                Handle : Adi.Widget.Widget_Handle := +View;
             begin
@@ -169,10 +229,10 @@ procedure Html_View_Golden_Test is
       end loop;
    end Report_Difference;
 
-   procedure Check_Case (Name : String) is
+   procedure Check_Case (Src : Case_Source) is
+      Name   : constant String := To_String (Src.Name);
       Golden : constant String := Golden_Dir & "/" & Name & ".txt";
-      Actual : constant String :=
-        Lay_Out (Read_File (Case_Dir & "/" & Name & ".html"), Name);
+      Actual : constant String := Lay_Out (Src);
    begin
       if Update then
          Write_File (Golden, Actual);
@@ -236,6 +296,20 @@ procedure Html_View_Golden_Test is
          "Open Sans " & Face & " loads into the Regular family");
    end Load_Face;
 
+   Monospace : Adi.CSS_Styles.Font_Handle := Adi.CSS_Styles.Null_Font;
+
+   procedure Load_Monospace (Face : String) is
+      H : constant Adi.CSS_Styles.Font_Handle :=
+        Adi.Font.Load (Font_Dir & "/OpenSans_Condensed-" & Face & ".ttf", "monospace");
+   begin
+      if Monospace = Adi.CSS_Styles.Null_Font then
+         Monospace := H;
+      end if;
+      Test_Support.Assert
+        (H /= Adi.CSS_Styles.Null_Font and then H = Monospace,
+         "Open Sans Condensed " & Face & " loads as monospace");
+   end Load_Monospace;
+
 begin
    Test_Support.Start_Suite ("html_view_golden_test");
 
@@ -261,6 +335,13 @@ begin
    Load_Face ("BoldItalic");
    Adi.Font.Set_Default_Font (Regular);
 
+   --  The example's stylesheet asks for monospace, which would otherwise
+   --  be whatever the machine has.
+   Load_Monospace ("Regular");
+   Load_Monospace ("Bold");
+   Load_Monospace ("Italic");
+   Load_Monospace ("BoldItalic");
+
    Cat := Adi.Image.Load_From_File ("tests/assets/cat.svg");
 
    if Update and then not Ada.Directories.Exists (Golden_Dir) then
@@ -268,11 +349,27 @@ begin
    end if;
 
    declare
-      Cases : constant Name_Vectors.Vector := Names_In (Case_Dir, "*.html");
+      Cases : Name_Vectors.Vector := Names_In (Case_Dir, "*.html");
    begin
       for Name of Cases loop
-         Check_Case (To_String (Name));
+         Check_Case
+           ((Name           => Name,
+             HTML           => To_Unbounded_String (Case_Dir & "/" & To_String (Name) & ".html"),
+             Stylesheet     => To_Unbounded_String (Stylesheet),
+             View_H         => View_H,
+             Whole_Document => False));
       end loop;
+
+      Test_Support.Assert
+        (not Cases.Contains (To_Unbounded_String ("example")),
+         Case_Dir & " has no case named example");
+      Check_Case
+        ((Name           => To_Unbounded_String ("example"),
+          HTML           => To_Unbounded_String (Asset_Dir & "/html_view_example.html"),
+          Stylesheet     => To_Unbounded_String (Asset_Dir & "/html/default.css"),
+          View_H         => 800.0,
+          Whole_Document => True));
+      Cases.Append (To_Unbounded_String ("example"));
 
       for Golden of Names_In (Golden_Dir, "*.txt") loop
          Test_Support.Assert

@@ -150,3 +150,11 @@ A new case is a new `.html` file there, recorded with `--update`. An
 `img src="cat.svg"` resolves to `tests/assets/cat.svg`; any other source
 is missing. As with the widget trees, read every changed line before
 accepting it.
+
+The case `example` is the html_view example's own document,
+`examples/assets/html_view_example.html`, under its `html/default.css`,
+with `app://` images and stylesheets read from `examples/assets` and
+`monospace` pinned to the vendored Open Sans Condensed. It lays out in
+the same three passes, in a fixed view 800 high, and is recorded from the
+whole document layout rather than the viewport. A feature the example
+shows is pinned there.

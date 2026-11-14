@@ -53,6 +53,7 @@ tools/__pycache__/
 /wasm/obj/
 /wasm/build/
 /wasm/dist/
+/wasm/alire/
 
 # Adi.Log writes here when the platform has no console.
 debug.log

@@ -5,13 +5,14 @@
 #  compiled once with emcc into obj/plutosvg/; emcc links everything with
 #  the static SDL3 wasm libs into build/<example>.html/.js/.wasm.
 #
-#    make EXAMPLE=label_example
+#    alr exec -- make EXAMPLE=label_example SDL3_ROOT=...
 #    make serve            # http://localhost:8000/label_example.html
 #
-#  Prerequisites (see FINDINGS.md):
-#    - GNAT-LLVM built with the wasm EH runtime: make wasm-emcc-eh
-#    - SDL3 / SDL3_ttf / SDL3_image wasm prefixes (adawebpack sdl3 examples)
-#    - emscripten
+#  Prerequisites (README.md):
+#    - the gnat_llvm Alire toolchain, which alire.toml here depends on:
+#      alr exec provides GNAT_LLVM_PREFIX and puts its compilers on PATH
+#    - SDL3 / SDL3_ttf / SDL3_image wasm prefixes under SDL3_ROOT
+#    - Emscripten (emsdk) with emcc on PATH
 #
 #  The desktop build (../adi.gpr, alr) is completely independent of this.
 
@@ -27,37 +28,37 @@ EXAMPLE ?= label_example
 #  showcase reuses desktop example code unchanged.
 LOOP ?= blocking
 
-#  Your gnat-llvm checkout's llvm-interface directory. No default: it is
-#  a checkout path, not a system one, so a wrong guess fails deep in the
-#  link with a missing runtime rather than here.
-#  Named rather than excluded, so a mistyped goal reaches make and is
-#  reported as one instead of as a missing toolchain.
+#  Set by the gnat_llvm Alire toolchain under alr exec, along with its
+#  compilers on PATH. Named rather than excluded, so a mistyped goal
+#  reaches make and is reported as one instead of as a missing toolchain.
 TOOLCHAIN_GOALS := all showcase dist ada-objs
 ifneq ($(filter $(TOOLCHAIN_GOALS),$(or $(MAKECMDGOALS),$(.DEFAULT_GOAL))),)
-ifndef LLVM_INTERFACE_DIR
-$(error LLVM_INTERFACE_DIR is not set. Point it at the llvm-interface directory of your gnat-llvm checkout, e.g. make $(or $(MAKECMDGOALS),$(.DEFAULT_GOAL)) LLVM_INTERFACE_DIR=/path/to/gnat-llvm/llvm-interface)
+ifndef GNAT_LLVM_PREFIX
+$(error GNAT_LLVM_PREFIX is not set. Run make under alr exec, which sets it from the gnat_llvm toolchain: alr exec -- make $(or $(MAKECMDGOALS),$(.DEFAULT_GOAL)))
+endif
+#  No default: where the SDL builds live is the builder's choice, and a
+#  wrong guess would fail deep in the link
+ifndef SDL3_ROOT
+$(error SDL3_ROOT is not set. Point it at the directory holding sdl3-prefix, sdl3-ttf-prefix and sdl3-image-prefix (README.md says how to build them))
 endif
 endif
 
-LLVM_BIN_DIR ?= $(LLVM_INTERFACE_DIR)/bin
-LLVM_SYS_BIN ?= /usr/lib/llvm21/bin
-LLVM_LIBRARY_PATH ?= /usr/lib/llvm21/lib
-
-ADA_RTS ?= $(LLVM_INTERFACE_DIR)/lib/gnat-llvm/wasm32/rts-wasm-emcc-eh
+ADA_RTS ?= $(GNAT_LLVM_PREFIX)/lib/gnat-llvm/wasm32/rts-wasm-emcc-eh
 ADA_RUNTIME_LIB = $(ADA_RTS)/adalib/libgnat.a
 
-#  All three SDL prefixes come from adawebpack's sdl3 examples, whose
-#  README builds them with -fwasm-exceptions (required: freetype inside
+#  All three built with -fwasm-exceptions (required: freetype inside
 #  SDL3_ttf uses setjmp/longjmp, and JS-based SJLJ cannot be mixed with
 #  wasm EH in one link).
-SDL3_ROOT ?= $(LLVM_INTERFACE_DIR)/adawebpack_src/examples/sdl3
 SDL3_PREFIX ?= $(SDL3_ROOT)/sdl3-prefix
 SDL3_TTF_PREFIX ?= $(SDL3_ROOT)/sdl3-ttf-prefix
 SDL3_IMAGE_PREFIX ?= $(SDL3_ROOT)/sdl3-image-prefix
 
-EMCC ?= /usr/lib/emscripten/emcc
-EMXX ?= /usr/lib/emscripten/em++
-EM_CACHE ?= /tmp/emscripten-cache
+#  From emsdk, on PATH
+EMCC ?= emcc
+EMXX ?= em++
+#  Emscripten's cache, if not its own (which must be writable)
+EM_CACHE ?=
+EM_ENV = $(if $(EM_CACHE),EM_CACHE=$(EM_CACHE))
 GPRBUILD ?= gprbuild
 
 #  Runtime files the examples expect, mounted at the same example-relative
@@ -138,11 +139,11 @@ $(RL_DIR)/src/vector/freetype:$(RL_DIR)/src/vector/stb:$(RL_DIR)/src/binding/c
 
 obj/plutosvg/%.o: %.c
 	@mkdir -p obj/plutosvg
-	EM_CACHE=$(EM_CACHE) $(EMCC) $(PLUTO_CFLAGS) -c $< -o $@
+	$(EM_ENV) $(EMCC) $(PLUTO_CFLAGS) -c $< -o $@
 
 obj/rlottie/%.o: %.cpp
 	@mkdir -p obj/rlottie
-	EM_CACHE=$(EM_CACHE) $(EMXX) $(RL_CXXFLAGS) -c $< -o $@
+	$(EM_ENV) $(EMXX) $(RL_CXXFLAGS) -c $< -o $@
 
 #  ---- Ada compile + bind ----
 #  .PHONY so gprbuild's own dependency tracking decides what to rebuild.
@@ -151,7 +152,6 @@ obj/rlottie/%.o: %.cpp
 #  showcase loop is careful to avoid.
 .PHONY: ada-objs
 ada-objs:
-	PATH=$(LLVM_SYS_BIN):$(LLVM_BIN_DIR):$$PATH LD_LIBRARY_PATH=$(LLVM_LIBRARY_PATH) \
 	$(GPRBUILD) --target=llvm --RTS=$(ADA_RTS) -c -b -p -j0 \
 	  -P adi_wasm.gpr -XWASM_EXAMPLE=$(EXAMPLE) -XWASM_MAIN_LOOP=$(LOOP)
 
@@ -170,7 +170,7 @@ SHELL_FILE = site/shell.html
 build/$(EXAMPLE).html: ada-objs $(PLUTO_OBJS) $(RL_OBJS) $(ADA_JS_LIBRARY) $(ENV_PRE_JS) $(SHELL_FILE)
 	@mkdir -p build
 	objs="$$(ls obj/$(LOOP)/*.o | grep -v -E '/($(MAINS_RE))\.o$$')"; \
-	EM_CACHE=$(EM_CACHE) $(EMCC) $(EMCC_FLAGS) \
+	$(EM_ENV) $(EMCC) $(EMCC_FLAGS) \
 	  --shell-file $(SHELL_FILE) \
 	  $(PRE_JS_FLAGS) --js-library $(ADA_JS_LIBRARY) \
 	  $$objs \

@@ -5,40 +5,53 @@ WebAssembly build of the Adi2 examples. Live demo:
 
 ## Toolchain
 
-Two forks provide the compiler and the WASM Ada runtime, prebuilt
-instructions included in their READMEs:
+- **GNAT-LLVM**, prebuilt as the `gnat_llvm` Alire toolchain, with the
+  wasm runtimes. `alire.toml` here depends on it; add its index once:
 
-- <https://github.com/ovenpasta/gnat-llvm> — GNAT-LLVM with the wasm32
-  target (build the EH runtime: `make wasm-emcc-eh`)
-- <https://github.com/ovenpasta/adawebpack> — WASM RTS overrides, JS
-  glue, and the SDL3/SDL3_ttf/SDL3_image wasm prefixes, all built with
-  `-fwasm-exceptions` per its sdl3 examples README (checked out inside
-  gnat-llvm as `llvm-interface/adawebpack_src`)
+  ```sh
+  alr index --add git+https://github.com/ovenpasta/alire-index-gnat-llvm --name gnat_llvm
+  ```
 
-Plus a system `emscripten`.
+  Under `alr exec` it sets `GNAT_LLVM_PREFIX` and puts its compiler,
+  clang and wasm-ld on `PATH`. The desktop build keeps its own compiler.
+- **Emscripten 5.0.2**, from emsdk, with `emcc` on `PATH`:
+
+  ```sh
+  git clone https://github.com/emscripten-core/emsdk.git ~/emsdk
+  ~/emsdk/emsdk install 5.0.2 && ~/emsdk/emsdk activate 5.0.2
+  source ~/emsdk/emsdk_env.sh      # in each shell that builds
+  ```
+
+- **SDL3 3.4.2, SDL3_image 3.4.0 and SDL3_ttf 3.2.2** built for
+  Emscripten with `-fwasm-exceptions`, installed as `sdl3-prefix`,
+  `sdl3-image-prefix` and `sdl3-ttf-prefix` in one directory. The
+  commands are in adawebpack's
+  [`examples/sdl3/README.md`](https://github.com/ovenpasta/adawebpack/blob/master/examples/sdl3/README.md);
+  they need `cmake` and `ninja`.
 
 Makefile variables, override as needed:
 
-| Variable             | Value                                |
-|----------------------|--------------------------------------|
-| `LLVM_INTERFACE_DIR` | *(required)* — your gnat-llvm checkout's `llvm-interface` |
-| `LLVM_SYS_BIN`       | `/usr/lib/llvm21/bin`                |
-| `EMCC`               | `/usr/lib/emscripten/emcc`           |
-| `GPRBUILD`           | `gprbuild` (use `alr exec -- gprbuild` under Alire) |
+| Variable           | Value                                          |
+|--------------------|------------------------------------------------|
+| `SDL3_ROOT`        | *(required)* — the directory holding the three SDL prefixes |
+| `GNAT_LLVM_PREFIX` | set by `alr exec`                              |
+| `EMCC`, `EMXX`     | `emcc`, `em++`                                 |
+| `EM_CACHE`         | Emscripten's own cache                         |
+| `GPRBUILD`         | `gprbuild`                                     |
 
 ## Build and run
 
 ```sh
 cd wasm
+source ~/emsdk/emsdk_env.sh
 #  Exported once: every build goal needs it, only serve/serve-dist/clean do not.
-export LLVM_INTERFACE_DIR=/path/to/gnat-llvm/llvm-interface
-export GPRBUILD="alr exec -- gprbuild"   # under Alire
+export SDL3_ROOT=/path/to/sdl3
 
-make EXAMPLE=button_example
-make serve            # http://localhost:8000/button_example.html
-make showcase         # every browser-capable example + index page
-make dist             # publishable copy of the above
-make serve-dist       # http://localhost:8000/ against that copy
+alr exec -- make EXAMPLE=button_example
+make serve                    # http://localhost:8000/button_example.html
+alr exec -- make showcase     # every browser-capable example + index page
+alr exec -- make dist         # publishable copy of the above
+make serve-dist               # http://localhost:8000/ against that copy
 ```
 
 Two output directories:
@@ -92,7 +105,7 @@ builds if you ship both.
 
 ## What the showcase contains
 
-`make showcase` builds 24 of the 27 example mains. `html_view_example`
+`make showcase` builds 25 of the 28 example mains. `html_view_example`
 and `material_demo` reach `Adi.MCP`, which resolves to the
 `src/mcp_stub` no-ops; `combo_box_example` and `label_example` use
 Settings, which work for the session over MEMFS. Three are excluded:
@@ -120,7 +133,7 @@ session — an IDBFS mount plus `syncfs` glue would lift that last one.
   globs every object in the shared per-mode object dir, and gprbuild
   only refreshes the closure of the example it is building, so objects
   left from an older source state are linked as they are. `make dist`
-  depends on `showcase`, which rebuilds all 24, but a one-off
+  depends on `showcase`, which rebuilds all 25, but a one-off
   `make EXAMPLE=foo` against a dirty dir will mix source generations.
   The tell is a `wasm-ld` signature mismatch naming an `obj/` file.
 - **Do not add `-gnatW8`.** Generated UI packages carry raw UTF-8 in
@@ -130,10 +143,6 @@ session — an IDBFS mount plus `syncfs` glue would lift that last one.
 
 Warnings that are expected and not worth chasing:
 
-- `wasm-ld` signature mismatches for `__gnat_dup2`, `__gnat_lseek` and
-  `strncpy` between `s-os_lib.o` (procedure imports) and
-  `adaint.o`/libc (int-returning). An RTS wart, harmless unless those
-  routines are called; worth fixing in adawebpack.
 - `cannot pass "FG"/"BG" by copy` on `Adi.SDL.TTF`'s LCD render
   bindings — adi2 never calls the LCD functions.
 - `-sJSPI (ASYNCIFY=2) is still experimental` from emcc.

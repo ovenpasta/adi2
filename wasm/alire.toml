@@ -1,0 +1,16 @@
+name = "adi2_wasm"
+description = "WebAssembly build of the Adi2 examples (GNAT-LLVM, Emscripten)"
+version = "0.9.0"
+
+authors = ["Aldo Nicolas Bruno"]
+maintainers = ["Aldo Nicolas Bruno <ovenpasta@pizzahack.eu>"]
+maintainers-logins = ["ovenpasta"]
+licenses = "Apache-2.0"
+project-files = ["adi_wasm.gpr"]
+
+#  The toolchain only: the Makefile builds, under alr exec (README.md)
+[configuration]
+disabled = true
+
+[[depends-on]]
+gnat_llvm = "^16.1.0"

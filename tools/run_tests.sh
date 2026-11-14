@@ -42,6 +42,16 @@ bash "$(dirname "$0")/ensure_build_config.sh" || exit 1
 #  golden builds below as well.
 export ADI_BUILD_PROFILE="${ADI_BUILD_PROFILE:-development}"
 
+#  GNU timeout, which Homebrew's coreutils installs as gtimeout
+if command -v timeout > /dev/null; then
+  TIMEOUT=timeout
+elif command -v gtimeout > /dev/null; then
+  TIMEOUT=gtimeout
+else
+  echo "run_tests.sh needs GNU timeout (on macOS: brew install coreutils)" >&2
+  exit 1
+fi
+
 #  Run one command under a time limit and report. $1 is the label, $2 the
 #  limit in seconds, the rest is the command. Exit 124 is timeout's own
 #  "expired"; 137 is the follow-up KILL for a process that ignored the
@@ -49,7 +59,7 @@ export ADI_BUILD_PROFILE="${ADI_BUILD_PROFILE:-development}"
 run_one () {
   local label="$1" limit="$2"; shift 2
   local out rc
-  out=$(timeout --kill-after=10 "$limit" "$@" 2>&1)
+  out=$("$TIMEOUT" --kill-after=10 "$limit" "$@" 2>&1)
   rc=$?
   if [[ $rc -eq 0 ]]; then
     echo "PASS $label"

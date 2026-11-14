@@ -1,0 +1,76 @@
+== width 640
+1: PANEL_ITEM MAIN_PART z=0 [0.00,0.00 640.00x2000.00]
+2: PANEL_ITEM ANY_PART z=0 [0.00,0.00 640.00x63.00] override
+3: TEXT_ITEM TEXT_PART z=1 [0.00,0.00 64.00x21.00] override wrap=FALSE off=0.00,0.00 text="pre keeps"
+4: TEXT_ITEM TEXT_PART z=1 [0.00,21.00 166.00x21.00] override wrap=FALSE off=0.00,0.00 text="    indentation   and   runs"
+5: TEXT_ITEM TEXT_PART z=1 [0.00,42.00 61.00x21.00] override wrap=FALSE off=0.00,0.00 text="of spaces"
+6: PANEL_ITEM ANY_PART z=0 [0.00,79.00 640.00x48.00] override
+7: TEXT_ITEM TEXT_PART z=1 [0.00,79.00 179.00x24.00] override wrap=FALSE off=0.00,0.00 text="pre-wrap keeps   spaces"
+8: TEXT_ITEM TEXT_PART z=1 [0.00,103.00 531.00x24.00] override wrap=FALSE off=0.00,0.00 text="and newlines but still wraps when a line is longer than the width allows."
+9: PANEL_ITEM ANY_PART z=0 [0.00,143.00 640.00x48.00] override
+10: TEXT_ITEM TEXT_PART z=1 [0.00,143.00 57.00x24.00] override wrap=FALSE off=0.00,0.00 text="pre-line"
+11: TEXT_ITEM TEXT_PART z=1 [57.00,143.00 72.00x24.00] override wrap=FALSE off=0.00,0.00 text=" collapses"
+12: TEXT_ITEM TEXT_PART z=1 [129.00,143.00 54.00x24.00] override wrap=FALSE off=0.00,0.00 text=" spaces"
+13: TEXT_ITEM TEXT_PART z=1 [0.00,167.00 25.00x24.00] override wrap=FALSE off=0.00,0.00 text="but"
+14: TEXT_ITEM TEXT_PART z=1 [25.00,167.00 47.00x24.00] override wrap=FALSE off=0.00,0.00 text=" keeps"
+15: TEXT_ITEM TEXT_PART z=1 [72.00,167.00 74.00x24.00] override wrap=FALSE off=0.00,0.00 text=" newlines."
+16: PANEL_ITEM ANY_PART z=0 [0.00,207.00 640.00x24.00] override
+17: TEXT_ITEM TEXT_PART z=1 [0.00,207.00 57.00x24.00] override wrap=FALSE off=0.00,0.00 text="nowrap"
+18: TEXT_ITEM TEXT_PART z=1 [57.00,207.00 47.00x24.00] override wrap=FALSE off=0.00,0.00 text=" keeps"
+19: TEXT_ITEM TEXT_PART z=1 [104.00,207.00 31.00x24.00] override wrap=FALSE off=0.00,0.00 text=" this"
+20: TEXT_ITEM TEXT_PART z=1 [135.00,207.00 49.00x24.00] override wrap=FALSE off=0.00,0.00 text=" whole"
+21: TEXT_ITEM TEXT_PART z=1 [184.00,207.00 71.00x24.00] override wrap=FALSE off=0.00,0.00 text=" sentence"
+22: TEXT_ITEM TEXT_PART z=1 [255.00,207.00 23.00x24.00] override wrap=FALSE off=0.00,0.00 text=" on"
+23: TEXT_ITEM TEXT_PART z=1 [278.00,207.00 32.00x24.00] override wrap=FALSE off=0.00,0.00 text=" one"
+24: TEXT_ITEM TEXT_PART z=1 [310.00,207.00 31.00x24.00] override wrap=FALSE off=0.00,0.00 text=" line"
+25: TEXT_ITEM TEXT_PART z=1 [341.00,207.00 68.00x24.00] override wrap=FALSE off=0.00,0.00 text=" however"
+26: TEXT_ITEM TEXT_PART z=1 [409.00,207.00 58.00x24.00] override wrap=FALSE off=0.00,0.00 text=" narrow"
+27: TEXT_ITEM TEXT_PART z=1 [467.00,207.00 28.00x24.00] override wrap=FALSE off=0.00,0.00 text=" the"
+28: TEXT_ITEM TEXT_PART z=1 [495.00,207.00 38.00x24.00] override wrap=FALSE off=0.00,0.00 text=" view"
+29: TEXT_ITEM TEXT_PART z=1 [533.00,207.00 20.00x24.00] override wrap=FALSE off=0.00,0.00 text=" is."
+30: PANEL_ITEM ANY_PART z=0 [0.00,247.00 640.00x24.00] override
+31: TEXT_ITEM TEXT_PART z=1 [0.00,247.00 81.00x24.00] override wrap=FALSE off=0.00,0.00 text="Collapsible"
+32: TEXT_ITEM TEXT_PART z=1 [81.00,247.00 88.00x24.00] override wrap=FALSE off=0.00,0.00 text=" whitespace"
+33: TEXT_ITEM TEXT_PART z=1 [169.00,247.00 72.00x24.00] override wrap=FALSE off=0.00,0.00 text=" collapses"
+34: TEXT_ITEM TEXT_PART z=1 [241.00,247.00 19.00x24.00] override wrap=FALSE off=0.00,0.00 text=" to"
+35: TEXT_ITEM TEXT_PART z=1 [260.00,247.00 47.00x24.00] override wrap=FALSE off=0.00,0.00 text=" single"
+36: TEXT_ITEM TEXT_PART z=1 [307.00,247.00 58.00x24.00] override wrap=FALSE off=0.00,0.00 text=" spaces."
+doc: 640.00x287.00 scroll_h=2000.00
+== width 320
+1: PANEL_ITEM MAIN_PART z=0 [0.00,0.00 320.00x2000.00]
+2: PANEL_ITEM ANY_PART z=0 [0.00,0.00 320.00x63.00] override
+3: TEXT_ITEM TEXT_PART z=1 [0.00,0.00 64.00x21.00] override wrap=FALSE off=0.00,0.00 text="pre keeps"
+4: TEXT_ITEM TEXT_PART z=1 [0.00,21.00 166.00x21.00] override wrap=FALSE off=0.00,0.00 text="    indentation   and   runs"
+5: TEXT_ITEM TEXT_PART z=1 [0.00,42.00 61.00x21.00] override wrap=FALSE off=0.00,0.00 text="of spaces"
+6: PANEL_ITEM ANY_PART z=0 [0.00,79.00 320.00x48.00] override
+7: TEXT_ITEM TEXT_PART z=1 [0.00,79.00 179.00x24.00] override wrap=FALSE off=0.00,0.00 text="pre-wrap keeps   spaces"
+8: TEXT_ITEM TEXT_PART z=1 [0.00,103.00 531.00x24.00] override wrap=FALSE off=0.00,0.00 text="and newlines but still wraps when a line is longer than the width allows."
+9: PANEL_ITEM ANY_PART z=0 [0.00,143.00 320.00x48.00] override
+10: TEXT_ITEM TEXT_PART z=1 [0.00,143.00 57.00x24.00] override wrap=FALSE off=0.00,0.00 text="pre-line"
+11: TEXT_ITEM TEXT_PART z=1 [57.00,143.00 72.00x24.00] override wrap=FALSE off=0.00,0.00 text=" collapses"
+12: TEXT_ITEM TEXT_PART z=1 [129.00,143.00 54.00x24.00] override wrap=FALSE off=0.00,0.00 text=" spaces"
+13: TEXT_ITEM TEXT_PART z=1 [0.00,167.00 25.00x24.00] override wrap=FALSE off=0.00,0.00 text="but"
+14: TEXT_ITEM TEXT_PART z=1 [25.00,167.00 47.00x24.00] override wrap=FALSE off=0.00,0.00 text=" keeps"
+15: TEXT_ITEM TEXT_PART z=1 [72.00,167.00 74.00x24.00] override wrap=FALSE off=0.00,0.00 text=" newlines."
+16: PANEL_ITEM ANY_PART z=0 [0.00,207.00 320.00x24.00] override
+17: TEXT_ITEM TEXT_PART z=1 [0.00,207.00 57.00x24.00] override wrap=FALSE off=0.00,0.00 text="nowrap"
+18: TEXT_ITEM TEXT_PART z=1 [57.00,207.00 47.00x24.00] override wrap=FALSE off=0.00,0.00 text=" keeps"
+19: TEXT_ITEM TEXT_PART z=1 [104.00,207.00 31.00x24.00] override wrap=FALSE off=0.00,0.00 text=" this"
+20: TEXT_ITEM TEXT_PART z=1 [135.00,207.00 49.00x24.00] override wrap=FALSE off=0.00,0.00 text=" whole"
+21: TEXT_ITEM TEXT_PART z=1 [184.00,207.00 71.00x24.00] override wrap=FALSE off=0.00,0.00 text=" sentence"
+22: TEXT_ITEM TEXT_PART z=1 [255.00,207.00 23.00x24.00] override wrap=FALSE off=0.00,0.00 text=" on"
+23: TEXT_ITEM TEXT_PART z=1 [278.00,207.00 32.00x24.00] override wrap=FALSE off=0.00,0.00 text=" one"
+24: TEXT_ITEM TEXT_PART z=1 [310.00,207.00 31.00x24.00] override wrap=FALSE off=0.00,0.00 text=" line"
+25: TEXT_ITEM TEXT_PART z=1 [341.00,207.00 68.00x24.00] override wrap=FALSE off=0.00,0.00 text=" however"
+26: TEXT_ITEM TEXT_PART z=1 [409.00,207.00 58.00x24.00] override wrap=FALSE off=0.00,0.00 text=" narrow"
+27: TEXT_ITEM TEXT_PART z=1 [467.00,207.00 28.00x24.00] override wrap=FALSE off=0.00,0.00 text=" the"
+28: TEXT_ITEM TEXT_PART z=1 [495.00,207.00 38.00x24.00] override wrap=FALSE off=0.00,0.00 text=" view"
+29: TEXT_ITEM TEXT_PART z=1 [533.00,207.00 20.00x24.00] override wrap=FALSE off=0.00,0.00 text=" is."
+30: PANEL_ITEM ANY_PART z=0 [0.00,247.00 320.00x48.00] override
+31: TEXT_ITEM TEXT_PART z=1 [0.00,247.00 81.00x24.00] override wrap=FALSE off=0.00,0.00 text="Collapsible"
+32: TEXT_ITEM TEXT_PART z=1 [81.00,247.00 88.00x24.00] override wrap=FALSE off=0.00,0.00 text=" whitespace"
+33: TEXT_ITEM TEXT_PART z=1 [169.00,247.00 72.00x24.00] override wrap=FALSE off=0.00,0.00 text=" collapses"
+34: TEXT_ITEM TEXT_PART z=1 [241.00,247.00 19.00x24.00] override wrap=FALSE off=0.00,0.00 text=" to"
+35: TEXT_ITEM TEXT_PART z=1 [260.00,247.00 47.00x24.00] override wrap=FALSE off=0.00,0.00 text=" single"
+36: TEXT_ITEM TEXT_PART z=1 [0.00,271.00 54.00x24.00] override wrap=FALSE off=0.00,0.00 text="spaces."
+doc: 320.00x311.00 scroll_h=2000.00

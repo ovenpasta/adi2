@@ -17,6 +17,7 @@ project Tests is
       "html_view_test",
       "texture_view_test",
       "html_view_snapshot_test",
+      "html_view_golden_test",
       "svg_test",
       "svg_perf_test",
       "disabled_test",

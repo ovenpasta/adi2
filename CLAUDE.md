@@ -76,6 +76,7 @@ tools/build_examples.sh stack_example
 ./tests/bin/text_buffer_test
 ./tests/bin/text_layout_test
 ./tests/bin/html_view_test
+./tests/bin/html_view_golden_test   # --update rewrites tests/goldens/html/
 ./tests/bin/disabled_test
 ./tests/bin/image_widget_test
 ./tests/bin/mcp_test

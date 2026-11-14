@@ -14,6 +14,7 @@ with Adi.Widget.Box;
 with Adi.Widget.Html_View;
 with Adi.Image;
 with Adi.Widget.Html_View.Testing;
+with Html_View_Dump;  use Html_View_Dump;
 with Test_Support;
 
 --  A characterisation of what laying out one document produces, held
@@ -37,7 +38,6 @@ procedure Html_View_Snapshot_Test is
    package HV renames Adi.Widget.Html_View;
    use type Adi.Widget.Box.Box_Handle;
    use type Adi.Widget.Html_View.Testing.Layout_Pass_Counter;
-   use type Adi.Image.Image_Handle;
    use type HV.Html_View_Handle;
 
    --  Small, but every append and back-patch path takes part: the
@@ -59,53 +59,6 @@ procedure Html_View_Snapshot_Test is
    function Trim (S : String) return String
      is (Ada.Strings.Fixed.Trim (S, Ada.Strings.Both));
 
-   --  Two decimals: enough that a real geometry change shows, coarse
-   --  enough that float noise does not.
-   function Px_Image (P : Pixel_Type) return String is
-      Hundredths : constant Long_Long_Integer :=
-        Long_Long_Integer (Long_Float'Rounding (Long_Float (P) * 100.0));
-      Magnitude  : constant Long_Long_Integer := abs Hundredths;
-      Whole      : constant Long_Long_Integer := Magnitude / 100;
-      Frac       : constant Long_Long_Integer := Magnitude mod 100;
-      Frac_Image : constant String := Trim (Long_Long_Integer'Image (Frac));
-   begin
-      --  Rounding first also folds -0.0 onto 0, which the layout
-      --  produces for a left edge and which would otherwise show up as
-      --  a difference that is not one.
-      return (if Hundredths < 0 then "-" else "")
-        & Trim (Long_Long_Integer'Image (Whole)) & "."
-        & (if Frac < 10 then "0" & Frac_Image else Frac_Image);
-   end Px_Image;
-
-   function Rect_Image (R : Rectangle) return String
-     is (Px_Image (R.X) & "," & Px_Image (R.Y) & " "
-         & Px_Image (R.Width) & "x" & Px_Image (R.Height));
-
-   --  One line per item, in order. Only fields layout is responsible
-   --  for; the TTF/font cache fields are deliberately absent.
-   function Item_Line (I : Positive; It : Item) return String is
-      Text : constant String := To_String (It.Text_Content);
-   begin
-      return Trim (Positive'Image (I)) & ": "
-        & Item_Kind'Image (It.Kind) & " "
-        & Part_Kind'Image (It.Part)
-        & " z=" & Trim (Natural'Image (It.Z_Order))
-        & " [" & Rect_Image (It.Geometry) & "]"
-        & (if It.Has_Style_Override then " override" else "")
-        & (if It.Kind = Text_Item
-           then " wrap=" & Boolean'Image (It.Wrap_Text)
-                & " off=" & Px_Image (It.Text_Offset_X)
-                & "," & Px_Image (It.Text_Offset_Y)
-                & " text=""" & Text & """"
-           else "")
-        & (if It.Kind = Image_Item
-           then " bg=" & Boolean'Image (It.Is_Background)
-                & " src=" & (if It.Image_Source = Adi.Image.Null_Image_Handle then "none" else "set")
-           else "");
-   end Item_Line;
-
-   Clicked : Unbounded_String := Null_Unbounded_String;
-
    function Probe_Loader (Self : HV.Html_View_Handle; URI : String)
      return Adi.Image.Image_Handle
    is
@@ -113,67 +66,6 @@ procedure Html_View_Snapshot_Test is
    begin
       return Adi.Image.Null_Image_Handle;
    end Probe_Loader;
-
-   procedure On_Link_Click (Self : HV.Html_View_Handle; Href : String) is
-      pragma Unreferenced (Self);
-   begin
-      Clicked := To_Unbounded_String (Href);
-   end On_Link_Click;
-
-   --  Links carry no public accessor, so they are read the way an
-   --  application reads them: click where the item is and see which
-   --  href comes back. That pins geometry and href together, and it
-   --  keeps working when the geometry moves to document space.
-   function Href_At (W : HV.Html_View_Handle;
-                     X, Y : Pixel_Type) return String is
-   begin
-      Clicked := Null_Unbounded_String;
-      On_Mouse_Down (+W, X => X, Y => Y,
-                     Button => Adi.Core.Left_Button, Clicks => 1);
-      On_Mouse_Up (+W, X => X, Y => Y, Button => Adi.Core.Left_Button);
-      return To_String (Clicked);
-   end Href_At;
-
-   function Snapshot (W : HV.Html_View_Handle) return String is
-      Out_S : Unbounded_String := Null_Unbounded_String;
-   begin
-      for I in 1 .. Item_Count (+W) loop
-         Append (Out_S, Item_Line (I, Get_Item (+W, I)) & ASCII.LF);
-      end loop;
-
-      --  What the document came to, and how far it scrolls.
-      Append (Out_S,
-              "doc: " & Px_Image (Get_Preferred_Size (+W).Width)
-              & "x" & Px_Image (Get_Preferred_Size (+W).Height)
-              & " scroll_h=" & Px_Image (Get_Scroll_Content_Height (+W))
-              & ASCII.LF);
-
-      --  Every link, found through its own text item's midpoint.
-      for I in 1 .. Item_Count (+W) loop
-         declare
-            It : constant Item := Get_Item (+W, I);
-            G  : constant Rectangle := It.Geometry;
-         begin
-            if It.Kind = Text_Item and then G.Width > 0.0
-              and then G.Height > 0.0
-            then
-               declare
-                  Href : constant String :=
-                    Href_At (W, G.X + G.Width / 2.0, G.Y + G.Height / 2.0);
-               begin
-                  if Href /= "" then
-                     Append (Out_S,
-                             "link@" & Trim (Positive'Image (I))
-                             & " [" & Rect_Image (G) & "] -> " & Href
-                             & ASCII.LF);
-                  end if;
-               end;
-            end if;
-         end;
-      end loop;
-
-      return To_String (Out_S);
-   end Snapshot;
 
    Expected : constant String :=
        "1: PANEL_ITEM MAIN_PART z=0 [0.00,0.00 320.00x240.00]" & ASCII.LF
@@ -235,7 +127,7 @@ procedure Html_View_Snapshot_Test is
 begin
    Test_Support.Start_Suite ("html_view_snapshot_test");
 
-   HV.Connect_Link_Click (W, On_Link_Click'Unrestricted_Access);
+   HV.Connect_Link_Click (W, Record_Link'Access);
    HV.Set_HTML (W, Document);
    Set_Geometry (+W, (X => 0.0, Y => 0.0, Width => View_W, Height => View_H));
    Build_Items (+W);
@@ -404,7 +296,7 @@ begin
          & "<p><a href='#deep'>deep link</a></p>");
       Set_Geometry (+Tall, (X => 0.0, Y => 0.0,
                             Width => View_W, Height => Short_H));
-      HV.Connect_Link_Click (Tall, On_Link_Click'Unrestricted_Access);
+      HV.Connect_Link_Click (Tall, Record_Link'Access);
       Build_Items (+Tall);
 
       --  Where the link sits before any scrolling: below the viewport,

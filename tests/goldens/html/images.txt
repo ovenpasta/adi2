@@ -1,0 +1,92 @@
+== width 640
+1: PANEL_ITEM MAIN_PART z=0 [0.00,0.00 640.00x2000.00]
+2: PANEL_ITEM ANY_PART z=0 [0.00,16.00 640.00x36.00] override
+3: TEXT_ITEM TEXT_PART z=1 [0.00,16.00 19.00x36.00] override wrap=FALSE off=0.00,14.00 text="An"
+4: TEXT_ITEM TEXT_PART z=1 [19.00,16.00 49.00x36.00] override wrap=FALSE off=0.00,14.00 text=" image"
+5: IMAGE_ITEM ICON_PART z=1 [68.00,16.00 32.00x32.00] override bg=FALSE src=set
+6: TEXT_ITEM TEXT_PART z=1 [100.00,16.00 44.00x36.00] override wrap=FALSE off=0.00,14.00 text=" inline"
+7: TEXT_ITEM TEXT_PART z=1 [144.00,16.00 36.00x36.00] override wrap=FALSE off=0.00,14.00 text=" with"
+8: TEXT_ITEM TEXT_PART z=1 [180.00,16.00 37.00x36.00] override wrap=FALSE off=0.00,14.00 text=" text."
+9: PANEL_ITEM ANY_PART z=0 [0.00,68.00 640.00x68.00] override
+10: TEXT_ITEM TEXT_PART z=1 [0.00,68.00 44.00x68.00] override wrap=FALSE off=0.00,46.00 text="Width"
+11: TEXT_ITEM TEXT_PART z=1 [44.00,68.00 39.00x68.00] override wrap=FALSE off=0.00,46.00 text=" only:"
+12: IMAGE_ITEM ICON_PART z=1 [83.00,68.00 64.00x64.00] override bg=FALSE src=set
+13: PANEL_ITEM ANY_PART z=0 [0.00,152.00 640.00x132.00] override
+14: TEXT_ITEM TEXT_PART z=1 [0.00,152.00 60.00x132.00] override wrap=FALSE off=0.00,110.00 text="Intrinsic"
+15: TEXT_ITEM TEXT_PART z=1 [60.00,152.00 36.00x132.00] override wrap=FALSE off=0.00,110.00 text=" size:"
+16: IMAGE_ITEM ICON_PART z=1 [96.00,152.00 128.00x128.00] override bg=FALSE src=set
+17: PANEL_ITEM ANY_PART z=0 [0.00,300.00 640.00x24.00] override
+18: TEXT_ITEM TEXT_PART z=1 [0.00,300.00 60.00x24.00] override wrap=FALSE off=0.00,0.00 text="Missing:"
+19: TEXT_ITEM TEXT_PART z=1 [60.00,300.00 112.00x24.00] override wrap=FALSE off=0.00,0.00 text="alternative text"
+20: TEXT_ITEM TEXT_PART z=1 [172.00,300.00 34.00x24.00] override wrap=FALSE off=0.00,0.00 text=" falls"
+21: TEXT_ITEM TEXT_PART z=1 [206.00,300.00 39.00x24.00] override wrap=FALSE off=0.00,0.00 text=" back"
+22: TEXT_ITEM TEXT_PART z=1 [245.00,300.00 19.00x24.00] override wrap=FALSE off=0.00,0.00 text=" to"
+23: TEXT_ITEM TEXT_PART z=1 [264.00,300.00 27.00x24.00] override wrap=FALSE off=0.00,0.00 text=" alt."
+24: PANEL_ITEM ANY_PART z=0 [0.00,340.00 640.00x24.00] override
+25: TEXT_ITEM TEXT_PART z=1 [0.00,340.00 21.00x24.00] override wrap=FALSE off=0.00,0.00 text="No"
+26: TEXT_ITEM TEXT_PART z=1 [21.00,340.00 58.00x24.00] override wrap=FALSE off=0.00,0.00 text=" source:"
+27: TEXT_ITEM TEXT_PART z=1 [79.00,340.00 55.00x24.00] override wrap=FALSE off=0.00,0.00 text="alt only"
+28: TEXT_ITEM TEXT_PART z=1 [134.00,340.00 32.00x24.00] override wrap=FALSE off=0.00,0.00 text=" and"
+29: TEXT_ITEM TEXT_PART z=1 [166.00,340.00 23.00x24.00] override wrap=FALSE off=0.00,0.00 text=" no"
+30: TEXT_ITEM TEXT_PART z=1 [189.00,340.00 27.00x24.00] override wrap=FALSE off=0.00,0.00 text=" alt:"
+31: TEXT_ITEM TEXT_PART z=1 [216.00,340.00 36.00x24.00] override wrap=FALSE off=0.00,0.00 text=" end."
+32: PANEL_ITEM ANY_PART z=0 [0.00,380.00 640.00x28.00] override
+33: IMAGE_ITEM ICON_PART z=1 [0.00,380.00 24.00x24.00] override bg=FALSE src=set
+34: TEXT_ITEM INDICATOR_PART z=1 [24.00,380.00 49.00x28.00] override wrap=FALSE off=0.00,6.00 text=" linked"
+35: TEXT_ITEM INDICATOR_PART z=1 [73.00,380.00 49.00x28.00] override wrap=FALSE off=0.00,6.00 text=" image"
+36: PANEL_ITEM ANY_PART z=0 [0.00,424.00 640.00x24.00] override
+37: TEXT_ITEM TEXT_PART z=1 [0.00,424.00 41.00x24.00] override wrap=FALSE off=0.00,0.00 text="Inline"
+38: TEXT_ITEM TEXT_PART z=1 [41.00,424.00 32.00x24.00] override wrap=FALSE off=0.00,0.00 text=" svg:"
+39: IMAGE_ITEM ICON_PART z=1 [73.00,432.00 20.00x10.00] override bg=FALSE src=set
+40: TEXT_ITEM TEXT_PART z=1 [93.00,424.00 43.00x24.00] override wrap=FALSE off=0.00,0.00 text=" after."
+41: PANEL_ITEM ANY_PART z=0 [0.00,464.00 640.00x44.00] override
+42: IMAGE_ITEM ICON_PART z=1 [0.00,464.00 400.00x40.00] override bg=FALSE src=set
+doc: 640.00x524.00 scroll_h=2000.00
+link@34 [24.00,380.00 49.00x28.00] -> #cat
+link@35 [73.00,380.00 49.00x28.00] -> #cat
+== width 320
+1: PANEL_ITEM MAIN_PART z=0 [0.00,0.00 320.00x2000.00]
+2: PANEL_ITEM ANY_PART z=0 [0.00,16.00 320.00x36.00] override
+3: TEXT_ITEM TEXT_PART z=1 [0.00,16.00 19.00x36.00] override wrap=FALSE off=0.00,14.00 text="An"
+4: TEXT_ITEM TEXT_PART z=1 [19.00,16.00 49.00x36.00] override wrap=FALSE off=0.00,14.00 text=" image"
+5: IMAGE_ITEM ICON_PART z=1 [68.00,16.00 32.00x32.00] override bg=FALSE src=set
+6: TEXT_ITEM TEXT_PART z=1 [100.00,16.00 44.00x36.00] override wrap=FALSE off=0.00,14.00 text=" inline"
+7: TEXT_ITEM TEXT_PART z=1 [144.00,16.00 36.00x36.00] override wrap=FALSE off=0.00,14.00 text=" with"
+8: TEXT_ITEM TEXT_PART z=1 [180.00,16.00 37.00x36.00] override wrap=FALSE off=0.00,14.00 text=" text."
+9: PANEL_ITEM ANY_PART z=0 [0.00,68.00 320.00x68.00] override
+10: TEXT_ITEM TEXT_PART z=1 [0.00,68.00 44.00x68.00] override wrap=FALSE off=0.00,46.00 text="Width"
+11: TEXT_ITEM TEXT_PART z=1 [44.00,68.00 39.00x68.00] override wrap=FALSE off=0.00,46.00 text=" only:"
+12: IMAGE_ITEM ICON_PART z=1 [83.00,68.00 64.00x64.00] override bg=FALSE src=set
+13: PANEL_ITEM ANY_PART z=0 [0.00,152.00 320.00x132.00] override
+14: TEXT_ITEM TEXT_PART z=1 [0.00,152.00 60.00x132.00] override wrap=FALSE off=0.00,110.00 text="Intrinsic"
+15: TEXT_ITEM TEXT_PART z=1 [60.00,152.00 36.00x132.00] override wrap=FALSE off=0.00,110.00 text=" size:"
+16: IMAGE_ITEM ICON_PART z=1 [96.00,152.00 128.00x128.00] override bg=FALSE src=set
+17: PANEL_ITEM ANY_PART z=0 [0.00,300.00 320.00x24.00] override
+18: TEXT_ITEM TEXT_PART z=1 [0.00,300.00 60.00x24.00] override wrap=FALSE off=0.00,0.00 text="Missing:"
+19: TEXT_ITEM TEXT_PART z=1 [60.00,300.00 112.00x24.00] override wrap=FALSE off=0.00,0.00 text="alternative text"
+20: TEXT_ITEM TEXT_PART z=1 [172.00,300.00 34.00x24.00] override wrap=FALSE off=0.00,0.00 text=" falls"
+21: TEXT_ITEM TEXT_PART z=1 [206.00,300.00 39.00x24.00] override wrap=FALSE off=0.00,0.00 text=" back"
+22: TEXT_ITEM TEXT_PART z=1 [245.00,300.00 19.00x24.00] override wrap=FALSE off=0.00,0.00 text=" to"
+23: TEXT_ITEM TEXT_PART z=1 [264.00,300.00 27.00x24.00] override wrap=FALSE off=0.00,0.00 text=" alt."
+24: PANEL_ITEM ANY_PART z=0 [0.00,340.00 320.00x24.00] override
+25: TEXT_ITEM TEXT_PART z=1 [0.00,340.00 21.00x24.00] override wrap=FALSE off=0.00,0.00 text="No"
+26: TEXT_ITEM TEXT_PART z=1 [21.00,340.00 58.00x24.00] override wrap=FALSE off=0.00,0.00 text=" source:"
+27: TEXT_ITEM TEXT_PART z=1 [79.00,340.00 55.00x24.00] override wrap=FALSE off=0.00,0.00 text="alt only"
+28: TEXT_ITEM TEXT_PART z=1 [134.00,340.00 32.00x24.00] override wrap=FALSE off=0.00,0.00 text=" and"
+29: TEXT_ITEM TEXT_PART z=1 [166.00,340.00 23.00x24.00] override wrap=FALSE off=0.00,0.00 text=" no"
+30: TEXT_ITEM TEXT_PART z=1 [189.00,340.00 27.00x24.00] override wrap=FALSE off=0.00,0.00 text=" alt:"
+31: TEXT_ITEM TEXT_PART z=1 [216.00,340.00 36.00x24.00] override wrap=FALSE off=0.00,0.00 text=" end."
+32: PANEL_ITEM ANY_PART z=0 [0.00,380.00 320.00x28.00] override
+33: IMAGE_ITEM ICON_PART z=1 [0.00,380.00 24.00x24.00] override bg=FALSE src=set
+34: TEXT_ITEM INDICATOR_PART z=1 [24.00,380.00 49.00x28.00] override wrap=FALSE off=0.00,6.00 text=" linked"
+35: TEXT_ITEM INDICATOR_PART z=1 [73.00,380.00 49.00x28.00] override wrap=FALSE off=0.00,6.00 text=" image"
+36: PANEL_ITEM ANY_PART z=0 [0.00,424.00 320.00x24.00] override
+37: TEXT_ITEM TEXT_PART z=1 [0.00,424.00 41.00x24.00] override wrap=FALSE off=0.00,0.00 text="Inline"
+38: TEXT_ITEM TEXT_PART z=1 [41.00,424.00 32.00x24.00] override wrap=FALSE off=0.00,0.00 text=" svg:"
+39: IMAGE_ITEM ICON_PART z=1 [73.00,432.00 20.00x10.00] override bg=FALSE src=set
+40: TEXT_ITEM TEXT_PART z=1 [93.00,424.00 43.00x24.00] override wrap=FALSE off=0.00,0.00 text=" after."
+41: PANEL_ITEM ANY_PART z=0 [0.00,464.00 320.00x44.00] override
+42: IMAGE_ITEM ICON_PART z=1 [0.00,464.00 400.00x40.00] override bg=FALSE src=set
+doc: 320.00x524.00 scroll_h=2000.00
+link@34 [24.00,380.00 49.00x28.00] -> #cat
+link@35 [73.00,380.00 49.00x28.00] -> #cat

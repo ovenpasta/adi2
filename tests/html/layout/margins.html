@@ -1,0 +1,22 @@
+<style>
+  .gap   { margin: 30px 0px; }
+  .small { margin: 10px 0px; }
+  .pad   { padding: 8px; }
+  .border { border: 2px solid #000000; }
+</style>
+<p class="gap">Siblings collapse to the larger margin.</p>
+<p class="small">Between them sits 30px, not 40px.</p>
+<div>
+  <p class="gap">First child of a transparent parent.</p>
+  <p class="gap">Last child of a transparent parent.</p>
+</div>
+<div class="pad">
+  <p class="gap">Padding traps this margin.</p>
+</div>
+<div class="border">
+  <p class="gap">So does a border.</p>
+</div>
+<hr>
+<p class="small">After the rule.</p>
+<div class="gap"><br></div>
+<p>After a break that stops collapse-through.</p>

@@ -290,6 +290,7 @@ The renderer implements CSS-style vertical margin collapsing:
 - Appearance — background, border, radius, padding, text and link colours, scrollbar track and knob — is entirely the stylesheet's. A fresh view draws none of it.
 
 ## Testing Coverage (`tests/src/html_view_test.adb`)
+- Layout goldens: `html_view_golden_test` holds the documents in `tests/html/layout/` against `tests/goldens/html/`; see `docs/adding_test.md`.
 - Parsing and recovery:
   - Case-insensitive tag names, unknown tag transparency, malformed close handling.
   - Entity decoding for supported entities.

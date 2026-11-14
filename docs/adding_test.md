@@ -130,3 +130,20 @@ the library does, so a change to one is a claim that the new geometry is
 the correct geometry — and the diff is the only place that claim gets
 examined. Changes to layout, styling or an example's own XML or CSS will
 legitimately move these numbers; anything else moving is the finding.
+
+## The html view goldens
+
+`html_view_golden_test` lays out every `tests/html/layout/*.html` at
+widths 640 and 320, under `tests/html/layout/default.css` and the
+vendored Open Sans faces, and compares each item, the document size and
+every link with `tests/goldens/html/<name>.txt`.
+
+```bash
+./tests/bin/html_view_golden_test            # check
+./tests/bin/html_view_golden_test --update   # accept what layout does now
+```
+
+A new case is a new `.html` file there, recorded with `--update`. An
+`img src="cat.svg"` resolves to `tests/assets/cat.svg`; any other source
+is missing. As with the widget trees, read every changed line before
+accepting it.

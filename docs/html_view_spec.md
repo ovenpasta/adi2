@@ -220,6 +220,9 @@ The renderer implements CSS-style vertical margin collapsing:
   - `list-style-position`: `outside` and `inside`.
 - Ordered list item numbering supports `<li value="N">` overrides.
 - Wrapped lines in an `li` align to the content area (not marker origin).
+- An outside marker sits on its item's first line, also when a block opens the
+  item; an item with no content shows it on its own line. An inside marker is
+  inline content, so a block that opens the item starts below it.
 - Nesting increases indentation by a fixed style-driven step.
 
 ### `center`

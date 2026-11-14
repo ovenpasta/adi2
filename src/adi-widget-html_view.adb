@@ -1858,6 +1858,19 @@ package body Adi.Widget.Html_View is
       --  the max-content size.
       type Sizing_Mode is (Normal_Sizing, Min_Content_Sizing, Max_Content_Sizing);
 
+      --  An outside list marker, and where its item's content starts.
+      type Pending_Marker is record
+         Marker : List_Marker_Run;
+         Width  : Pixel_Type := 0.0;
+         Height : Pixel_Type := 0.0;
+         Gap    : Pixel_Type := 0.0;
+         Left   : Pixel_Type := 0.0;
+         Style  : Resolved_Style;
+      end record;
+
+      package Pending_Marker_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => Pending_Marker);
+
       --  The flow cursor, in one record so it can be saved and restored
       --  whole. Document space: the origin is the top-left of the
       --  content box and the scroll offset is not in it. Emit_Items
@@ -1896,6 +1909,10 @@ package body Adi.Widget.Html_View is
          --  padding resolve against: its container's width. Negative
          --  outside Lay_Out_Item.
          Item_Base   : Pixel_Type := -1.0;
+
+         --  Outside list markers waiting for the first line their items
+         --  put content on.
+         Pending_Markers : Pending_Marker_Vectors.Vector;
       end record;
 
       Flow : Flow_State := (Line_Right => Content.Width, others => <>);
@@ -2226,6 +2243,22 @@ package body Adi.Widget.Html_View is
          end case;
       end Add_Outside_Marker_Run;
 
+      --  Places the outside markers still waiting for a line on the
+      --  current one, each at its own item's content edge. CSS puts an
+      --  outside marker on its item's first line box, which may be inside
+      --  a block that opens the item.
+      procedure Place_Pending_Markers is
+         Waiting : constant Pending_Marker_Vectors.Vector := Flow.Pending_Markers;
+         Saved_X : constant Pixel_Type := X;
+      begin
+         Flow.Pending_Markers.Clear;
+         for M of Waiting loop
+            X := M.Left;
+            Add_Outside_Marker_Run (M.Marker, M.Width, M.Height, M.Gap, M.Style);
+         end loop;
+         X := Saved_X;
+      end Place_Pending_Markers;
+
       procedure Add_Inside_Marker_Run
         (Marker       : List_Marker_Run;
          Marker_Width : Pixel_Type;
@@ -2389,6 +2422,9 @@ package body Adi.Widget.Html_View is
          end if;
 
          Flush_Pending_Margin;
+         if not Flow.Pending_Markers.Is_Empty then
+            Place_Pending_Markers;
+         end if;
 
          if Wrap_Allowed (Style)
            and then X > Line_Left
@@ -2559,6 +2595,9 @@ package body Adi.Widget.Html_View is
          end if;
 
          Flush_Pending_Margin;
+         if not Flow.Pending_Markers.Is_Empty then
+            Place_Pending_Markers;
+         end if;
 
          if Wrap_Allowed (Style)
            and then X > Line_Left
@@ -2710,6 +2749,18 @@ package body Adi.Widget.Html_View is
          end loop;
       end Process_Collapsed_Text;
 
+      --  A forced line break: rendered content, so it commits a pending
+      --  margin, and the line it ends is its item's first line box if
+      --  nothing came before it.
+      procedure Forced_Break is
+      begin
+         Flush_Pending_Margin;
+         if not Flow.Pending_Markers.Is_Empty then
+            Place_Pending_Markers;
+         end if;
+         New_Line;
+      end Forced_Break;
+
       procedure Process_Pre_Text
         (Text  : String;
          Href  : String;
@@ -2725,10 +2776,8 @@ package body Adi.Widget.Html_View is
                   Add_Text_Run (To_String (Buffer), Href, Style);
                   Buffer := Null_Unbounded_String;
                end if;
-               --  A rendered newline is real content; commit any pending
-               --  margin so it stops collapse-through, mirroring <br>.
-               Flush_Pending_Margin;
-               New_Line;
+               --  A rendered newline is real content, like <br>.
+               Forced_Break;
             else
                Append (Buffer, C);
             end if;
@@ -2755,10 +2804,8 @@ package body Adi.Widget.Html_View is
                   Process_Collapsed_Text (Text (Segment_Start .. I - 1), Href, Style);
                end if;
 
-               --  A rendered newline is real content; commit any pending
-               --  margin so it stops collapse-through, mirroring <br>.
-               Flush_Pending_Margin;
-               New_Line;
+               --  A rendered newline is real content, like <br>.
+               Forced_Break;
                Pending_Space := False;
 
                if Text (I) = ASCII.CR and then I < Text'Last and then Text (I + 1) = ASCII.LF then
@@ -3345,6 +3392,23 @@ package body Adi.Widget.Html_View is
                  else Pixel_Type'Max (0.0, Declared_H - Insets.Top - Insets.Bottom));
       end Fixed_Content_Height;
 
+      --  A flex or grid container lays out no lines of its own, so outside
+      --  markers waiting for one go beside its top edge, on a line that
+      --  is closed without moving down.
+      procedure Place_Markers_At_Top is
+      begin
+         if Flow.Pending_Markers.Is_Empty then
+            return;
+         end if;
+         Place_Pending_Markers;
+         Finalize_Line;
+         Line_Runs.Clear;
+         X := Line_Left;
+         Current_Line_H := Line_Base_H;
+         Current_Line_Ascent := Line_Base_Ascent;
+         Current_Line_Descent := Line_Base_Descent;
+      end Place_Markers_At_Top;
+
       --  Lay out Parent's children as flex items in the content box the
       --  enclosing block left open: Line_Left .. Line_Right from Y down.
       --  Insets are that block's padding and border. Leaves Y at the
@@ -3378,6 +3442,7 @@ package body Adi.Widget.Html_View is
          Top        : Pixel_Type;
       begin
          Flush_Pending_Margin;
+         Place_Markers_At_Top;
          Top := Y;
 
          if Count = 0 then
@@ -3611,6 +3676,7 @@ package body Adi.Widget.Html_View is
          Top     : Pixel_Type;
       begin
          Flush_Pending_Margin;
+         Place_Markers_At_Top;
          Top := Y;
 
          if Count = 0 then
@@ -3808,11 +3874,7 @@ package body Adi.Widget.Html_View is
                Process_Text_Node (To_String (N.Text), Active_Link, Parent_Style);
 
             when Break_Node =>
-               --  <br> is rendered content; commit any pending margin so
-               --  the break stops collapse-through (a forced line break
-               --  cannot be papered over by margin collapsing).
-               Flush_Pending_Margin;
-               New_Line;
+               Forced_Break;
 
             when Element_Node =>
                declare
@@ -4051,12 +4113,14 @@ package body Adi.Widget.Html_View is
                                     end if;
 
                                     X := Line_Left;
-                                    Add_Outside_Marker_Run
-                                      (Marker,
-                                       Marker_W,
-                                       Marker_H,
-                                       Marker_Gap,
-                                       Style);
+                                    Flow.Pending_Markers.Append
+                                      (Pending_Marker'
+                                         (Marker => Marker,
+                                          Width  => Marker_W,
+                                          Height => Marker_H,
+                                          Gap    => Marker_Gap,
+                                          Left   => Line_Left,
+                                          Style  => Style));
                                  else
                                     Add_Inside_Marker_Run
                                       (Marker,
@@ -4082,6 +4146,12 @@ package body Adi.Widget.Html_View is
                         end if;
 
                         if Block_Flow then
+                           --  An item with no content of its own still
+                           --  shows its marker.
+                           if Tag = "li" and then not Flow.Pending_Markers.Is_Empty then
+                              Place_Pending_Markers;
+                           end if;
+
                            if Has_Line_Content or else Pending_Space then
                               New_Line;
                            end if;

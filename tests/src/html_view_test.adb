@@ -1013,6 +1013,37 @@ procedure Html_View_Test is
       New_Line;
    end Test_Character_References;
 
+   --  An outside marker sits on its item's first line box, even when a
+   --  block opens the item.
+   procedure Test_Marker_Beside_Opening_Block is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      Marker, Text : Natural;
+   begin
+      Put_Line ("Test: an outside marker beside a block that opens its item");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 300.0));
+      Adi.Widget.Html_View.Set_HTML
+        (W, "<style>p { margin: 0px; }</style>"
+            & "<ol><li><p>first</p></li><li><div><p>nested</p></div></li></ol>");
+      Adi.Widget.Build_Items (+W);
+
+      Marker := Find_Text_Item_Index (W, "1.");
+      Text := Find_Text_Item_Index (W, "first");
+      Assert (Marker > 0 and then Text > 0
+              and then Nearly_Equal (Adi.Widget.Get_Item (+W, Marker).Geometry.Y,
+                                     Adi.Widget.Get_Item (+W, Text).Geometry.Y),
+              "the marker is on the paragraph's first line");
+
+      Marker := Find_Text_Item_Index (W, "2.");
+      Text := Find_Text_Item_Index (W, "nested");
+      Assert (Marker > 0 and then Text > 0
+              and then Nearly_Equal (Adi.Widget.Get_Item (+W, Marker).Geometry.Y,
+                                     Adi.Widget.Get_Item (+W, Text).Geometry.Y),
+              "and on the first line of a paragraph nested deeper");
+      New_Line;
+   end Test_Marker_Beside_Opening_Block;
+
    procedure Test_Mixed_Inline_Baseline is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -2647,6 +2678,7 @@ begin
    Test_Percent_Font_And_Line_Height;
    Test_Border_Insets_At_Scale;
    Test_Character_References;
+   Test_Marker_Beside_Opening_Block;
    Test_Grid_Px_Track_Follows_Content_Scale;
    Test_Mixed_Inline_Baseline;
    Test_Fresh_View_Is_Neutral;

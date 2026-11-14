@@ -285,6 +285,73 @@ procedure Gradient_Stops_Test is
       end loop;
    end Test_Stops_Past_The_End;
 
+   --  A flat box is drawn band by band, each band exactly the part of
+   --  the box it covers: nothing lands outside the box, and a clip set
+   --  around it, as a scroll view sets one, still trims it
+   procedure Test_Flat_Box_Respects_Clip is
+      W_Px : constant := 240;
+      H_Px : constant := 80;
+      Canvas : constant SDL_Surface_Ptr :=
+        SDL_CreateSurface (int (W_Px), int (H_Px), SDL_PIXELFORMAT_RGBA32);
+      Renderer : SDL_Renderer_Ptr;
+      Ctx      : Adi.Render.Render_Context;
+      Box      : constant Box_Handle := Create_Handle;
+      Unused   : Adi.SDL.C_bool;
+      View     : aliased Adi.SDL.SDL_Rect := (x => 0, y => 0, w => W_Px, h => 40);
+      Diagonal : constant Gradient_Stop_Array :=
+        [1      => Gradient_Stop_Auto (RGB (255, 0, 0)),
+         2      => Gradient_Stop_Auto (RGB (0, 0, 255)),
+         others => <>];
+      Style : constant Widget_Style :=
+        From ((Background_Image =>
+                 Set_Bg_Image (Linear_Gradient (135.0, Diagonal, 2)),
+               others           => <>)).Build;
+
+      function Painted (X, Y : Natural) return Boolean is
+         PR, PG, PB, PA : aliased Uint8;
+      begin
+         return Boolean (SDL_ReadSurfacePixel
+                           (Canvas, int (X), int (Y),
+                            PR'Access, PG'Access, PB'Access, PA'Access))
+           and then Natural (PR) + Natural (PG) + Natural (PB) > 0;
+      end Painted;
+   begin
+      Section ("Flat box and the clip around it");
+      if Canvas = null then
+         Assert (False, "SDL should provide a surface");
+         return;
+      end if;
+      Renderer := SDL_CreateSoftwareRenderer (Canvas);
+      if Renderer = null then
+         Assert (False, "SDL should provide a software renderer");
+         return;
+      end if;
+      Unused := SDL_SetRenderDrawColor (Renderer, 0, 0, 0, 255);
+      Unused := SDL_RenderClear (Renderer);
+      Adi.Render.Create (Ctx, Renderer);
+
+      Set_Part_Styles
+        (Box, [Main_Part => (Style => Style, Enabled => True),
+               others    => <>]);
+      --  60 .. 180 across, 20 .. 70 down; the view ends at 40
+      Set_Geometry (+Box, (X => 60.0, Y => 20.0, Width => 120.0, Height => 50.0));
+      Build_Items (+Box);
+      Unused := SDL_SetRenderClipRect (Renderer, View'Access);
+      Render_Tree (+Box, Ctx);
+      Unused := SDL_RenderPresent (Renderer);
+
+      Assert (Painted (100, 30), "the box is painted inside the view");
+      Assert (not Painted (100, 55),
+              "and not below the view, though the box goes on there");
+      Assert (not Painted (40, 30) and then not Painted (200, 30),
+              "nor beside the box");
+      Assert (not Painted (100, 10), "nor above it");
+
+      Adi.Render.Destroy (Ctx);
+      SDL_DestroyRenderer (Renderer);
+      SDL_DestroySurface (Canvas);
+   end Test_Flat_Box_Respects_Clip;
+
 begin
    Start_Suite ("Gradient Stops Test");
 
@@ -293,6 +360,7 @@ begin
    Test_Between_Stops;
    Test_Diagonal_Bar;
    Test_Stops_Past_The_End;
+   Test_Flat_Box_Respects_Clip;
 
    Finish;
 end Gradient_Stops_Test;

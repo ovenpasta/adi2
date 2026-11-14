@@ -421,7 +421,7 @@ package body Adi.Widget is
    --  would not say where it happened.
    type Clip_Op is (Save, Narrow, Restore);
    type Clip_Site is
-     (Gradient_Rect, Text_Item, Image_Item, Item_List, Widget_Tree);
+     (Text_Item, Image_Item, Item_List, Widget_Tree);
 
    procedure Save_Clip
      (Renderer    : SDL_Renderer_Ptr;
@@ -4601,57 +4601,113 @@ package body Adi.Widget is
       Grad_Len : constant Float := abs (W * Dx) + abs (H * Dy);
       Cx       : constant Float := Rect.x + W / 2.0;
       Cy       : constant Float := Rect.y + H / 2.0;
-      Half_Ext : constant Float := W + H;   --  safe over-extension
-      Nx       : constant Float := -Dy;
-      Ny       : constant Float :=  Dx;
 
-      Clip_Was_Enabled : Boolean := False;
-      Clip_Saved       : Boolean := False;
-      Clip_Replaced    : Boolean := False;
-      Prev_Clip : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
-      Clip      : aliased Adi.SDL.SDL_Rect;
       Unused   : Adi.SDL.C_bool;
+      Zero_TC  : constant SDL_FPoint := (x => 0.0, y => 0.0);
 
-      Verts   : SDL_Vertex_Array (0 .. 3);
-      Idxs    : Int_Array (0 .. 5);
-      Zero_TC : constant SDL_FPoint := (x => 0.0, y => 0.0);
+      --  A convex polygon: the rectangle, cut down band by band
+      type Polygon is array (1 .. 8) of SDL_FPoint;
 
-      procedure Render_Strip (T0, T1 : Float; C0, C1 : SDL_FColor) is
+      --  Distance of P along the gradient, from the rectangle's centre
+      function Along (P : SDL_FPoint) return Float is
+        ((P.x - Cx) * Dx + (P.y - Cy) * Dy);
+
+      --  The part of In_P where Sign * (Along - Limit) >= 0
+      procedure Cut
+        (In_P  : Polygon; In_N : Natural;
+         Limit : Float;   Sign : Float;
+         Out_P : out Polygon; Out_N : out Natural)
+      is
+      begin
+         Out_P := [others => (x => 0.0, y => 0.0)];
+         Out_N := 0;
+         for I in 1 .. In_N loop
+            declare
+               A  : constant SDL_FPoint := In_P (I);
+               B  : constant SDL_FPoint := In_P (if I = In_N then 1 else I + 1);
+               DA : constant Float := Sign * (Along (A) - Limit);
+               DB : constant Float := Sign * (Along (B) - Limit);
+            begin
+               if DA >= 0.0 then
+                  Out_N := Out_N + 1;
+                  Out_P (Out_N) := A;
+               end if;
+               if (DA > 0.0 and then DB < 0.0)
+                 or else (DA < 0.0 and then DB > 0.0)
+               then
+                  declare
+                     T : constant Float := DA / (DA - DB);
+                  begin
+                     Out_N := Out_N + 1;
+                     Out_P (Out_N) :=
+                       (x => A.x + (B.x - A.x) * T,
+                        y => A.y + (B.y - A.y) * T);
+                  end;
+               end if;
+            end;
+         end loop;
+      end Cut;
+
+      --  The band from T0 to T1 along the gradient, exactly as much of it
+      --  as lies in the rectangle, so that no clip is needed to trim it
+      procedure Render_Band (T0, T1 : Float; C0, C1 : SDL_FColor) is
          Off0 : constant Float := (T0 - 0.5) * Grad_Len;
          Off1 : constant Float := (T1 - 0.5) * Grad_Len;
-         P0x  : constant Float := Cx + Dx * Off0;
-         P0y  : constant Float := Cy + Dy * Off0;
-         P1x  : constant Float := Cx + Dx * Off1;
-         P1y  : constant Float := Cy + Dy * Off1;
+         Box  : constant Polygon :=
+           [1 => (x => Rect.x,     y => Rect.y),
+            2 => (x => Rect.x + W, y => Rect.y),
+            3 => (x => Rect.x + W, y => Rect.y + H),
+            4 => (x => Rect.x,     y => Rect.y + H),
+            others => (x => 0.0, y => 0.0)];
+         Half, Band : Polygon;
+         Half_N, N  : Natural;
       begin
-         Verts (0) :=
-           (position  => (x => P0x - Nx * Half_Ext, y => P0y - Ny * Half_Ext),
-            color     => C0,
-            tex_coord => Zero_TC);
-         Verts (1) :=
-           (position  => (x => P0x + Nx * Half_Ext, y => P0y + Ny * Half_Ext),
-            color     => C0,
-            tex_coord => Zero_TC);
-         Verts (2) :=
-           (position  => (x => P1x + Nx * Half_Ext, y => P1y + Ny * Half_Ext),
-            color     => C1,
-            tex_coord => Zero_TC);
-         Verts (3) :=
-           (position  => (x => P1x - Nx * Half_Ext, y => P1y - Ny * Half_Ext),
-            color     => C1,
-            tex_coord => Zero_TC);
-         Idxs (0) := 0; Idxs (1) := 1; Idxs (2) := 2;
-         Idxs (3) := 0; Idxs (4) := 2; Idxs (5) := 3;
-         SDL_Assert (SDL_SetRenderDrawBlendMode (Renderer, SDL_BLENDMODE_BLEND),
-                     "SDL_SetRenderDrawBlendMode");
-         Unused := SDL_RenderGeometry
-           (Renderer     => Renderer,
-            Texture      => null,
-            Vertices     => Verts (0)'Access,
-            Num_Vertices => 4,
-            Indices      => Idxs (0)'Access,
-            Num_Indices  => 6);
-      end Render_Strip;
+         if Off1 <= Off0 then
+            return;
+         end if;
+         Cut (Box, 4, Off0, 1.0, Half, Half_N);
+         Cut (Half, Half_N, Off1, -1.0, Band, N);
+         if N < 3 then
+            return;
+         end if;
+
+         declare
+            Verts : SDL_Vertex_Array (0 .. N - 1);
+            Idxs  : Int_Array (0 .. 3 * (N - 2) - 1);
+         begin
+            for K in 1 .. N loop
+               declare
+                  F : constant Float := Float'Min
+                    (1.0, Float'Max
+                       (0.0, (Along (Band (K)) - Off0) / (Off1 - Off0)));
+               begin
+                  Verts (K - 1) :=
+                    (position  => Band (K),
+                     color     =>
+                       (r => C0.r + (C1.r - C0.r) * F,
+                        g => C0.g + (C1.g - C0.g) * F,
+                        b => C0.b + (C1.b - C0.b) * F,
+                        a => C0.a + (C1.a - C0.a) * F),
+                     tex_coord => Zero_TC);
+               end;
+            end loop;
+            for K in 0 .. N - 3 loop
+               Idxs (3 * K)     := 0;
+               Idxs (3 * K + 1) := int (K + 1);
+               Idxs (3 * K + 2) := int (K + 2);
+            end loop;
+            SDL_Assert (SDL_SetRenderDrawBlendMode
+                          (Renderer, SDL_BLENDMODE_BLEND),
+                        "SDL_SetRenderDrawBlendMode");
+            Unused := SDL_RenderGeometry
+              (Renderer     => Renderer,
+               Texture      => null,
+               Vertices     => Verts (0)'Access,
+               Num_Vertices => int (N),
+               Indices      => Idxs (0)'Access,
+               Num_Indices  => int (Idxs'Length));
+         end;
+      end Render_Band;
 
    begin
       if not Is_Visible_FRect (Rect) then
@@ -4663,38 +4719,21 @@ package body Adi.Widget is
          return;
       end if;
 
-      Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved,
-         Gradient_Rect);
-      Clip_Replaced := Can_Replace_Clip (Clip_Was_Enabled, Clip_Saved);
-      if Clip_Replaced then
-         Clip := (x => int (Float'Floor (Rect.x)),
-                  y => int (Float'Floor (Rect.y)),
-                  w => int (Float'Ceiling (Rect.w)),
-                  h => int (Float'Ceiling (Rect.h)));
-         --  Draw regardless: Set_Clip reports the failure, and a renderer
-         --  that rejects a clip fails the draw calls too.
-         Set_Clip (Renderer, Clip'Access, Gradient_Rect);
-      end if;
-
       --  Solid band before the first stop (CSS spec: first color extends back)
       if G_Stops (1).Pos > 0.0 then
-         Render_Strip (0.0, G_Stops (1).Pos,
-                       G_Stops (1).Color, G_Stops (1).Color);
+         Render_Band (0.0, G_Stops (1).Pos,
+                      G_Stops (1).Color, G_Stops (1).Color);
       end if;
 
       for I in 1 .. G_Count - 1 loop
-         Render_Strip (G_Stops (I).Pos, G_Stops (I + 1).Pos,
-                       G_Stops (I).Color, G_Stops (I + 1).Color);
+         Render_Band (G_Stops (I).Pos, G_Stops (I + 1).Pos,
+                      G_Stops (I).Color, G_Stops (I + 1).Color);
       end loop;
 
       --  Solid band after the last stop (CSS spec: last color extends forward)
       if G_Stops (G_Count).Pos < 1.0 then
-         Render_Strip (G_Stops (G_Count).Pos, 1.0,
-                       G_Stops (G_Count).Color, G_Stops (G_Count).Color);
-      end if;
-
-      if Clip_Replaced then
-         Restore_Clip (Renderer, Prev_Clip'Access, Clip_Saved, Gradient_Rect);
+         Render_Band (G_Stops (G_Count).Pos, 1.0,
+                      G_Stops (G_Count).Color, G_Stops (G_Count).Color);
       end if;
    end Render_Gradient_Rect;
 

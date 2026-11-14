@@ -1362,6 +1362,10 @@ package body Adi.Widget.Html_View is
       return Img;
    end Resolve_Inline_SVG;
 
+   --  The default font size in device pixels at a content scale.
+   function Default_Font_Px (Scale : Pixel_Type) return Pixel_Type is
+     (Default_Root_Font_Size_Px * Pixel_Type'Max (0.01, Scale));
+
    function Html_Root_Font_Size_Px
      (Root_Font       : Length_Value;
       Scale           : Pixel_Type;
@@ -1371,14 +1375,15 @@ package body Adi.Widget.Html_View is
       Base : constant Pixel_Type :=
         Length_To_Px
           (Root_Font,
+           Container_Size  => Default_Root_Font_Size_Px,
            Font_Size       => Default_Root_Font_Size_Px,
            Root_Font_Size  => Default_Root_Font_Size_Px,
            Viewport_Width  => Viewport_Width,
            Viewport_Height => Viewport_Height);
    begin
       --  Resolved against the default size, which carries no content
-      --  scale, so em and rem take it here along with px and dip.
-      if Root_Font.Unit not in Pct | Vw | Vh | Pix then
+      --  scale, so em, rem and % take it here along with px and dip.
+      if Root_Font.Unit not in Vw | Vh | Pix then
          return Base * Pixel_Type'Max (0.01, Scale);
       end if;
 
@@ -1433,8 +1438,8 @@ package body Adi.Widget.Html_View is
          Html_Length_To_Px
            (Style.Font_Size,
             Scale,
-            Container_Size  => Viewport_Width,
-            Font_Size       => Default_Root_Font_Size_Px * Pixel_Type'Max (0.01, Scale),
+            Container_Size  => Default_Font_Px (Scale),
+            Font_Size       => Default_Font_Px (Scale),
             Root_Font_Size  => Root_Font_Size,
             Viewport_Width  => Viewport_Width,
             Viewport_Height => Viewport_Height)
@@ -1516,7 +1521,7 @@ package body Adi.Widget.Html_View is
                Html_Length_To_Px
                  (Style.Line_Height.Height,
                   Scale,
-                  Container_Size => Natural_Line,
+                  Container_Size => Font_Px,
                   Font_Size      => Font_Px,
                   Root_Font_Size => Root_Font_Size,
                   Viewport_Width => Viewport_Width,
@@ -1801,9 +1806,8 @@ package body Adi.Widget.Html_View is
             Html_Length_To_Px
               (Style.Font_Size,
                Self.Content_Scale,
-               Container_Size => Content.Height,
-               Font_Size      =>
-                 Default_Root_Font_Size_Px * Pixel_Type'Max (0.01, Self.Content_Scale),
+               Container_Size => Default_Font_Px (Self.Content_Scale),
+               Font_Size      => Default_Font_Px (Self.Content_Scale),
                Root_Font_Size => Root_Font_Px,
                Viewport_Width => Content.Width,
                Viewport_Height => Content.Height));
@@ -1824,7 +1828,7 @@ package body Adi.Widget.Html_View is
          Raw       : constant Pixel_Type :=
            Length_To_Px
              (Result.Font_Size,
-              Container_Size  => Content.Height,
+              Container_Size  => Parent_Px,
               Font_Size       => Parent_Px,
               Root_Font_Size  => Root_Font_Px,
               Viewport_Width  => Content.Width,
@@ -1842,13 +1846,26 @@ package body Adi.Widget.Html_View is
                   Raw));
       begin
          Result.Font_Size := Pix (Float (Own_Px));
+
+         --  A line height in em or % is computed here, against the size
+         --  just settled, so descendants inherit the length rather than
+         --  apply the factor to their own fonts.
+         if Result.Line_Height.Kind = LH_Length
+           and then Result.Line_Height.Height.Unit in Em | Pct
+         then
+            Result.Line_Height :=
+              (Kind   => LH_Length,
+               Height =>
+                 Pix (Result.Line_Height.Height.Amount
+                      / (if Result.Line_Height.Height.Unit = Pct then 100.0 else 1.0)
+                      * Float (Own_Px * Get_Active_Text_Scale)));
+         end if;
       end Cascade_Font_Size;
 
       function Local_Length_To_Px
         (L              : Length_Value;
          Container_Size : Pixel_Type := 0.0;
-         Font_Size      : Pixel_Type :=
-           Default_Root_Font_Size_Px * Pixel_Type'Max (0.01, Self.Content_Scale))
+         Font_Size      : Pixel_Type := Default_Font_Px (Self.Content_Scale))
          return Pixel_Type
       is
       begin

@@ -1,0 +1,21 @@
+<style>
+  :root { font-size: 20px; }
+  .pct150 { font-size: 150%; }
+  .pct50  { font-size: 50%; }
+  .em2    { font-size: 2em; }
+  .rem    { font-size: 1.5rem; }
+  .lh-num { line-height: 2; }
+  .lh-pct { line-height: 175%; }
+  .lh-px  { line-height: 40px; }
+  .lh-em  { line-height: 2em; }
+</style>
+<p>Body text at the default size.</p>
+<p class="pct150">font-size: 150% of the parent.</p>
+<div class="em2"><p class="pct50">200% then 50% comes back to the body size.</p></div>
+<div class="pct150"><p class="pct150">150% of 150%, nested.</p></div>
+<p class="rem">font-size: 1.5rem against a 20px root.</p>
+<p class="lh-num">line-height: 2, a number, wrapping across lines at the narrow width of the second pass.</p>
+<p class="lh-pct">line-height: 175%, of the element's own font size, wrapping at the narrow width.</p>
+<p class="lh-px">line-height: 40px, wrapping onto a second line at the narrow width.</p>
+<p class="pct150 lh-em">line-height: 2em on a 150% font, wrapping at the narrow width.</p>
+<p class="lh-pct">An inline span <span class="em2">twice the size</span> inherits the 175% line as a length.</p>

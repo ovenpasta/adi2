@@ -823,6 +823,74 @@ procedure Html_View_Test is
       New_Line;
    end Test_Content_Scale_Is_Linear;
 
+   --  A percentage font size is of the parent's, and a percentage line
+   --  height of the element's own font size. The fallback metrics this
+   --  test measures with are linear in size, so the ratios are exact.
+   procedure Test_Percent_Font_And_Line_Height is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+
+      function Item_Of (Needle : String) return Adi.Widget.Item is
+         Idx : constant Natural := Find_Text_Item_Index (W, Needle);
+      begin
+         Assert (Idx > 0, Needle & " exists");
+         return (if Idx > 0 then Adi.Widget.Get_Item (+W, Positive (Idx))
+                 else Adi.Widget.Get_Item (+W, 1));
+      end Item_Of;
+   begin
+      Put_Line ("Test: percentage font size and line height");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 900.0));
+      Adi.Widget.Html_View.Set_HTML
+        (W, "<style>body { font-size: 16px; line-height: 1.0; }</style>"
+            & "<p>base</p>"
+            & "<p style='font-size: 150%'>half</p>"
+            & "<div style='font-size: 200%'><p style='font-size: 50%'>back</p></div>"
+            & "<p style='line-height: 200%'>tall</p>"
+            & "<p style='font-size: 150%; line-height: 200%'>both</p>");
+      Adi.Widget.Build_Items (+W);
+
+      declare
+         Base : constant Adi.Widget.Item := Item_Of ("base");
+         Half : constant Adi.Widget.Item := Item_Of ("half");
+         Back : constant Adi.Widget.Item := Item_Of ("back");
+         Tall : constant Adi.Widget.Item := Item_Of ("tall");
+         Both : constant Adi.Widget.Item := Item_Of ("both");
+      begin
+         Assert (Nearly_Equal (Half.Geometry.Width, 1.5 * Base.Geometry.Width),
+                 "font-size: 150% is half again the parent's:"
+                 & Base.Geometry.Width'Image & " ->" & Half.Geometry.Width'Image);
+         Assert (Nearly_Equal (Back.Geometry.Width, Base.Geometry.Width),
+                 "200% then 50% comes back to the parent's size:"
+                 & Back.Geometry.Width'Image);
+         Assert (Nearly_Equal (Tall.Geometry.Height, 32.0),
+                 "line-height: 200% of a 16px font is 32px:"
+                 & Tall.Geometry.Height'Image);
+         Assert (Nearly_Equal (Both.Geometry.Height, 48.0),
+                 "line-height: 200% follows the element's own 24px font:"
+                 & Both.Geometry.Height'Image);
+      end;
+      --  A percentage root size is of the default 16px.
+      Adi.Widget.Html_View.Set_HTML
+        (W, "<style>:root { font-size: 150%; } body { font-size: 1rem; line-height: 1.0; }</style>"
+            & "<p>root</p>");
+      Adi.Widget.Build_Items (+W);
+      Assert (Nearly_Equal (Item_Of ("root").Geometry.Height, 24.0),
+              "1rem under :root { font-size: 150% } is 24px:"
+              & Item_Of ("root").Geometry.Height'Image);
+
+      --  A percentage line height is a length once computed: a child
+      --  with a bigger font inherits it rather than doubling it.
+      Adi.Widget.Html_View.Set_HTML
+        (W, "<style>body { font-size: 16px; line-height: 1.0; }</style>"
+            & "<p style='line-height: 200%'>outer <span style='font-size: 200%'>inner</span></p>");
+      Adi.Widget.Build_Items (+W);
+      Assert (Nearly_Equal (Item_Of ("inner").Geometry.Height, 32.0),
+              "a 32px font inherits the parent's computed 32px line:"
+              & Item_Of ("inner").Geometry.Height'Image);
+      New_Line;
+   end Test_Percent_Font_And_Line_Height;
+
    procedure Test_Mixed_Inline_Baseline is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -2454,6 +2522,7 @@ begin
    Test_Image_Not_Stretched_To_Line_Height;
    Test_Img_Dimension_Attributes;
    Test_Content_Scale_Is_Linear;
+   Test_Percent_Font_And_Line_Height;
    Test_Grid_Px_Track_Follows_Content_Scale;
    Test_Mixed_Inline_Baseline;
    Test_Fresh_View_Is_Neutral;

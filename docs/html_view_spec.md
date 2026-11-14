@@ -260,6 +260,8 @@ The renderer implements CSS-style vertical margin collapsing:
 - Supported length units include: `px`, `dip`/`dp`, `em`, `rem`, `%`, `vw`, `vh`.
 - For `Html_View`, `vw`/`vh` are resolved against the html content viewport.
 - For `Html_View`, `rem` is resolved from the widget's own stylesheet root font, falling back to the default root size when the document does not specify one.
+- `font-size` in `em` or `%` is of the parent's font size; `:root { font-size }` in `em` or `%` is of the default 16px.
+- `line-height` in `em` or `%` is of the element's own font size, and descendants inherit the resulting length; a number is inherited as a number.
 - For normal widget styling, `vw`/`vh` are resolved against SDL window pixel size.
 
 ## Parser Recovery Rules

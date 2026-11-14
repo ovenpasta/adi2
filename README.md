@@ -18,7 +18,7 @@ A widget toolkit written in Ada on SDL3: CSS styling with live reload, XML layou
 
 - **CSS.** Selectors, pseudo-classes, parts, transitions, gradients and box shadows in ordinary `.css`. Edit the file, save, and the running window restyles. The same rules are plain Ada aggregates of `Style_Rules`, written by hand where a stylesheet is unwanted (snippet below).
 - **XML, or Ada.** `<button>`, `<grid>`, `<text-editor>` in XML become typed Ada packages, or the same tree is built in Ada with handle-based constructors. Both reach one API.
-- **Rich content.** An HTML view widget renders documentation-style markup with cascading styles. Raster images through SDL3_image, SVG through the bundled plutosvg, Lottie animations through the bundled rlottie.
+- **Rich content.** An HTML view widget renders documentation-style markup with cascading styles, including flex and grid layout. Raster images through SDL3_image, SVG through the bundled plutosvg, Lottie animations through the bundled rlottie.
 - **One binary.** CSS, fonts, images, translations and SVG sprites bundle into the executable, so the program runs from any directory.
 - **Translation.** Gettext-compatible i18n with contexts, plural forms, locale detection, and `.po` to Ada compilation.
 - **Transitions.** CSS transitions on `color`, `background-color`, `border-color`, `border-width`, `border-radius`, `padding`, `margin`, `opacity`, `box-shadow` and `font-size`.
@@ -219,7 +219,6 @@ Direct3D, Vulkan, or plain CPU pixels — in
 **HTML view.**
 
 - **Tables** — `table`, `tr`, `td`/`th`, column widths, spanning.
-- **Flex and grid** — `display: flex` and `display: grid` inside the document.
 
 **Widgets and themes.**
 

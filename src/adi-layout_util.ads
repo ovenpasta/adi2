@@ -356,6 +356,60 @@ package Adi.Layout_Util is
    function Get_Cross_Size(S : Size_2D; Dir : Flex_Direction_Value) return Pixel_Type;
    function Make_Size(Main, Cross : Pixel_Type; Dir : Flex_Direction_Value) return Size_2D;
 
+   function Main_Axis_Overflow
+     (Style     : Resolved_Style;
+      Direction : Flex_Direction_Value) return Overflow_Value;
+
+   --  Automatic minimum size on one axis (CSS Flexbox 4.5). A declared
+   --  minimum replaces it: Demand is then the answer. Otherwise it is
+   --  Content_Min, or zero on an axis whose overflow is not visible,
+   --  capped by Declared_Size. Pixel_Type'Last there means no cap.
+   function Automatic_Minimum
+     (Minimum_Declared : Boolean;
+      Declared_Size    : Pixel_Type;
+      Overflow         : Overflow_Value;
+      Demand           : Pixel_Type;
+      Content_Min      : Pixel_Type) return Pixel_Type;
+
+   --  Automatic_Minimum with Minimum and Declared read from a style. A
+   --  percentage Declared caps only when Container is known.
+   function Axis_Minimum
+     (Minimum     : Size_Value;
+      Declared    : Size_Value;
+      Overflow    : Overflow_Value;
+      Demand      : Pixel_Type;
+      Content_Min : Pixel_Type;
+      Container   : Pixel_Type := 0.0) return Pixel_Type;
+
+   --  What a flex item measured, every length in pixels.
+   type Flex_Item_Sizes is record
+      --  Flex base size.
+      Base        : Pixel_Type := 0.0;
+      --  Preferred size; a declared cross-axis percentage already
+      --  resolved against the line.
+      Preferred   : Size_2D := (0.0, 0.0);
+      --  What min-width and min-height demand.
+      Demand      : Size_2D := (0.0, 0.0);
+      --  Min-content size.
+      Content_Min : Size_2D := (0.0, 0.0);
+      --  Declared width and height; Pixel_Type'Last where none applies.
+      Declared    : Size_2D := (Pixel_Type'Last, Pixel_Type'Last);
+      --  max-width and max-height; Pixel_Type'Last where none.
+      Max         : Size_2D := (Pixel_Type'Last, Pixel_Type'Last);
+      Margin      : Edge_Pixels := Zero_Edges;
+   end record;
+
+   --  A flex item's inputs from its own style and what it measured.
+   function Make_Flex_Child_Info
+     (Style     : Resolved_Style;
+      Direction : Flex_Direction_Value;
+      Sizes     : Flex_Item_Sizes) return Flex_Child_Info;
+
+   --  The container's flex settings over Container, its content box.
+   function Make_Flex_Context
+     (Style     : Resolved_Style;
+      Container : Rectangle) return Flex_Layout_Context;
+
    -------------------------------------------------
    -- Grid Layout Types/Functions
    -------------------------------------------------
@@ -401,4 +455,15 @@ package Adi.Layout_Util is
 
    function Grid_To_Rectangles(
       Children : Grid_Child_Info_Array) return Rectangle_Array;
+
+   --  The container's grid settings over Container, its content box.
+   function Make_Grid_Context
+     (Style     : Resolved_Style;
+      Container : Rectangle) return Grid_Layout_Context;
+
+   --  An active grid item placed by its own style.
+   function Make_Grid_Child_Info
+     (Style     : Resolved_Style;
+      Preferred : Size_2D;
+      Minimum   : Size_2D) return Grid_Child_Info;
 end Adi.Layout_Util;

@@ -37,9 +37,11 @@ automatic minimum = min (specified size suggestion, content size suggestion)
 The container's own `overflow` is irrelevant: the automatic minimum
 belongs to the item.
 
-Adi computes this in the parent's flex layout pass
-(`Adi.Widget`, when populating `Flex_Child_Info`), never inside the
-child.
+Adi computes this in the parent's flex layout pass, never inside the
+child. `Adi.Layout_Util.Make_Flex_Child_Info` builds a `Flex_Child_Info`
+from the item's style and its measured sizes, so a layout without child
+widgets reaches the same answer; `Adi.Widget` measures a child widget
+and calls it.
 
 ## A minimum bounds, it does not add
 

@@ -1216,16 +1216,7 @@ overriding procedure Layout (W : in out Box_Widget) is
 
             declare
                Context : constant Grid_Layout_Context :=
-                 (Container           => Content,
-                  Columns             => Natural (Style.Grid_Columns),
-                  Explicit_Rows       => Natural (Style.Grid_Rows),
-                  Row_Gap             => Get_Row_Gap (Style.Gap),
-                  Column_Gap          => Get_Column_Gap (Style.Gap),
-                  Use_Preferred_Floor_X =>
-                    Style.Overflow_X = Overflow_Visible,
-                  Use_Preferred_Floor_Y =>
-                    Style.Overflow_Y = Overflow_Visible,
-                  Column_Tracks       => Style.Grid_Column_Tracks);
+                 Make_Grid_Context (Style, Content);
                Children_Info : Grid_Child_Info_Array (1 .. N);
                Rects : Rectangle_Array (1 .. N);
             begin
@@ -1252,20 +1243,10 @@ overriding procedure Layout (W : in out Box_Widget) is
                                 (Active => False, others => <>);
                            else
                               Children_Info (Positive (I)) :=
-                                (Active           => True,
-                                 Grid_Column      =>
-                                   Natural (Child_Style.Grid_Column),
-                                 Grid_Row         =>
-                                   Natural (Child_Style.Grid_Row),
-                                 Grid_Column_Span =>
-                                   Natural (Child_Style.Grid_Column_Span),
-                                 Grid_Row_Span    =>
-                                   Natural (Child_Style.Grid_Row_Span),
-                                 Min_Width        => Child_Min.Width,
-                                 Min_Height       => Child_Min.Height,
-                                 Pref_Width       => Child_Pref.Width,
-                                 Pref_Height      => Child_Pref.Height,
-                                 others           => <>);
+                                Make_Grid_Child_Info
+                                  (Child_Style,
+                                   Preferred => Child_Pref,
+                                   Minimum   => Child_Min);
                            end if;
                         end;
                      end if;

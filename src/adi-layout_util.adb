@@ -723,6 +723,127 @@ package body Adi.Layout_Util is
       end if;
    end Make_Size;
 
+   function Main_Axis_Overflow
+     (Style     : Resolved_Style;
+      Direction : Flex_Direction_Value) return Overflow_Value is
+   begin
+      if Is_Row_Direction (Direction) then
+         return Style.Overflow_X;
+      else
+         return Style.Overflow_Y;
+      end if;
+   end Main_Axis_Overflow;
+
+   function Automatic_Minimum
+     (Minimum_Declared : Boolean;
+      Declared_Size    : Pixel_Type;
+      Overflow         : Overflow_Value;
+      Demand           : Pixel_Type;
+      Content_Min      : Pixel_Type) return Pixel_Type
+   is
+   begin
+      --  `min-width: 0` is a definite demand for nothing, and is how CSS
+      --  lets an item shrink past its own content; taking the larger of
+      --  the two would make it a no-op.
+      if Minimum_Declared then
+         return Demand;
+      end if;
+
+      --  `hidden` counts alongside `scroll` and `auto`: CSS Overflow 3
+      --  classes all three as scrollable overflow, and CSS Grid 2 zeroes
+      --  the automatic minimum for a scroll container.
+      return Pixel_Type'Min
+        ((if Overflow = Overflow_Visible then Content_Min else 0.0),
+         Declared_Size);
+   end Automatic_Minimum;
+
+   function Axis_Minimum
+     (Minimum     : Size_Value;
+      Declared    : Size_Value;
+      Overflow    : Overflow_Value;
+      Demand      : Pixel_Type;
+      Content_Min : Pixel_Type;
+      Container   : Pixel_Type := 0.0) return Pixel_Type
+   is
+   begin
+      return Automatic_Minimum
+        (Minimum_Declared => Minimum.Kind = Fixed,
+         Declared_Size    =>
+           (if Declared.Kind = Fixed
+              and then (Declared.Size.Unit /= Pct or else Container > 0.0)
+            then Size_To_Px (Declared, Container)
+            else Pixel_Type'Last),
+         Overflow         => Overflow,
+         Demand           => Demand,
+         Content_Min      => Content_Min);
+   end Axis_Minimum;
+
+   function Make_Flex_Child_Info
+     (Style     : Resolved_Style;
+      Direction : Flex_Direction_Value;
+      Sizes     : Flex_Item_Sizes) return Flex_Child_Info
+   is
+      Is_Row : constant Boolean := Is_Row_Direction (Direction);
+      Info   : Flex_Child_Info;
+   begin
+      Info.Flex_Grow   := Float (Style.Flex_Grow);
+      Info.Flex_Shrink := Float (Style.Flex_Shrink);
+      Info.Flex_Basis  := Sizes.Base;
+      --  Auto and content both derive the basis from the item, so only a
+      --  declared one is definite.
+      Info.Basis_Is_Definite := Style.Flex_Basis.Kind = Fixed;
+      Info.Align_Self := Style.Align_Self;
+
+      Info.Min_Cross := Get_Cross_Size (Sizes.Demand, Direction);
+      --  Main axis only. See docs/layout_minimums.md.
+      Info.Min_Main := Automatic_Minimum
+        (Minimum_Declared =>
+           (if Is_Row then Style.Min_Width.Kind
+            else Style.Min_Height.Kind) = Fixed,
+         Declared_Size    => Get_Main_Size (Sizes.Declared, Direction),
+         Overflow         => Main_Axis_Overflow (Style, Direction),
+         Demand           => Get_Main_Size (Sizes.Demand, Direction),
+         Content_Min      => Get_Main_Size (Sizes.Content_Min, Direction));
+
+      Info.Max_Main  := Get_Main_Size (Sizes.Max, Direction);
+      Info.Max_Cross := Get_Cross_Size (Sizes.Max, Direction);
+
+      --  An item that cannot shrink is laid out at its flex base, so that
+      --  base is its floor, capped by the maximum. Not the preferred
+      --  size: flex-basis: 0 is a definite demand for nothing. What
+      --  min-width demands is left alone -- a minimum wins over a
+      --  maximum, CSS 2.1 10.4. The overflow that matters is the item's
+      --  own: one that scrolls needs room for none of its content.
+      if Main_Axis_Overflow (Style, Direction) = Overflow_Visible
+        and then Float (Style.Flex_Shrink) = 0.0
+      then
+         Info.Min_Main := Pixel_Type'Max
+           (Info.Min_Main, Pixel_Type'Min (Info.Flex_Basis, Info.Max_Main));
+      end if;
+
+      Info.Content_Main  := Get_Main_Size (Sizes.Preferred, Direction);
+      Info.Content_Cross := Get_Cross_Size (Sizes.Preferred, Direction);
+
+      --  Stretch replaces only a cross size the item left to the layout.
+      Info.Cross_Is_Definite :=
+        (if Is_Row then Style.Height.Kind else Style.Width.Kind) = Fixed;
+
+      Info.Margin := Sizes.Margin;
+      return Info;
+   end Make_Flex_Child_Info;
+
+   function Make_Flex_Context
+     (Style     : Resolved_Style;
+      Container : Rectangle) return Flex_Layout_Context is
+     ((Container       => Container,
+       Direction       => Style.Flex_Direction,
+       Wrap            => Style.Flex_Wrap,
+       Justify_Content => Style.Justify_Content,
+       Align_Items     => Style.Align_Items,
+       Align_Content   => Style.Align_Content,
+       Main_Gap        => Get_Main_Gap (Style.Gap, Style.Flex_Direction),
+       Cross_Gap       => Get_Cross_Gap (Style.Gap, Style.Flex_Direction)));
+
    -------------------------------------------------
    -- Flex Layout Algorithm
    -------------------------------------------------
@@ -1807,5 +1928,32 @@ package body Adi.Layout_Util is
       end loop;
       return Result;
    end Grid_To_Rectangles;
+
+   function Make_Grid_Context
+     (Style     : Resolved_Style;
+      Container : Rectangle) return Grid_Layout_Context is
+     ((Container             => Container,
+       Columns               => Natural (Style.Grid_Columns),
+       Explicit_Rows         => Natural (Style.Grid_Rows),
+       Row_Gap               => Get_Row_Gap (Style.Gap),
+       Column_Gap            => Get_Column_Gap (Style.Gap),
+       Use_Preferred_Floor_X => Style.Overflow_X = Overflow_Visible,
+       Use_Preferred_Floor_Y => Style.Overflow_Y = Overflow_Visible,
+       Column_Tracks         => Style.Grid_Column_Tracks));
+
+   function Make_Grid_Child_Info
+     (Style     : Resolved_Style;
+      Preferred : Size_2D;
+      Minimum   : Size_2D) return Grid_Child_Info is
+     ((Active           => True,
+       Grid_Column      => Natural (Style.Grid_Column),
+       Grid_Row         => Natural (Style.Grid_Row),
+       Grid_Column_Span => Natural (Style.Grid_Column_Span),
+       Grid_Row_Span    => Natural (Style.Grid_Row_Span),
+       Min_Width        => Minimum.Width,
+       Min_Height       => Minimum.Height,
+       Pref_Width       => Preferred.Width,
+       Pref_Height      => Preferred.Height,
+       others           => <>));
 
 end Adi.Layout_Util;

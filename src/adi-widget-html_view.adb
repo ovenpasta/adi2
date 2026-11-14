@@ -1666,37 +1666,12 @@ package body Adi.Widget.Html_View is
       Document_Rules   : Style_Rules := Tag_Default_Style ("body");
       Document_Style   : Resolved_Style;
 
-      --  Document space: the origin is the top-left of the content box
-      --  and the scroll offset is not in it. Emit_Items places the
-      --  result where the widget currently is and however far it is
-      --  scrolled, which is what lets one layout outlive both.
-      Line_Left  : Pixel_Type := 0.0;
-      Line_Right : Pixel_Type := Content.Width;
-      X : Pixel_Type := 0.0;
-      Y : Pixel_Type := 0.0;
-
-      Line_Base_H       : Pixel_Type := 1.0;
-      Line_Base_Ascent  : Pixel_Type := 1.0;
-      Line_Base_Descent : Pixel_Type := 0.0;
-      Current_Line_H       : Pixel_Type := 1.0;
-      Current_Line_Ascent  : Pixel_Type := 1.0;
-      Current_Line_Descent : Pixel_Type := 0.0;
-      Current_Line_Align   : Text_Align_Value := Text_Start;
-      Pending_Space : Boolean := False;
-
-      --  Vertical margin collapsing: track the running pending margin
-      --  so adjacent block margins collapse to max(bottom, top), and so
-      --  margins propagate through transparent parents (collapse-through).
-      Prev_Block_Margin_Bottom : Pixel_Type := 0.0;
-
       --  Panels whose top Y was tentatively set while a margin was still
       --  pending. Their Geometry.Y is rewritten to the committed Y when
       --  Flush_Pending_Margin actually advances Y.
       package Pending_Top_Vectors is new Ada.Containers.Vectors
         (Index_Type   => Positive,
          Element_Type => Positive);
-
-      Pending_Tops : Pending_Top_Vectors.Vector;
 
       type List_Marker_Kind is (No_Marker, Text_Marker, Image_Marker);
 
@@ -1732,7 +1707,52 @@ package body Adi.Widget.Html_View is
         (Index_Type   => Positive,
          Element_Type => Line_Run_Record);
 
-      Line_Runs : Line_Run_Vectors.Vector;
+      --  The flow cursor, in one record so it can be saved and restored
+      --  whole. Document space: the origin is the top-left of the
+      --  content box and the scroll offset is not in it. Emit_Items
+      --  places the result where the widget currently is and however
+      --  far it is scrolled, which is what lets one layout outlive both.
+      type Flow_State is record
+         Line_Left  : Pixel_Type := 0.0;
+         Line_Right : Pixel_Type := 0.0;
+         X : Pixel_Type := 0.0;
+         Y : Pixel_Type := 0.0;
+
+         Line_Base_H       : Pixel_Type := 1.0;
+         Line_Base_Ascent  : Pixel_Type := 1.0;
+         Line_Base_Descent : Pixel_Type := 0.0;
+         Current_Line_H       : Pixel_Type := 1.0;
+         Current_Line_Ascent  : Pixel_Type := 1.0;
+         Current_Line_Descent : Pixel_Type := 0.0;
+         Current_Line_Align   : Text_Align_Value := Text_Start;
+         Pending_Space : Boolean := False;
+
+         --  Vertical margin collapsing: the running pending margin, so
+         --  adjacent block margins collapse to max(bottom, top) and
+         --  margins propagate through transparent parents.
+         Prev_Block_Margin_Bottom : Pixel_Type := 0.0;
+
+         Pending_Tops : Pending_Top_Vectors.Vector;
+         Line_Runs    : Line_Run_Vectors.Vector;
+      end record;
+
+      Flow : Flow_State := (Line_Right => Content.Width, others => <>);
+
+      Line_Left  : Pixel_Type renames Flow.Line_Left;
+      Line_Right : Pixel_Type renames Flow.Line_Right;
+      X : Pixel_Type renames Flow.X;
+      Y : Pixel_Type renames Flow.Y;
+      Line_Base_H       : Pixel_Type renames Flow.Line_Base_H;
+      Line_Base_Ascent  : Pixel_Type renames Flow.Line_Base_Ascent;
+      Line_Base_Descent : Pixel_Type renames Flow.Line_Base_Descent;
+      Current_Line_H       : Pixel_Type renames Flow.Current_Line_H;
+      Current_Line_Ascent  : Pixel_Type renames Flow.Current_Line_Ascent;
+      Current_Line_Descent : Pixel_Type renames Flow.Current_Line_Descent;
+      Current_Line_Align   : Text_Align_Value renames Flow.Current_Line_Align;
+      Pending_Space : Boolean renames Flow.Pending_Space;
+      Prev_Block_Margin_Bottom : Pixel_Type renames Flow.Prev_Block_Margin_Bottom;
+      Pending_Tops : Pending_Top_Vectors.Vector renames Flow.Pending_Tops;
+      Line_Runs    : Line_Run_Vectors.Vector renames Flow.Line_Runs;
 
       procedure Add_Text_Run
         (Text  : String;

@@ -1062,8 +1062,160 @@ procedure Layout_Flex_Grid_Test is
                     "column keeps its preferred width under the X policy");
    end Test_Preferred_Floor_Is_Per_Axis;
 
+   procedure Test_Automatic_Minimum is
+   begin
+      Assert_Close
+        (Automatic_Minimum (True, Pixel_Type'Last, Overflow_Visible, 5.0, 80.0),
+         5.0, "a declared minimum is the demand, content notwithstanding");
+      Assert_Close
+        (Automatic_Minimum (False, Pixel_Type'Last, Overflow_Visible, 5.0, 80.0),
+         80.0, "the automatic minimum is the content's");
+      Assert_Close
+        (Automatic_Minimum (False, Pixel_Type'Last, Overflow_Hidden, 5.0, 80.0),
+         0.0, "an axis that hides its overflow needs no room");
+      Assert_Close
+        (Automatic_Minimum (False, 30.0, Overflow_Visible, 5.0, 80.0),
+         30.0, "a declared size caps the content floor");
+
+      Assert_Close
+        (Axis_Minimum (Size (Px (0.0)), Size (Px (30.0)), Overflow_Visible,
+                       0.0, 80.0),
+         0.0, "min-width: 0 lets the item shrink past its content");
+      Assert_Close
+        (Axis_Minimum (Default_Size, Size (Px (30.0)), Overflow_Visible,
+                       0.0, 80.0),
+         30.0, "a declared px width caps the floor");
+      Assert_Close
+        (Axis_Minimum (Default_Size, Size (Pct (50.0)), Overflow_Visible,
+                       0.0, 80.0),
+         80.0, "a percentage without a container does not cap");
+      Assert_Close
+        (Axis_Minimum (Default_Size, Size (Pct (50.0)), Overflow_Visible,
+                       0.0, 80.0, Container => 100.0),
+         50.0, "a percentage against a known container caps");
+   end Test_Automatic_Minimum;
+
+   procedure Test_Make_Flex_Child_Info is
+      Sizes : constant Flex_Item_Sizes :=
+        (Base        => 60.0,
+         Preferred   => (70.0, 20.0),
+         Demand      => (4.0, 6.0),
+         Content_Min => (40.0, 18.0),
+         Declared    => (Pixel_Type'Last, Pixel_Type'Last),
+         Max         => (200.0, 300.0),
+         Margin      => (1.0, 2.0, 3.0, 4.0));
+      Style : Resolved_Style :=
+        (Flex_Grow   => 2.0,
+         Flex_Shrink => 1.0,
+         Align_Self  => Center,
+         others      => <>);
+      Info : Flex_Child_Info;
+   begin
+      Info := Make_Flex_Child_Info (Style, Row, Sizes);
+      Assert_True (Info.Flex_Grow = 2.0 and then Info.Flex_Shrink = 1.0,
+                   "grow and shrink come from the style");
+      Assert_True (Info.Align_Self = Center, "align-self comes from the style");
+      Assert_Close (Info.Flex_Basis, 60.0, "the base is the measured one");
+      Assert_True (not Info.Basis_Is_Definite, "an auto basis is not definite");
+      Assert_Close (Info.Min_Main, 40.0, "row: automatic minimum is the min-content width");
+      Assert_Close (Info.Min_Cross, 6.0, "row: cross minimum is the demanded height");
+      Assert_Close (Info.Max_Main, 200.0, "row: max main is max-width");
+      Assert_Close (Info.Max_Cross, 300.0, "row: max cross is max-height");
+      Assert_Close (Info.Content_Main, 70.0, "row: content main is the preferred width");
+      Assert_Close (Info.Content_Cross, 20.0, "row: content cross is the preferred height");
+      Assert_True (not Info.Cross_Is_Definite, "an auto height is not definite");
+      Assert_Close (Info.Margin.Left, 4.0, "margins pass through");
+
+      Info := Make_Flex_Child_Info (Style, Column, Sizes);
+      Assert_Close (Info.Min_Main, 18.0, "column: automatic minimum is the min-content height");
+      Assert_Close (Info.Content_Main, 20.0, "column: content main is the preferred height");
+      Assert_Close (Info.Max_Main, 300.0, "column: max main is max-height");
+
+      Style.Min_Width := Size (Px (0.0));
+      Info := Make_Flex_Child_Info (Style, Row, Sizes);
+      Assert_Close (Info.Min_Main, 4.0, "a declared min-width replaces the automatic minimum");
+
+      Style.Min_Width := Default_Size;
+      Style.Overflow_X := Overflow_Hidden;
+      Info := Make_Flex_Child_Info (Style, Row, Sizes);
+      Assert_Close (Info.Min_Main, 0.0, "an item hiding its overflow has no content floor");
+
+      Style.Overflow_X := Overflow_Visible;
+      Style.Flex_Shrink := 0.0;
+      Info := Make_Flex_Child_Info (Style, Row, (Sizes with delta Base => 90.0));
+      Assert_Close (Info.Min_Main, 90.0, "an item that cannot shrink is floored at its base");
+      Info := Make_Flex_Child_Info
+        (Style, Row, (Sizes with delta Base => 250.0));
+      Assert_Close (Info.Min_Main, 200.0, "that floor is capped by the maximum");
+
+      Style.Overflow_X := Overflow_Hidden;
+      Info := Make_Flex_Child_Info (Style, Row, (Sizes with delta Base => 90.0));
+      Assert_Close (Info.Min_Main, 0.0,
+                    "an item hiding its overflow is not floored at its base");
+      Style.Overflow_X := Overflow_Visible;
+
+      Style.Flex_Shrink := 1.0;
+      Info := Make_Flex_Child_Info
+        (Style, Row, (Sizes with delta Declared => (25.0, Pixel_Type'Last)));
+      Assert_Close (Info.Min_Main, 25.0, "a declared width caps the content floor");
+      Info := Make_Flex_Child_Info
+        (Style, Column, (Sizes with delta Declared => (25.0, 12.0)));
+      Assert_Close (Info.Min_Main, 12.0, "column: a declared height caps the content floor");
+
+      Style.Height := Size (Px (20.0));
+      Style.Flex_Basis := (Kind => Fixed, Size => Px (0.0));
+      Info := Make_Flex_Child_Info (Style, Row, Sizes);
+      Assert_True (Info.Cross_Is_Definite, "a declared height is definite on a row");
+      Assert_True (Info.Basis_Is_Definite, "a declared basis is definite");
+   end Test_Make_Flex_Child_Info;
+
+   procedure Test_Make_Contexts is
+      Box   : constant Rectangle := (1.0, 2.0, 300.0, 200.0);
+      Style : constant Resolved_Style :=
+        (Flex_Direction  => Column,
+         Flex_Wrap       => Wrap,
+         Justify_Content => Space_Between,
+         Align_Items     => Flex_End,
+         Gap             => Gap (Px (5.0), Px (7.0)),
+         Grid_Columns    => 3,
+         Grid_Rows       => 2,
+         Grid_Column     => 2,
+         Grid_Row        => 1,
+         Grid_Column_Span => 2,
+         Overflow_Y      => Overflow_Auto,
+         others          => <>);
+      F : constant Flex_Layout_Context := Make_Flex_Context (Style, Box);
+      G : constant Grid_Layout_Context := Make_Grid_Context (Style, Box);
+      C : constant Grid_Child_Info :=
+        Make_Grid_Child_Info (Style, Preferred => (50.0, 20.0), Minimum => (10.0, 5.0));
+   begin
+      Assert_True (F.Container = Box and then F.Direction = Column
+                   and then F.Wrap = Wrap and then F.Justify_Content = Space_Between
+                   and then F.Align_Items = Flex_End,
+                   "the flex context carries the container's settings");
+      Assert_Close (F.Main_Gap, 5.0, "column: the main gap is row-gap");
+      Assert_Close (F.Cross_Gap, 7.0, "column: the cross gap is column-gap");
+
+      Assert_True (G.Container = Box and then G.Columns = 3 and then G.Explicit_Rows = 2,
+                   "the grid context carries columns and rows");
+      Assert_Close (G.Row_Gap, 5.0, "grid row gap");
+      Assert_Close (G.Column_Gap, 7.0, "grid column gap");
+      Assert_True (G.Use_Preferred_Floor_X and then not G.Use_Preferred_Floor_Y,
+                   "the preferred floor follows each axis's overflow");
+
+      Assert_True (C.Active and then C.Grid_Column = 2 and then C.Grid_Row = 1
+                   and then C.Grid_Column_Span = 2 and then C.Grid_Row_Span = 1,
+                   "a grid item is placed by its style");
+      Assert_Close (C.Pref_Width, 50.0, "grid item preferred width");
+      Assert_Close (C.Min_Height, 5.0, "grid item minimum height");
+   end Test_Make_Contexts;
+
 begin
    Test_Support.Start_Suite ("layout_flex_grid_test");
+
+   Test_Automatic_Minimum;
+   Test_Make_Flex_Child_Info;
+   Test_Make_Contexts;
 
    Test_Flex_Grow_Resize;
    Test_Flex_Shrink_Min;

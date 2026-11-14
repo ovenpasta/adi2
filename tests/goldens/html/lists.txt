@@ -173,7 +173,14 @@
 172: PANEL_ITEM ANY_PART z=0 [58.60,881.52 581.40x24.00] override
 173: TEXT_ITEM TEXT_PART z=1 [40.00,881.52 13.00x24.00] override wrap=FALSE off=0.00,0.00 text="2."
 174: TEXT_ITEM TEXT_PART z=1 [58.60,881.52 202.00x24.00] override wrap=FALSE off=0.00,3.00 text="pre text after a leading newline"
-doc: 640.00x921.52 scroll_h=2000.00
+175: PANEL_ITEM ANY_PART z=0 [0.00,921.52 640.00x48.00] override
+176: PANEL_ITEM ANY_PART z=0 [40.00,921.52 600.00x24.00] override
+177: TEXT_ITEM TEXT_PART z=1 [40.00,921.52 13.00x24.00] override wrap=FALSE off=0.00,0.00 text="5."
+178: TEXT_ITEM TEXT_PART z=1 [58.60,921.52 29.00x24.00] override wrap=FALSE off=0.00,0.00 text="Five"
+179: PANEL_ITEM ANY_PART z=0 [40.00,945.52 600.00x24.00] override
+180: TEXT_ITEM TEXT_PART z=1 [40.00,945.52 13.00x24.00] override wrap=FALSE off=0.00,0.00 text="6."
+181: TEXT_ITEM TEXT_PART z=1 [58.60,945.52 21.00x24.00] override wrap=FALSE off=0.00,0.00 text="Six"
+doc: 640.00x985.52 scroll_h=2000.00
 == width 320
 1: PANEL_ITEM MAIN_PART z=0 [0.00,0.00 320.00x2000.00]
 2: PANEL_ITEM ANY_PART z=0 [0.00,16.00 320.00x200.00] override
@@ -349,7 +356,14 @@ doc: 640.00x921.52 scroll_h=2000.00
 172: PANEL_ITEM ANY_PART z=0 [58.60,1049.52 261.40x24.00] override
 173: TEXT_ITEM TEXT_PART z=1 [40.00,1049.52 13.00x24.00] override wrap=FALSE off=0.00,0.00 text="2."
 174: TEXT_ITEM TEXT_PART z=1 [58.60,1049.52 202.00x24.00] override wrap=FALSE off=0.00,3.00 text="pre text after a leading newline"
-doc: 320.00x1089.52 scroll_h=2000.00
+175: PANEL_ITEM ANY_PART z=0 [0.00,1089.52 320.00x48.00] override
+176: PANEL_ITEM ANY_PART z=0 [40.00,1089.52 280.00x24.00] override
+177: TEXT_ITEM TEXT_PART z=1 [40.00,1089.52 13.00x24.00] override wrap=FALSE off=0.00,0.00 text="5."
+178: TEXT_ITEM TEXT_PART z=1 [58.60,1089.52 29.00x24.00] override wrap=FALSE off=0.00,0.00 text="Five"
+179: PANEL_ITEM ANY_PART z=0 [40.00,1113.52 280.00x24.00] override
+180: TEXT_ITEM TEXT_PART z=1 [40.00,1113.52 13.00x24.00] override wrap=FALSE off=0.00,0.00 text="6."
+181: TEXT_ITEM TEXT_PART z=1 [58.60,1113.52 21.00x24.00] override wrap=FALSE off=0.00,0.00 text="Six"
+doc: 320.00x1153.52 scroll_h=2000.00
 == width 1280 scale 2
 1: PANEL_ITEM MAIN_PART z=0 [0.00,0.00 1280.00x4000.00]
 2: PANEL_ITEM ANY_PART z=0 [0.00,32.00 1280.00x352.00] override
@@ -525,4 +539,11 @@ doc: 320.00x1089.52 scroll_h=2000.00
 172: PANEL_ITEM ANY_PART z=0 [117.20,1763.04 1162.80x48.00] override
 173: TEXT_ITEM TEXT_PART z=1 [80.00,1763.04 26.00x48.00] override wrap=FALSE off=0.00,0.00 text="2."
 174: TEXT_ITEM TEXT_PART z=1 [117.20,1763.04 405.00x48.00] override wrap=FALSE off=0.00,5.00 text="pre text after a leading newline"
-doc: 1280.00x1843.04 scroll_h=4000.00
+175: PANEL_ITEM ANY_PART z=0 [0.00,1843.04 1280.00x96.00] override
+176: PANEL_ITEM ANY_PART z=0 [80.00,1843.04 1200.00x48.00] override
+177: TEXT_ITEM TEXT_PART z=1 [80.00,1843.04 26.00x48.00] override wrap=FALSE off=0.00,0.00 text="5."
+178: TEXT_ITEM TEXT_PART z=1 [117.20,1843.04 58.00x48.00] override wrap=FALSE off=0.00,0.00 text="Five"
+179: PANEL_ITEM ANY_PART z=0 [80.00,1891.04 1200.00x48.00] override
+180: TEXT_ITEM TEXT_PART z=1 [80.00,1891.04 26.00x48.00] override wrap=FALSE off=0.00,0.00 text="6."
+181: TEXT_ITEM TEXT_PART z=1 [117.20,1891.04 42.00x48.00] override wrap=FALSE off=0.00,0.00 text="Six"
+doc: 1280.00x1971.04 scroll_h=4000.00

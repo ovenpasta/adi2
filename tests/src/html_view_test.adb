@@ -1077,6 +1077,34 @@ procedure Html_View_Test is
       New_Line;
    end Test_Pre_Leading_Newline;
 
+   --  An ordered list counts from its start attribute, an item's value
+   --  resets the count, and both may be zero or negative.
+   procedure Test_Ordered_List_Start is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+
+      procedure Expect (Markup, Marker, What : String) is
+      begin
+         Adi.Widget.Html_View.Set_HTML (W, Markup);
+         Adi.Widget.Build_Items (+W);
+         Assert (Find_Text_Item_Index (W, Marker) > 0, What & ": no " & Marker);
+      end Expect;
+   begin
+      Put_Line ("Test: ordered list start");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 300.0));
+      Expect ("<ol start='5'><li>a</li><li>b</li></ol>", "6.", "start 5 then 6");
+      Expect ("<ol start=' 3x'><li>a</li></ol>", "3.", "trailing text after the digits");
+      Expect ("<ol start='0'><li>a</li></ol>", "0.", "zero");
+      Expect ("<ol start='-2'><li>a</li><li>b</li></ol>", "-1.", "negative");
+      Expect ("<ol start='9'><li>a</li><li value='20'>b</li><li>c</li></ol>", "21.",
+              "a value resets the count after start");
+      Expect ("<ol start='x'><li>a</li></ol>", "1.", "no digits counts from 1");
+      Expect ("<ol start='2147483647'><li>a</li><li>b</li></ol>", "2147483647.",
+              "the count stops at the largest integer");
+      New_Line;
+   end Test_Ordered_List_Start;
+
    procedure Test_Mixed_Inline_Baseline is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -2713,6 +2741,7 @@ begin
    Test_Character_References;
    Test_Marker_Beside_Opening_Block;
    Test_Pre_Leading_Newline;
+   Test_Ordered_List_Start;
    Test_Grid_Px_Track_Follows_Content_Scale;
    Test_Mixed_Inline_Baseline;
    Test_Fresh_View_Is_Neutral;

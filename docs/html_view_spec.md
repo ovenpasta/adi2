@@ -218,7 +218,7 @@ The renderer implements CSS-style vertical margin collapsing:
   - `list-style-type`: `disc`, `circle`, `square`, `decimal`, `none`, or quoted custom marker text.
   - `list-style-image`: `none` or callback-loaded `url(...)` marker asset.
   - `list-style-position`: `outside` and `inside`.
-- Ordered list item numbering supports `<li value="N">` overrides.
+- Ordered lists count from `<ol start="N">`, and `<li value="N">` resets the count; both take any integer.
 - Wrapped lines in an `li` align to the content area (not marker origin).
 - An outside marker sits on its item's first line, also when a block opens the
   item; an item with no content shows it on its own line. An inside marker is

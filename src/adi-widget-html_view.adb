@@ -1229,6 +1229,7 @@ package body Adi.Widget.Html_View is
                                     Src_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "src")),
                                     Alt_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "alt")),
                                     Value_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "value")),
+                                    Start_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "start")),
                                     Width_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "width")),
                                     Height_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "height")),
                                     Svg_Source_Attr => Null_Unbounded_String);
@@ -1346,6 +1347,7 @@ package body Adi.Widget.Html_View is
                                     Src_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "src")),
                                     Alt_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "alt")),
                                     Value_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "value")),
+                                    Start_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "start")),
                                     Width_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "width")),
                                     Height_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "height")),
                                     Svg_Source_Attr => Null_Unbounded_String);
@@ -1852,7 +1854,7 @@ package body Adi.Widget.Html_View is
       type List_Context is record
          Node_Index  : Positive := 1;
          Ordered     : Boolean := False;
-         Next_Number : Natural := 1;
+         Next_Number : Integer := 1;
       end record;
 
       package List_Context_Vectors is new Ada.Containers.Vectors
@@ -2068,27 +2070,36 @@ package body Adi.Widget.Html_View is
          return X > Line_Left or else Natural (Line_Runs.Length) > 0;
       end Has_Line_Content;
 
-      function Parse_Positive_Natural
+      --  An HTML integer: leading whitespace, an optional sign, then
+      --  digits; anything after them is ignored.
+      function Parse_Integer
         (Text  : String;
-         Value : out Natural) return Boolean
+         Value : out Integer) return Boolean
       is
-         V : Integer;
+         I        : Natural := Text'First;
+         Negative : Boolean := False;
+         Mag      : Long_Long_Integer := 0;
       begin
          Value := 0;
-         begin
-            V := Integer'Value (Trimmed (Text));
-         exception
-            when others =>
-               return False;
-         end;
-
-         if V <= 0 then
+         while I <= Text'Last and then Is_Whitespace (Text (I)) loop
+            I := I + 1;
+         end loop;
+         if I <= Text'Last and then Text (I) in '+' | '-' then
+            Negative := Text (I) = '-';
+            I := I + 1;
+         end if;
+         if I > Text'Last or else Text (I) not in '0' .. '9' then
             return False;
          end if;
-
-         Value := Natural (V);
+         while I <= Text'Last and then Text (I) in '0' .. '9' loop
+            Mag := Long_Long_Integer'Min
+              (Long_Long_Integer (Integer'Last),
+               Mag * 10 + Long_Long_Integer (Character'Pos (Text (I)) - Character'Pos ('0')));
+            I := I + 1;
+         end loop;
+         Value := Integer (if Negative then -Mag else Mag);
          return True;
-      end Parse_Positive_Natural;
+      end Parse_Integer;
 
       function Find_List_Context (Node_Index : Natural) return Natural is
       begin
@@ -2123,12 +2134,12 @@ package body Adi.Widget.Html_View is
 
       function Marker_Text_For
         (Style          : Resolved_Style;
-         Ordered_Number : Natural) return String
+         Ordered_Number : Integer) return String
       is
       begin
          case Style.List_Style_Type.Kind is
             when List_Style_Decimal =>
-               return Trimmed (Natural'Image (Natural'Max (1, Ordered_Number))) & ".";
+               return Trimmed (Integer'Image (Ordered_Number)) & ".";
             when List_Style_Custom_String =>
                return Text_Of (Style.List_Style_Type.Marker);
             when others =>
@@ -2138,7 +2149,7 @@ package body Adi.Widget.Html_View is
 
       procedure Resolve_List_Marker
         (Style          : Resolved_Style;
-         Ordered_Number : Natural;
+         Ordered_Number : Integer;
          Marker         : out List_Marker_Run;
          Marker_Width   : out Pixel_Type;
          Marker_Height  : out Pixel_Type)
@@ -3009,13 +3020,13 @@ package body Adi.Widget.Html_View is
 
       function Resolve_List_Item_Number
         (Node_Index : Positive;
-         Attrs      : Element_Attributes) return Natural
+         Attrs      : Element_Attributes) return Integer
       is
          Ctx_Idx : constant Natural :=
            Find_List_Context (Self.Nodes.Element (Node_Index).Parent);
          Ctx : List_Context;
-         Explicit_Value : Natural := 0;
-         Number : Natural := 0;
+         Explicit_Value : Integer := 0;
+         Number : Integer := 0;
       begin
          if Ctx_Idx = 0 then
             return 0;
@@ -3027,13 +3038,15 @@ package body Adi.Widget.Html_View is
          end if;
 
          if Length (Attrs.Value_Attr) > 0
-           and then Parse_Positive_Natural (To_String (Attrs.Value_Attr), Explicit_Value)
+           and then Parse_Integer (To_String (Attrs.Value_Attr), Explicit_Value)
          then
             Ctx.Next_Number := Explicit_Value;
          end if;
 
          Number := Ctx.Next_Number;
-         Ctx.Next_Number := Ctx.Next_Number + 1;
+         if Ctx.Next_Number < Integer'Last then
+            Ctx.Next_Number := Ctx.Next_Number + 1;
+         end if;
          List_Stack.Replace_Element (Positive (Ctx_Idx), Ctx);
          return Number;
       end Resolve_List_Item_Number;
@@ -3993,7 +4006,7 @@ package body Adi.Widget.Html_View is
                         Marker_H        : Pixel_Type := 0.0;
                         Marker_Gap      : Pixel_Type := 0.0;
                         Marker_Gutter   : Pixel_Type := 0.0;
-                        Ordered_Number  : Natural := 0;
+                        Ordered_Number  : Integer := 0;
                         Block_Item_Index : Natural := 0;
                         Block_Top_Y      : Pixel_Type := 0.0;
                         Block_Left_X     : Pixel_Type := 0.0;
@@ -4005,12 +4018,22 @@ package body Adi.Widget.Html_View is
                            end if;
 
                            if Tag = "ul" or else Tag = "ol" then
-                              List_Stack.Append
-                                (New_Item =>
-                                   List_Context'
-                                     (Node_Index  => Node_Index,
-                                      Ordered     => Tag = "ol",
-                                      Next_Number => 1));
+                              declare
+                                 Start : Integer := 1;
+                              begin
+                                 if Tag = "ol"
+                                   and then not Parse_Integer
+                                                  (To_String (N.Attrs.Start_Attr), Start)
+                                 then
+                                    Start := 1;
+                                 end if;
+                                 List_Stack.Append
+                                   (New_Item =>
+                                      List_Context'
+                                        (Node_Index  => Node_Index,
+                                         Ordered     => Tag = "ol",
+                                         Next_Number => Start));
+                              end;
                               List_Context_Pushed := True;
                            end if;
 

@@ -337,28 +337,36 @@ procedure RLottie_Widget_Test is
    ---------------------------------------------------------------------------
 
    --  How the measured runs are driven: one anchoring tick, then one more
-   --  after each real pause of Step, until Span of real time has passed.
-   --  A run ends on real time rather than a tick count, so it stays well
-   --  inside the fixture's 400 ms on a host whose pauses overshoot.
+   --  after each real pause of Step, until Span of real time separates
+   --  the anchoring ticks from the last ones. A run ends on real time
+   --  rather than a tick count, so it stays well inside the fixture's
+   --  400 ms however long the pauses and the ticks take.
    Step : constant Duration := 0.010;
    Span : constant Duration := 0.150;
 
+   --  What each tick tells the widgets has passed. Far less than any real
+   --  pause, so a playhead stepped by it stays well short of the real span
+   --  on any host, and only one sampled from the clock can track it.
+   Nominal_DT : constant Duration := 0.001;
+
    --  What a stepped implementation would have charged the animation for
-   --  a run of Ticks ticks: every viewer's tick adds its own Step. A
-   --  sampled one charges the real span instead, which is what makes the
-   --  two distinguishable -- but only when the host keeps up, and only
-   --  for more than one viewer.
+   --  a run of Ticks ticks: every viewer's tick adds its own Nominal_DT.
    function Stepped_Span (Viewers, Ticks : Positive) return Duration is
-     (Step * (Viewers * Ticks));
+     (Nominal_DT * (Viewers * Ticks));
 
    --  Runs one animation under a given number of viewers for a fixed span
    --  of real time, and reports how far its playhead travelled against how
-   --  much time actually passed.
+   --  much time actually passed. The playhead is sampled inside the ticks,
+   --  so the real time it should have played is bracketed rather than
+   --  known: at least Low, from the end of the anchoring ticks to the
+   --  start of the last ones, and at most High, from the start of the
+   --  first to the end of the last.
    procedure Run_Viewers
      (Kind    : Viewer_Kind;
       Viewers : Positive;
       Played  : out Duration;
-      Wall    : out Duration;
+      Low     : out Duration;
+      High    : out Duration;
       Ticks   : out Positive)
    is
       use type Adi.Clock.Time;
@@ -366,10 +374,11 @@ procedure RLottie_Widget_Test is
       Wins  : Window_Array (1 .. Viewers);
       Root  : Widget_Handle;
       Anim  : Animation_Handle;
-      T0    : Adi.Clock.Time;
+      Before_Anchor, After_Anchor, Before_Last : Adi.Clock.Time;
    begin
       Played := 0.0;
-      Wall := 0.0;
+      Low := 0.0;
+      High := 0.0;
       Ticks := 1;
 
       Anim := Load_From_File (Fixture);
@@ -394,19 +403,23 @@ procedure RLottie_Widget_Test is
          Adi.Window.Render (H);
       end loop;
 
-      --  The animation has one anchor, not one per viewer. This tick sets
-      --  it; the measured span starts after.
-      Tick_All (Wins, Step);
-      T0 := Adi.Clock.Now;
+      --  The animation has one anchor, not one per viewer. These ticks set
+      --  it; the measured span starts there.
+      Before_Anchor := Adi.Clock.Now;
+      Tick_All (Wins, Nominal_DT);
+      After_Anchor := Adi.Clock.Now;
+      Before_Last := After_Anchor;
 
       loop
          delay Step;
-         Tick_All (Wins, Step);
+         Before_Last := Adi.Clock.Now;
+         Tick_All (Wins, Nominal_DT);
          Ticks := Ticks + 1;
-         exit when Adi.Clock.To_Duration (Adi.Clock.Now - T0) >= Span;
+         exit when Adi.Clock.To_Duration (Before_Last - After_Anchor) >= Span;
       end loop;
 
-      Wall := Adi.Clock.To_Duration (Adi.Clock.Now - T0);
+      High := Adi.Clock.To_Duration (Adi.Clock.Now - Before_Anchor);
+      Low := Adi.Clock.To_Duration (Before_Last - After_Anchor);
       Played := Elapsed (Anim);
 
       for H of Wins loop
@@ -423,43 +436,49 @@ procedure RLottie_Widget_Test is
       Tolerance : constant Duration := 0.050;
       Attempts  : constant := 5;
 
-      One_P, One_W, Two_P, Two_W : Duration;
+      One_P, One_L, One_H, Two_P, Two_L, Two_H : Duration;
       One_T, Two_T : Positive;
       Usable : Boolean := False;
+
+      function Within (Played, Low, High : Duration) return Boolean is
+        (Played in Low - Tolerance .. High + Tolerance);
+
+      function Span_Image (Low, High : Duration) return String is
+        (Low'Image & "s to" & High'Image & "s");
    begin
       Section (Label (Kind) & ": viewers share one playhead");
 
-      --  A baseline, not a discriminator: with one viewer a stepped
-      --  implementation and a sampled one agree, and both are right.
-      Run_Viewers (Kind, 1, One_P, One_W, One_T);
-      Assert (abs (One_P - One_W) <= Tolerance,
+      --  A baseline: with one viewer, the playhead tracks the clock.
+      Run_Viewers (Kind, 1, One_P, One_L, One_H, One_T);
+      Assert (Within (One_P, One_L, One_H),
               "One viewer's playhead tracks the clock: played"
-              & One_P'Image & "s over" & One_W'Image & "s in"
+              & One_P'Image & "s over" & Span_Image (One_L, One_H) & " in"
               & One_T'Image & " ticks");
 
-      --  A host slow enough that the real span drifts out to what a
-      --  stepped run would have charged makes the two indistinguishable,
-      --  and a passing measurement would mean nothing. Take another
-      --  sample rather than judge on that one.
+      --  A run whose real span reached down to what a stepped run would
+      --  have charged could not tell the two apart, and a passing
+      --  measurement would mean nothing. Take another sample rather than
+      --  judge on that one.
       for Try in 1 .. Attempts loop
-         Run_Viewers (Kind, 2, Two_P, Two_W, Two_T);
-         Usable := abs (Stepped_Span (2, Two_T) - Two_W) > Tolerance;
+         Run_Viewers (Kind, 2, Two_P, Two_L, Two_H, Two_T);
+         Usable := not Within (Stepped_Span (2, Two_T), Two_L, Two_H);
          exit when Usable;
       end loop;
 
       Assert (Usable,
               "the measurement must be able to tell a stepped playhead"
               & " from a sampled one: a stepped run would have played"
-              & Stepped_Span (2, Two_T)'Image & "s and the real span reached"
-              & Two_W'Image & "s, which are not far enough apart to judge");
+              & Stepped_Span (2, Two_T)'Image & "s and the real span was"
+              & Span_Image (Two_L, Two_H)
+              & ", which are not far enough apart to judge");
       if not Usable then
          return;
       end if;
 
-      Assert (abs (Two_P - Two_W) <= Tolerance,
+      Assert (Within (Two_P, Two_L, Two_H),
               "and a second viewer of the same animation must not move it"
-              & " again: played" & Two_P'Image & "s over" & Two_W'Image
-              & "s");
+              & " again: played" & Two_P'Image & "s over"
+              & Span_Image (Two_L, Two_H) & " in" & Two_T'Image & " ticks");
    end Test_Shared_Playhead;
 
    ---------------------------------------------------------------------------

@@ -1241,8 +1241,147 @@ procedure Layout_Flex_Grid_Test is
       Assert_True (Cols = [0.0, 0.0, 0.0], "an empty grid reports zero columns");
    end Test_Grid_Reports_Column_Widths;
 
+   --  Three 100-wide columns and 10-high rows, so a cell's position
+   --  reads back as its column and row.
+   procedure Test_Grid_Auto_Placement is
+      Ctx : constant Grid_Layout_Context :=
+        (Container             => (0.0, 0.0, 300.0, 0.0),
+         Columns               => 3,
+         Use_Preferred_Floor_Y => True,
+         others                => <>);
+
+      function Item
+        (Column, Row : Natural := 0; Column_Span, Row_Span : Positive := 1)
+         return Grid_Child_Info is
+        ((Grid_Column => Column, Grid_Row => Row,
+          Grid_Column_Span => Column_Span, Grid_Row_Span => Row_Span,
+          Pref_Height => 10.0, others => <>));
+
+      procedure Expect
+        (Kids : Grid_Child_Info_Array; I : Positive; Column, Row : Positive;
+         What : String) is
+      begin
+         Assert_True
+           (abs (Kids (I).Computed_X - 100.0 * Pixel_Type (Column - 1)) < Eps
+            and then abs (Kids (I).Computed_Y - 10.0 * Pixel_Type (Row - 1)) < Eps,
+            What & ": expected column" & Column'Image & " row" & Row'Image
+            & ", got x" & Kids (I).Computed_X'Image & " y" & Kids (I).Computed_Y'Image);
+      end Expect;
+   begin
+      declare
+         Kids : Grid_Child_Info_Array :=
+           [Item (Column => 1, Row => 1, Column_Span => 2), Item, Item];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 2, 3, 1, "an auto item skips cells a span covers");
+         Expect (Kids, 3, 1, 2, "and the next one wraps to the next row");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array :=
+           [Item (Row_Span => 2), Item, Item, Item, Item];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 4, 2, 2, "a row span keeps its column taken below it");
+         Expect (Kids, 5, 3, 2, "the row continues past it");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array := [Item, Item (Column => 1), Item];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 2, 1, 2, "a column-only item moves down to a free row");
+         Expect (Kids, 3, 2, 2, "auto items continue from it");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array :=
+           [Item, Item (Row => 2), Item (Row => 2), Item, Item];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 2, 1, 2, "a row-only item takes the row's first column");
+         Expect (Kids, 3, 2, 2, "the next one in that row takes the next column");
+         Expect (Kids, 4, 2, 1, "auto items fill around row-only ones");
+         Expect (Kids, 5, 3, 1, "in order");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array :=
+           [Item, Item (Column_Span => 3), Item (Column_Span => 9)];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 2, 1, 2, "a span that does not fit the row starts the next");
+         Expect (Kids, 3, 1, 3, "a span past the grid is clamped to it");
+         Assert_Close (Kids (3).Computed_Width, 300.0, "the clamped span covers every column");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array :=
+           [Item (Column => 2, Row => 1), Item (Column => 2, Row => 1)];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 1, 2, 1, "an item with both lines goes where it asks");
+         Expect (Kids, 2, 2, 1, "even onto another");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array := [Item, Item, Item (Column => 1)];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 3, 1, 2, "a column before the cursor's starts the next row");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array :=
+           [(Item (Column => 1, Row => 1) with delta Active => False), Item];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 2, 1, 1, "an inactive item reserves nothing");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array := [Item (Column => 9, Row => 1, Column_Span => 2)];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 1, 3, 1, "a column past the grid is its last");
+         Assert_Close (Kids (1).Computed_Width, 100.0, "with its span cut to fit");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array :=
+           [Item (Column_Span => 3), Item (Column_Span => 3), Item];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 2, 1, 2, "full-width spans stack");
+         Expect (Kids, 3, 1, 3, "and the next item goes below them");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array := [Item, Item (Column => 1, Row => 1)];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 1, 2, 1, "an item placed later in order still claims its cell first");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array := [Item (Row => 1, Column_Span => 3), Item (Row => 1)];
+      begin
+         Compute_Grid_Layout (Ctx, Kids);
+         Expect (Kids, 2, 1, 1, "a row-only item with no room left takes the first column");
+      end;
+
+      declare
+         Kids : Grid_Child_Info_Array := [for I in 1 .. 6 => Item];
+      begin
+         Compute_Grid_Layout ((Ctx with delta Explicit_Rows => 1), Kids);
+         Expect (Kids, 6, 3, 2, "items run past the declared row count");
+      end;
+   end Test_Grid_Auto_Placement;
+
 begin
    Test_Support.Start_Suite ("layout_flex_grid_test");
+
+   Test_Grid_Auto_Placement;
 
    Test_Grid_Reports_Column_Widths;
 

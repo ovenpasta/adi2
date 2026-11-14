@@ -620,6 +620,14 @@ Two values are read and have no effect:
 | `grid-column` | start / span | `grid-column: 2;` |
 | `grid-row` | start / span | `grid-row: 1 / span 2;` |
 
+Items are placed as CSS Grid's sparse auto-placement places them, with
+no implicit columns. An item with both a column and a row goes there,
+overlapping or not. An item with only a row takes the first free columns
+in that row, or the first column when none are free. The rest follow one cursor row by row to the first area
+nothing placed covers; an item with only a column moves down to the first
+row where that column is free. A span is clamped to the columns there
+are.
+
 #### `grid-template-columns` track sizing
 
 Column tracks can be specified as a space-separated list of sizing tokens, or via `repeat()`:

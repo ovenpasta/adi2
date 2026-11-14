@@ -186,7 +186,7 @@ The renderer implements CSS-style vertical margin collapsing:
 - An item fills its cell less its margins, or keeps a declared width or height from the cell's start.
 - `fr` and counted columns share the width the container has left; an `auto` column takes its widest item's max-content width, capped at the container. Rows are as tall as their content; with a declared container `height`, rows share what is left equally.
 - Measured for its min- or max-content width, every column holds its content and `fr` columns grow to one shared fraction.
-- Placement is the solver's: an item without a column or row takes the next cell in order, and spanning items do not reserve the cells they cover.
+- Items are placed as `Adi.Widget.Box` grids place them; see Grid in `docs/css_styling.md`.
 
 ### Inline Flow
 - Inline content is line-wrapped by available width (similar to text widgets).

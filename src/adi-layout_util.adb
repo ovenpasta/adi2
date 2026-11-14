@@ -1565,59 +1565,142 @@ package body Adi.Layout_Util is
       Row_Start : Nat_Array;
       Col_Span  : Nat_Array;
       Row_Span  : Nat_Array;
-      Auto_Index : Natural := 0;
+      Placed    : array (Children'Range) of Boolean := [others => False];
       Needed_Rows : Natural := Context.Explicit_Rows;
+
+      --  Whether an area overlaps an item already placed.
+      function Taken (R, C, RS, CS : Positive) return Boolean is
+        (for some J in Children'Range =>
+           Placed (J)
+           and then R < Row_Start (J) + Row_Span (J)
+           and then Row_Start (J) < R + RS
+           and then C < Col_Start (J) + Col_Span (J)
+           and then Col_Start (J) < C + CS);
+
+      procedure Place (I : Positive; R, C : Positive) is
+      begin
+         Row_Start (I) := R;
+         Col_Start (I) := C;
+         Placed (I) := True;
+         Needed_Rows := Natural'Max (Needed_Rows, R + Row_Span (I) - 1);
+      end Place;
    begin
       Columns := [others => 0.0];
       if N = 0 then
          return;
       end if;
 
+      --  Spans first: a span never reaches past the last column.
       for I in Children'Range loop
          declare
             Child : Grid_Child_Info renames Children (I);
-            C : Natural := Child.Grid_Column;
-            R : Natural := Child.Grid_Row;
-            CS : Natural := Child.Grid_Column_Span;
-            RS : Natural := Child.Grid_Row_Span;
          begin
+            Col_Start (I) := 1;
+            Row_Start (I) := 1;
+            Row_Span (I)  := Natural'Max (1, Child.Grid_Row_Span);
+            Col_Span (I)  := Natural'Max
+              (1, Natural'Min
+                    (Child.Grid_Column_Span,
+                     (if Child.Grid_Column > 0
+                      then Cols - Natural'Min (Child.Grid_Column, Cols) + 1
+                      else Cols)));
             if not Child.Active then
-               Col_Start (I) := 1;
-               Row_Start (I) := 1;
                Col_Span (I) := 1;
                Row_Span (I) := 1;
                Needed_Rows := Natural'Max (Needed_Rows, 1);
-            else
-               if CS = 0 then
-                  CS := 1;
-               end if;
-               if RS = 0 then
-                  RS := 1;
-               end if;
-
-               if C = 0 and then R = 0 then
-                  Auto_Index := Auto_Index + 1;
-                  R := ((Auto_Index - 1) / Cols) + 1;
-                  C := ((Auto_Index - 1) mod Cols) + 1;
-               elsif C = 0 then
-                  C := 1;
-               elsif R = 0 then
-                  Auto_Index := Auto_Index + 1;
-                  R := ((Auto_Index - 1) / Cols) + 1;
-               end if;
-
-               C := Natural'Max (1, Natural'Min (C, Cols));
-               CS := Natural'Max (1, Natural'Min (CS, Cols - C + 1));
-
-               Col_Start (I) := C;
-               Row_Start (I) := Natural'Max (1, R);
-               Col_Span (I) := CS;
-               Row_Span (I) := RS;
-
-               Needed_Rows := Natural'Max (Needed_Rows, Row_Start (I) + RS - 1);
             end if;
          end;
       end loop;
+
+      --  Placement follows CSS Grid 8.5, sparse, with no implicit
+      --  columns. Items with both lines set go where they ask, overlap
+      --  or not.
+      for I in Children'Range loop
+         if Children (I).Active
+           and then Children (I).Grid_Column > 0
+           and then Children (I).Grid_Row > 0
+         then
+            Place (I, Children (I).Grid_Row, Natural'Min (Children (I).Grid_Column, Cols));
+         end if;
+      end loop;
+
+      --  Items with only a row take the first free columns in it after
+      --  the ones this step already placed in that row; failing that,
+      --  the first column.
+      declare
+         type Row_Cursor is record
+            Row, Column : Positive := 1;
+         end record;
+         Cursors : array (Children'Range) of Row_Cursor;
+         Used    : Natural := 0;
+      begin
+         for I in Children'Range loop
+            if Children (I).Active
+              and then Children (I).Grid_Column = 0
+              and then Children (I).Grid_Row > 0
+            then
+               declare
+                  R     : constant Positive := Children (I).Grid_Row;
+                  From  : Positive := 1;
+                  Found : Natural := 0;
+               begin
+                  for K in 1 .. Used loop
+                     if Cursors (K).Row = R then
+                        From := Cursors (K).Column;
+                     end if;
+                  end loop;
+                  for C in From .. Cols - Col_Span (I) + 1 loop
+                     if not Taken (R, C, Row_Span (I), Col_Span (I)) then
+                        Found := C;
+                        exit;
+                     end if;
+                  end loop;
+                  Place (I, R, (if Found > 0 then Found else 1));
+                  Used := Used + 1;
+                  Cursors (Used) := (Row => R, Column => Col_Start (I) + Col_Span (I));
+               end;
+            end if;
+         end loop;
+      end;
+
+      --  The rest follow one cursor through the grid, row by row, to the
+      --  first area free of everything placed so far. An item with only
+      --  a column moves the cursor down to a row where that column is
+      --  free.
+      declare
+         Cursor_R : Positive := 1;
+         Cursor_C : Positive := 1;
+      begin
+         for I in Children'Range loop
+            if Children (I).Active and then Children (I).Grid_Row = 0 then
+               if Children (I).Grid_Column > 0 then
+                  declare
+                     C : constant Positive := Natural'Min (Children (I).Grid_Column, Cols);
+                  begin
+                     if C < Cursor_C then
+                        Cursor_R := Cursor_R + 1;
+                     end if;
+                     Cursor_C := C;
+                     while Taken (Cursor_R, C, Row_Span (I), Col_Span (I)) loop
+                        Cursor_R := Cursor_R + 1;
+                     end loop;
+                  end;
+               else
+                  loop
+                     while Cursor_C + Col_Span (I) - 1 <= Cols
+                       and then Taken (Cursor_R, Cursor_C, Row_Span (I), Col_Span (I))
+                     loop
+                        Cursor_C := Cursor_C + 1;
+                     end loop;
+                     exit when Cursor_C + Col_Span (I) - 1 <= Cols;
+                     Cursor_R := Cursor_R + 1;
+                     Cursor_C := 1;
+                  end loop;
+               end if;
+               Place (I, Cursor_R, Cursor_C);
+            end if;
+         end loop;
+      end;
 
       declare
          Rows : constant Natural := Natural'Max (1, Needed_Rows);

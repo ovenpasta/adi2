@@ -1548,6 +1548,16 @@ package body Adi.Layout_Util is
       Context  : Grid_Layout_Context;
       Children : in out Grid_Child_Info_Array)
    is
+      Columns : Pixel_Array (1 .. Natural'Max (1, Context.Columns));
+   begin
+      Compute_Grid_Layout (Context, Children, Columns);
+   end Compute_Grid_Layout;
+
+   procedure Compute_Grid_Layout
+     (Context  : Grid_Layout_Context;
+      Children : in out Grid_Child_Info_Array;
+      Columns  : out Pixel_Array)
+   is
       N : constant Natural := Children'Length;
       Cols : constant Natural := Natural'Max (1, Context.Columns);
       type Nat_Array is array (Children'Range) of Natural;
@@ -1558,6 +1568,7 @@ package body Adi.Layout_Util is
       Auto_Index : Natural := 0;
       Needed_Rows : Natural := Context.Explicit_Rows;
    begin
+      Columns := [others => 0.0];
       if N = 0 then
          return;
       end if;
@@ -1911,6 +1922,8 @@ package body Adi.Layout_Util is
                Child.Computed_Height := CH;
             end;
          end loop;
+
+         Columns := Col_Widths;
       end;
    end Compute_Grid_Layout;
 

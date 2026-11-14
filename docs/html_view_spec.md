@@ -170,7 +170,7 @@ The renderer implements CSS-style vertical margin collapsing:
   pending margin alone so collapse-through survives source formatting.
 
 ### Flex Layout
-- `display: flex` and `inline-flex` lay out an element's children as flex items through `Adi.Layout_Util` (`Make_Flex_Child_Info`, `Compute_Flex_Layout`), the solver `Adi.Widget` containers use. `inline-flex` is laid out as a block, and a declared `width` on the container is ignored as on any block. `grid` and `inline-grid` are blocks whose children flow normally.
+- `display: flex` and `inline-flex` lay out an element's children as flex items through `Adi.Layout_Util` (`Make_Flex_Child_Info`, `Compute_Flex_Layout`), the solver `Adi.Widget` containers use. `inline-flex` is laid out as a block, and a declared `width` on the container is ignored as on any block.
 - Items: each element child, blockified whatever its tag, and each run of text between them (an anonymous item). Whitespace-only runs and `display: none` children are not items.
 - An item lays out in a flow of its own: its margins do not collapse with its parent's or its children's. The container's own margins collapse with its siblings as a block's do.
 - Item sizes are border-box, as elsewhere in Adi. The flex base and preferred width come from the declared `width` or the max-content width; the automatic minimum from the min-content width. Both are measured by laying the item out at zero and at unbounded width. Heights are measured at the width each item is given. Measurements are kept for the rest of the layout pass; each level of nested flex still lays its subtree out a few times.
@@ -179,6 +179,14 @@ The renderer implements CSS-style vertical margin collapsing:
 - Container: `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `align-content`, `gap`/`row-gap`/`column-gap`. Item: `flex-grow`, `flex-shrink`, `flex-basis`, `align-self`, `min-*`/`max-*`, margins.
 - A container without a declared `height` is as tall as its lines. A percentage `height` on an item resolves only against a container with a declared height.
 - As in `Adi.Widget`: `order` keeps document order, `baseline` aligns as `flex-start`, and `auto` margins count as zero.
+
+### Grid Layout
+- `display: grid` and `inline-grid` place an element's children through `Adi.Layout_Util.Compute_Grid_Layout`, the solver `Adi.Widget.Box` grids use. Items, their own flows, margins and measurement work as for flex. Percentage margins and padding resolve against the container's width; percentage `width`, `min-width` and `max-width` against the item's cell, and count as `auto` while the columns are sized. `inline-grid` is laid out as a block.
+- Container: `grid-template-columns` (track list of `auto`, `fr`, `px`; `repeat(N, size)`; or a column count), `grid-template-rows` (a row count), `gap`/`row-gap`/`column-gap`. Item: `grid-column`, `grid-row` (start and `span`), margins, `width`, `height`, `min-*`/`max-*`.
+- An item fills its cell less its margins, or keeps a declared width or height from the cell's start.
+- `fr` and counted columns share the width the container has left; an `auto` column takes its widest item's max-content width, capped at the container. Rows are as tall as their content; with a declared container `height`, rows share what is left equally.
+- Measured for its min- or max-content width, every column holds its content and `fr` columns grow to one shared fraction.
+- Placement is the solver's: an item without a column or row takes the next cell in order, and spanning items do not reserve the cells they cover.
 
 ### Inline Flow
 - Inline content is line-wrapped by available width (similar to text widgets).
@@ -244,6 +252,7 @@ The renderer implements CSS-style vertical margin collapsing:
 - Lists: `list-style`, `list-style-type`, `list-style-image`, `list-style-position`.
 - Box/layout basics: `display`, `margin*`, `padding*`, `width/height/min/max`, `overflow`.
 - Flex: `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `align-content`, `align-self`, `flex-grow`, `flex-shrink`, `flex-basis`, `gap`.
+- Grid: `grid-template-columns`, `grid-template-rows`, `grid-column`, `grid-row`, `gap`.
 - Visuals: `color`, `background-color`, `border*`, `box-shadow`, `opacity`, `visibility`.
 - Images: `object-fit`.
 

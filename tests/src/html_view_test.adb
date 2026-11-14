@@ -748,6 +748,29 @@ procedure Html_View_Test is
       New_Line;
    end Test_Img_Dimension_Attributes;
 
+   procedure Test_Grid_Px_Track_Follows_Content_Scale is
+      W   : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      Idx : Natural;
+   begin
+      Put_Line ("Test: grid px tracks follow the content scale");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 300.0));
+      Adi.Widget.Html_View.Set_Content_Scale (W, 2.0);
+      Adi.Widget.Html_View.Set_HTML
+        (W, "<div style='display: grid; grid-template-columns: 100px 1fr'>"
+            & "<div style='height: 10px'></div><div>r</div></div>");
+      Adi.Widget.Build_Items (+W);
+
+      Idx := Find_Text_Item_Index (W, "r");
+      Assert (Idx > 0, "second cell text exists");
+      if Idx > 0 then
+         Assert (abs (Adi.Widget.Get_Item (+W, Positive (Idx)).Geometry.X - 200.0) < 0.5,
+                 "a 100px track is 200 wide at content scale 2");
+      end if;
+      New_Line;
+   end Test_Grid_Px_Track_Follows_Content_Scale;
+
    procedure Test_Mixed_Inline_Baseline is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -2378,6 +2401,7 @@ begin
    Test_Inline_SVG_Element;
    Test_Image_Not_Stretched_To_Line_Height;
    Test_Img_Dimension_Attributes;
+   Test_Grid_Px_Track_Follows_Content_Scale;
    Test_Mixed_Inline_Baseline;
    Test_Fresh_View_Is_Neutral;
    Test_Clear_Keeps_Applied_Styles;

@@ -1,0 +1,17 @@
+<style>
+  .grid  { display: grid; gap: 6px; background-color: #eeeeee; margin: 8px 0px; }
+  .cell  { padding: 2px 6px; background-color: #ddeecc; }
+  .two   { grid-template-columns: 1fr 1fr; }
+  .rows  { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(2, 1fr); height: 160px; }
+  .row   { display: flex; gap: 8px; }
+  .gone  { display: none; }
+</style>
+<div class="grid rows"><div class="cell">Rows share</div><div class="cell">a declared</div><div class="cell">height</div><div class="cell">equally</div></div>
+<div class="grid two">Loose text <span class="cell">a span cell</span> and more text</div>
+<div class="grid two"><div class="cell" style="margin: 6px 12px">Margins</div><div class="cell" style="width: 80px">Width 80</div></div>
+<div class="grid two"><div class="cell">Visible</div><div class="cell gone">Hidden</div><div class="cell">Also visible</div></div>
+<div class="grid two"><div class="cell"><div class="row"><span class="cell">Flex</span><span class="cell">inside grid</span></div></div><div class="cell"><div class="grid two"><span class="cell">Grid</span><span class="cell">in grid</span></div></div></div>
+<div class="row"><div class="cell"><div class="grid two"><span class="cell">Grid in</span><span class="cell">a flex item</span></div></div><div class="cell">Sibling</div></div>
+<div class="grid two"><img src="cat.svg" width="40"><div class="cell">Beside an image</div></div>
+<div class="grid two" style="height: 50px"></div>
+<p>After an empty grid with a declared height.</p>

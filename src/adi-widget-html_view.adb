@@ -3033,6 +3033,117 @@ package body Adi.Widget.Html_View is
          return Local_Length_To_Px (L, Of_Size, Local_Font_Size_Px (Style));
       end Gap_Px;
 
+      --  What a flex or grid container learns about each of its items
+      --  before it places them.
+      type Item_Measure is record
+         Style       : Resolved_Style;
+         --  What the solver places the item by.
+         Margin      : Edge_Pixels := Zero_Edges;
+         --  What the item's own flow places it by: an atomic item places
+         --  nothing, and hr keeps its margins in its own flow.
+         Flow_Margin : Edge_Pixels := Zero_Edges;
+         Min_C       : Pixel_Type := 0.0;
+         Max_C       : Pixel_Type := 0.0;
+         Decl_W      : Pixel_Type := Pixel_Type'Last;
+         Decl_H      : Pixel_Type := Pixel_Type'Last;
+      end record;
+
+      type Item_Measure_Array is array (Positive range <>) of Item_Measure;
+
+      function Tag_Of (Src : Item_Source) return String is
+        (if Src.Element > 0
+         then To_String (Self.Nodes.Element (Src.Element).Tag_Name)
+         else "");
+
+      --  Styles, margins, declared sizes and min-/max-content widths.
+      --  Percentages resolve against Pct_Base across and Of_H down.
+      function Measure_Items
+        (Parent   : Node;
+         Style    : Resolved_Style;
+         Sources  : Item_Source_Vectors.Vector;
+         Pct_Base : Pixel_Type;
+         Of_H     : Pixel_Type) return Item_Measure_Array
+      is
+         Items : Item_Measure_Array (1 .. Natural (Sources.Length));
+      begin
+         for I in Items'Range loop
+            declare
+               Src : constant Item_Source := Sources.Element (I);
+               It  : Item_Measure renames Items (I);
+            begin
+               It.Style :=
+                 (if Src.Element > 0 then Element_Style (Src.Element, Style)
+                  else Resolve_Element_Style (Empty_Style, Style, True));
+               It.Margin :=
+                 (if Src.Element > 0 and then Tag_Of (Src) /= "hr"
+                  then Resolve_Margin_Edges (It.Style.Margin, It.Style, Pct_Base)
+                  else Zero_Edges);
+               It.Flow_Margin :=
+                 (if Is_Atomic (Tag_Of (Src)) then Zero_Edges else It.Margin);
+               Content_Widths
+                 (Parent, Src, Style, It.Flow_Margin, Pct_Base, It.Min_C, It.Max_C);
+               It.Decl_W := Declared_Px (It.Style.Width, Pct_Base, It.Style);
+               It.Decl_H := Declared_Px (It.Style.Height, Of_H, It.Style);
+            end;
+         end loop;
+         return Items;
+      end Measure_Items;
+
+      --  Lay each item out at its border box and make its panel that box.
+      procedure Place_Items
+        (Parent   : Node;
+         Style    : Resolved_Style;
+         Link     : String;
+         Sources  : Item_Source_Vectors.Vector;
+         Items    : Item_Measure_Array;
+         Boxes    : Rectangle_Array;
+         Pct_Base : Pixel_Type)
+      is
+         use type Ada.Containers.Count_Type;
+      begin
+         for I in Items'Range loop
+            declare
+               Src    : constant Item_Source := Sources.Element (I);
+               Mark   : constant Ada.Containers.Count_Type := Result.Items.Length;
+               Bottom : Pixel_Type;
+               Extent : Pixel_Type;
+            begin
+               Lay_Out_Item
+                 (Parent, Src, Style, Link, Boxes (I), Items (I).Flow_Margin,
+                  Pct_Base, Normal_Sizing, Bottom, Extent);
+               --  The item's own panel is the first thing it added; the
+               --  box the layout gave it overrides its content.
+               if Src.Element > 0
+                 and then not Is_Atomic (Tag_Of (Src))
+                 and then Result.Items.Length > Mark
+               then
+                  Result.Items.Reference (Positive (Mark) + 1).Geometry := Boxes (I);
+               end if;
+            end;
+         end loop;
+      end Place_Items;
+
+      --  A declared minimum that does not resolve is none.
+      function Minimum_Px
+        (V : Size_Value; Of_Size : Pixel_Type; Style : Resolved_Style)
+         return Pixel_Type
+      is
+         P : constant Pixel_Type := Declared_Px (V, Of_Size, Style);
+      begin
+         return (if P = Pixel_Type'Last then 0.0 else P);
+      end Minimum_Px;
+
+      --  The container's content height when its own height is declared,
+      --  else Pixel_Type'Last.
+      function Fixed_Content_Height
+        (Style : Resolved_Style; Padding : Edge_Pixels) return Pixel_Type
+      is
+         Declared_H : constant Pixel_Type := Declared_Px (Style.Height, 0.0, Style);
+      begin
+         return (if Declared_H = Pixel_Type'Last then Pixel_Type'Last
+                 else Pixel_Type'Max (0.0, Declared_H - Padding.Top - Padding.Bottom));
+      end Fixed_Content_Height;
+
       --  Lay out Parent's children as flex items in the content box the
       --  enclosing block left open: Line_Left .. Line_Right from Y down.
       --  Padding is that block's. Leaves Y at the bottom of the
@@ -3043,7 +3154,6 @@ package body Adi.Widget.Html_View is
          Padding : Edge_Pixels;
          Link    : String)
       is
-         use type Ada.Containers.Count_Type;
          Dir     : constant Flex_Direction_Value := Style.Flex_Direction;
          Is_Row  : constant Boolean := Is_Row_Direction (Dir);
          Left    : constant Pixel_Type := Line_Left;
@@ -3056,12 +3166,7 @@ package body Adi.Widget.Html_View is
            Item_Sources (Parent, Style);
          Count   : constant Natural := Natural (Sources.Length);
 
-         Declared_H : constant Pixel_Type :=
-           Declared_Px (Style.Height, 0.0, Style);
-         --  The container's content height when its own is declared.
-         Fixed_H : constant Pixel_Type :=
-           (if Declared_H = Pixel_Type'Last then Pixel_Type'Last
-            else Pixel_Type'Max (0.0, Declared_H - Padding.Top - Padding.Bottom));
+         Fixed_H : constant Pixel_Type := Fixed_Content_Height (Style, Padding);
          Of_H : constant Pixel_Type :=
            (if Fixed_H = Pixel_Type'Last then 0.0 else Fixed_H);
 
@@ -3080,35 +3185,22 @@ package body Adi.Widget.Html_View is
          end if;
 
          declare
+            Items     : constant Item_Measure_Array :=
+              Measure_Items (Parent, Style, Sources, Pct_Base, Of_H);
             Infos     : Flex_Child_Info_Array (1 .. Count);
-            Styles    : array (1 .. Count) of Resolved_Style;
-            --  What the solver places each item by.
-            Margins   : array (1 .. Count) of Edge_Pixels;
-            --  What each item's own flow places it by: an atomic item
-            --  places nothing, and hr keeps its margins in its own flow.
-            Flow_M    : array (1 .. Count) of Edge_Pixels;
-            Min_C     : array (1 .. Count) of Pixel_Type;
-            Max_C     : array (1 .. Count) of Pixel_Type;
-            Decl_W    : array (1 .. Count) of Pixel_Type;
-            Decl_H    : array (1 .. Count) of Pixel_Type;
             Ctx       : Flex_Layout_Context;
             Content_H : Pixel_Type := 0.0;
 
             function Src (I : Positive) return Item_Source is (Sources.Element (I));
 
-            function Tag_Of (I : Positive) return String is
-              (if Src (I).Element > 0
-               then To_String (Self.Nodes.Element (Src (I).Element).Tag_Name)
-               else "");
-
             function Stretches (I : Positive) return Boolean is
-              ((Styles (I).Align_Self = Stretch
-                or else (Styles (I).Align_Self = Auto
+              ((Items (I).Style.Align_Self = Stretch
+                or else (Items (I).Style.Align_Self = Auto
                          and then Style.Align_Items = Stretch))
-               and then Decl_W (I) = Pixel_Type'Last);
+               and then Items (I).Decl_W = Pixel_Type'Last);
 
             function Height_Of (I : Positive; Width : Pixel_Type) return Pixel_Type is
-              (Height_At (Parent, Src (I), Style, Flow_M (I), Pct_Base, Width));
+              (Height_At (Parent, Src (I), Style, Items (I).Flow_Margin, Pct_Base, Width));
 
             --  Cross size of the lines the items form, gaps included.
             function Lines_Cross return Pixel_Type is
@@ -3129,8 +3221,9 @@ package body Adi.Widget.Html_View is
                            Pixel_Type'Max
                              (Infos (I).Min_Cross,
                               Pixel_Type'Min (Infos (I).Max_Cross, Infos (I).Content_Cross))
-                           + (if Is_Row then Margins (I).Top + Margins (I).Bottom
-                              else Margins (I).Left + Margins (I).Right));
+                           + (if Is_Row
+                              then Items (I).Margin.Top + Items (I).Margin.Bottom
+                              else Items (I).Margin.Left + Items (I).Margin.Right));
                      end loop;
                      Total := Total + Deepest;
                   end;
@@ -3138,22 +3231,6 @@ package body Adi.Widget.Html_View is
                return Total + Cross_Gap * Pixel_Type (Natural'Max (0, Lines - 1));
             end Lines_Cross;
          begin
-            for I in 1 .. Count loop
-               Styles (I) :=
-                 (if Src (I).Element > 0 then Element_Style (Src (I).Element, Style)
-                  else Resolve_Element_Style (Empty_Style, Style, True));
-               Margins (I) :=
-                 (if Src (I).Element > 0 and then Tag_Of (I) /= "hr"
-                  then Resolve_Margin_Edges (Styles (I).Margin, Styles (I), Pct_Base)
-                  else Zero_Edges);
-               Flow_M (I) :=
-                 (if Is_Atomic (Tag_Of (I)) then Zero_Edges else Margins (I));
-               Content_Widths
-                 (Parent, Src (I), Style, Flow_M (I), Pct_Base, Min_C (I), Max_C (I));
-               Decl_W (I) := Declared_Px (Styles (I).Width, Pct_Base, Styles (I));
-               Decl_H (I) := Declared_Px (Styles (I).Height, Of_H, Styles (I));
-            end loop;
-
             --  A trial pass only wants to know how wide the container's
             --  content gets.
             if Flow.Sizing /= Normal_Sizing then
@@ -3163,10 +3240,10 @@ package body Adi.Widget.Html_View is
                   for I in 1 .. Count loop
                      declare
                         Own : constant Pixel_Type :=
-                          (if Decl_W (I) /= Pixel_Type'Last then Decl_W (I)
-                           elsif Flow.Sizing = Min_Content_Sizing then Min_C (I)
-                           else Max_C (I))
-                          + Margins (I).Left + Margins (I).Right;
+                          (if Items (I).Decl_W /= Pixel_Type'Last then Items (I).Decl_W
+                           elsif Flow.Sizing = Min_Content_Sizing then Items (I).Min_C
+                           else Items (I).Max_C)
+                          + Items (I).Margin.Left + Items (I).Margin.Right;
                      begin
                         if Is_Row
                           and then (Flow.Sizing = Max_Content_Sizing
@@ -3187,48 +3264,39 @@ package body Adi.Widget.Html_View is
 
             for I in 1 .. Count loop
                declare
-                  S     : Resolved_Style renames Styles (I);
-                  M     : Edge_Pixels renames Margins (I);
-
-                  --  A declared minimum that does not resolve is none.
-                  function Minimum (V : Size_Value; Of_Size : Pixel_Type)
-                    return Pixel_Type
-                  is
-                     P : constant Pixel_Type := Declared_Px (V, Of_Size, S);
-                  begin
-                     return (if P = Pixel_Type'Last then 0.0 else P);
-                  end Minimum;
-
+                  It    : Item_Measure renames Items (I);
+                  S     : Resolved_Style renames It.Style;
+                  M     : Edge_Pixels renames It.Margin;
                   Max_W : constant Pixel_Type := Declared_Px (S.Max_Width, Pct_Base, S);
                   Max_H : constant Pixel_Type := Declared_Px (S.Max_Height, Of_H, S);
-                  Min_W : constant Pixel_Type := Minimum (S.Min_Width, Pct_Base);
-                  Min_H : constant Pixel_Type := Minimum (S.Min_Height, Of_H);
+                  Min_W : constant Pixel_Type := Minimum_Px (S.Min_Width, Pct_Base, S);
+                  Min_H : constant Pixel_Type := Minimum_Px (S.Min_Height, Of_H, S);
                   Sizes : Flex_Item_Sizes;
 
                   function Clamp_W (W : Pixel_Type) return Pixel_Type is
                     (Pixel_Type'Max (Min_W, Pixel_Type'Min (Max_W, W)));
                begin
                   Sizes.Demand   := (Min_W, Min_H);
-                  Sizes.Declared := (Decl_W (I), Decl_H (I));
+                  Sizes.Declared := (It.Decl_W, It.Decl_H);
                   Sizes.Max      := (Max_W, Max_H);
                   Sizes.Margin   := M;
 
                   if Is_Row then
                      declare
                         Pref_W : constant Pixel_Type :=
-                          (if Decl_W (I) /= Pixel_Type'Last then Decl_W (I) else Max_C (I));
+                          (if It.Decl_W /= Pixel_Type'Last then It.Decl_W else It.Max_C);
                      begin
                         Sizes.Base :=
                           (case S.Flex_Basis.Kind is
                               when Fixed =>
                                  Local_Length_To_Px
                                    (S.Flex_Basis.Size, Pct_Base, Local_Font_Size_Px (S)),
-                              when CSS_Styles.Content => Max_C (I),
+                              when CSS_Styles.Content => It.Max_C,
                               when Auto => Pref_W);
-                        Sizes.Content_Min := (Min_C (I), 0.0);
+                        Sizes.Content_Min := (It.Min_C, 0.0);
                         Sizes.Preferred :=
                           (Pref_W,
-                           (if Decl_H (I) /= Pixel_Type'Last then Decl_H (I)
+                           (if It.Decl_H /= Pixel_Type'Last then It.Decl_H
                             else Height_Of
                                    (I, Clamp_W (Pixel_Type'Min
                                                   (Sizes.Base,
@@ -3240,11 +3308,11 @@ package body Adi.Widget.Html_View is
                         Room : constant Pixel_Type :=
                           Pixel_Type'Max (0.0, Avail - M.Left - M.Right);
                         W : constant Pixel_Type := Clamp_W
-                          (if Decl_W (I) /= Pixel_Type'Last then Decl_W (I)
+                          (if It.Decl_W /= Pixel_Type'Last then It.Decl_W
                            elsif Stretches (I) then Room
-                           else Pixel_Type'Min (Max_C (I), Pixel_Type'Max (Min_C (I), Room)));
+                           else Pixel_Type'Min (It.Max_C, Pixel_Type'Max (It.Min_C, Room)));
                         H : constant Pixel_Type :=
-                          (if Decl_H (I) /= Pixel_Type'Last then Decl_H (I)
+                          (if It.Decl_H /= Pixel_Type'Last then It.Decl_H
                            else Height_Of (I, W));
                      begin
                         Sizes.Base :=
@@ -3252,7 +3320,7 @@ package body Adi.Widget.Html_View is
                            then Local_Length_To_Px
                                   (S.Flex_Basis.Size, Of_H, Local_Font_Size_Px (S))
                            else H);
-                        Sizes.Content_Min := (Min_C (I), H);
+                        Sizes.Content_Min := (It.Min_C, H);
                         Sizes.Preferred := (W, H);
                      end;
                   end if;
@@ -3275,7 +3343,7 @@ package body Adi.Widget.Html_View is
                   Changed : Boolean := False;
                begin
                   for I in 1 .. Count loop
-                     if Decl_H (I) = Pixel_Type'Last then
+                     if Items (I).Decl_H = Pixel_Type'Last then
                         declare
                            H : constant Pixel_Type := Height_Of (I, Infos (I).Computed_Main);
                         begin
@@ -3300,7 +3368,7 @@ package body Adi.Widget.Html_View is
                   for I in 1 .. Count loop
                      Ctx.Container.Height := Ctx.Container.Height
                        + Hypothetical_Main_Size (Infos (I))
-                       + Margins (I).Top + Margins (I).Bottom
+                       + Items (I).Margin.Top + Items (I).Margin.Bottom
                        + (if I > 1 then Main_Gap else 0.0);
                   end loop;
                end if;
@@ -3308,29 +3376,9 @@ package body Adi.Widget.Html_View is
             end if;
             Content_H := Ctx.Container.Height;
 
-            declare
-               Rects : constant Rectangle_Array := Flex_To_Rectangles (Ctx, Infos);
-            begin
-               for I in 1 .. Count loop
-                  declare
-                     Mark   : constant Ada.Containers.Count_Type := Result.Items.Length;
-                     Bottom : Pixel_Type;
-                     Extent : Pixel_Type;
-                  begin
-                     Lay_Out_Item
-                       (Parent, Src (I), Style, Link, Rects (I), Flow_M (I), Pct_Base,
-                        Normal_Sizing, Bottom, Extent);
-                     --  The item's own panel is the first thing it added;
-                     --  the box the layout gave it overrides its content.
-                     if Src (I).Element > 0
-                       and then not Is_Atomic (Tag_Of (I))
-                       and then Result.Items.Length > Mark
-                     then
-                        Result.Items.Reference (Positive (Mark) + 1).Geometry := Rects (I);
-                     end if;
-                  end;
-               end loop;
-            end;
+            Place_Items
+              (Parent, Style, Link, Sources, Items,
+               Flex_To_Rectangles (Ctx, Infos), Pct_Base);
 
             Y := Top + Content_H;
          end;
@@ -3339,6 +3387,212 @@ package body Adi.Widget.Html_View is
          Pending_Space := False;
          Prev_Block_Margin_Bottom := 0.0;
       end Layout_Flex_Container;
+
+      --  Lay out Parent's children as grid items, as Layout_Flex_Container
+      --  does for flex items.
+      procedure Layout_Grid_Container
+        (Parent  : Node;
+         Style   : Resolved_Style;
+         Padding : Edge_Pixels;
+         Link    : String)
+      is
+         Left    : constant Pixel_Type := Line_Left;
+         Avail   : constant Pixel_Type := Current_Line_Width;
+         Pct_Base : constant Pixel_Type :=
+           (if Flow.Sizing = Normal_Sizing then Avail else 0.0);
+         Sources : constant Item_Source_Vectors.Vector :=
+           Item_Sources (Parent, Style);
+         Count   : constant Natural := Natural (Sources.Length);
+
+         Fixed_H : constant Pixel_Type := Fixed_Content_Height (Style, Padding);
+         Of_H : constant Pixel_Type :=
+           (if Fixed_H = Pixel_Type'Last then 0.0 else Fixed_H);
+         Top     : Pixel_Type;
+      begin
+         Flush_Pending_Margin;
+         Top := Y;
+
+         if Count = 0 then
+            Y := Top + Of_H;
+            return;
+         end if;
+
+         declare
+            Items : constant Item_Measure_Array :=
+              Measure_Items (Parent, Style, Sources, Pct_Base, Of_H);
+            Kids  : Grid_Child_Info_Array (1 .. Count);
+            Ctx   : Grid_Layout_Context :=
+              Make_Grid_Context (Style, (Left, Top, Pct_Base, Of_H));
+            Cols  : Layout_Util.Pixel_Array (1 .. Natural'Max (1, Ctx.Columns));
+            Box_W : array (1 .. Count) of Pixel_Type;
+            Bottom_Edge : Pixel_Type := Top;
+
+            function Src (I : Positive) return Item_Source is (Sources.Element (I));
+            function Across (M : Edge_Pixels) return Pixel_Type is (M.Left + M.Right);
+            function Down (M : Edge_Pixels) return Pixel_Type is (M.Top + M.Bottom);
+
+            --  A grid item's percentage sizes are of its cell, which the
+            --  tracks are still being sized from: none, until it has one.
+            function Is_Pct (S : Size_Value) return Boolean is
+              (S.Kind = Fixed and then S.Size.Unit = Pct);
+            function Before_Cell (S : Size_Value; Declared : Pixel_Type)
+              return Pixel_Type is
+              (if Is_Pct (S) then Pixel_Type'Last else Declared);
+         begin
+            Ctx.Column_Gap := Gap_Px (Style.Gap, False, Pct_Base, Style);
+            Ctx.Row_Gap    := Gap_Px (Style.Gap, True, Of_H, Style);
+            --  Rows fit their content. Columns take their items' content
+            --  widths only while the container is being measured; laid out
+            --  for real, they share the width and content wraps.
+            Ctx.Use_Preferred_Floor_X := Flow.Sizing /= Normal_Sizing;
+            Ctx.Use_Preferred_Floor_Y := True;
+            for T in 1 .. Ctx.Column_Tracks.Count loop
+               if Ctx.Column_Tracks.Tracks (T).Kind = Track_Px then
+                  Ctx.Column_Tracks.Tracks (T).Value :=
+                    Ctx.Column_Tracks.Tracks (T).Value
+                    * Float (Pixel_Type'Max (0.01, Self.Content_Scale));
+               end if;
+            end loop;
+
+            for I in 1 .. Count loop
+               declare
+                  It     : Item_Measure renames Items (I);
+                  S      : Resolved_Style renames It.Style;
+                  Decl_W : constant Pixel_Type := Before_Cell (S.Width, It.Decl_W);
+                  Max_W  : constant Pixel_Type :=
+                    Before_Cell (S.Max_Width, Declared_Px (S.Max_Width, Pct_Base, S));
+                  Min_W  : constant Pixel_Type :=
+                    Pixel_Type'Min
+                      (Max_W,
+                       Automatic_Minimum
+                         (Minimum_Declared => S.Min_Width.Kind = Fixed
+                                              and then not Is_Pct (S.Min_Width),
+                          Declared_Size    => Decl_W,
+                          Overflow         => S.Overflow_X,
+                          Demand           => Minimum_Px (S.Min_Width, 0.0, S),
+                          Content_Min      => It.Min_C));
+                  Pref_W : constant Pixel_Type :=
+                    Pixel_Type'Max
+                      (Min_W,
+                       Pixel_Type'Min
+                         (Max_W,
+                          (if Decl_W /= Pixel_Type'Last then Decl_W
+                           elsif Flow.Sizing = Min_Content_Sizing then Min_W
+                           elsif Flow.Sizing = Max_Content_Sizing then It.Max_C
+                           else Pixel_Type'Min
+                                  (It.Max_C,
+                                   Pixel_Type'Max (Min_W, Avail - Across (It.Margin))))));
+                  --  Measured for its max-content width, a flexible
+                  --  column holds its widest content.
+                  Floor_W : constant Pixel_Type :=
+                    (if Flow.Sizing = Max_Content_Sizing then Pref_W else Min_W);
+               begin
+                  Kids (I) := Make_Grid_Child_Info
+                    (S,
+                     Preferred => (Pref_W + Across (It.Margin),
+                                   (if It.Decl_H /= Pixel_Type'Last
+                                    then It.Decl_H + Down (It.Margin) else 0.0)),
+                     Minimum   => (Floor_W + Across (It.Margin),
+                                   Minimum_Px (S.Min_Height, Of_H, S) + Down (It.Margin)));
+               end;
+            end loop;
+
+            Compute_Grid_Layout (Ctx, Kids, Cols);
+
+            --  Measured, each column holds its own content; flexible
+            --  columns then grow to one shared fraction, as wide as the
+            --  widest of them needs per fr, which is what they get when
+            --  the container is laid out at the width reported here.
+            if Flow.Sizing /= Normal_Sizing then
+               declare
+                  Listed   : constant Boolean := Ctx.Column_Tracks.Count = Cols'Length;
+                  Fraction : Pixel_Type := 0.0;
+                  Wide     : Pixel_Type :=
+                    Ctx.Column_Gap * Pixel_Type (Cols'Length - 1);
+
+                  function Fr (C : Positive) return Pixel_Type is
+                    (if not Listed then 1.0
+                     elsif Ctx.Column_Tracks.Tracks (C).Kind = Track_Fr
+                     then Pixel_Type (Ctx.Column_Tracks.Tracks (C).Value)
+                     else 0.0);
+               begin
+                  for C in Cols'Range loop
+                     if Fr (C) > 0.0 then
+                        Fraction := Pixel_Type'Max (Fraction, Cols (C) / Fr (C));
+                     end if;
+                  end loop;
+                  for C in Cols'Range loop
+                     Wide := Wide
+                       + (if Fr (C) > 0.0
+                          then Pixel_Type'Max (Cols (C), Fraction * Fr (C))
+                          else Cols (C));
+                  end loop;
+                  Flow.Extent :=
+                    Pixel_Type'Max (Flow.Extent, Left + Wide + Flow.Right_Inset);
+                  Y := Top + Of_H;
+                  return;
+               end;
+            end if;
+
+            --  Rows grow to what each item needs at its column's width.
+            for I in 1 .. Count loop
+               declare
+                  It   : Item_Measure renames Items (I);
+                  S    : Resolved_Style renames It.Style;
+                  Cell : constant Pixel_Type := Kids (I).Computed_Width;
+               begin
+                  Box_W (I) := Pixel_Type'Max
+                    (Minimum_Px (S.Min_Width, Cell, S),
+                     Pixel_Type'Min
+                       (Declared_Px (S.Max_Width, Cell, S),
+                        (if Declared_Px (S.Width, Cell, S) /= Pixel_Type'Last
+                         then Declared_Px (S.Width, Cell, S)
+                         else Pixel_Type'Max (0.0, Cell - Across (It.Margin)))));
+                  if It.Decl_H = Pixel_Type'Last then
+                     Kids (I).Pref_Height :=
+                       Height_At (Parent, Src (I), Style, It.Flow_Margin, Pct_Base, Box_W (I))
+                       + Down (It.Margin);
+                  end if;
+               end;
+            end loop;
+            Compute_Grid_Layout (Ctx, Kids);
+
+            declare
+               Cells : constant Rectangle_Array := Grid_To_Rectangles (Kids);
+               Boxes : Rectangle_Array (1 .. Count);
+            begin
+               for I in 1 .. Count loop
+                  declare
+                     It : Item_Measure renames Items (I);
+                     S  : Resolved_Style renames It.Style;
+                     M  : Edge_Pixels renames It.Margin;
+                  begin
+                     Boxes (I) :=
+                       (X      => Cells (I).X + M.Left,
+                        Y      => Cells (I).Y + M.Top,
+                        Width  => Box_W (I),
+                        Height =>
+                          (if It.Decl_H /= Pixel_Type'Last then It.Decl_H
+                           else Pixel_Type'Max
+                                  (Minimum_Px (S.Min_Height, Of_H, S),
+                                   Pixel_Type'Min
+                                     (Declared_Px (S.Max_Height, Of_H, S),
+                                      Pixel_Type'Max (0.0, Cells (I).Height - Down (M))))));
+                     Bottom_Edge := Pixel_Type'Max
+                       (Bottom_Edge, Cells (I).Y + Cells (I).Height);
+                  end;
+               end loop;
+
+               Place_Items (Parent, Style, Link, Sources, Items, Boxes, Pct_Base);
+            end;
+
+            Y := (if Fixed_H /= Pixel_Type'Last then Top + Fixed_H else Bottom_Edge);
+         end;
+
+         X := Line_Left;
+         Pending_Space := False;
+         Prev_Block_Margin_Bottom := 0.0;
+      end Layout_Grid_Container;
 
       procedure Layout_Node
         (Node_Index   : Positive;
@@ -3610,6 +3864,8 @@ package body Adi.Widget.Html_View is
 
                         if Block_Flow and then Style.Display in Flex | Inline_Flex then
                            Layout_Flex_Container (N, Style, Padding_Edges, Link_Href);
+                        elsif Block_Flow and then Style.Display in Grid | Inline_Grid then
+                           Layout_Grid_Container (N, Style, Padding_Edges, Link_Href);
                         else
                            for Child_Idx of N.Children loop
                               if Child_Idx > 0 then

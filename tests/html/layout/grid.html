@@ -1,0 +1,16 @@
+<style>
+  .grid  { display: grid; gap: 8px; padding: 4px; background-color: #eeeeee; margin: 8px 0px; }
+  .cell  { padding: 4px 8px; background-color: #ccddee; }
+  .three { grid-template-columns: 1fr 1fr 1fr; }
+  .side  { grid-template-columns: 120px 1fr; }
+  .form  { grid-template-columns: auto 1fr; column-gap: 12px; row-gap: 4px; }
+  .four  { grid-template-columns: repeat(4, 1fr); }
+  .count { grid-template-columns: 3; }
+</style>
+<div class="grid three"><div class="cell">One</div><div class="cell">Two</div><div class="cell">Three</div><div class="cell">Four, with text long enough to wrap inside its column at both widths</div><div class="cell">Five</div><div class="cell">Six</div></div>
+<div class="grid side"><div class="cell">Sidebar</div><div class="cell">Main column takes the rest of the width and wraps when it runs out.</div></div>
+<div class="grid form"><div class="cell">Name</div><div class="cell">Ada Lovelace</div><div class="cell">Occupation</div><div class="cell">Mathematician and writer</div></div>
+<div class="grid four"><div class="cell" style="grid-column: 1 / span 2; grid-row: 1">Spans two columns</div><div class="cell" style="grid-column: 3; grid-row: 1 / span 2">Spans two rows, with more text than the others</div><div class="cell" style="grid-column: 4; grid-row: 1">Seven</div><div class="cell" style="grid-column: 1; grid-row: 2">Eight</div><div class="cell" style="grid-column: 2; grid-row: 2">Nine</div><div class="cell" style="grid-column: 4; grid-row: 2">Ten</div></div>
+<div class="grid four"><div class="cell" style="grid-column: 3; grid-row: 2">Placed at 3, 2</div><div class="cell">Auto one</div></div>
+<div class="grid count"><div class="cell">Equal</div><div class="cell">columns from a</div><div class="cell">count</div></div>
+<div class="grid"><div class="cell">No template</div><div class="cell">stacks in one column</div></div>

@@ -1,0 +1,14 @@
+<style>
+  .row  { display: flex; gap: 8px; margin: 6px 0px; background-color: #eeeeee; }
+  .col  { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background-color: #eeeeee; }
+  .grid { display: grid; gap: 8px; background-color: #ddeecc; }
+  .cell { padding: 2px 6px; background-color: #ccddee; }
+</style>
+<div class="row"><div class="grid" style="grid-template-columns: repeat(4, 1fr)"><span class="cell">Only one</span></div><div class="cell">After four fr columns with three empty</div></div>
+<div class="row"><div class="grid" style="grid-template-columns: 1fr 1fr 1fr"><span class="cell" style="grid-column: 1 / span 2; grid-row: 1">Spans two</span><span class="cell" style="grid-column: 3; grid-row: 1">Third</span></div><div class="cell">After a span</div></div>
+<div class="row"><div class="grid" style="grid-template-columns: auto 60px 1fr"><span class="cell">Auto</span><span class="cell">Px</span><span class="cell">Fr</span></div><div class="cell">After mixed tracks</div></div>
+<div class="row"><div class="grid" style="grid-template-columns: 1fr 2fr"><span class="cell">One fr wide content</span><span class="cell">Two</span></div><div class="cell">After 1fr 2fr</div></div>
+<div class="col"><div class="grid" style="grid-template-columns: 1fr 1fr"><span class="cell">In a column</span><span class="cell">flex</span></div><div class="cell">Below</div></div>
+<div class="grid" style="display: inline-grid; grid-template-columns: 1fr 1fr; margin: 6px 0px"><span class="cell">Inline grid</span><span class="cell">as a block</span></div>
+<div class="grid" style="grid-template-columns: 1fr 1fr 1fr; margin: 6px 0px"><div class="cell" style="width: 50%">Half its cell</div><div class="cell" style="max-width: 60px">Max 60 wide wrapping text</div><div class="cell" style="min-width: 150px">Min 150</div></div>
+<div class="grid" style="grid-template-columns: auto 1fr; margin: 6px 0px"><div class="cell" style="max-width: 40px">Capped auto column</div><div class="cell" style="max-height: 20px">Max height in a tall row</div></div>

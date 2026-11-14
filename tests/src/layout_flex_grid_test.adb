@@ -1210,8 +1210,41 @@ procedure Layout_Flex_Grid_Test is
       Assert_Close (C.Min_Height, 5.0, "grid item minimum height");
    end Test_Make_Contexts;
 
+   procedure Test_Grid_Reports_Column_Widths is
+      Ctx  : Grid_Layout_Context :=
+        (Container  => (0.0, 0.0, 310.0, 0.0),
+         Columns    => 3,
+         Column_Gap => 5.0,
+         others     => <>);
+      Kids : Grid_Child_Info_Array (1 .. 2) :=
+        [1 => (Pref_Width => 40.0, Min_Width => 40.0, others => <>),
+         2 => (Grid_Column => 2, Grid_Row => 1, Grid_Column_Span => 2,
+               Min_Width => 250.0, others => <>)];
+      Cols : Adi.Layout_Util.Pixel_Array (1 .. 3);
+   begin
+      Ctx.Column_Tracks :=
+        (Count  => 3,
+         Tracks => [1 => (Kind => Track_Auto, Value => 0.0),
+                    2 => (Kind => Track_Px, Value => 60.0),
+                    3 => (Kind => Track_Fr, Value => 1.0),
+                    others => <>]);
+      Compute_Grid_Layout (Ctx, Kids, Cols);
+      Assert_Close (Cols (1), 40.0, "an auto column reports its content width");
+      Assert_Close (Cols (2), 122.5, "a px column a spanning item widens reports that width");
+      Assert_Close (Cols (3), 137.5, "a flexible column reports its share");
+      Assert_Close (Kids (2).Computed_Width, Cols (2) + 5.0 + Cols (3),
+                    "the spanning item covers the columns reported");
+
+      Kids := [others => (Active => False, others => <>)];
+      Compute_Grid_Layout ((Ctx with delta Column_Tracks => Default_Grid_Track_List),
+                           Kids (1 .. 0), Cols);
+      Assert_True (Cols = [0.0, 0.0, 0.0], "an empty grid reports zero columns");
+   end Test_Grid_Reports_Column_Widths;
+
 begin
    Test_Support.Start_Suite ("layout_flex_grid_test");
+
+   Test_Grid_Reports_Column_Widths;
 
    Test_Automatic_Minimum;
    Test_Make_Flex_Child_Info;

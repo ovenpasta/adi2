@@ -453,6 +453,13 @@ package Adi.Layout_Util is
       Context  : Grid_Layout_Context;
       Children : in out Grid_Child_Info_Array);
 
+   --  Also reports the width each column came to.
+   procedure Compute_Grid_Layout
+     (Context  : Grid_Layout_Context;
+      Children : in out Grid_Child_Info_Array;
+      Columns  : out Pixel_Array)
+   with Pre => Columns'Length = Natural'Max (1, Context.Columns);
+
    function Grid_To_Rectangles(
       Children : Grid_Child_Info_Array) return Rectangle_Array;
 

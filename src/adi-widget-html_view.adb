@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Ada.Characters.Handling;
+with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
 with Ada.Strings;
@@ -1707,6 +1708,12 @@ package body Adi.Widget.Html_View is
         (Index_Type   => Positive,
          Element_Type => Line_Run_Record);
 
+      --  Normal_Sizing lays out for real. The other two are trial passes
+      --  that only measure how far content reaches (Flow_State.Extent):
+      --  at zero width for the min-content size, at unbounded width for
+      --  the max-content size.
+      type Sizing_Mode is (Normal_Sizing, Min_Content_Sizing, Max_Content_Sizing);
+
       --  The flow cursor, in one record so it can be saved and restored
       --  whole. Document space: the origin is the top-left of the
       --  content box and the scroll offset is not in it. Emit_Items
@@ -1734,6 +1741,17 @@ package body Adi.Widget.Html_View is
 
          Pending_Tops : Pending_Top_Vectors.Vector;
          Line_Runs    : Line_Run_Vectors.Vector;
+
+         --  Right margins and padding of the open blocks, from the line's
+         --  right edge out to the box being laid out.
+         Right_Inset : Pixel_Type := 0.0;
+         --  The furthest any content reached, right insets included.
+         Extent      : Pixel_Type := 0.0;
+         Sizing      : Sizing_Mode := Normal_Sizing;
+         --  What a flex or grid item's own percentage margins and
+         --  padding resolve against: its container's width. Negative
+         --  outside Lay_Out_Item.
+         Item_Base   : Pixel_Type := -1.0;
       end record;
 
       Flow : Flow_State := (Line_Right => Content.Width, others => <>);
@@ -2126,6 +2144,8 @@ package body Adi.Widget.Html_View is
          if Natural (Line_Runs.Length) = 0 then
             return;
          end if;
+
+         Flow.Extent := Pixel_Type'Max (Flow.Extent, X + Flow.Right_Inset);
 
          case Current_Line_Align is
             when Text_Center =>
@@ -2597,7 +2617,7 @@ package body Adi.Widget.Html_View is
       is
       begin
          if Opt_Display.Is_Set (Rules.Display) then
-            return Style.Display in Block | Flex | Grid;
+            return Style.Display in Block | Flex | Inline_Flex | Grid | Inline_Grid;
          end if;
 
          return Is_Block_Tag (Tag);
@@ -2755,7 +2775,576 @@ package body Adi.Widget.Html_View is
       procedure Layout_Node
         (Node_Index   : Positive;
          Parent_Style : Resolved_Style;
-         Active_Link  : String)
+         Active_Link  : String;
+         As_Item      : Boolean := False);
+
+      --  One flex or grid item: an element child, or a run of text and
+      --  breaks between element children (an anonymous item).
+      type Item_Source is record
+         Element     : Natural := 0;
+         First, Last : Positive := 1;
+      end record;
+
+      package Item_Source_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => Item_Source);
+
+      function Is_Atomic (Tag : String) return Boolean is
+        (Tag = "img" or else Tag = "svg" or else Tag = "hr");
+
+      function Element_Style
+        (Element : Positive; Parent_Style : Resolved_Style) return Resolved_Style
+      is
+         E     : constant Node := Self.Nodes.Element (Element);
+         Style : Resolved_Style :=
+           Resolve_Element_Style
+             (Element_Cascade_Rules (Self, To_String (E.Tag_Name), E.Attrs),
+              Parent_Style, True);
+      begin
+         Cascade_Font_Size (Style, Parent_Style);
+         return Style;
+      end Element_Style;
+
+      --  The in-flow items of Parent. Whitespace-only runs and elements
+      --  with display: none are not items.
+      function Item_Sources
+        (Parent : Node; Parent_Style : Resolved_Style)
+         return Item_Source_Vectors.Vector
+      is
+         Result_Items : Item_Source_Vectors.Vector;
+         Run_First    : Natural := 0;
+         Run_Has_Text : Boolean := False;
+
+         procedure Close_Run (Last : Natural) is
+         begin
+            if Run_First > 0 and then Run_Has_Text then
+               Result_Items.Append (Item_Source'(Element => 0, First => Run_First, Last => Last));
+            end if;
+            Run_First := 0;
+            Run_Has_Text := False;
+         end Close_Run;
+      begin
+         for K in 1 .. Natural (Parent.Children.Length) loop
+            declare
+               Idx : constant Natural := Parent.Children.Element (K);
+            begin
+               if Idx > 0 then
+                  declare
+                     C : constant Node := Self.Nodes.Element (Idx);
+                  begin
+                     if C.Kind = Element_Node then
+                        Close_Run (K - 1);
+                        if Element_Style (Idx, Parent_Style).Display /= Display_None then
+                           Result_Items.Append (Item_Source'(Element => Idx, First => K, Last => K));
+                        end if;
+                     else
+                        if Run_First = 0 then
+                           Run_First := K;
+                        end if;
+                        if C.Kind = Text_Node
+                          and then (for some Ch of To_String (C.Text) =>
+                                      not Is_Whitespace (Ch))
+                        then
+                           Run_Has_Text := True;
+                        end if;
+                     end if;
+                  end;
+               end if;
+            end;
+         end loop;
+         Close_Run (Natural (Parent.Children.Length));
+         return Result_Items;
+      end Item_Sources;
+
+      --  Lay out one item with its border box at Box.X, Box.Y, Box.Width,
+      --  in a flow of its own, and report where it ended. Box.Height is
+      --  not read: the content decides. Margin is the item's as its own
+      --  block entry will resolve it against Pct_Base; zero for an
+      --  atomic item, which places none.
+      procedure Lay_Out_Item
+        (Parent       : Node;
+         Src          : Item_Source;
+         Parent_Style : Resolved_Style;
+         Link         : String;
+         Box          : Rectangle;
+         Margin       : Edge_Pixels;
+         Pct_Base     : Pixel_Type;
+         Sizing       : Sizing_Mode;
+         Bottom       : out Pixel_Type;
+         Extent       : out Pixel_Type)
+      is
+         Outer : constant Flow_State := Flow;
+      begin
+         Flow :=
+           (Line_Left            => Box.X - Margin.Left,
+            Line_Right           => Box.X + Box.Width + Margin.Right,
+            X                    => Box.X - Margin.Left,
+            Y                    => Box.Y - Pixel_Type'Max (0.0, Margin.Top),
+            Line_Base_H          => Outer.Line_Base_H,
+            Line_Base_Ascent     => Outer.Line_Base_Ascent,
+            Line_Base_Descent    => Outer.Line_Base_Descent,
+            Current_Line_H       => Outer.Line_Base_H,
+            Current_Line_Ascent  => Outer.Line_Base_Ascent,
+            Current_Line_Descent => Outer.Line_Base_Descent,
+            Current_Line_Align   => Outer.Current_Line_Align,
+            Extent               => Box.X,
+            Sizing               => Sizing,
+            Item_Base            => Pct_Base,
+            others               => <>);
+
+         if Src.Element > 0 then
+            Layout_Node (Src.Element, Parent_Style, Link, As_Item => True);
+         else
+            for K in Src.First .. Src.Last loop
+               if Parent.Children.Element (K) > 0 then
+                  Layout_Node (Parent.Children.Element (K), Parent_Style, Link);
+               end if;
+            end loop;
+         end if;
+
+         --  Text, or an image, left on an unfinished line.
+         if Has_Line_Content or else Pending_Space then
+            New_Line;
+         end if;
+
+         Bottom := Flow.Y;
+         Extent := Flow.Extent;
+         Flow := Outer;
+      end Lay_Out_Item;
+
+      --  Measurements taken during this layout, so an item nested in
+      --  several flex or grid containers is not laid out again for each.
+      type Trial_Key is record
+         Node   : Positive;
+         Sizing : Sizing_Mode;
+         --  Sixty-fourths of a pixel; Width is zero for the width-free
+         --  modes.
+         Width  : Long_Integer;
+         Base   : Long_Integer;
+      end record;
+
+      function "<" (L, R : Trial_Key) return Boolean is
+        (if L.Node /= R.Node then L.Node < R.Node
+         elsif L.Sizing /= R.Sizing then L.Sizing < R.Sizing
+         elsif L.Width /= R.Width then L.Width < R.Width
+         else L.Base < R.Base);
+
+      function Sixty_Fourths (P : Pixel_Type) return Long_Integer is
+        (Long_Integer (Long_Float'Rounding (Long_Float (P) * 64.0)));
+
+      type Trial_Result is record
+         Bottom, Extent : Pixel_Type := 0.0;
+      end record;
+
+      package Trial_Maps is new Ada.Containers.Ordered_Maps
+        (Key_Type => Trial_Key, Element_Type => Trial_Result);
+
+      Trials : Trial_Maps.Map;
+
+      --  Lay Src out at Width and throw the result away, keeping only
+      --  how tall it came out and how far its content reached.
+      function Trial
+        (Parent       : Node;
+         Src          : Item_Source;
+         Parent_Style : Resolved_Style;
+         Margin       : Edge_Pixels;
+         Pct_Base     : Pixel_Type;
+         Sizing       : Sizing_Mode;
+         Width        : Pixel_Type) return Trial_Result
+      is
+         --  Margin follows from Pct_Base, so the key need not carry it.
+         Key : constant Trial_Key :=
+           (Node   => (if Src.Element > 0 then Src.Element
+                       else Parent.Children.Element (Src.First)),
+            Sizing => Sizing,
+            Width  => (if Sizing = Normal_Sizing then Sixty_Fourths (Width) else 0),
+            Base   => Sixty_Fourths (Pct_Base));
+         Found : constant Trial_Maps.Cursor := Trials.Find (Key);
+      begin
+         if Trial_Maps.Has_Element (Found) then
+            return Trial_Maps.Element (Found);
+         end if;
+
+         declare
+            Item_Mark : constant Ada.Containers.Count_Type := Result.Items.Length;
+            Link_Mark : constant Ada.Containers.Count_Type := Result.Links.Length;
+            Lists     : constant List_Context_Vectors.Vector := List_Stack;
+            R         : Trial_Result;
+         begin
+            Lay_Out_Item
+              (Parent, Src, Parent_Style, "", (0.0, 0.0, Width, 0.0), Margin,
+               Pct_Base, Sizing, R.Bottom, R.Extent);
+            Result.Items.Set_Length (Item_Mark);
+            Result.Links.Set_Length (Link_Mark);
+            List_Stack := Lists;
+            Trials.Insert (Key, R);
+            return R;
+         end;
+      end Trial;
+
+      Unbounded_Width : constant Pixel_Type := 1.0E6;
+
+      --  An item's min-content and max-content border-box widths.
+      procedure Content_Widths
+        (Parent       : Node;
+         Src          : Item_Source;
+         Parent_Style : Resolved_Style;
+         Margin       : Edge_Pixels;
+         Pct_Base     : Pixel_Type;
+         Min_W, Max_W : out Pixel_Type) is
+      begin
+         Min_W := Pixel_Type'Max
+           (0.0, Trial (Parent, Src, Parent_Style, Margin, Pct_Base,
+                        Min_Content_Sizing, 0.0).Extent - Margin.Right);
+         Max_W := Pixel_Type'Max
+           (Min_W, Trial (Parent, Src, Parent_Style, Margin, Pct_Base,
+                          Max_Content_Sizing, Unbounded_Width).Extent - Margin.Right);
+      end Content_Widths;
+
+      --  An item's border-box height at border-box width Width.
+      function Height_At
+        (Parent       : Node;
+         Src          : Item_Source;
+         Parent_Style : Resolved_Style;
+         Margin       : Edge_Pixels;
+         Pct_Base     : Pixel_Type;
+         Width        : Pixel_Type) return Pixel_Type is
+        (Pixel_Type'Max
+           (0.0, Trial (Parent, Src, Parent_Style, Margin, Pct_Base,
+                        Normal_Sizing, Width).Bottom));
+
+      --  A declared size in pixels, or Pixel_Type'Last when there is none
+      --  or it is a percentage of nothing.
+      function Declared_Px
+        (S : Size_Value; Of_Size : Pixel_Type; Style : Resolved_Style)
+         return Pixel_Type is
+        (if S.Kind = Fixed and then (S.Size.Unit /= Pct or else Of_Size > 0.0)
+         then Local_Length_To_Px (S.Size, Of_Size, Local_Font_Size_Px (Style))
+         else Pixel_Type'Last);
+
+      function Gap_Px
+        (G : Gap_Value; Row_Gap : Boolean; Of_Size : Pixel_Type;
+         Style : Resolved_Style) return Pixel_Type
+      is
+         L : constant Length_Value :=
+           (case G.Kind is
+               when Gap_Uniform  => G.All_Gap,
+               when Gap_Separate => (if Row_Gap then G.Row_Gap else G.Column_Gap));
+      begin
+         return Local_Length_To_Px (L, Of_Size, Local_Font_Size_Px (Style));
+      end Gap_Px;
+
+      --  Lay out Parent's children as flex items in the content box the
+      --  enclosing block left open: Line_Left .. Line_Right from Y down.
+      --  Padding is that block's. Leaves Y at the bottom of the
+      --  container's content.
+      procedure Layout_Flex_Container
+        (Parent  : Node;
+         Style   : Resolved_Style;
+         Padding : Edge_Pixels;
+         Link    : String)
+      is
+         use type Ada.Containers.Count_Type;
+         Dir     : constant Flex_Direction_Value := Style.Flex_Direction;
+         Is_Row  : constant Boolean := Is_Row_Direction (Dir);
+         Left    : constant Pixel_Type := Line_Left;
+         Avail   : constant Pixel_Type := Current_Line_Width;
+         --  A trial pass sizes content, not a box: percentages of the
+         --  container count as nothing there.
+         Pct_Base : constant Pixel_Type :=
+           (if Flow.Sizing = Normal_Sizing then Avail else 0.0);
+         Sources : constant Item_Source_Vectors.Vector :=
+           Item_Sources (Parent, Style);
+         Count   : constant Natural := Natural (Sources.Length);
+
+         Declared_H : constant Pixel_Type :=
+           Declared_Px (Style.Height, 0.0, Style);
+         --  The container's content height when its own is declared.
+         Fixed_H : constant Pixel_Type :=
+           (if Declared_H = Pixel_Type'Last then Pixel_Type'Last
+            else Pixel_Type'Max (0.0, Declared_H - Padding.Top - Padding.Bottom));
+         Of_H : constant Pixel_Type :=
+           (if Fixed_H = Pixel_Type'Last then 0.0 else Fixed_H);
+
+         Column_Gap : constant Pixel_Type := Gap_Px (Style.Gap, False, Pct_Base, Style);
+         Row_Gap    : constant Pixel_Type := Gap_Px (Style.Gap, True, Of_H, Style);
+         Main_Gap   : constant Pixel_Type := (if Is_Row then Column_Gap else Row_Gap);
+         Cross_Gap  : constant Pixel_Type := (if Is_Row then Row_Gap else Column_Gap);
+         Top        : Pixel_Type;
+      begin
+         Flush_Pending_Margin;
+         Top := Y;
+
+         if Count = 0 then
+            Y := Top + Of_H;
+            return;
+         end if;
+
+         declare
+            Infos     : Flex_Child_Info_Array (1 .. Count);
+            Styles    : array (1 .. Count) of Resolved_Style;
+            --  What the solver places each item by.
+            Margins   : array (1 .. Count) of Edge_Pixels;
+            --  What each item's own flow places it by: an atomic item
+            --  places nothing, and hr keeps its margins in its own flow.
+            Flow_M    : array (1 .. Count) of Edge_Pixels;
+            Min_C     : array (1 .. Count) of Pixel_Type;
+            Max_C     : array (1 .. Count) of Pixel_Type;
+            Decl_W    : array (1 .. Count) of Pixel_Type;
+            Decl_H    : array (1 .. Count) of Pixel_Type;
+            Ctx       : Flex_Layout_Context;
+            Content_H : Pixel_Type := 0.0;
+
+            function Src (I : Positive) return Item_Source is (Sources.Element (I));
+
+            function Tag_Of (I : Positive) return String is
+              (if Src (I).Element > 0
+               then To_String (Self.Nodes.Element (Src (I).Element).Tag_Name)
+               else "");
+
+            function Stretches (I : Positive) return Boolean is
+              ((Styles (I).Align_Self = Stretch
+                or else (Styles (I).Align_Self = Auto
+                         and then Style.Align_Items = Stretch))
+               and then Decl_W (I) = Pixel_Type'Last);
+
+            function Height_Of (I : Positive; Width : Pixel_Type) return Pixel_Type is
+              (Height_At (Parent, Src (I), Style, Flow_M (I), Pct_Base, Width));
+
+            --  Cross size of the lines the items form, gaps included.
+            function Lines_Cross return Pixel_Type is
+               Ranges : Flex_Line_Array (1 .. Count);
+               Lines  : Natural;
+               Total  : Pixel_Type := 0.0;
+            begin
+               Form_Flex_Lines
+                 (Get_Main_Size ((Ctx.Container.Width, Ctx.Container.Height), Dir),
+                  Main_Gap, Dir, Style.Flex_Wrap, Infos, Ranges, Lines);
+               for L in 1 .. Lines loop
+                  declare
+                     Deepest : Pixel_Type := 0.0;
+                  begin
+                     for I in Ranges (L).First .. Ranges (L).Last loop
+                        Deepest := Pixel_Type'Max
+                          (Deepest,
+                           Pixel_Type'Max
+                             (Infos (I).Min_Cross,
+                              Pixel_Type'Min (Infos (I).Max_Cross, Infos (I).Content_Cross))
+                           + (if Is_Row then Margins (I).Top + Margins (I).Bottom
+                              else Margins (I).Left + Margins (I).Right));
+                     end loop;
+                     Total := Total + Deepest;
+                  end;
+               end loop;
+               return Total + Cross_Gap * Pixel_Type (Natural'Max (0, Lines - 1));
+            end Lines_Cross;
+         begin
+            for I in 1 .. Count loop
+               Styles (I) :=
+                 (if Src (I).Element > 0 then Element_Style (Src (I).Element, Style)
+                  else Resolve_Element_Style (Empty_Style, Style, True));
+               Margins (I) :=
+                 (if Src (I).Element > 0 and then Tag_Of (I) /= "hr"
+                  then Resolve_Margin_Edges (Styles (I).Margin, Styles (I), Pct_Base)
+                  else Zero_Edges);
+               Flow_M (I) :=
+                 (if Is_Atomic (Tag_Of (I)) then Zero_Edges else Margins (I));
+               Content_Widths
+                 (Parent, Src (I), Style, Flow_M (I), Pct_Base, Min_C (I), Max_C (I));
+               Decl_W (I) := Declared_Px (Styles (I).Width, Pct_Base, Styles (I));
+               Decl_H (I) := Declared_Px (Styles (I).Height, Of_H, Styles (I));
+            end loop;
+
+            --  A trial pass only wants to know how wide the container's
+            --  content gets.
+            if Flow.Sizing /= Normal_Sizing then
+               declare
+                  Wide : Pixel_Type := 0.0;
+               begin
+                  for I in 1 .. Count loop
+                     declare
+                        Own : constant Pixel_Type :=
+                          (if Decl_W (I) /= Pixel_Type'Last then Decl_W (I)
+                           elsif Flow.Sizing = Min_Content_Sizing then Min_C (I)
+                           else Max_C (I))
+                          + Margins (I).Left + Margins (I).Right;
+                     begin
+                        if Is_Row
+                          and then (Flow.Sizing = Max_Content_Sizing
+                                    or else Style.Flex_Wrap = No_Wrap)
+                        then
+                           Wide := Wide + Own + (if I > 1 then Main_Gap else 0.0);
+                        else
+                           Wide := Pixel_Type'Max (Wide, Own);
+                        end if;
+                     end;
+                  end loop;
+                  Flow.Extent :=
+                    Pixel_Type'Max (Flow.Extent, Left + Wide + Flow.Right_Inset);
+                  Y := Top + Of_H;
+                  return;
+               end;
+            end if;
+
+            for I in 1 .. Count loop
+               declare
+                  S     : Resolved_Style renames Styles (I);
+                  M     : Edge_Pixels renames Margins (I);
+
+                  --  A declared minimum that does not resolve is none.
+                  function Minimum (V : Size_Value; Of_Size : Pixel_Type)
+                    return Pixel_Type
+                  is
+                     P : constant Pixel_Type := Declared_Px (V, Of_Size, S);
+                  begin
+                     return (if P = Pixel_Type'Last then 0.0 else P);
+                  end Minimum;
+
+                  Max_W : constant Pixel_Type := Declared_Px (S.Max_Width, Pct_Base, S);
+                  Max_H : constant Pixel_Type := Declared_Px (S.Max_Height, Of_H, S);
+                  Min_W : constant Pixel_Type := Minimum (S.Min_Width, Pct_Base);
+                  Min_H : constant Pixel_Type := Minimum (S.Min_Height, Of_H);
+                  Sizes : Flex_Item_Sizes;
+
+                  function Clamp_W (W : Pixel_Type) return Pixel_Type is
+                    (Pixel_Type'Max (Min_W, Pixel_Type'Min (Max_W, W)));
+               begin
+                  Sizes.Demand   := (Min_W, Min_H);
+                  Sizes.Declared := (Decl_W (I), Decl_H (I));
+                  Sizes.Max      := (Max_W, Max_H);
+                  Sizes.Margin   := M;
+
+                  if Is_Row then
+                     declare
+                        Pref_W : constant Pixel_Type :=
+                          (if Decl_W (I) /= Pixel_Type'Last then Decl_W (I) else Max_C (I));
+                     begin
+                        Sizes.Base :=
+                          (case S.Flex_Basis.Kind is
+                              when Fixed =>
+                                 Local_Length_To_Px
+                                   (S.Flex_Basis.Size, Pct_Base, Local_Font_Size_Px (S)),
+                              when CSS_Styles.Content => Max_C (I),
+                              when Auto => Pref_W);
+                        Sizes.Content_Min := (Min_C (I), 0.0);
+                        Sizes.Preferred :=
+                          (Pref_W,
+                           (if Decl_H (I) /= Pixel_Type'Last then Decl_H (I)
+                            else Height_Of
+                                   (I, Clamp_W (Pixel_Type'Min
+                                                  (Sizes.Base,
+                                                   Pixel_Type'Max
+                                                     (0.0, Avail - M.Left - M.Right))))));
+                     end;
+                  else
+                     declare
+                        Room : constant Pixel_Type :=
+                          Pixel_Type'Max (0.0, Avail - M.Left - M.Right);
+                        W : constant Pixel_Type := Clamp_W
+                          (if Decl_W (I) /= Pixel_Type'Last then Decl_W (I)
+                           elsif Stretches (I) then Room
+                           else Pixel_Type'Min (Max_C (I), Pixel_Type'Max (Min_C (I), Room)));
+                        H : constant Pixel_Type :=
+                          (if Decl_H (I) /= Pixel_Type'Last then Decl_H (I)
+                           else Height_Of (I, W));
+                     begin
+                        Sizes.Base :=
+                          (if S.Flex_Basis.Kind = Fixed
+                           then Local_Length_To_Px
+                                  (S.Flex_Basis.Size, Of_H, Local_Font_Size_Px (S))
+                           else H);
+                        Sizes.Content_Min := (Min_C (I), H);
+                        Sizes.Preferred := (W, H);
+                     end;
+                  end if;
+
+                  Infos (I) := Make_Flex_Child_Info (S, Dir, Sizes);
+               end;
+            end loop;
+
+            Ctx := Make_Flex_Context (Style, (Left, Top, Avail, 0.0));
+            Ctx.Main_Gap  := Main_Gap;
+            Ctx.Cross_Gap := Cross_Gap;
+
+            if Is_Row then
+               Ctx.Container.Height :=
+                 (if Fixed_H /= Pixel_Type'Last then Fixed_H else Lines_Cross);
+               Compute_Flex_Layout (Ctx, Infos);
+
+               --  Heights depend on the widths just given out.
+               declare
+                  Changed : Boolean := False;
+               begin
+                  for I in 1 .. Count loop
+                     if Decl_H (I) = Pixel_Type'Last then
+                        declare
+                           H : constant Pixel_Type := Height_Of (I, Infos (I).Computed_Main);
+                        begin
+                           if abs (H - Infos (I).Content_Cross) > 0.5 then
+                              Infos (I).Content_Cross := H;
+                              Changed := True;
+                           end if;
+                        end;
+                     end if;
+                  end loop;
+                  if Changed then
+                     if Fixed_H = Pixel_Type'Last then
+                        Ctx.Container.Height := Lines_Cross;
+                     end if;
+                     Compute_Flex_Layout (Ctx, Infos);
+                  end if;
+               end;
+            else
+               if Fixed_H /= Pixel_Type'Last then
+                  Ctx.Container.Height := Fixed_H;
+               else
+                  for I in 1 .. Count loop
+                     Ctx.Container.Height := Ctx.Container.Height
+                       + Hypothetical_Main_Size (Infos (I))
+                       + Margins (I).Top + Margins (I).Bottom
+                       + (if I > 1 then Main_Gap else 0.0);
+                  end loop;
+               end if;
+               Compute_Flex_Layout (Ctx, Infos);
+            end if;
+            Content_H := Ctx.Container.Height;
+
+            declare
+               Rects : constant Rectangle_Array := Flex_To_Rectangles (Ctx, Infos);
+            begin
+               for I in 1 .. Count loop
+                  declare
+                     Mark   : constant Ada.Containers.Count_Type := Result.Items.Length;
+                     Bottom : Pixel_Type;
+                     Extent : Pixel_Type;
+                  begin
+                     Lay_Out_Item
+                       (Parent, Src (I), Style, Link, Rects (I), Flow_M (I), Pct_Base,
+                        Normal_Sizing, Bottom, Extent);
+                     --  The item's own panel is the first thing it added;
+                     --  the box the layout gave it overrides its content.
+                     if Src (I).Element > 0
+                       and then not Is_Atomic (Tag_Of (I))
+                       and then Result.Items.Length > Mark
+                     then
+                        Result.Items.Reference (Positive (Mark) + 1).Geometry := Rects (I);
+                     end if;
+                  end;
+               end loop;
+            end;
+
+            Y := Top + Content_H;
+         end;
+
+         X := Line_Left;
+         Pending_Space := False;
+         Prev_Block_Margin_Bottom := 0.0;
+      end Layout_Flex_Container;
+
+      procedure Layout_Node
+        (Node_Index   : Positive;
+         Parent_Style : Resolved_Style;
+         Active_Link  : String;
+         As_Item      : Boolean := False)
       is
          N : constant Node := Self.Nodes.Element (Node_Index);
       begin
@@ -2842,14 +3431,21 @@ package body Adi.Widget.Html_View is
 
                   else
                      declare
-                        Block_Flow : constant Boolean := Is_Block_Element (Tag, Rules, Style);
+                        --  A flex or grid item is a block whatever its tag,
+                        --  and its margins do not collapse with what is
+                        --  inside it.
+                        Block_Flow : constant Boolean :=
+                          As_Item or else Is_Block_Element (Tag, Rules, Style);
+                        Prev_Right_Inset  : constant Pixel_Type := Flow.Right_Inset;
                         Prev_Base_H       : constant Pixel_Type := Line_Base_H;
                         Prev_Base_Ascent  : constant Pixel_Type := Line_Base_Ascent;
                         Prev_Base_Descent : constant Pixel_Type := Line_Base_Descent;
                         Prev_Line_Left    : constant Pixel_Type := Line_Left;
                         Prev_Line_Right   : constant Pixel_Type := Line_Right;
                         Prev_Line_Align   : constant Text_Align_Value := Current_Line_Align;
-                        Local_Container_W : constant Pixel_Type := Current_Line_Width;
+                        Local_Container_W : constant Pixel_Type :=
+                          (if As_Item and then Flow.Item_Base >= 0.0
+                           then Flow.Item_Base else Current_Line_Width);
                         Margin_Edges      : Edge_Pixels := Zero_Edges;
                         Padding_Edges     : Edge_Pixels := Zero_Edges;
                         List_Context_Pushed : Boolean := False;
@@ -2890,7 +3486,8 @@ package body Adi.Widget.Html_View is
                               Border_Edges : constant Edge_Pixels :=
                                 Get_Border_Width_Px (Style);
                               Has_Top_Sep : constant Boolean :=
-                                Padding_Edges.Top > 0.0
+                                As_Item
+                                  or else Padding_Edges.Top > 0.0
                                   or else Border_Edges.Top > 0.0;
                               Combined : constant Pixel_Type :=
                                 Pixel_Type'Max
@@ -2935,6 +3532,8 @@ package body Adi.Widget.Html_View is
 
                            Line_Left := Prev_Line_Left + Margin_Edges.Left + Padding_Edges.Left;
                            Line_Right := Prev_Line_Right - Margin_Edges.Right - Padding_Edges.Right;
+                           Flow.Right_Inset :=
+                             Prev_Right_Inset + Margin_Edges.Right + Padding_Edges.Right;
                            if Line_Right < Line_Left then
                               Line_Right := Line_Left;
                            end if;
@@ -3009,11 +3608,15 @@ package body Adi.Widget.Html_View is
                            end if;
                         end if;
 
-                        for Child_Idx of N.Children loop
-                           if Child_Idx > 0 then
-                              Layout_Node (Positive (Child_Idx), Style, Link_Href);
-                           end if;
-                        end loop;
+                        if Block_Flow and then Style.Display in Flex | Inline_Flex then
+                           Layout_Flex_Container (N, Style, Padding_Edges, Link_Href);
+                        else
+                           for Child_Idx of N.Children loop
+                              if Child_Idx > 0 then
+                                 Layout_Node (Positive (Child_Idx), Style, Link_Href);
+                              end if;
+                           end loop;
+                        end if;
 
                         if Block_Flow then
                            if Has_Line_Content or else Pending_Space then
@@ -3030,7 +3633,8 @@ package body Adi.Widget.Html_View is
                               Border_Edges : constant Edge_Pixels :=
                                 Get_Border_Width_Px (Style);
                               Has_Bot_Sep : constant Boolean :=
-                                Padding_Edges.Bottom > 0.0
+                                As_Item
+                                  or else Padding_Edges.Bottom > 0.0
                                   or else Border_Edges.Bottom > 0.0;
                            begin
                               if Has_Bot_Sep then
@@ -3067,6 +3671,11 @@ package body Adi.Widget.Html_View is
                                     Height => Pixel_Type'Max (0.0, Block_Bottom_Y - Final_Top));
                               end;
                            end if;
+
+                           --  An empty block still spans its own insets.
+                           Flow.Extent :=
+                             Pixel_Type'Max (Flow.Extent, Line_Left + Flow.Right_Inset);
+                           Flow.Right_Inset := Prev_Right_Inset;
 
                            Line_Left := Prev_Line_Left;
                            Line_Right := Prev_Line_Right;

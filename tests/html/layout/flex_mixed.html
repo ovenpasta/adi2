@@ -1,0 +1,18 @@
+<style>
+  .row  { display: flex; gap: 10px; background-color: #eeeeee; }
+  .wrap { flex-wrap: wrap; }
+  .card { width: 140px; padding: 6px; background-color: #ccddee; }
+  .box  { padding: 2px 6px; background-color: #ddeecc; }
+  .gone { display: none; }
+</style>
+<div class="row">Loose text, <span class="box">a span item</span> and <b>bold</b> after.</div>
+<div class="row wrap"><div class="card">Card one</div><div class="card">Card two</div><div class="card">Card three</div><div class="card">Card four</div></div>
+<div class="row"><div class="box">Visible</div><div class="box gone">Hidden</div><div class="box">Also visible</div></div>
+<div class="row"><img src="cat.svg" width="40" height="40"><div class="box">Beside an image</div></div>
+<div class="row"><div class="box"><div class="row"><span class="box">Nested</span><span class="box">flex</span></div></div><div class="box">Outer sibling</div></div>
+<div class="row"><a href="#a" class="box">Link item</a><div class="box">Plain item</div></div>
+<div class="row"><div class="box"><ul><li>List inside an item</li><li>Second</li></ul></div><div class="box"><p>A paragraph in an item keeps its margins inside.</p></div></div>
+<ol><li>One</li><li><div class="row"><div class="box">Flex inside a list item</div></div></li><li>Three</li></ol>
+<div class="row" style="flex-direction: row-reverse"><div class="box">First in source</div><div class="box">Second in source</div></div>
+<div class="row"></div>
+<p>After an empty flex container.</p>

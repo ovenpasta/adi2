@@ -1,0 +1,21 @@
+<style>
+  .row  { display: flex; gap: 8px; background-color: #eeeeee; }
+  .col  { display: flex; flex-direction: column; gap: 4px; background-color: #eeeeee; }
+  .box  { padding: 2px 6px; background-color: #ccddee; }
+</style>
+<div class="row"><img src="cat.svg"></div>
+<div class="row"><img src="cat.svg" width="40"><div class="box">After an image sized by width alone</div></div>
+<div class="col"><img src="cat.svg" width="40"><div class="box">Below an image in a column</div></div>
+<div class="row"><img src="cat.svg" width="32" style="margin: 10px 20px 0px 30px"><div class="box">After an image with margins</div></div>
+<div class="row"><div class="box" style="margin-left: 10%">Percentage margin</div><div class="box" style="padding: 5%">Percentage padding</div><div class="box" style="width: 25%">Quarter width</div></div>
+<div class="row"><div class="box"><div class="row"><div class="box" style="width: 50%">half</div></div></div><div class="box">Nested percentage width</div></div>
+<div class="row" style="height: 80px; padding: 10px; align-items: center"><div class="box">Fixed height with padding</div></div>
+<div class="row" style="flex-wrap: wrap-reverse; width: 300px"><div class="box" style="width: 200px">One</div><div class="box" style="width: 200px">Two</div><div class="box" style="width: 200px">Three</div></div>
+<div class="row" style="flex-wrap: wrap; height: 140px; align-content: center"><div class="box" style="width: 400px">Wide one</div><div class="box" style="width: 400px">Wide two</div></div>
+<div class="row" style="flex-wrap: wrap; height: 140px; align-content: space-between"><div class="box" style="width: 400px">Top line</div><div class="box" style="width: 400px">Bottom line</div></div>
+<div class="row"><div class="box" style="min-width: 200px">Min width</div><div class="box" style="max-width: 80px">Max width caps this text</div><div class="box" style="flex-grow: 1; max-width: 150px">Grows to a cap</div></div>
+<div class="col" style="height: 60px"><div class="box">Shrinks</div><div class="box">in a</div><div class="box" style="flex-shrink: 0">short column</div></div>
+<div class="row" style="text-align: center"><div class="box" style="width: 200px">Centred text in a fixed item</div>Anonymous text</div>
+<div class="row" style="display: inline-flex"><div class="box">Inline flex</div><div class="box">as a block</div></div>
+<div class="row" style="height: 30px"></div>
+<p>After an empty container with a declared height.</p>

@@ -1,0 +1,17 @@
+<style>
+  .col   { display: flex; flex-direction: column; gap: 6px; padding: 4px; background-color: #eeeeee; }
+  .box   { padding: 4px 8px; background-color: #ccddee; }
+  .center { align-items: center; }
+  .end    { align-items: flex-end; }
+  .high   { height: 200px; justify-content: space-between; }
+  .grow   { flex-grow: 1; }
+  .narrow { width: 120px; }
+  .margin { margin: 10px 20px; }
+</style>
+<div class="col"><div class="box">Stretched</div><div class="box">Also stretched, with text long enough to wrap at the narrow width of the view</div></div>
+<div class="col center"><div class="box">Centred</div><div class="box">Centred and long enough to need wrapping at the narrow width, which it does</div></div>
+<div class="col end"><div class="box narrow">Declared width that wraps</div></div>
+<div class="col high"><div class="box">First</div><div class="box">Last</div></div>
+<div class="col high"><div class="box">Fixed</div><div class="box grow">Grows to fill</div></div>
+<div class="col"><div class="box margin">Margins inside a column</div><div class="box">Next</div></div>
+<div class="col" style="flex-direction: column-reverse"><div class="box">First in source</div><div class="box">Second in source</div></div>

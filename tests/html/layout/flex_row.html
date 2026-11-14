@@ -1,0 +1,29 @@
+<style>
+  .row   { display: flex; gap: 8px; padding: 4px; background-color: #eeeeee; }
+  .box   { padding: 4px 8px; background-color: #ccddee; }
+  .grow  { flex-grow: 1; }
+  .between { justify-content: space-between; }
+  .center  { justify-content: center; }
+  .end     { justify-content: flex-end; }
+  .evenly  { justify-content: space-evenly; }
+  .tall    { align-items: stretch; }
+  .mid     { align-items: center; }
+  .bottom  { align-items: flex-end; }
+  .high    { height: 60px; }
+  .basis0  { flex-basis: 0px; flex-grow: 1; }
+  .basis0b { flex-basis: 0px; flex-grow: 2; }
+  .fixed   { width: 100px; flex-shrink: 0; }
+  .self    { align-self: flex-start; }
+</style>
+<p>Before the rows.</p>
+<div class="row"><div class="box">One</div><div class="box grow">Grows</div><div class="box">Three</div></div>
+<div class="row between"><div class="box">Left</div><div class="box">Right</div></div>
+<div class="row center"><div class="box">Centred</div></div>
+<div class="row end"><div class="box">End</div><div class="box">Packed</div></div>
+<div class="row evenly"><div class="box">A</div><div class="box">B</div><div class="box">C</div></div>
+<div class="row tall"><div class="box">Short</div><div class="box">A taller item whose text wraps onto more lines than its neighbour at the narrow width</div><div class="box self">Top</div></div>
+<div class="row mid high"><div class="box">Middle</div><div class="box">Also middle</div></div>
+<div class="row bottom high"><div class="box">Bottom</div></div>
+<div class="row"><div class="box basis0">One part</div><div class="box basis0b">Two parts</div></div>
+<div class="row"><div class="box fixed">Fixed 100</div><div class="box">Shrinks around long text that has to wrap when there is not enough room</div></div>
+<p>After the rows.</p>

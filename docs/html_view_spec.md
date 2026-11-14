@@ -169,6 +169,17 @@ The renderer implements CSS-style vertical margin collapsing:
   in pretty-printed HTML) are not committing events: they leave the
   pending margin alone so collapse-through survives source formatting.
 
+### Flex Layout
+- `display: flex` and `inline-flex` lay out an element's children as flex items through `Adi.Layout_Util` (`Make_Flex_Child_Info`, `Compute_Flex_Layout`), the solver `Adi.Widget` containers use. `inline-flex` is laid out as a block, and a declared `width` on the container is ignored as on any block. `grid` and `inline-grid` are blocks whose children flow normally.
+- Items: each element child, blockified whatever its tag, and each run of text between them (an anonymous item). Whitespace-only runs and `display: none` children are not items.
+- An item lays out in a flow of its own: its margins do not collapse with its parent's or its children's. The container's own margins collapse with its siblings as a block's do.
+- Item sizes are border-box, as elsewhere in Adi. The flex base and preferred width come from the declared `width` or the max-content width; the automatic minimum from the min-content width. Both are measured by laying the item out at zero and at unbounded width. Heights are measured at the width each item is given. Measurements are kept for the rest of the layout pass; each level of nested flex still lays its subtree out a few times.
+- An item's percentage margins, padding and sizes resolve against the container's content width. While the container is itself measured for a min- or max-content width they count as zero, and a percentage width as `auto`.
+- `img` and `svg` items are sized as images; their margins place them like any item's.
+- Container: `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `align-content`, `gap`/`row-gap`/`column-gap`. Item: `flex-grow`, `flex-shrink`, `flex-basis`, `align-self`, `min-*`/`max-*`, margins.
+- A container without a declared `height` is as tall as its lines. A percentage `height` on an item resolves only against a container with a declared height.
+- As in `Adi.Widget`: `order` keeps document order, `baseline` aligns as `flex-start`, and `auto` margins count as zero.
+
 ### Inline Flow
 - Inline content is line-wrapped by available width (similar to text widgets).
 - Wrapping opportunities:
@@ -232,6 +243,7 @@ The renderer implements CSS-style vertical margin collapsing:
 - Typography/text flow: `font-size`, `font-weight`, `font-style`, `text-align`, `text-decoration`, `white-space`, `text-wrap-mode`, `text-overflow`, `line-height`.
 - Lists: `list-style`, `list-style-type`, `list-style-image`, `list-style-position`.
 - Box/layout basics: `display`, `margin*`, `padding*`, `width/height/min/max`, `overflow`.
+- Flex: `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `align-content`, `align-self`, `flex-grow`, `flex-shrink`, `flex-basis`, `gap`.
 - Visuals: `color`, `background-color`, `border*`, `box-shadow`, `opacity`, `visibility`.
 - Images: `object-fit`.
 

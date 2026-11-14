@@ -274,6 +274,7 @@ The renderer implements CSS-style vertical margin collapsing:
 ## Parser Recovery Rules
 - Best-effort tree construction for malformed input.
 - Unclosed tags auto-close at end of parent/document.
+- One newline right after a `pre`, `listing` or `textarea` start tag is dropped.
 - `<li>` implies close of any open `<li>` in the same list scope (does not cross `<ul>`/`<ol>` boundaries).
 - Unexpected closing tag closes up-stack until match; if no match, ignore close token.
 - Text outside known structure is preserved as text nodes.

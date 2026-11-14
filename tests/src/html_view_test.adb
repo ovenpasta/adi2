@@ -1044,6 +1044,39 @@ procedure Html_View_Test is
       New_Line;
    end Test_Marker_Beside_Opening_Block;
 
+   --  One newline right after <pre> is dropped, as HTML parsing does;
+   --  a second one is content.
+   procedure Test_Pre_Leading_Newline is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+
+      function Top_Of (Needle : String) return Adi.Core.Pixel_Type is
+         Idx : constant Natural := Find_Text_Item_Index (W, Needle);
+      begin
+         Assert (Idx > 0, Needle & " exists");
+         return (if Idx > 0 then Adi.Widget.Get_Item (+W, Positive (Idx)).Geometry.Y else -1.0);
+      end Top_Of;
+   begin
+      Put_Line ("Test: a newline right after <pre> is dropped");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 300.0));
+
+      Adi.Widget.Html_View.Set_HTML (W, "<pre>" & ASCII.LF & "one</pre>");
+      Adi.Widget.Build_Items (+W);
+      Assert (Nearly_Equal (Top_Of ("one"), 0.0), "the first line holds the text");
+
+      Adi.Widget.Html_View.Set_HTML
+        (W, "<pre>" & ASCII.CR & ASCII.LF & "crlf</pre>");
+      Adi.Widget.Build_Items (+W);
+      Assert (Nearly_Equal (Top_Of ("crlf"), 0.0), "a CR LF counts as one newline");
+
+      Adi.Widget.Html_View.Set_HTML
+        (W, "<pre>" & ASCII.LF & ASCII.LF & "two</pre>");
+      Adi.Widget.Build_Items (+W);
+      Assert (Top_Of ("two") > 1.0, "a second newline is kept");
+      New_Line;
+   end Test_Pre_Leading_Newline;
+
    procedure Test_Mixed_Inline_Baseline is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -2679,6 +2712,7 @@ begin
    Test_Border_Insets_At_Scale;
    Test_Character_References;
    Test_Marker_Beside_Opening_Block;
+   Test_Pre_Leading_Newline;
    Test_Grid_Px_Track_Follows_Content_Scale;
    Test_Mixed_Inline_Baseline;
    Test_Fresh_View_Is_Neutral;

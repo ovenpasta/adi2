@@ -1366,6 +1366,24 @@ package body Adi.Widget.Html_View is
 
                            if not Consumed_Tag then
                               I := End_Pos + 1;
+
+                              --  HTML drops one newline right after the start
+                              --  tag of pre, listing and textarea.
+                              if not Closing
+                                and then (Name = "pre" or else Name = "listing"
+                                          or else Name = "textarea")
+                                and then I <= Source'Last
+                              then
+                                 if Source (I) = ASCII.LF then
+                                    I := I + 1;
+                                 elsif Source (I) = ASCII.CR then
+                                    I := I + 1;
+                                    if I <= Source'Last and then Source (I) = ASCII.LF then
+                                       I := I + 1;
+                                    end if;
+                                 end if;
+                              end if;
+
                               Text_Start := I;
                            end if;
                         end;

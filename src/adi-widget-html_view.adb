@@ -642,6 +642,44 @@ package body Adi.Widget.Html_View is
       return Out_Rules;
    end Parse_Inline_Style_Rules;
 
+   --  An HTML dimension attribute: digits with an optional fraction, then
+   --  an optional `%`, after leading whitespace; anything after is
+   --  ignored. No leading digit yields Unset.
+   function Dimension_Attribute (S : String) return Opt_Size.Optional is
+      I     : Integer := S'First;
+      Value : Float := 0.0;
+      Place : Float := 0.1;
+   begin
+      while I <= S'Last and then Is_Whitespace (S (I)) loop
+         I := I + 1;
+      end loop;
+
+      if I > S'Last or else S (I) not in '0' .. '9' then
+         return Opt_Size.Unset;
+      end if;
+
+      while I <= S'Last and then S (I) in '0' .. '9' loop
+         Value := Float'Min
+           (1.0E7,
+            Value * 10.0 + Float (Character'Pos (S (I)) - Character'Pos ('0')));
+         I := I + 1;
+      end loop;
+
+      if I <= S'Last and then S (I) = '.' then
+         I := I + 1;
+         while I <= S'Last and then S (I) in '0' .. '9' loop
+            Value := Value + Place * Float (Character'Pos (S (I)) - Character'Pos ('0'));
+            Place := Place / 10.0;
+            I := I + 1;
+         end loop;
+      end if;
+
+      if I <= S'Last and then S (I) = '%' then
+         return Set (Size (Pct (Value)));
+      end if;
+      return Set (Size (Px (Value)));
+   end Dimension_Attribute;
+
    function Element_Cascade_Rules
      (Self  : in out Html_View;
       Tag   : String;
@@ -652,6 +690,23 @@ package body Adi.Widget.Html_View is
       Id_Value    : constant String := Lower (Trimmed (To_String (Attrs.Id_Attr)));
       I           : Integer := Class_Value'First;
    begin
+      --  img width/height sit below every stylesheet rule.
+      if Tag = "img" then
+         declare
+            W : constant Opt_Size.Optional :=
+              Dimension_Attribute (To_String (Attrs.Width_Attr));
+            H : constant Opt_Size.Optional :=
+              Dimension_Attribute (To_String (Attrs.Height_Attr));
+         begin
+            if Opt_Size.Is_Set (W) then
+               Result.Width := W;
+            end if;
+            if Opt_Size.Is_Set (H) then
+               Result.Height := H;
+            end if;
+         end;
+      end if;
+
       if Adi.CSS_Parser.Has (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, Tag)
       then
          Result := Merge
@@ -1029,6 +1084,8 @@ package body Adi.Widget.Html_View is
                                     Src_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "src")),
                                     Alt_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "alt")),
                                     Value_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "value")),
+                                    Width_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "width")),
+                                    Height_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "height")),
                                     Svg_Source_Attr => Null_Unbounded_String);
                                  Svg_End : Natural := 0;
                                  begin
@@ -1144,6 +1201,8 @@ package body Adi.Widget.Html_View is
                                     Src_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "src")),
                                     Alt_Attr   => To_Unbounded_String (Extract_Attribute (Raw_Tag, "alt")),
                                     Value_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "value")),
+                                    Width_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "width")),
+                                    Height_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "height")),
                                     Svg_Source_Attr => Null_Unbounded_String);
                                  New_Node_Idx : Positive;
                               begin

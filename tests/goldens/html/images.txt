@@ -41,7 +41,24 @@
 40: TEXT_ITEM TEXT_PART z=1 [93.00,424.00 43.00x24.00] override wrap=FALSE off=0.00,0.00 text=" after."
 41: PANEL_ITEM ANY_PART z=0 [0.00,464.00 640.00x44.00] override
 42: IMAGE_ITEM ICON_PART z=1 [0.00,464.00 400.00x40.00] override bg=FALSE src=set
-doc: 640.00x524.00 scroll_h=2000.00
+43: PANEL_ITEM ANY_PART z=0 [0.00,524.00 640.00x52.00] override
+44: TEXT_ITEM TEXT_PART z=1 [0.00,524.00 78.00x52.00] override wrap=FALSE off=0.00,30.00 text="Attributes:"
+45: IMAGE_ITEM ICON_PART z=1 [78.00,540.00 32.00x32.00] override bg=FALSE src=set
+46: TEXT_ITEM TEXT_PART z=1 [110.00,524.00 32.00x52.00] override wrap=FALSE off=0.00,30.00 text=" and"
+47: TEXT_ITEM TEXT_PART z=1 [142.00,524.00 45.00x52.00] override wrap=FALSE off=0.00,30.00 text=" width"
+48: TEXT_ITEM TEXT_PART z=1 [187.00,524.00 36.00x52.00] override wrap=FALSE off=0.00,30.00 text=" only"
+49: IMAGE_ITEM ICON_PART z=1 [223.00,524.00 48.00x48.00] override bg=FALSE src=set
+50: TEXT_ITEM TEXT_PART z=1 [271.00,524.00 8.00x52.00] override wrap=FALSE off=0.00,30.00 text=" ."
+51: PANEL_ITEM ANY_PART z=0 [0.00,592.00 640.00x68.00] override
+52: TEXT_ITEM TEXT_PART z=1 [0.00,592.00 88.00x68.00] override wrap=FALSE off=0.00,46.00 text="Percentage:"
+53: IMAGE_ITEM ICON_PART z=1 [88.00,592.00 64.00x64.00] override bg=FALSE src=set
+54: TEXT_ITEM TEXT_PART z=1 [152.00,592.00 32.00x68.00] override wrap=FALSE off=0.00,46.00 text=" and"
+55: TEXT_ITEM TEXT_PART z=1 [184.00,592.00 32.00x68.00] override wrap=FALSE off=0.00,46.00 text=" CSS"
+56: TEXT_ITEM TEXT_PART z=1 [216.00,592.00 37.00x68.00] override wrap=FALSE off=0.00,46.00 text=" over"
+57: TEXT_ITEM TEXT_PART z=1 [253.00,592.00 69.00x68.00] override wrap=FALSE off=0.00,46.00 text=" attribute"
+58: IMAGE_ITEM ICON_PART z=1 [322.00,640.00 16.00x16.00] override bg=FALSE src=set
+59: TEXT_ITEM TEXT_PART z=1 [338.00,592.00 8.00x68.00] override wrap=FALSE off=0.00,46.00 text=" ."
+doc: 640.00x676.00 scroll_h=2000.00
 link@34 [24.00,380.00 49.00x28.00] -> #cat
 link@35 [73.00,380.00 49.00x28.00] -> #cat
 == width 320
@@ -87,6 +104,23 @@ link@35 [73.00,380.00 49.00x28.00] -> #cat
 40: TEXT_ITEM TEXT_PART z=1 [93.00,424.00 43.00x24.00] override wrap=FALSE off=0.00,0.00 text=" after."
 41: PANEL_ITEM ANY_PART z=0 [0.00,464.00 320.00x44.00] override
 42: IMAGE_ITEM ICON_PART z=1 [0.00,464.00 400.00x40.00] override bg=FALSE src=set
-doc: 320.00x524.00 scroll_h=2000.00
+43: PANEL_ITEM ANY_PART z=0 [0.00,524.00 320.00x52.00] override
+44: TEXT_ITEM TEXT_PART z=1 [0.00,524.00 78.00x52.00] override wrap=FALSE off=0.00,30.00 text="Attributes:"
+45: IMAGE_ITEM ICON_PART z=1 [78.00,540.00 32.00x32.00] override bg=FALSE src=set
+46: TEXT_ITEM TEXT_PART z=1 [110.00,524.00 32.00x52.00] override wrap=FALSE off=0.00,30.00 text=" and"
+47: TEXT_ITEM TEXT_PART z=1 [142.00,524.00 45.00x52.00] override wrap=FALSE off=0.00,30.00 text=" width"
+48: TEXT_ITEM TEXT_PART z=1 [187.00,524.00 36.00x52.00] override wrap=FALSE off=0.00,30.00 text=" only"
+49: IMAGE_ITEM ICON_PART z=1 [223.00,524.00 48.00x48.00] override bg=FALSE src=set
+50: TEXT_ITEM TEXT_PART z=1 [271.00,524.00 8.00x52.00] override wrap=FALSE off=0.00,30.00 text=" ."
+51: PANEL_ITEM ANY_PART z=0 [0.00,592.00 320.00x36.00] override
+52: TEXT_ITEM TEXT_PART z=1 [0.00,592.00 88.00x36.00] override wrap=FALSE off=0.00,14.00 text="Percentage:"
+53: IMAGE_ITEM ICON_PART z=1 [88.00,592.00 32.00x32.00] override bg=FALSE src=set
+54: TEXT_ITEM TEXT_PART z=1 [120.00,592.00 32.00x36.00] override wrap=FALSE off=0.00,14.00 text=" and"
+55: TEXT_ITEM TEXT_PART z=1 [152.00,592.00 32.00x36.00] override wrap=FALSE off=0.00,14.00 text=" CSS"
+56: TEXT_ITEM TEXT_PART z=1 [184.00,592.00 37.00x36.00] override wrap=FALSE off=0.00,14.00 text=" over"
+57: TEXT_ITEM TEXT_PART z=1 [221.00,592.00 69.00x36.00] override wrap=FALSE off=0.00,14.00 text=" attribute"
+58: IMAGE_ITEM ICON_PART z=1 [290.00,608.00 16.00x16.00] override bg=FALSE src=set
+59: TEXT_ITEM TEXT_PART z=1 [306.00,592.00 8.00x36.00] override wrap=FALSE off=0.00,14.00 text=" ."
+doc: 320.00x644.00 scroll_h=2000.00
 link@34 [24.00,380.00 49.00x28.00] -> #cat
 link@35 [73.00,380.00 49.00x28.00] -> #cat

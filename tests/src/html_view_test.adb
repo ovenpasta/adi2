@@ -668,6 +668,86 @@ procedure Html_View_Test is
       New_Line;
    end Test_Image_Not_Stretched_To_Line_Height;
 
+   --  40x20 intrinsic, so a kept aspect ratio is visible.
+   Wide_Owner : Adi.Image.Image_Owner := Adi.Image.Null_Image_Owner;
+
+   function Wide_Asset
+     (Self : Adi.Widget.Html_View.Html_View_Handle;
+      URI  : String) return Adi.Image.Image_Handle
+   is
+      pragma Unreferenced (Self, URI);
+   begin
+      return Adi.Image.To_Handle (Wide_Owner);
+   end Wide_Asset;
+
+   procedure Test_Img_Dimension_Attributes is
+      Tol : constant := 0.5;
+
+      procedure Check
+        (Markup : String; Want_W, Want_H : Adi.Core.Pixel_Type; What : String;
+         Default_CSS : String := "")
+      is
+         W : constant Adi.Widget.Html_View.Html_View_Handle :=
+           Adi.Widget.Html_View.Create_Handle;
+         Idx : Natural;
+      begin
+         Adi.Widget.Html_View.Set_On_Load_Asset (W, Wide_Asset'Unrestricted_Access);
+         Adi.Widget.Html_View.Set_Default_Stylesheet_String (W, Default_CSS);
+         Adi.Widget.Set_Geometry
+           (+W, (X => 0.0, Y => 0.0, Width => 400.0, Height => 300.0));
+         Adi.Widget.Html_View.Set_HTML (W, Markup);
+         Adi.Widget.Build_Items (+W);
+
+         Idx := Find_First_Image_Item_Index (W);
+         Assert (Idx > 0, What & ": image item exists");
+         if Idx > 0 then
+            declare
+               G : constant Adi.Core.Rectangle :=
+                 Adi.Widget.Get_Item (+W, Positive (Idx)).Geometry;
+            begin
+               Assert (abs (G.Width - Want_W) < Tol and then abs (G.Height - Want_H) < Tol,
+                       What & ": expected" & Want_W'Image & " x" & Want_H'Image
+                       & ", got" & G.Width'Image & " x" & G.Height'Image);
+            end;
+         end if;
+      end Check;
+   begin
+      Put_Line ("Test: img width/height attributes");
+
+      Wide_Owner := Adi.Image.Load_SVG_From_String
+        ("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'>"
+         & "<rect width='40' height='20'/></svg>");
+
+      Check ("<p><img src='a'></p>", 40.0, 20.0, "no attributes keep intrinsic size");
+      Check ("<p><img src='a' width='32' height='32'></p>", 32.0, 32.0, "both attributes");
+      Check ("<p><img src='a' width='80'></p>", 80.0, 40.0, "width alone keeps aspect");
+      Check ("<p><img src='a' height='10'></p>", 20.0, 10.0, "height alone keeps aspect");
+      Check ("<p><img src='a' width='25%'></p>", 100.0, 50.0, "percentage of the line");
+      Check ("<p><img src='a' width=' 60px'></p>", 60.0, 30.0, "trailing text after digits is ignored");
+      Check ("<p><img src='a' width='wide'></p>", 40.0, 20.0, "no leading digit is ignored");
+      Check ("<p><img src='a' width='12.5' height='7.5'></p>", 12.5, 7.5, "fractions");
+      Check ("<style>img { width: 16px; }</style><p><img src='a' width='80'></p>",
+             16.0, 8.0, "a stylesheet rule overrides the attribute");
+      Check ("<p><img src='a' width='80' style='height: 10px'></p>",
+             80.0, 10.0, "inline style and attribute combine");
+      Check ("<style>.s { width: 16px; }</style><p><img class='s' src='a' width='80'></p>",
+             16.0, 8.0, "a class rule overrides the attribute");
+      Check ("<p><img src='a' width='80'></p>", 16.0, 8.0,
+             "the default stylesheet overrides the attribute",
+             Default_CSS => "img { width: 16px; }");
+      Check ("<p><img src='a' width='" & ASCII.HT & ASCII.LF & "60'></p>",
+             60.0, 30.0, "leading tab and newline are skipped");
+      Check ("<p><img src='a' width='1e3'></p>", 1.0, 0.5, "an exponent is trailing text");
+      Check ("<p><img src='a' width='-5'></p>", 40.0, 20.0, "a sign is not a digit");
+      Check ("<p><img src='a' width='.5'></p>", 40.0, 20.0, "a leading point is not a digit");
+      Check ("<p><img src='a' width='%'></p>", 40.0, 20.0, "a bare percent sign is ignored");
+      Check ("<p><img src='a' width='99999999999999999999999999999999999999999999'></p>",
+             1.0E7, 5.0E6, "a huge value saturates");
+
+      Wide_Owner := Adi.Image.Null_Image_Owner;
+      New_Line;
+   end Test_Img_Dimension_Attributes;
+
    procedure Test_Mixed_Inline_Baseline is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -2297,6 +2377,7 @@ begin
    Test_SVG_Named_Colors;
    Test_Inline_SVG_Element;
    Test_Image_Not_Stretched_To_Line_Height;
+   Test_Img_Dimension_Attributes;
    Test_Mixed_Inline_Baseline;
    Test_Fresh_View_Is_Neutral;
    Test_Clear_Keeps_Applied_Styles;

@@ -219,7 +219,7 @@ The renderer implements CSS-style vertical margin collapsing:
   4. CSS extracted from `<link rel="stylesheet" href="...">` resources (via callback)
   5. Tag/class/id selectors from parsed stylesheets
   6. Inline `style` attributes
-- Implemented precedence: `defaults < default-stylesheet < tag < class < id < inline`.
+- Implemented precedence: `defaults < img width/height attributes < default-stylesheet < tag < class < id < inline`.
 - `examples/assets/html/default.css` is a browser-like typographic default sheet for `Set_Default_Stylesheet`. Document CSS always overrides the default stylesheet.
 - Inline style declarations are parsed once and cached by normalized declaration text.
 - Document CSS and every inline `style` attribute go through `Adi.CSS_Parser.Rule_Sheet`, which answers a selector's `Style_Rules` and interns none of them. The view cascades those rules itself and never asks for a part, a state or a `Widget_Style`, so the round trip a `Stylesheet` makes through the rule-set and style stores would leave a permanent entry per distinct rule block and per distinct inline style. A `Rule_Sheet` is an ordinary object: the document's dies with the view, an inline style's with the call that parsed it.
@@ -254,8 +254,8 @@ The renderer implements CSS-style vertical margin collapsing:
 - `img`:
   - Source resolution is callback-driven through `Set_On_Load_Asset`.
   - Missing/failed `src` load renders `alt` text when present, otherwise empty inline placeholder.
-  - `width`/`height` attributes override intrinsic size when provided.
-  - If only one dimension is provided, preserve intrinsic aspect ratio.
+  - `width`/`height` attributes set the CSS `width`/`height` below every stylesheet rule and the inline `style`. A value is digits with an optional fraction, then an optional `%`; text after that is ignored, and a value not starting with a digit is ignored.
+  - If only one dimension is given, the intrinsic aspect ratio is kept.
   - Final painted size is clamped by available line width (inline) or container width policy.
 - Inline `svg`:
   - Standard nested SVG markup in HTML content is supported.

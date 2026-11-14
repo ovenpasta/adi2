@@ -138,6 +138,8 @@ private
       Src_Attr   : Unbounded_String := Null_Unbounded_String;
       Alt_Attr   : Unbounded_String := Null_Unbounded_String;
       Value_Attr : Unbounded_String := Null_Unbounded_String;
+      Width_Attr : Unbounded_String := Null_Unbounded_String;
+      Height_Attr : Unbounded_String := Null_Unbounded_String;
       Svg_Source_Attr : Unbounded_String := Null_Unbounded_String;
    end record;
 

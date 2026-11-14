@@ -9,6 +9,7 @@ with Ada.Directories;
 with Ada.Streams.Stream_IO;
 with Ada.Strings;
 with Ada.Strings.Fixed;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Adi.CSS_Styles;        use Adi.CSS_Styles;
 with Adi.Log;
 with Adi.Layout_Util;       use Adi.Layout_Util;
@@ -210,6 +211,10 @@ package body Adi.Widget.Html_View is
       return I <= S'Last and then S (I) = '/';
    end Is_Closing_Tag;
 
+   function Decode_Entities (S : String) return String;
+
+   --  The value of attribute Name in a tag's text, character references
+   --  decoded, or "" when the tag has none.
    function Extract_Attribute
      (Tag_Content : String;
       Name        : String) return String
@@ -296,7 +301,7 @@ package body Adi.Widget.Html_View is
                      Value : constant String := Read_Value;
                   begin
                      if Key = Name_Low then
-                        return Value;
+                        return Decode_Entities (Value);
                      end if;
                   end;
                end if;
@@ -310,6 +315,122 @@ package body Adi.Widget.Html_View is
          return "";
    end Extract_Attribute;
 
+   --  The HTML 4 named character references, sorted by name.
+   type Named_Reference is record
+      Name : String (1 .. 8);
+      Last : Positive;
+      Code : Natural;
+   end record;
+
+   function Named (Name : String; Code : Natural) return Named_Reference is
+     ((Name => Name & (1 .. 8 - Name'Length => ' '), Last => Name'Length, Code => Code));
+
+   Named_References : constant array (Positive range <>) of Named_Reference :=
+     [Named ("AElig", 198), Named ("Aacute", 193), Named ("Acirc", 194),
+      Named ("Agrave", 192), Named ("Alpha", 913), Named ("Aring", 197),
+      Named ("Atilde", 195), Named ("Auml", 196), Named ("Beta", 914),
+      Named ("Ccedil", 199), Named ("Chi", 935), Named ("Dagger", 8225),
+      Named ("Delta", 916), Named ("ETH", 208), Named ("Eacute", 201),
+      Named ("Ecirc", 202), Named ("Egrave", 200), Named ("Epsilon", 917),
+      Named ("Eta", 919), Named ("Euml", 203), Named ("Gamma", 915),
+      Named ("Iacute", 205), Named ("Icirc", 206), Named ("Igrave", 204),
+      Named ("Iota", 921), Named ("Iuml", 207), Named ("Kappa", 922),
+      Named ("Lambda", 923), Named ("Mu", 924), Named ("Ntilde", 209),
+      Named ("Nu", 925), Named ("OElig", 338), Named ("Oacute", 211),
+      Named ("Ocirc", 212), Named ("Ograve", 210), Named ("Omega", 937),
+      Named ("Omicron", 927), Named ("Oslash", 216), Named ("Otilde", 213),
+      Named ("Ouml", 214), Named ("Phi", 934), Named ("Pi", 928),
+      Named ("Prime", 8243), Named ("Psi", 936), Named ("Rho", 929),
+      Named ("Scaron", 352), Named ("Sigma", 931), Named ("THORN", 222),
+      Named ("Tau", 932), Named ("Theta", 920), Named ("Uacute", 218),
+      Named ("Ucirc", 219), Named ("Ugrave", 217), Named ("Upsilon", 933),
+      Named ("Uuml", 220), Named ("Xi", 926), Named ("Yacute", 221),
+      Named ("Yuml", 376), Named ("Zeta", 918), Named ("aacute", 225),
+      Named ("acirc", 226), Named ("acute", 180), Named ("aelig", 230),
+      Named ("agrave", 224), Named ("alefsym", 8501), Named ("alpha", 945),
+      Named ("amp", 38), Named ("and", 8743), Named ("ang", 8736),
+      Named ("aring", 229), Named ("asymp", 8776), Named ("atilde", 227),
+      Named ("auml", 228), Named ("bdquo", 8222), Named ("beta", 946),
+      Named ("brvbar", 166), Named ("bull", 8226), Named ("cap", 8745),
+      Named ("ccedil", 231), Named ("cedil", 184), Named ("cent", 162),
+      Named ("chi", 967), Named ("circ", 710), Named ("clubs", 9827),
+      Named ("cong", 8773), Named ("copy", 169), Named ("crarr", 8629),
+      Named ("cup", 8746), Named ("curren", 164), Named ("dArr", 8659),
+      Named ("dagger", 8224), Named ("darr", 8595), Named ("deg", 176),
+      Named ("delta", 948), Named ("diams", 9830), Named ("divide", 247),
+      Named ("eacute", 233), Named ("ecirc", 234), Named ("egrave", 232),
+      Named ("empty", 8709), Named ("emsp", 8195), Named ("ensp", 8194),
+      Named ("epsilon", 949), Named ("equiv", 8801), Named ("eta", 951),
+      Named ("eth", 240), Named ("euml", 235), Named ("euro", 8364),
+      Named ("exist", 8707), Named ("fnof", 402), Named ("forall", 8704),
+      Named ("frac12", 189), Named ("frac14", 188), Named ("frac34", 190),
+      Named ("frasl", 8260), Named ("gamma", 947), Named ("ge", 8805),
+      Named ("gt", 62), Named ("hArr", 8660), Named ("harr", 8596),
+      Named ("hearts", 9829), Named ("hellip", 8230), Named ("iacute", 237),
+      Named ("icirc", 238), Named ("iexcl", 161), Named ("igrave", 236),
+      Named ("image", 8465), Named ("infin", 8734), Named ("int", 8747),
+      Named ("iota", 953), Named ("iquest", 191), Named ("isin", 8712),
+      Named ("iuml", 239), Named ("kappa", 954), Named ("lArr", 8656),
+      Named ("lambda", 955), Named ("lang", 9001), Named ("laquo", 171),
+      Named ("larr", 8592), Named ("lceil", 8968), Named ("ldquo", 8220),
+      Named ("le", 8804), Named ("lfloor", 8970), Named ("lowast", 8727),
+      Named ("loz", 9674), Named ("lrm", 8206), Named ("lsaquo", 8249),
+      Named ("lsquo", 8216), Named ("lt", 60), Named ("macr", 175),
+      Named ("mdash", 8212), Named ("micro", 181), Named ("middot", 183),
+      Named ("minus", 8722), Named ("mu", 956), Named ("nabla", 8711),
+      Named ("nbsp", 160), Named ("ndash", 8211), Named ("ne", 8800),
+      Named ("ni", 8715), Named ("not", 172), Named ("notin", 8713),
+      Named ("nsub", 8836), Named ("ntilde", 241), Named ("nu", 957),
+      Named ("oacute", 243), Named ("ocirc", 244), Named ("oelig", 339),
+      Named ("ograve", 242), Named ("oline", 8254), Named ("omega", 969),
+      Named ("omicron", 959), Named ("oplus", 8853), Named ("or", 8744),
+      Named ("ordf", 170), Named ("ordm", 186), Named ("oslash", 248),
+      Named ("otilde", 245), Named ("otimes", 8855), Named ("ouml", 246),
+      Named ("para", 182), Named ("part", 8706), Named ("permil", 8240),
+      Named ("perp", 8869), Named ("phi", 966), Named ("pi", 960),
+      Named ("piv", 982), Named ("plusmn", 177), Named ("pound", 163),
+      Named ("prime", 8242), Named ("prod", 8719), Named ("prop", 8733),
+      Named ("psi", 968), Named ("quot", 34), Named ("rArr", 8658),
+      Named ("radic", 8730), Named ("rang", 9002), Named ("raquo", 187),
+      Named ("rarr", 8594), Named ("rceil", 8969), Named ("rdquo", 8221),
+      Named ("real", 8476), Named ("reg", 174), Named ("rfloor", 8971),
+      Named ("rho", 961), Named ("rlm", 8207), Named ("rsaquo", 8250),
+      Named ("rsquo", 8217), Named ("sbquo", 8218), Named ("scaron", 353),
+      Named ("sdot", 8901), Named ("sect", 167), Named ("shy", 173),
+      Named ("sigma", 963), Named ("sigmaf", 962), Named ("sim", 8764),
+      Named ("spades", 9824), Named ("sub", 8834), Named ("sube", 8838),
+      Named ("sum", 8721), Named ("sup", 8835), Named ("sup1", 185),
+      Named ("sup2", 178), Named ("sup3", 179), Named ("supe", 8839),
+      Named ("szlig", 223), Named ("tau", 964), Named ("there4", 8756),
+      Named ("theta", 952), Named ("thetasym", 977), Named ("thinsp", 8201),
+      Named ("thorn", 254), Named ("tilde", 732), Named ("times", 215),
+      Named ("trade", 8482), Named ("uArr", 8657), Named ("uacute", 250),
+      Named ("uarr", 8593), Named ("ucirc", 251), Named ("ugrave", 249),
+      Named ("uml", 168), Named ("upsih", 978), Named ("upsilon", 965),
+      Named ("uuml", 252), Named ("weierp", 8472), Named ("xi", 958),
+      Named ("yacute", 253), Named ("yen", 165), Named ("yuml", 255),
+      Named ("zeta", 950), Named ("zwj", 8205), Named ("zwnj", 8204)];
+
+   --  What HTML decodes a numeric reference to 128 .. 159 as: the
+   --  windows-1252 character there, or the code itself where that has
+   --  none.
+   Windows_1252 : constant array (128 .. 159) of Natural :=
+     [16#20AC#, 16#81#, 16#201A#, 16#192#, 16#201E#, 16#2026#, 16#2020#,
+      16#2021#, 16#2C6#, 16#2030#, 16#160#, 16#2039#, 16#152#, 16#8D#,
+      16#17D#, 16#8F#, 16#90#, 16#2018#, 16#2019#, 16#201C#, 16#201D#,
+      16#2022#, 16#2013#, 16#2014#, 16#2DC#, 16#2122#, 16#161#, 16#203A#,
+      16#153#, 16#9D#, 16#17E#, 16#178#];
+
+   Replacement_Character : constant := 16#FFFD#;
+
+   function UTF_8 (Code : Natural) return String is
+     (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode
+        ([1 => Wide_Wide_Character'Val (Code)]));
+
+   --  Character references: the HTML 4 names, case-sensitive, with the
+   --  five XML ones in any case; and numeric ones, decimal or hex, to any
+   --  Unicode scalar value. A reference that names nothing stays as
+   --  written.
    function Decode_Entities (S : String) return String is
       Result : Unbounded_String := Null_Unbounded_String;
       I      : Positive := S'First;
@@ -327,16 +448,69 @@ package body Adi.Widget.Html_View is
          end if;
       end Hex_Value;
 
-      procedure Append_Entity_Literal (Semi : Natural) is
+      --  The code a named reference stands for, or -1.
+      function Named_Code (Name : String) return Integer is
       begin
-         if Semi > 0 then
-            Append (Result, S (I .. Semi));
-            I := Semi + 1;
-         else
-            Append (Result, S (I));
-            I := I + 1;
+         for R of Named_References loop
+            if R.Name (1 .. R.Last) = Name then
+               return R.Code;
+            end if;
+         end loop;
+
+         if Name'Length > 4 then
+            return -1;
          end if;
-      end Append_Entity_Literal;
+
+         declare
+            Folded : constant String := Lower (Name);
+         begin
+            return (if Folded = "amp" then 38
+                    elsif Folded = "lt" then 60
+                    elsif Folded = "gt" then 62
+                    elsif Folded = "quot" then 34
+                    elsif Folded = "apos" then 39
+                    else -1);
+         end;
+      end Named_Code;
+
+      --  The code a numeric reference ("#65", "#x41") stands for, -1 when
+      --  it is not one, or the replacement character when it names no
+      --  Unicode scalar value.
+      function Numeric_Code (Body_Text : String) return Integer is
+         Hex   : constant Boolean :=
+           Body_Text'Length > 1
+           and then Body_Text (Body_Text'First) in 'x' | 'X';
+         First : constant Positive := Body_Text'First + (if Hex then 1 else 0);
+         Code  : Long_Long_Integer := 0;
+      begin
+         if First > Body_Text'Last then
+            return -1;
+         end if;
+         for K in First .. Body_Text'Last loop
+            declare
+               D : constant Integer :=
+                 (if Hex then Hex_Value (Body_Text (K))
+                  elsif Body_Text (K) in '0' .. '9'
+                  then Character'Pos (Body_Text (K)) - Character'Pos ('0')
+                  else -1);
+            begin
+               if D < 0 then
+                  return -1;
+               end if;
+               Code := Long_Long_Integer'Min
+                 (16#110000#, Code * (if Hex then 16 else 10) + Long_Long_Integer (D));
+            end;
+         end loop;
+
+         if Code = 0 or else Code > 16#10FFFF#
+           or else Code in 16#D800# .. 16#DFFF#
+         then
+            return Replacement_Character;
+         elsif Code in 128 .. 159 then
+            return Windows_1252 (Integer (Code));
+         end if;
+         return Integer (Code);
+      end Numeric_Code;
    begin
       while I <= S'Last loop
          if S (I) /= '&' then
@@ -344,72 +518,42 @@ package body Adi.Widget.Html_View is
             I := I + 1;
          else
             declare
-               Semi : constant Natural := Fix.Index (S, ";", From => I + 1);
+               --  A reference is letters and digits after an optional #, and
+               --  ends at a semicolon; the search stops at anything else.
+               function Reference_End return Natural is
+                  J : Positive := I + 1;
+               begin
+                  if J <= S'Last and then S (J) = '#' then
+                     J := J + 1;
+                  end if;
+                  while J <= S'Last
+                    and then S (J) in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9'
+                  loop
+                     J := J + 1;
+                  end loop;
+                  return (if J <= S'Last and then S (J) = ';' then J else 0);
+               end Reference_End;
+
+               Semi : constant Natural := Reference_End;
+               Code : Integer := -1;
             begin
-               if Semi = 0 or else Semi <= I + 1 or else Semi - I > 16 then
-                  Append_Entity_Literal (Semi);
-               else
+               if Semi > I + 1 then
                   declare
-                     Entity  : constant String := Lower (S (I + 1 .. Semi - 1));
-                     Decoded : Character := ASCII.NUL;
-                     Valid   : Boolean := True;
+                     Ref_Text : constant String := S (I + 1 .. Semi - 1);
                   begin
-                     if Entity = "amp" then
-                        Decoded := '&';
-                     elsif Entity = "lt" then
-                        Decoded := '<';
-                     elsif Entity = "gt" then
-                        Decoded := '>';
-                     elsif Entity = "quot" then
-                        Decoded := '"';
-                     elsif Entity = "apos" or else Entity = "#39" then
-                        Decoded := ''';
-                     elsif Entity'Length > 1 and then Entity (Entity'First) = '#' then
-                        declare
-                           Code : Integer := -1;
-                        begin
-                           if Entity'Length > 2
-                             and then (Entity (Entity'First + 1) = 'x'
-                                       or else Entity (Entity'First + 1) = 'X')
-                           then
-                              Code := 0;
-                              for K in Entity'First + 2 .. Entity'Last loop
-                                 declare
-                                    H : constant Integer := Hex_Value (Entity (K));
-                                 begin
-                                    if H < 0 then
-                                       Code := -1;
-                                       exit;
-                                    end if;
-                                    Code := Code * 16 + H;
-                                 end;
-                              end loop;
-                           else
-                              begin
-                                 Code := Integer'Value (Entity (Entity'First + 1 .. Entity'Last));
-                              exception
-                                 when others =>
-                                    Code := -1;
-                              end;
-                           end if;
-
-                           if Code >= 0 and then Code <= 255 then
-                              Decoded := Character'Val (Code);
-                           else
-                              Valid := False;
-                           end if;
-                        end;
-                     else
-                        Valid := False;
-                     end if;
-
-                     if Valid and then Decoded /= ASCII.NUL then
-                        Append (Result, Decoded);
-                        I := Semi + 1;
-                     else
-                        Append_Entity_Literal (Semi);
-                     end if;
+                     Code :=
+                       (if Ref_Text (Ref_Text'First) = '#'
+                        then Numeric_Code (Ref_Text (Ref_Text'First + 1 .. Ref_Text'Last))
+                        else Named_Code (Ref_Text));
                   end;
+               end if;
+
+               if Code >= 0 then
+                  Append (Result, UTF_8 (Code));
+                  I := Semi + 1;
+               else
+                  Append (Result, '&');
+                  I := I + 1;
                end if;
             end;
          end if;

@@ -929,6 +929,90 @@ procedure Html_View_Test is
       New_Line;
    end Test_Border_Insets_At_Scale;
 
+   --  Character references decode to UTF-8: the HTML 4 names, numeric
+   --  references to any code point, and what HTML maps the rest to.
+   procedure Test_Character_References is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+
+      function U (Code : Natural) return String is
+        (WW_Encode.Encode
+           (Item => [1 => Wide_Wide_Character'Val (Code)], Output_BOM => False));
+
+      --  Decodes one reference between brackets, so it lands in one text
+      --  item, and compares what was drawn.
+      procedure Check (Reference, Expected, What : String) is
+      begin
+         Adi.Widget.Html_View.Set_HTML (W, "<p>[" & Reference & "]</p>");
+         Adi.Widget.Build_Items (+W);
+         declare
+            Idx : constant Natural := Find_Text_Item_Index (W, "[");
+            Got : constant String :=
+              (if Idx = 0 then "<none>"
+               else To_String (Adi.Widget.Get_Item (+W, Positive (Idx)).Text_Content));
+         begin
+            Assert (Got = "[" & Expected & "]", What & ": got " & Got);
+         end;
+      end Check;
+   begin
+      Put_Line ("Test: character references");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 200.0));
+
+      Check ("&amp;", "&", "amp");
+      Check ("&AMP;", "&", "the XML five match in any case");
+      Check ("&nbsp;", U (16#A0#), "nbsp is a no-break space");
+      Check ("&copy;", U (16#A9#), "copy");
+      Check ("&eacute;", U (16#E9#), "eacute");
+      Check ("&Eacute;", U (16#C9#), "Eacute is a different character");
+      Check ("&mdash;", U (16#2014#), "mdash");
+      Check ("&hellip;", U (16#2026#), "hellip");
+      Check ("&euro;", U (16#20AC#), "euro");
+      Check ("&#233;", U (16#E9#), "a decimal reference past 127 is UTF-8, not a raw byte");
+      Check ("&#8364;", U (16#20AC#), "a decimal reference past 255");
+      Check ("&#x20AC;", U (16#20AC#), "a hex reference");
+      Check ("&#X1F600;", U (16#1F600#), "a reference outside the basic plane");
+      Check ("&#150;", U (16#2013#), "128 .. 159 map as windows-1252 does");
+      Check ("&#0;", U (16#FFFD#), "zero is the replacement character");
+      Check ("&#xD800;", U (16#FFFD#), "a surrogate is the replacement character");
+      Check ("&#99999999;", U (16#FFFD#), "past U+10FFFF is the replacement character");
+      Check ("&bogus;", "&bogus;", "an unknown name stays as written");
+      Check ("&Copy;", "&Copy;", "a name in the wrong case is unknown");
+      Check ("&#x;", "&#x;", "a reference with no digits stays as written");
+      Check ("&#;", "&#;", "a bare # stays as written");
+      Check ("&lArr;", U (16#21D0#), "lArr");
+      Check ("&larr;", U (16#2190#), "larr is a different arrow");
+      Check ("&Delta;", U (16#394#), "Delta");
+      Check ("&delta;", U (16#3B4#), "delta");
+      Check ("&#x41;", "A", "a lowercase x");
+      Check ("&#00000000065;", "A", "leading zeros");
+      Check ("&#128;", U (16#20AC#), "128 is the euro sign");
+      Check ("&#159;", U (16#178#), "159 is Y with diaeresis");
+      Check ("&#x10FFFF;", U (16#10FFFF#), "the last code point");
+      Check ("&#x110000;", U (16#FFFD#), "one past it");
+      Check ("&#xDFFF;", U (16#FFFD#), "the last surrogate");
+      Check ("&#99999999999999999999;", U (16#FFFD#), "a number past 64 bits");
+      Check ("&&amp;", "&&", "a bare ampersand before a reference");
+      Check ("&amp", "&amp", "a reference without its semicolon stays as written");
+      Check ("&lt;b&gt;", "<b>", "decoded angle brackets are text, not a tag");
+      Check ("a&nbsp;&nbsp;b", "a" & U (16#A0#) & U (16#A0#) & "b",
+             "no-break spaces neither collapse nor break the word");
+
+      --  Attribute values are decoded too.
+      Adi.Widget.Html_View.Set_HTML
+        (W, "<p><img src='missing.png' alt='Caf&eacute; &amp; more'></p>");
+      Adi.Widget.Build_Items (+W);
+      declare
+         Idx : constant Natural := Find_Text_Item_Index (W, "Caf");
+      begin
+         Assert (Idx > 0
+                 and then To_String (Adi.Widget.Get_Item (+W, Positive (Idx)).Text_Content)
+                          = "Caf" & U (16#E9#) & " & more",
+                 "an img alt attribute is decoded");
+      end;
+      New_Line;
+   end Test_Character_References;
+
    procedure Test_Mixed_Inline_Baseline is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -2562,6 +2646,7 @@ begin
    Test_Content_Scale_Is_Linear;
    Test_Percent_Font_And_Line_Height;
    Test_Border_Insets_At_Scale;
+   Test_Character_References;
    Test_Grid_Px_Track_Follows_Content_Scale;
    Test_Mixed_Inline_Baseline;
    Test_Fresh_View_Is_Neutral;

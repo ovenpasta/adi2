@@ -76,7 +76,7 @@
 75: TEXT_ITEM TEXT_PART z=1 [59.00,440.24 16.00x24.00] override wrap=FALSE off=0.00,0.00 text=" &"
 76: TEXT_ITEM TEXT_PART z=1 [75.00,440.24 45.00x24.00] override wrap=FALSE off=0.00,0.00 text=" <tag>"
 77: TEXT_ITEM TEXT_PART z=1 [120.00,440.24 70.00x24.00] override wrap=FALSE off=0.00,0.00 text=" "quoted""
-78: TEXT_ITEM TEXT_PART z=1 [190.00,440.24 20.00x24.00] override wrap=FALSE off=0.00,0.00 text=" ©"
+78: TEXT_ITEM TEXT_PART z=1 [190.00,440.24 17.00x24.00] override wrap=FALSE off=0.00,0.00 text=" Â©"
 79: PANEL_ITEM ANY_PART z=0 [0.00,480.24 640.00x24.00] override
 80: TEXT_ITEM TEXT_PART z=1 [0.00,480.24 46.00x24.00] override wrap=FALSE off=0.00,0.00 text="struck"
 81: TEXT_ITEM TEXT_PART z=1 [46.00,480.24 60.00x24.00] override wrap=FALSE off=0.00,0.00 text=" deleted"
@@ -188,7 +188,7 @@ link@52 [412.00,214.72 47.00x24.00] -> #one
 75: TEXT_ITEM TEXT_PART z=1 [59.00,488.24 16.00x24.00] override wrap=FALSE off=0.00,0.00 text=" &"
 76: TEXT_ITEM TEXT_PART z=1 [75.00,488.24 45.00x24.00] override wrap=FALSE off=0.00,0.00 text=" <tag>"
 77: TEXT_ITEM TEXT_PART z=1 [120.00,488.24 70.00x24.00] override wrap=FALSE off=0.00,0.00 text=" "quoted""
-78: TEXT_ITEM TEXT_PART z=1 [190.00,488.24 20.00x24.00] override wrap=FALSE off=0.00,0.00 text=" ©"
+78: TEXT_ITEM TEXT_PART z=1 [190.00,488.24 17.00x24.00] override wrap=FALSE off=0.00,0.00 text=" Â©"
 79: PANEL_ITEM ANY_PART z=0 [0.00,528.24 320.00x48.00] override
 80: TEXT_ITEM TEXT_PART z=1 [0.00,528.24 46.00x24.00] override wrap=FALSE off=0.00,0.00 text="struck"
 81: TEXT_ITEM TEXT_PART z=1 [46.00,528.24 60.00x24.00] override wrap=FALSE off=0.00,0.00 text=" deleted"
@@ -300,7 +300,7 @@ link@52 [91.00,262.72 47.00x24.00] -> #one
 75: TEXT_ITEM TEXT_PART z=1 [118.00,880.48 32.00x48.00] override wrap=FALSE off=0.00,0.00 text=" &"
 76: TEXT_ITEM TEXT_PART z=1 [150.00,880.48 91.00x48.00] override wrap=FALSE off=0.00,0.00 text=" <tag>"
 77: TEXT_ITEM TEXT_PART z=1 [241.00,880.48 141.00x48.00] override wrap=FALSE off=0.00,0.00 text=" "quoted""
-78: TEXT_ITEM TEXT_PART z=1 [382.00,880.48 40.00x48.00] override wrap=FALSE off=0.00,0.00 text=" ©"
+78: TEXT_ITEM TEXT_PART z=1 [382.00,880.48 34.00x48.00] override wrap=FALSE off=0.00,0.00 text=" Â©"
 79: PANEL_ITEM ANY_PART z=0 [0.00,960.48 1280.00x48.00] override
 80: TEXT_ITEM TEXT_PART z=1 [0.00,960.48 91.00x48.00] override wrap=FALSE off=0.00,0.00 text="struck"
 81: TEXT_ITEM TEXT_PART z=1 [91.00,960.48 120.00x48.00] override wrap=FALSE off=0.00,0.00 text=" deleted"

@@ -274,8 +274,8 @@ The renderer implements CSS-style vertical margin collapsing:
 - `<li>` implies close of any open `<li>` in the same list scope (does not cross `<ul>`/`<ol>` boundaries).
 - Unexpected closing tag closes up-stack until match; if no match, ignore close token.
 - Text outside known structure is preserved as text nodes.
-- Entities: `&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;`, and numeric references up to `&#255;`.
-- Unknown entities remain literal text.
+- Character references, in text and attribute values: the HTML 4 named set, case-sensitive, with `&amp;`, `&lt;`, `&gt;`, `&quot;` and `&apos;` in any case; numeric references, decimal or hex, to any Unicode scalar value, decoded to UTF-8. `&#128;` to `&#159;` decode as windows-1252, and zero, surrogates and values past U+10FFFF as U+FFFD.
+- Unknown references remain literal text.
 
 ## Images (`img`/`svg`) and `hr`
 - `img`:

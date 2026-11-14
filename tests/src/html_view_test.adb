@@ -771,6 +771,58 @@ procedure Html_View_Test is
       New_Line;
    end Test_Grid_Px_Track_Follows_Content_Scale;
 
+   --  Twice the content scale in twice the width lays every nested text
+   --  run, em and rem margin, root font size and line height out at
+   --  exactly twice the geometry:
+   --  the fallback metrics this test measures with are linear in size.
+   procedure Test_Content_Scale_Is_Linear is
+      Doc : constant String :=
+        "<style>:root { font-size: 20px; } body { font-size: 18px; }"
+        & " h1 { font-size: 2em; margin: 0.5em 0px; line-height: 1.5em; }"
+        & " div { padding: 1em; } p { margin: 1rem 0px; line-height: 30px; }</style>"
+        & "<div><div><h1>deep heading</h1><p>deep text</p>"
+        & "<div style='display: flex; gap: 1em'><span>flex one</span><span>two</span></div>"
+        & "</div></div>";
+
+      function Geometry_Of
+        (Scale : Adi.Core.Pixel_Type; Needle : String) return Adi.Core.Rectangle
+      is
+         W : constant Adi.Widget.Html_View.Html_View_Handle :=
+           Adi.Widget.Html_View.Create_Handle;
+         Idx : Natural;
+      begin
+         Adi.Widget.Set_Geometry
+           (+W, (X => 0.0, Y => 0.0, Width => 600.0 * Scale, Height => 600.0 * Scale));
+         Adi.Widget.Html_View.Set_Content_Scale (W, Scale);
+         Adi.Widget.Html_View.Set_HTML (W, Doc);
+         Adi.Widget.Build_Items (+W);
+         Idx := Find_Text_Item_Index (W, Needle);
+         Assert (Idx > 0, Needle & " exists at scale" & Scale'Image);
+         return (if Idx > 0 then Adi.Widget.Get_Item (+W, Positive (Idx)).Geometry
+                 else (0.0, 0.0, 0.0, 0.0));
+      end Geometry_Of;
+
+      procedure Check (Needle : String) is
+         One : constant Adi.Core.Rectangle := Geometry_Of (1.0, Needle);
+         Two : constant Adi.Core.Rectangle := Geometry_Of (2.0, Needle);
+      begin
+         Assert (Nearly_Equal (Two.X, 2.0 * One.X, 0.5)
+                 and then Nearly_Equal (Two.Y, 2.0 * One.Y, 0.5)
+                 and then Nearly_Equal (Two.Width, 2.0 * One.Width, 0.5)
+                 and then Nearly_Equal (Two.Height, 2.0 * One.Height, 0.5),
+                 Needle & " doubles at scale 2: " & One.X'Image & One.Y'Image
+                 & One.Width'Image & One.Height'Image & " ->" & Two.X'Image
+                 & Two.Y'Image & Two.Width'Image & Two.Height'Image);
+      end Check;
+   begin
+      Put_Line ("Test: content scale is linear at depth");
+      Check ("heading");
+      Check ("text");
+      Check ("one");
+      Check ("two");
+      New_Line;
+   end Test_Content_Scale_Is_Linear;
+
    procedure Test_Mixed_Inline_Baseline is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -2401,6 +2453,7 @@ begin
    Test_Inline_SVG_Element;
    Test_Image_Not_Stretched_To_Line_Height;
    Test_Img_Dimension_Attributes;
+   Test_Content_Scale_Is_Linear;
    Test_Grid_Px_Track_Follows_Content_Scale;
    Test_Mixed_Inline_Baseline;
    Test_Fresh_View_Is_Neutral;

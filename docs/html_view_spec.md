@@ -118,8 +118,8 @@ Package: `Adi.Widget.Html_View`
 - **Content scale**
   - `procedure Set_Content_Scale (Self : in out Html_View; Scale : Pixel_Type);`
   - `function Get_Content_Scale (Self : Html_View) return Pixel_Type;`
-  - Scale affects absolute/content units (`px`, `dip`, `em`, `rem`) and typography metrics.
-  - Scale does not multiply `%`, `vw`, or `vh` resolution.
+  - Scale multiplies `px` and `dip`. `em` and `rem` follow the scaled font sizes, so text, margins and padding scale once at any depth.
+  - Scale does not multiply `%`, `vw`, `vh` or `pix`.
   - `rem` remains scoped to the `Html_View` stylesheet root (`:root { font-size: ... }`), not to global parser state.
 
 ## Internal Model

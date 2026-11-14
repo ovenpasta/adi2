@@ -134,9 +134,12 @@ legitimately move these numbers; anything else moving is the finding.
 ## The html view goldens
 
 `html_view_golden_test` lays out every `tests/html/layout/*.html` at
-widths 640 and 320, under `tests/html/layout/default.css` and the
-vendored Open Sans faces, and compares each item, the document size and
-every link with `tests/goldens/html/<name>.txt`.
+widths 640 and 320, and at width 1280 with content scale 2, under
+`tests/html/layout/default.css` and the vendored Open Sans faces, and
+compares each item, the document size and every link with
+`tests/goldens/html/<name>.txt`. The scale-2 section comes out at about
+twice the width-640 one; a length that does not is missing the scale or
+taking it twice.
 
 ```bash
 ./tests/bin/html_view_golden_test            # check

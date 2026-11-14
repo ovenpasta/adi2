@@ -1362,17 +1362,6 @@ package body Adi.Widget.Html_View is
       return Img;
    end Resolve_Inline_SVG;
 
-   --  Pct/Vw/Vh already resolve against a container or viewport that
-   --  itself moves with content scale, so applying it again would double
-   --  count. Pix is the escape hatch for "already-resolved renderer
-   --  pixels" -- the font-size cascade below stores its result in Pix so
-   --  every subsequent read is a literal, not another opportunity to
-   --  scale.
-   function Should_Apply_Content_Scale (L : Length_Value) return Boolean is
-   begin
-      return L.Unit not in Pct | Vw | Vh | Pix;
-   end Should_Apply_Content_Scale;
-
    function Html_Root_Font_Size_Px
      (Root_Font       : Length_Value;
       Scale           : Pixel_Type;
@@ -1387,13 +1376,19 @@ package body Adi.Widget.Html_View is
            Viewport_Width  => Viewport_Width,
            Viewport_Height => Viewport_Height);
    begin
-      if Should_Apply_Content_Scale (Root_Font) then
+      --  Resolved against the default size, which carries no content
+      --  scale, so em and rem take it here along with px and dip.
+      if Root_Font.Unit not in Pct | Vw | Vh | Pix then
          return Base * Pixel_Type'Max (0.01, Scale);
       end if;
 
       return Base;
    end Html_Root_Font_Size_Px;
 
+   --  Only px and dip take the content scale. Em and rem take it from
+   --  Font_Size and Root_Font_Size, which are device pixels with the
+   --  scale already in them; Pct, Vw and Vh from a container or viewport
+   --  that moves with it; Pix is already device pixels.
    function Html_Length_To_Px
      (L               : Length_Value;
       Scale           : Pixel_Type;
@@ -1412,7 +1407,7 @@ package body Adi.Widget.Html_View is
            Viewport_Width  => Viewport_Width,
            Viewport_Height => Viewport_Height);
    begin
-      if Should_Apply_Content_Scale (L) then
+      if L.Unit in Px | Dip then
          return Base * Pixel_Type'Max (0.01, Scale);
       end if;
 
@@ -1439,7 +1434,7 @@ package body Adi.Widget.Html_View is
            (Style.Font_Size,
             Scale,
             Container_Size  => Viewport_Width,
-            Font_Size       => Default_Root_Font_Size_Px,
+            Font_Size       => Default_Root_Font_Size_Px * Pixel_Type'Max (0.01, Scale),
             Root_Font_Size  => Root_Font_Size,
             Viewport_Width  => Viewport_Width,
             Viewport_Height => Viewport_Height)
@@ -1807,7 +1802,8 @@ package body Adi.Widget.Html_View is
               (Style.Font_Size,
                Self.Content_Scale,
                Container_Size => Content.Height,
-               Font_Size      => Default_Root_Font_Size_Px,
+               Font_Size      =>
+                 Default_Root_Font_Size_Px * Pixel_Type'Max (0.01, Self.Content_Scale),
                Root_Font_Size => Root_Font_Px,
                Viewport_Width => Content.Width,
                Viewport_Height => Content.Height));
@@ -1833,13 +1829,14 @@ package body Adi.Widget.Html_View is
               Root_Font_Size  => Root_Font_Px,
               Viewport_Width  => Content.Width,
               Viewport_Height => Content.Height);
-         --  Absolute units still need the zoom-slider scale; relative
-         --  units (em, rem, %) inherit it through Parent_Px, and vw/vh
-         --  resolve against a viewport that is not scaled here.
+         --  Px and dip take the content scale; em and rem have it
+         --  through Parent_Px and Root_Font_Px, an inherited Pix is
+         --  already final, and vw/vh resolve against a viewport that is
+         --  not scaled here.
          Own_Px : constant Pixel_Type :=
            Pixel_Type'Max
              (1.0,
-              (if Result.Font_Size.Unit in Px | Dip | Pix then
+              (if Result.Font_Size.Unit in Px | Dip then
                   Raw * Pixel_Type'Max (0.01, Self.Content_Scale)
                else
                   Raw));
@@ -1850,7 +1847,9 @@ package body Adi.Widget.Html_View is
       function Local_Length_To_Px
         (L              : Length_Value;
          Container_Size : Pixel_Type := 0.0;
-         Font_Size      : Pixel_Type := Default_Root_Font_Size_Px) return Pixel_Type
+         Font_Size      : Pixel_Type :=
+           Default_Root_Font_Size_Px * Pixel_Type'Max (0.01, Self.Content_Scale))
+         return Pixel_Type
       is
       begin
          return Html_Length_To_Px

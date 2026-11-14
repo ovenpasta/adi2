@@ -224,3 +224,116 @@ link@51 [37.00,166.00 37.00x24.00] -> #a
 doc: 320.00x610.00 scroll_h=2000.00
 link@50 [6.00,212.00 31.00x24.00] -> #a
 link@51 [37.00,212.00 37.00x24.00] -> #a
+== width 1280 scale 2
+1: PANEL_ITEM MAIN_PART z=0 [0.00,0.00 1280.00x4000.00]
+2: PANEL_ITEM ANY_PART z=0 [0.00,0.00 1280.00x56.00] override
+3: TEXT_ITEM TEXT_PART z=1 [0.00,0.00 88.00x48.00] override wrap=FALSE off=0.00,0.00 text="Loose"
+4: TEXT_ITEM TEXT_PART z=1 [88.00,0.00 74.00x48.00] override wrap=FALSE off=0.00,0.00 text=" text,"
+5: PANEL_ITEM ANY_PART z=0 [182.00,0.00 196.00x56.00] override
+6: TEXT_ITEM TEXT_PART z=1 [194.00,4.00 17.00x48.00] override wrap=FALSE off=0.00,0.00 text="a"
+7: TEXT_ITEM TEXT_PART z=1 [211.00,4.00 80.00x48.00] override wrap=FALSE off=0.00,0.00 text=" span"
+8: TEXT_ITEM TEXT_PART z=1 [291.00,4.00 75.00x48.00] override wrap=FALSE off=0.00,0.00 text=" item"
+9: TEXT_ITEM TEXT_PART z=1 [398.00,0.00 56.00x48.00] override wrap=FALSE off=0.00,0.00 text="and"
+10: PANEL_ITEM ANY_PART z=0 [474.00,0.00 70.00x56.00] override
+11: TEXT_ITEM TEXT_PART z=1 [474.00,0.00 70.00x48.00] override wrap=FALSE off=0.00,0.00 text="bold"
+12: TEXT_ITEM TEXT_PART z=1 [564.00,0.00 79.00x48.00] override wrap=FALSE off=0.00,0.00 text="after."
+13: PANEL_ITEM ANY_PART z=0 [0.00,56.00 1280.00x72.00] override
+14: PANEL_ITEM ANY_PART z=0 [0.00,56.00 280.00x72.00] override
+15: TEXT_ITEM TEXT_PART z=1 [12.00,68.00 70.00x48.00] override wrap=FALSE off=0.00,0.00 text="Card"
+16: TEXT_ITEM TEXT_PART z=1 [82.00,68.00 65.00x48.00] override wrap=FALSE off=0.00,0.00 text=" one"
+17: PANEL_ITEM ANY_PART z=0 [300.00,56.00 280.00x72.00] override
+18: TEXT_ITEM TEXT_PART z=1 [312.00,68.00 70.00x48.00] override wrap=FALSE off=0.00,0.00 text="Card"
+19: TEXT_ITEM TEXT_PART z=1 [382.00,68.00 63.00x48.00] override wrap=FALSE off=0.00,0.00 text=" two"
+20: PANEL_ITEM ANY_PART z=0 [600.00,56.00 280.00x72.00] override
+21: TEXT_ITEM TEXT_PART z=1 [612.00,68.00 70.00x48.00] override wrap=FALSE off=0.00,0.00 text="Card"
+22: TEXT_ITEM TEXT_PART z=1 [682.00,68.00 88.00x48.00] override wrap=FALSE off=0.00,0.00 text=" three"
+23: PANEL_ITEM ANY_PART z=0 [900.00,56.00 280.00x72.00] override
+24: TEXT_ITEM TEXT_PART z=1 [912.00,68.00 70.00x48.00] override wrap=FALSE off=0.00,0.00 text="Card"
+25: TEXT_ITEM TEXT_PART z=1 [982.00,68.00 71.00x48.00] override wrap=FALSE off=0.00,0.00 text=" four"
+26: PANEL_ITEM ANY_PART z=0 [0.00,128.00 1280.00x56.00] override
+27: PANEL_ITEM ANY_PART z=0 [0.00,128.00 120.00x56.00] override
+28: TEXT_ITEM TEXT_PART z=1 [12.00,132.00 96.00x48.00] override wrap=FALSE off=0.00,0.00 text="Visible"
+29: PANEL_ITEM ANY_PART z=0 [140.00,128.00 187.00x56.00] override
+30: TEXT_ITEM TEXT_PART z=1 [152.00,132.00 62.00x48.00] override wrap=FALSE off=0.00,0.00 text="Also"
+31: TEXT_ITEM TEXT_PART z=1 [214.00,132.00 101.00x48.00] override wrap=FALSE off=0.00,0.00 text=" visible"
+32: PANEL_ITEM ANY_PART z=0 [0.00,184.00 1280.00x80.00] override
+33: IMAGE_ITEM ICON_PART z=1 [0.00,184.00 80.00x80.00] override bg=FALSE src=set
+34: PANEL_ITEM ANY_PART z=0 [100.00,184.00 267.00x80.00] override
+35: TEXT_ITEM TEXT_PART z=1 [112.00,188.00 99.00x48.00] override wrap=FALSE off=0.00,0.00 text="Beside"
+36: TEXT_ITEM TEXT_PART z=1 [211.00,188.00 45.00x48.00] override wrap=FALSE off=0.00,0.00 text=" an"
+37: TEXT_ITEM TEXT_PART z=1 [256.00,188.00 99.00x48.00] override wrap=FALSE off=0.00,0.00 text=" image"
+38: PANEL_ITEM ANY_PART z=0 [0.00,264.00 1280.00x64.00] override
+39: PANEL_ITEM ANY_PART z=0 [0.00,264.00 251.00x64.00] override
+40: PANEL_ITEM ANY_PART z=0 [12.00,268.00 227.00x56.00] override
+41: PANEL_ITEM ANY_PART z=0 [12.00,268.00 130.00x56.00] override
+42: TEXT_ITEM TEXT_PART z=1 [24.00,272.00 106.00x48.00] override wrap=FALSE off=0.00,0.00 text="Nested"
+43: PANEL_ITEM ANY_PART z=0 [162.00,268.00 77.00x56.00] override
+44: TEXT_ITEM TEXT_PART z=1 [174.00,272.00 53.00x48.00] override wrap=FALSE off=0.00,0.00 text="flex"
+45: PANEL_ITEM ANY_PART z=0 [271.00,264.00 214.00x64.00] override
+46: TEXT_ITEM TEXT_PART z=1 [283.00,268.00 86.00x48.00] override wrap=FALSE off=0.00,0.00 text="Outer"
+47: TEXT_ITEM TEXT_PART z=1 [369.00,268.00 104.00x48.00] override wrap=FALSE off=0.00,0.00 text=" sibling"
+48: PANEL_ITEM ANY_PART z=0 [0.00,328.00 1280.00x56.00] override
+49: PANEL_ITEM ANY_PART z=0 [0.00,328.00 160.00x56.00] override
+50: TEXT_ITEM INDICATOR_PART z=1 [12.00,332.00 61.00x48.00] override wrap=FALSE off=0.00,0.00 text="Link"
+51: TEXT_ITEM INDICATOR_PART z=1 [73.00,332.00 75.00x48.00] override wrap=FALSE off=0.00,0.00 text=" item"
+52: PANEL_ITEM ANY_PART z=0 [180.00,328.00 171.00x56.00] override
+53: TEXT_ITEM TEXT_PART z=1 [192.00,332.00 72.00x48.00] override wrap=FALSE off=0.00,0.00 text="Plain"
+54: TEXT_ITEM TEXT_PART z=1 [264.00,332.00 75.00x48.00] override wrap=FALSE off=0.00,0.00 text=" item"
+55: PANEL_ITEM ANY_PART z=0 [0.00,384.00 1280.00x168.00] override
+56: PANEL_ITEM ANY_PART z=0 [0.00,384.00 408.60x168.00] override
+57: PANEL_ITEM ANY_PART z=0 [12.00,420.00 384.60x96.00] override
+58: PANEL_ITEM ANY_PART z=0 [92.00,420.00 304.60x48.00] override
+59: IMAGE_ITEM ICON_PART z=1 [92.00,428.60 26.40x26.40] override bg=FALSE src=set
+60: TEXT_ITEM TEXT_PART z=1 [129.60,420.00 51.00x48.00] override wrap=FALSE off=0.00,0.00 text="List"
+61: TEXT_ITEM TEXT_PART z=1 [180.60,420.00 96.00x48.00] override wrap=FALSE off=0.00,0.00 text=" inside"
+62: TEXT_ITEM TEXT_PART z=1 [276.60,420.00 45.00x48.00] override wrap=FALSE off=0.00,0.00 text=" an"
+63: TEXT_ITEM TEXT_PART z=1 [321.60,420.00 75.00x48.00] override wrap=FALSE off=0.00,0.00 text=" item"
+64: PANEL_ITEM ANY_PART z=0 [92.00,468.00 304.60x48.00] override
+65: IMAGE_ITEM ICON_PART z=1 [92.00,476.60 26.40x26.40] override bg=FALSE src=set
+66: TEXT_ITEM TEXT_PART z=1 [129.60,468.00 109.00x48.00] override wrap=FALSE off=0.00,0.00 text="Second"
+67: PANEL_ITEM ANY_PART z=0 [428.60,384.00 736.00x168.00] override
+68: PANEL_ITEM ANY_PART z=0 [440.60,420.00 712.00x48.00] override
+69: TEXT_ITEM TEXT_PART z=1 [440.60,420.00 21.00x48.00] override wrap=FALSE off=0.00,0.00 text="A"
+70: TEXT_ITEM TEXT_PART z=1 [461.60,420.00 163.00x48.00] override wrap=FALSE off=0.00,0.00 text=" paragraph"
+71: TEXT_ITEM TEXT_PART z=1 [624.60,420.00 36.00x48.00] override wrap=FALSE off=0.00,0.00 text=" in"
+72: TEXT_ITEM TEXT_PART z=1 [660.60,420.00 45.00x48.00] override wrap=FALSE off=0.00,0.00 text=" an"
+73: TEXT_ITEM TEXT_PART z=1 [705.60,420.00 75.00x48.00] override wrap=FALSE off=0.00,0.00 text=" item"
+74: TEXT_ITEM TEXT_PART z=1 [780.60,420.00 95.00x48.00] override wrap=FALSE off=0.00,0.00 text=" keeps"
+75: TEXT_ITEM TEXT_PART z=1 [875.60,420.00 43.00x48.00] override wrap=FALSE off=0.00,0.00 text=" its"
+76: TEXT_ITEM TEXT_PART z=1 [918.60,420.00 129.00x48.00] override wrap=FALSE off=0.00,0.00 text=" margins"
+77: TEXT_ITEM TEXT_PART z=1 [1047.60,420.00 105.00x48.00] override wrap=FALSE off=0.00,0.00 text=" inside."
+78: PANEL_ITEM ANY_PART z=0 [0.00,584.00 1280.00x200.00] override
+79: PANEL_ITEM ANY_PART z=0 [80.00,584.00 1200.00x48.00] override
+80: TEXT_ITEM TEXT_PART z=1 [80.00,584.00 26.00x48.00] override wrap=FALSE off=0.00,0.00 text="1."
+81: TEXT_ITEM TEXT_PART z=1 [117.20,584.00 62.00x48.00] override wrap=FALSE off=0.00,0.00 text="One"
+82: PANEL_ITEM ANY_PART z=0 [80.00,632.00 1200.00x104.00] override
+83: TEXT_ITEM TEXT_PART z=1 [80.00,632.00 26.00x48.00] override wrap=FALSE off=0.00,0.00 text="2."
+84: PANEL_ITEM ANY_PART z=0 [117.20,680.00 1162.80x56.00] override
+85: PANEL_ITEM ANY_PART z=0 [117.20,680.00 331.00x56.00] override
+86: TEXT_ITEM TEXT_PART z=1 [129.20,684.00 59.00x48.00] override wrap=FALSE off=0.00,0.00 text="Flex"
+87: TEXT_ITEM TEXT_PART z=1 [188.20,684.00 96.00x48.00] override wrap=FALSE off=0.00,0.00 text=" inside"
+88: TEXT_ITEM TEXT_PART z=1 [284.20,684.00 26.00x48.00] override wrap=FALSE off=0.00,0.00 text=" a"
+89: TEXT_ITEM TEXT_PART z=1 [310.20,684.00 51.00x48.00] override wrap=FALSE off=0.00,0.00 text=" list"
+90: TEXT_ITEM TEXT_PART z=1 [361.20,684.00 75.00x48.00] override wrap=FALSE off=0.00,0.00 text=" item"
+91: PANEL_ITEM ANY_PART z=0 [80.00,736.00 1200.00x48.00] override
+92: TEXT_ITEM TEXT_PART z=1 [80.00,736.00 26.00x48.00] override wrap=FALSE off=0.00,0.00 text="3."
+93: TEXT_ITEM TEXT_PART z=1 [117.20,736.00 86.00x48.00] override wrap=FALSE off=0.00,0.00 text="Three"
+94: PANEL_ITEM ANY_PART z=0 [0.00,816.00 1280.00x56.00] override
+95: PANEL_ITEM ANY_PART z=0 [1048.00,816.00 232.00x56.00] override
+96: TEXT_ITEM TEXT_PART z=1 [1060.00,820.00 64.00x48.00] override wrap=FALSE off=0.00,0.00 text="First"
+97: TEXT_ITEM TEXT_PART z=1 [1124.00,820.00 36.00x48.00] override wrap=FALSE off=0.00,0.00 text=" in"
+98: TEXT_ITEM TEXT_PART z=1 [1160.00,820.00 108.00x48.00] override wrap=FALSE off=0.00,0.00 text=" source"
+99: PANEL_ITEM ANY_PART z=0 [751.00,816.00 277.00x56.00] override
+100: TEXT_ITEM TEXT_PART z=1 [763.00,820.00 109.00x48.00] override wrap=FALSE off=0.00,0.00 text="Second"
+101: TEXT_ITEM TEXT_PART z=1 [872.00,820.00 36.00x48.00] override wrap=FALSE off=0.00,0.00 text=" in"
+102: TEXT_ITEM TEXT_PART z=1 [908.00,820.00 108.00x48.00] override wrap=FALSE off=0.00,0.00 text=" source"
+103: PANEL_ITEM ANY_PART z=0 [0.00,872.00 1280.00x0.00] override
+104: PANEL_ITEM ANY_PART z=0 [0.00,904.00 1280.00x48.00] override
+105: TEXT_ITEM TEXT_PART z=1 [0.00,904.00 73.00x48.00] override wrap=FALSE off=0.00,0.00 text="After"
+106: TEXT_ITEM TEXT_PART z=1 [73.00,904.00 45.00x48.00] override wrap=FALSE off=0.00,0.00 text=" an"
+107: TEXT_ITEM TEXT_PART z=1 [118.00,904.00 103.00x48.00] override wrap=FALSE off=0.00,0.00 text=" empty"
+108: TEXT_ITEM TEXT_PART z=1 [221.00,904.00 62.00x48.00] override wrap=FALSE off=0.00,0.00 text=" flex"
+109: TEXT_ITEM TEXT_PART z=1 [283.00,904.00 158.00x48.00] override wrap=FALSE off=0.00,0.00 text=" container."
+doc: 1280.00x984.00 scroll_h=4000.00
+link@50 [12.00,332.00 61.00x48.00] -> #a
+link@51 [73.00,332.00 75.00x48.00] -> #a

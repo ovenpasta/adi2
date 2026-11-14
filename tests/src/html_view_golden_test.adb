@@ -19,7 +19,7 @@ with Adi.Widget.Html_View;
 with Html_View_Dump;
 with Test_Support;
 
---  Lays out every tests/html/layout/*.html at each of Widths, under
+--  Lays out every tests/html/layout/*.html in each of Passes, under
 --  tests/html/layout/default.css and the vendored Open Sans, and holds
 --  the result against tests/goldens/html/<name>.txt.
 --
@@ -35,9 +35,19 @@ procedure Html_View_Golden_Test is
    Stylesheet : constant String := Case_Dir & "/default.css";
    Font_Dir   : constant String := "vendor/open-sans/static";
 
-   Widths : constant array (Positive range <>) of Pixel_Type := [640.0, 320.0];
+   --  A view width and content scale. Twice the scale in twice the width
+   --  lays out at about twice the size, so a length that misses the
+   --  scale, or takes it twice, stands out.
+   type Pass is record
+      Width : Pixel_Type;
+      Scale : Pixel_Type;
+   end record;
 
-   --  Tall enough that no case is culled by the viewport band.
+   Passes : constant array (Positive range <>) of Pass :=
+     [(640.0, 1.0), (320.0, 1.0), (1280.0, 2.0)];
+
+   --  Tall enough at scale 1 that no case is culled by the viewport band;
+   --  a pass's view is this times its scale.
    View_H : constant Pixel_Type := 2000.0;
 
    Update : constant Boolean :=
@@ -84,29 +94,36 @@ procedure Html_View_Golden_Test is
    function Lay_Out (HTML : String; Name : String) return String is
       Out_S : Unbounded_String;
    begin
-      for W of Widths loop
+      for P of Passes loop
          declare
             View : constant HV.Html_View_Handle := HV.Create_Handle;
+            W    : constant Pixel_Type := P.Width;
+            H    : constant Pixel_Type := View_H * P.Scale;
          begin
+            HV.Set_Content_Scale (View, P.Scale);
             HV.Set_Default_Stylesheet (View, Stylesheet);
             HV.Set_On_Load_Asset (View, Load_Asset'Unrestricted_Access);
             HV.Connect_Link_Click (View, Html_View_Dump.Record_Link'Access);
             HV.Set_HTML (View, HTML);
             Adi.Widget.Set_Geometry
-              (+View, (X => 0.0, Y => 0.0, Width => W, Height => View_H));
+              (+View, (X => 0.0, Y => 0.0, Width => W, Height => H));
             Adi.Widget.Build_Items (+View);
 
             Test_Support.Assert
-              (Adi.Widget.Get_Preferred_Size (+View).Height <= View_H,
-               Name & " fits the " & Width_Image (View_H) & " px view at width "
+              (Adi.Widget.Get_Preferred_Size (+View).Height <= H,
+               Name & " fits the " & Width_Image (H) & " px view at width "
                & Width_Image (W));
 
-            Append (Out_S, "== width " & Width_Image (W) & ASCII.LF);
+            Append (Out_S,
+                    "== width " & Width_Image (W)
+                    & (if P.Scale = 1.0 then ""
+                       else " scale " & Width_Image (P.Scale))
+                    & ASCII.LF);
             Append (Out_S, Html_View_Dump.Snapshot (View));
             declare
-               H : Adi.Widget.Widget_Handle := +View;
+               Handle : Adi.Widget.Widget_Handle := +View;
             begin
-               Adi.Widget.Destroy (H);
+               Adi.Widget.Destroy (Handle);
             end;
          end;
       end loop;

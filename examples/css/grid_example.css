@@ -197,3 +197,38 @@
   background-color: rgba(129, 161, 193, 0.55);
   border-radius: 4px;
 }
+
+/* auto-placement */
+
+.auto-board     { grid-template-columns: repeat(4, 1fr); }
+.auto-span-2col { grid-column: span 2; }
+.auto-span-2row { grid-row: span 2; }
+.col-only-2     { grid-column: 2; }
+.row-only-3     { grid-row: 3; }
+
+/* row heights */
+
+.cols-2fr { grid-template-columns: repeat(2, 1fr); }
+
+.rows-shared {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  height: 160px;
+}
+
+.wrapping::label { text-wrap-mode: wrap; }
+
+/* a column count */
+
+.cols-count { grid-template-columns: 3; }
+
+/* nesting */
+
+.nested-row {
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 6px;
+  background-color: rgb(52, 58, 72);
+}
+
+.nested-grid { padding: 4px; }

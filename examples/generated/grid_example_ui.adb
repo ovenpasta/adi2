@@ -212,6 +212,55 @@ package body Grid_Example_UI is
       Label_93 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("22");
       Label_94 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("23");
       Label_95 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("24");
+      Box_33 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_96 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("auto-placement");
+      Label_97 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("Items without a line follow a cursor through the grid and skip what is taken. The row-only item is placed first, in the first free column of row 3. The spans take the first cells that fit and the plain items flow around them. The column-only item comes last: the cursor is past column 2, so it moves to the next row, and down until column 2 is free.");
+      Box_34 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_98 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("span 2");
+      Label_99 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("row span 2");
+      Label_100 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("a");
+      Label_101 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("b");
+      Label_102 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("c");
+      Label_103 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("d");
+      Label_104 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("column 2");
+      Label_105 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("row 3");
+      Box_35 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_106 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("row heights");
+      Label_107 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A row is as tall as its tallest item: the long label wraps in its 1fr column and takes its neighbour with it. With a declared height and grid-template-rows: repeat(2, 1fr), the rows share that height instead.");
+      Box_36 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Box_37 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_108 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("from content");
+      Box_38 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_109 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("a label long enough to wrap onto several lines");
+      Label_110 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_111 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_112 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Box_39 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_113 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("height: 160px, two rows");
+      Box_40 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_114 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_115 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_116 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_117 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Box_41 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_118 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("a column count");
+      Label_119 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("grid-template-columns: 3 asks for three equal columns without naming their sizes; five items fill one row and part of the next.");
+      Box_42 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_120 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("1");
+      Label_121 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("2");
+      Label_122 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("3");
+      Label_123 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("4");
+      Label_124 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("5");
+      Box_43 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_125 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("nesting");
+      Label_126 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("A cell can be a flex row or another grid.");
+      Box_44 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Box_45 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_127 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("flex");
+      Label_128 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("in a cell");
+      Box_46 : constant Adi.Widget.Box.Box_Handle := Adi.Widget.Box.Create_Handle;
+      Label_129 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("grid");
+      Label_130 : constant Adi.Widget.Label.Label_Handle := Adi.Widget.Label.Create_Handle ("in a cell");
    begin
       --  Create widgets
       Root := Adi.Widget.Box.Create_Handle;
@@ -887,6 +936,251 @@ package body Grid_Example_UI is
          W          => +Label_95,
          Tag_Name   => "label",
          Class_Name => "cell warm");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_33,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_96,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_97,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_34,
+         Tag_Name   => "box",
+         Class_Name => "demo auto-board");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_98,
+         Tag_Name   => "label",
+         Class_Name => "cell auto-span-2col");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_99,
+         Tag_Name   => "label",
+         Class_Name => "cell rose auto-span-2row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_100,
+         Tag_Name   => "label",
+         Class_Name => "cell alt");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_101,
+         Tag_Name   => "label",
+         Class_Name => "cell alt");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_102,
+         Tag_Name   => "label",
+         Class_Name => "cell alt");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_103,
+         Tag_Name   => "label",
+         Class_Name => "cell alt");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_104,
+         Tag_Name   => "label",
+         Class_Name => "cell warm col-only-2");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_105,
+         Tag_Name   => "label",
+         Class_Name => "cell red row-only-3");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_35,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_106,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_107,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_36,
+         Tag_Name   => "box",
+         Class_Name => "cases");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_37,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_108,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_38,
+         Tag_Name   => "box",
+         Class_Name => "demo cols-2fr");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_109,
+         Tag_Name   => "label",
+         Class_Name => "cell wrapping");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_110,
+         Tag_Name   => "label",
+         Class_Name => "cell alt");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_111,
+         Tag_Name   => "label",
+         Class_Name => "cell alt");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_112,
+         Tag_Name   => "label",
+         Class_Name => "cell alt");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_39,
+         Tag_Name   => "box",
+         Class_Name => "case");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_113,
+         Tag_Name   => "label",
+         Class_Name => "case-label");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_40,
+         Tag_Name   => "box",
+         Class_Name => "demo rows-shared");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_114,
+         Tag_Name   => "label",
+         Class_Name => "cell");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_115,
+         Tag_Name   => "label",
+         Class_Name => "cell");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_116,
+         Tag_Name   => "label",
+         Class_Name => "cell rose");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_117,
+         Tag_Name   => "label",
+         Class_Name => "cell rose");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_41,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_118,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_119,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_42,
+         Tag_Name   => "box",
+         Class_Name => "demo cols-count");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_120,
+         Tag_Name   => "label",
+         Class_Name => "cell");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_121,
+         Tag_Name   => "label",
+         Class_Name => "cell");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_122,
+         Tag_Name   => "label",
+         Class_Name => "cell");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_123,
+         Tag_Name   => "label",
+         Class_Name => "cell warm");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_124,
+         Tag_Name   => "label",
+         Class_Name => "cell warm");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_43,
+         Tag_Name   => "box",
+         Class_Name => "section");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_125,
+         Tag_Name   => "label",
+         Class_Name => "caption");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_126,
+         Tag_Name   => "label",
+         Class_Name => "note");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_44,
+         Tag_Name   => "box",
+         Class_Name => "demo cols-2fr");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_45,
+         Tag_Name   => "box",
+         Class_Name => "cell nested-row");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_127,
+         Tag_Name   => "label",
+         Class_Name => "cell alt");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_128,
+         Tag_Name   => "label",
+         Class_Name => "cell alt");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Box_46,
+         Tag_Name   => "box",
+         Class_Name => "demo cols-2fr nested-grid");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_129,
+         Tag_Name   => "label",
+         Class_Name => "cell rose");
+      Adi.CSS_Source.Bind_Selector_Set
+        (Source     => Source,
+         W          => +Label_130,
+         Tag_Name   => "label",
+         Class_Name => "cell rose");
 
       --  Build hierarchy
       Adi.Widget.Add_Child (+Box_4, +Label_5);
@@ -1008,6 +1302,51 @@ package body Grid_Example_UI is
       Adi.Widget.Add_Child (+Box_31, +Label_70);
       Adi.Widget.Add_Child (+Box_31, +Label_71);
       Adi.Widget.Add_Child (+Box_31, +Box_32);
+      Adi.Widget.Add_Child (+Box_34, +Label_98);
+      Adi.Widget.Add_Child (+Box_34, +Label_99);
+      Adi.Widget.Add_Child (+Box_34, +Label_100);
+      Adi.Widget.Add_Child (+Box_34, +Label_101);
+      Adi.Widget.Add_Child (+Box_34, +Label_102);
+      Adi.Widget.Add_Child (+Box_34, +Label_103);
+      Adi.Widget.Add_Child (+Box_34, +Label_104);
+      Adi.Widget.Add_Child (+Box_34, +Label_105);
+      Adi.Widget.Add_Child (+Box_33, +Label_96);
+      Adi.Widget.Add_Child (+Box_33, +Label_97);
+      Adi.Widget.Add_Child (+Box_33, +Box_34);
+      Adi.Widget.Add_Child (+Box_38, +Label_109);
+      Adi.Widget.Add_Child (+Box_38, +Label_110);
+      Adi.Widget.Add_Child (+Box_38, +Label_111);
+      Adi.Widget.Add_Child (+Box_38, +Label_112);
+      Adi.Widget.Add_Child (+Box_37, +Label_108);
+      Adi.Widget.Add_Child (+Box_37, +Box_38);
+      Adi.Widget.Add_Child (+Box_40, +Label_114);
+      Adi.Widget.Add_Child (+Box_40, +Label_115);
+      Adi.Widget.Add_Child (+Box_40, +Label_116);
+      Adi.Widget.Add_Child (+Box_40, +Label_117);
+      Adi.Widget.Add_Child (+Box_39, +Label_113);
+      Adi.Widget.Add_Child (+Box_39, +Box_40);
+      Adi.Widget.Add_Child (+Box_36, +Box_37);
+      Adi.Widget.Add_Child (+Box_36, +Box_39);
+      Adi.Widget.Add_Child (+Box_35, +Label_106);
+      Adi.Widget.Add_Child (+Box_35, +Label_107);
+      Adi.Widget.Add_Child (+Box_35, +Box_36);
+      Adi.Widget.Add_Child (+Box_42, +Label_120);
+      Adi.Widget.Add_Child (+Box_42, +Label_121);
+      Adi.Widget.Add_Child (+Box_42, +Label_122);
+      Adi.Widget.Add_Child (+Box_42, +Label_123);
+      Adi.Widget.Add_Child (+Box_42, +Label_124);
+      Adi.Widget.Add_Child (+Box_41, +Label_118);
+      Adi.Widget.Add_Child (+Box_41, +Label_119);
+      Adi.Widget.Add_Child (+Box_41, +Box_42);
+      Adi.Widget.Add_Child (+Box_45, +Label_127);
+      Adi.Widget.Add_Child (+Box_45, +Label_128);
+      Adi.Widget.Add_Child (+Box_46, +Label_129);
+      Adi.Widget.Add_Child (+Box_46, +Label_130);
+      Adi.Widget.Add_Child (+Box_44, +Box_45);
+      Adi.Widget.Add_Child (+Box_44, +Box_46);
+      Adi.Widget.Add_Child (+Box_43, +Label_125);
+      Adi.Widget.Add_Child (+Box_43, +Label_126);
+      Adi.Widget.Add_Child (+Box_43, +Box_44);
       Adi.Widget.Add_Child (+Root, +Label_1);
       Adi.Widget.Add_Child (+Root, +Box_1);
       Adi.Widget.Add_Child (+Root, +Box_11);
@@ -1016,6 +1355,10 @@ package body Grid_Example_UI is
       Adi.Widget.Add_Child (+Root, +Box_23);
       Adi.Widget.Add_Child (+Root, +Box_25);
       Adi.Widget.Add_Child (+Root, +Box_31);
+      Adi.Widget.Add_Child (+Root, +Box_33);
+      Adi.Widget.Add_Child (+Root, +Box_35);
+      Adi.Widget.Add_Child (+Root, +Box_41);
+      Adi.Widget.Add_Child (+Root, +Box_43);
 
       --  Auto-wire CSS live reload
       Adi.Window.Connect_Tick (W, Tick_Styles_CB'Unrestricted_Access);

@@ -658,6 +658,158 @@ package Grid_Example_Styles is
       others => <>
    ];
 
+   --  Style for class 'auto-board'
+   Auto_Board_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Grid_Columns (Grid_Columns_Value (4))
+        .Grid_Columns ((Count => 4, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), 4 => (Track_Fr, 1.0), others => <>]))
+     .Build;
+
+   --  Part styles bundle for class 'auto-board'
+   Auto_Board_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Auto_Board_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'auto-span-2col'
+   Auto_Span_2col_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Grid_Column_Span (Grid_Column_Span_Value (2))
+     .Build;
+
+   --  Part styles bundle for class 'auto-span-2col'
+   Auto_Span_2col_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Auto_Span_2col_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'auto-span-2row'
+   Auto_Span_2row_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Grid_Row_Span (Grid_Row_Span_Value (2))
+     .Build;
+
+   --  Part styles bundle for class 'auto-span-2row'
+   Auto_Span_2row_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Auto_Span_2row_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'col-only-2'
+   Col_Only_2_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Grid_Column (Grid_Column_Value (2))
+     .Build;
+
+   --  Part styles bundle for class 'col-only-2'
+   Col_Only_2_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Col_Only_2_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'row-only-3'
+   Row_Only_3_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Grid_Row (Grid_Row_Value (3))
+     .Build;
+
+   --  Part styles bundle for class 'row-only-3'
+   Row_Only_3_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Row_Only_3_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'cols-2fr'
+   Cols_2fr_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Grid_Columns (Grid_Columns_Value (2))
+        .Grid_Columns ((Count => 2, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), others => <>]))
+     .Build;
+
+   --  Part styles bundle for class 'cols-2fr'
+   Cols_2fr_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Cols_2fr_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'rows-shared'
+   Rows_Shared_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Grid_Columns (Grid_Columns_Value (2))
+        .Grid_Columns ((Count => 2, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), others => <>]))
+        .Grid_Rows (Grid_Rows_Value (2))
+        .Height (Size (Px (160.0)))
+     .Build;
+
+   --  Part styles bundle for class 'rows-shared'
+   Rows_Shared_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Rows_Shared_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'wrapping'::label
+   Wrapping_Class_Label_Widget : constant Widget_Style :=
+     Style_Of
+        .Text_Wrap_Mode (TWM_Wrap)
+     .Build;
+
+   --  Part styles bundle for class 'wrapping'
+   Wrapping_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Label_Part => (Style => Wrapping_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'cols-count'
+   Cols_Count_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Grid_Columns (Grid_Columns_Value (3))
+        .Grid_Columns ((Count => 3, Tracks => [1 => (Track_Fr, 1.0), 2 => (Track_Fr, 1.0), 3 => (Track_Fr, 1.0), others => <>]))
+     .Build;
+
+   --  Part styles bundle for class 'cols-count'
+   Cols_Count_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Cols_Count_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'nested-row'
+   Nested_Row_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Justify_Content (Flex_Start)
+        .Gap (Gap (Px (6.0)))
+        .Background (RGB (52, 58, 72))
+        .Padding (CSS_Box (Px (6.0), Px (6.0), Px (6.0), Px (6.0)))
+     .Build;
+
+   --  Part styles bundle for class 'nested-row'
+   Nested_Row_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Nested_Row_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'nested-grid'
+   Nested_Grid_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Padding (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0)))
+     .Build;
+
+   --  Part styles bundle for class 'nested-grid'
+   Nested_Grid_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Nested_Grid_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
    --  Register every selector this stylesheet defines, in
    --  source order. A consumer that knows only the package
    --  name can install the whole sheet without reparsing the

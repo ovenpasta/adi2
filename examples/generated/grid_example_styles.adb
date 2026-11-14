@@ -278,6 +278,83 @@ package body Grid_Example_Styles is
    end Register_Selectors_39;
    pragma No_Inline (Register_Selectors_39);
 
+   procedure Register_Selectors_40
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("auto-board", Auto_Board_Class_Part_Styles));
+   end Register_Selectors_40;
+   pragma No_Inline (Register_Selectors_40);
+
+   procedure Register_Selectors_41
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("auto-span-2col", Auto_Span_2col_Class_Part_Styles));
+   end Register_Selectors_41;
+   pragma No_Inline (Register_Selectors_41);
+
+   procedure Register_Selectors_42
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("auto-span-2row", Auto_Span_2row_Class_Part_Styles));
+   end Register_Selectors_42;
+   pragma No_Inline (Register_Selectors_42);
+
+   procedure Register_Selectors_43
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("col-only-2", Col_Only_2_Class_Part_Styles));
+   end Register_Selectors_43;
+   pragma No_Inline (Register_Selectors_43);
+
+   procedure Register_Selectors_44
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("row-only-3", Row_Only_3_Class_Part_Styles));
+   end Register_Selectors_44;
+   pragma No_Inline (Register_Selectors_44);
+
+   procedure Register_Selectors_45
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("cols-2fr", Cols_2fr_Class_Part_Styles));
+   end Register_Selectors_45;
+   pragma No_Inline (Register_Selectors_45);
+
+   procedure Register_Selectors_46
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("rows-shared", Rows_Shared_Class_Part_Styles));
+   end Register_Selectors_46;
+   pragma No_Inline (Register_Selectors_46);
+
+   procedure Register_Selectors_47
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("wrapping", Wrapping_Class_Part_Styles));
+   end Register_Selectors_47;
+   pragma No_Inline (Register_Selectors_47);
+
+   procedure Register_Selectors_48
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("cols-count", Cols_Count_Class_Part_Styles));
+   end Register_Selectors_48;
+   pragma No_Inline (Register_Selectors_48);
+
+   procedure Register_Selectors_49
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("nested-row", Nested_Row_Class_Part_Styles));
+   end Register_Selectors_49;
+   pragma No_Inline (Register_Selectors_49);
+
+   procedure Register_Selectors_50
+     (S : in out Adi.CSS_Source.Style_Source) is
+   begin
+      Adi.CSS_Source.Add_Static_Entry (S, Adi.CSS_Source.Class_Entry ("nested-grid", Nested_Grid_Class_Part_Styles));
+   end Register_Selectors_50;
+   pragma No_Inline (Register_Selectors_50);
+
    procedure Register_Selectors
      (S : in out Adi.CSS_Source.Style_Source) is
    begin
@@ -320,6 +397,17 @@ package body Grid_Example_Styles is
       Register_Selectors_37 (S);
       Register_Selectors_38 (S);
       Register_Selectors_39 (S);
+      Register_Selectors_40 (S);
+      Register_Selectors_41 (S);
+      Register_Selectors_42 (S);
+      Register_Selectors_43 (S);
+      Register_Selectors_44 (S);
+      Register_Selectors_45 (S);
+      Register_Selectors_46 (S);
+      Register_Selectors_47 (S);
+      Register_Selectors_48 (S);
+      Register_Selectors_49 (S);
+      Register_Selectors_50 (S);
    end Register_Selectors;
 
 end Grid_Example_Styles;

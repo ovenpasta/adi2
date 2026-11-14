@@ -448,6 +448,103 @@
           </box>
         </box>
       </box>
+
+      <!-- margins on items -->
+      <box class="section">
+        <label text="margins on items" class="caption"/>
+        <label text="An item's margins are part of the room it takes: side margins push its neighbours apart, and on the cross axis the margin offsets it inside its line. Item 2 has 12px each side, item 3 a 14px top margin under align-items: flex-start."
+               class="note"/>
+        <box class="demo tall align-start">
+          <label text="1" class="item"/>
+          <label text="2" class="item m-side"/>
+          <label text="3" class="item m-top"/>
+          <label text="4" class="item"/>
+        </box>
+      </box>
+
+      <!-- flex-basis auto, 0 and content -->
+      <box class="section">
+        <label text="flex-basis: auto, 0 and content" class="caption"/>
+        <label text="In the first two 480px rows both items grow by 1. With auto each starts from its own width, so the longer label stays wider; with 0 they start from nothing and come out equal. In the third neither grows: both declare width: 160px, and the second, with flex-basis: content, starts from its text instead."
+               class="note"/>
+        <label text="auto" class="case-label"/>
+        <box class="demo short w480">
+          <label text="short" class="item bar text-bar grow-even"/>
+          <label text="a much longer label" class="item bar text-bar grow-even"/>
+        </box>
+        <label text="0" class="case-label"/>
+        <box class="demo short w480">
+          <label text="short" class="item bar text-bar grow-even basis-zero"/>
+          <label text="a much longer label" class="item bar text-bar grow-even basis-zero"/>
+        </box>
+        <label text="content, against width: 160px" class="case-label"/>
+        <box class="demo short w480">
+          <label text="width 160px" class="item bar text-bar w160-item"/>
+          <label text="content" class="item bar text-bar w160-item basis-content"/>
+        </box>
+      </box>
+
+      <!-- the automatic minimum -->
+      <box class="section">
+        <label text="the automatic minimum" class="caption"/>
+        <label text="Two labels that will not wrap in a 200px row. Left to min-width: auto they cannot shrink below their text and the row overflows; with min-width: 0 and overflow: hidden they shrink to share the row and clip."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="min-width: auto" class="case-label"/>
+            <box class="demo short w200">
+              <label text="no shrinking past this" class="item bar text-bar nowrap-text"/>
+              <label text="nor this one" class="item bar text-bar nowrap-text alt-item"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="min-width: 0" class="case-label"/>
+            <box class="demo short w200">
+              <label text="no shrinking past this" class="item bar text-bar nowrap-text min-zero"/>
+              <label text="nor this one" class="item bar text-bar nowrap-text alt-item min-zero"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- a column's main axis -->
+      <box class="section">
+        <label text="a column's main axis" class="caption"/>
+        <label text="In a 150px column, grow shares out height rather than width, and justify-content spreads the items down the column."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="grow 1, 2" class="case-label"/>
+            <box class="demo h150 dir-col align-stretch">
+              <box class="item col-bar grow-1"/>
+              <box class="item col-bar grow-2"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="space-between" class="case-label"/>
+            <box class="demo h150 dir-col just-between">
+              <label text="1" class="item"/>
+              <label text="2" class="item"/>
+              <label text="3" class="item"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- nesting -->
+      <box class="section">
+        <label text="nesting" class="caption"/>
+        <label text="An item can be a flex container itself. The middle item is a column of two and grows to take the row's free space; its own children keep their 26px."
+               class="note"/>
+        <box class="demo tall">
+          <label text="1" class="item"/>
+          <box class="item bar nested-col grow-1">
+            <label text="a" class="item"/>
+            <label text="b" class="item"/>
+          </box>
+          <label text="3" class="item"/>
+        </box>
+      </box>
     </box>
   </window>
 </adi>

@@ -203,6 +203,7 @@
 /* min-size freeze and redistribution */
 
 .w480 { width: 480px; }
+.w200 { width: 200px; }
 
 /*  A row too narrow for its four tiles: three fit, the fourth wraps.
     Deep enough that align-content has room to place the two lines. */
@@ -349,4 +350,47 @@
   flex-grow: 1;
   min-width: 0px;
   background-color: rgb(163, 190, 140);
+}
+
+/* margins on items */
+
+.m-side { margin: 0px 12px; }
+.m-top  { margin-top: 14px; }
+
+/* flex-basis auto, 0 and content */
+
+/*  A bar sized by its label: the text decides its width. */
+.text-bar {
+  height: 26px;
+  padding: 0px 8px;
+}
+
+.grow-even     { flex-grow: 1; background-color: rgb(163, 190, 140); }
+.basis-zero    { flex-basis: 0px; }
+.w160-item     { width: 160px; background-color: rgb(235, 203, 139); }
+.basis-content { flex-basis: content; }
+
+/* the automatic minimum */
+
+.nowrap-text::label { text-wrap-mode: nowrap; }
+
+.alt-item { background-color: rgb(163, 190, 140); }
+
+.min-zero {
+  min-width: 0px;
+  overflow: hidden;
+}
+
+/* a column's main axis */
+
+.col-bar { width: auto; height: auto; }
+
+/* nesting */
+
+.nested-col {
+  flex-direction: column;
+  gap: 4px;
+  height: auto;
+  padding: 4px;
+  background-color: rgb(76, 86, 106);
 }

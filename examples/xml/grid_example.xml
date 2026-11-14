@@ -156,6 +156,78 @@
           <label text="22" class="cell warm"/><label text="23" class="cell warm"/><label text="24" class="cell warm"/>
         </box>
       </box>
+
+      <!-- auto-placement -->
+      <box class="section">
+        <label text="auto-placement" class="caption"/>
+        <label text="Items without a line follow a cursor through the grid and skip what is taken. The row-only item is placed first, in the first free column of row 3. The spans take the first cells that fit and the plain items flow around them. The column-only item comes last: the cursor is past column 2, so it moves to the next row, and down until column 2 is free."
+               class="note"/>
+        <box class="demo auto-board">
+          <label text="span 2" class="cell auto-span-2col"/>
+          <label text="row span 2" class="cell rose auto-span-2row"/>
+          <label text="a" class="cell alt"/>
+          <label text="b" class="cell alt"/>
+          <label text="c" class="cell alt"/>
+          <label text="d" class="cell alt"/>
+          <label text="column 2" class="cell warm col-only-2"/>
+          <label text="row 3" class="cell red row-only-3"/>
+        </box>
+      </box>
+
+      <!-- row heights -->
+      <box class="section">
+        <label text="row heights" class="caption"/>
+        <label text="A row is as tall as its tallest item: the long label wraps in its 1fr column and takes its neighbour with it. With a declared height and grid-template-rows: repeat(2, 1fr), the rows share that height instead."
+               class="note"/>
+        <box class="cases">
+          <box class="case">
+            <label text="from content" class="case-label"/>
+            <box class="demo cols-2fr">
+              <label text="a label long enough to wrap onto several lines" class="cell wrapping"/>
+              <label text="2" class="cell alt"/>
+              <label text="3" class="cell alt"/>
+              <label text="4" class="cell alt"/>
+            </box>
+          </box>
+          <box class="case">
+            <label text="height: 160px, two rows" class="case-label"/>
+            <box class="demo rows-shared">
+              <label text="1" class="cell"/>
+              <label text="2" class="cell"/>
+              <label text="3" class="cell rose"/>
+              <label text="4" class="cell rose"/>
+            </box>
+          </box>
+        </box>
+      </box>
+
+      <!-- a column count -->
+      <box class="section">
+        <label text="a column count" class="caption"/>
+        <label text="grid-template-columns: 3 asks for three equal columns without naming their sizes; five items fill one row and part of the next."
+               class="note"/>
+        <box class="demo cols-count">
+          <label text="1" class="cell"/><label text="2" class="cell"/><label text="3" class="cell"/>
+          <label text="4" class="cell warm"/><label text="5" class="cell warm"/>
+        </box>
+      </box>
+
+      <!-- nesting -->
+      <box class="section">
+        <label text="nesting" class="caption"/>
+        <label text="A cell can be a flex row or another grid."
+               class="note"/>
+        <box class="demo cols-2fr">
+          <box class="cell nested-row">
+            <label text="flex" class="cell alt"/>
+            <label text="in a cell" class="cell alt"/>
+          </box>
+          <box class="demo cols-2fr nested-grid">
+            <label text="grid" class="cell rose"/>
+            <label text="in a cell" class="cell rose"/>
+          </box>
+        </box>
+      </box>
     </box>
   </window>
 </adi>

@@ -685,6 +685,19 @@ package Demo_Flex_Styles is
       others => <>
    ];
 
+   --  Style for class 'w200'
+   W200_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Width (Size (Px (200.0)))
+     .Build;
+
+   --  Part styles bundle for class 'w200'
+   W200_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => W200_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
    --  Style for class 'w170'
    W170_Class_Widget : constant Widget_Style :=
      Style_Of
@@ -1178,6 +1191,172 @@ package Demo_Flex_Styles is
    Plain_Grow_Class_Part_Styles : constant Part_Style_Array :=
      [
       Main_Part => (Style => Plain_Grow_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'm-side'
+   M_Side_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Margin (CSS_Box (Px (0.0), Px (12.0), Px (0.0), Px (12.0)))
+     .Build;
+
+   --  Part styles bundle for class 'm-side'
+   M_Side_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => M_Side_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'm-top'
+   M_Top_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Margin (Top, Margin (Px (14.0)))
+     .Build;
+
+   --  Part styles bundle for class 'm-top'
+   M_Top_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => M_Top_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'text-bar'
+   Text_Bar_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Height (Size (Px (26.0)))
+        .Padding (CSS_Box (Px (0.0), Px (8.0), Px (0.0), Px (8.0)))
+     .Build;
+
+   --  Part styles bundle for class 'text-bar'
+   Text_Bar_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Text_Bar_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'grow-even'
+   Grow_Even_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Flex_Grow (1.0)
+        .Background (RGB (163, 190, 140))
+     .Build;
+
+   --  Part styles bundle for class 'grow-even'
+   Grow_Even_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Grow_Even_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'basis-zero'
+   Basis_Zero_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Flex_Basis (Basis (Px (0.0)))
+     .Build;
+
+   --  Part styles bundle for class 'basis-zero'
+   Basis_Zero_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Basis_Zero_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'w160-item'
+   W160_Item_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Width (Size (Px (160.0)))
+        .Background (RGB (235, 203, 139))
+     .Build;
+
+   --  Part styles bundle for class 'w160-item'
+   W160_Item_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => W160_Item_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'basis-content'
+   Basis_Content_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Flex_Basis (Content_Basis)
+     .Build;
+
+   --  Part styles bundle for class 'basis-content'
+   Basis_Content_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Basis_Content_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'nowrap-text'::label
+   Nowrap_Text_Class_Label_Widget : constant Widget_Style :=
+     Style_Of
+        .Text_Wrap_Mode (TWM_Nowrap)
+     .Build;
+
+   --  Part styles bundle for class 'nowrap-text'
+   Nowrap_Text_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Label_Part => (Style => Nowrap_Text_Class_Label_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'alt-item'
+   Alt_Item_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Background (RGB (163, 190, 140))
+     .Build;
+
+   --  Part styles bundle for class 'alt-item'
+   Alt_Item_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Alt_Item_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'min-zero'
+   Min_Zero_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Min_Width (Size (Px (0.0)))
+        .Overflow_X (Overflow_Hidden)
+        .Overflow_Y (Overflow_Hidden)
+     .Build;
+
+   --  Part styles bundle for class 'min-zero'
+   Min_Zero_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Min_Zero_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'col-bar'
+   Col_Bar_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Width (Auto_Size)
+        .Height (Auto_Size)
+     .Build;
+
+   --  Part styles bundle for class 'col-bar'
+   Col_Bar_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Col_Bar_Class_Widget, Enabled => True),
+      others => <>
+   ];
+
+   --  Style for class 'nested-col'
+   Nested_Col_Class_Widget : constant Widget_Style :=
+     Style_Of
+        .Flex_Direction (Column)
+        .Gap (Gap (Px (4.0)))
+        .Height (Auto_Size)
+        .Background (RGB (76, 86, 106))
+        .Padding (CSS_Box (Px (4.0), Px (4.0), Px (4.0), Px (4.0)))
+     .Build;
+
+   --  Part styles bundle for class 'nested-col'
+   Nested_Col_Class_Part_Styles : constant Part_Style_Array :=
+     [
+      Main_Part => (Style => Nested_Col_Class_Widget, Enabled => True),
       others => <>
    ];
 

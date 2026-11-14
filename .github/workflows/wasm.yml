@@ -1,0 +1,46 @@
+name: WASM
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  #  Builds the browser showcase (wasm/README.md); nothing is run or
+  #  published.
+  showcase:
+    runs-on: ubuntu-26.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cmake and ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build
+
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 5.0.2
+          actions-cache-folder: emsdk-cache
+
+      - uses: alire-project/setup-alire@v6
+
+      - name: Add the gnat_llvm index
+        run: alr index --add git+https://github.com/ovenpasta/alire-index-gnat-llvm --name gnat_llvm
+
+      #  Keyed on the script, which names the SDL versions it builds
+      - uses: actions/cache@v4
+        id: sdl3
+        with:
+          path: ~/sdl3-wasm
+          key: sdl3-wasm-${{ hashFiles('wasm/build_sdl3.sh') }}-emsdk-5.0.2
+
+      - name: Build SDL3 for wasm
+        if: steps.sdl3.outputs.cache-hit != 'true'
+        run: wasm/build_sdl3.sh ~/sdl3-wasm
+
+      - name: Build the showcase
+        working-directory: wasm
+        run: alr -n exec -- make showcase SDL3_ROOT="$HOME/sdl3-wasm"

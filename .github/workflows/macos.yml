@@ -1,0 +1,31 @@
+name: macOS
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  test:
+    #  Apple Silicon: Homebrew under /opt/homebrew, as adi.gpr expects
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SDL3
+        run: brew install sdl3 sdl3_ttf sdl3_image
+
+      #  The runner has Xcode, not the Command Line Tools SDK adi.gpr
+      #  defaults to
+      - name: Point at the macOS SDK
+        run: echo "MACOS_SDKROOT=$(xcrun --show-sdk-path)" >> "$GITHUB_ENV"
+
+      - uses: alire-project/setup-alire@v6
+
+      - name: Build the library
+        run: alr build -- -j0
+
+      - name: Run the suite
+        run: alr exec -- tools/run_tests.sh

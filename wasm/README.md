@@ -24,10 +24,10 @@ WebAssembly build of the Adi2 examples. Live demo:
 
 - **SDL3 3.4.2, SDL3_image 3.4.0 and SDL3_ttf 3.2.2** built for
   Emscripten with `-fwasm-exceptions`, installed as `sdl3-prefix`,
-  `sdl3-image-prefix` and `sdl3-ttf-prefix` in one directory. The
-  commands are in adawebpack's
-  [`examples/sdl3/README.md`](https://github.com/ovenpasta/adawebpack/blob/master/examples/sdl3/README.md);
-  they need `cmake` and `ninja`.
+  `sdl3-image-prefix` and `sdl3-ttf-prefix` in one directory, which
+  `build_sdl3.sh DIR` does (it needs `cmake` and `ninja`, and emsdk's
+  environment). The commands are adawebpack's
+  [`examples/sdl3/README.md`](https://github.com/ovenpasta/adawebpack/blob/master/examples/sdl3/README.md).
 
 Makefile variables, override as needed:
 

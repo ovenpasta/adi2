@@ -2,6 +2,8 @@
 
 [![Linux](https://github.com/ovenpasta/adi2/actions/workflows/linux.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/linux.yml)
 [![Windows](https://github.com/ovenpasta/adi2/actions/workflows/windows.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/windows.yml)
+[![macOS](https://github.com/ovenpasta/adi2/actions/workflows/macos.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/macos.yml)
+[![WASM](https://github.com/ovenpasta/adi2/actions/workflows/wasm.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/wasm.yml)
 [![REUSE](https://github.com/ovenpasta/adi2/actions/workflows/reuse.yml/badge.svg)](https://github.com/ovenpasta/adi2/actions/workflows/reuse.yml)
 
 **A GUI library for Ada.**

@@ -1,0 +1,19 @@
+<style>
+  .b   { margin: 8px 0px; padding: 4px; background-color: #eeeeee; }
+  .all { border: 6px solid #333333; }
+  .sides { border-style: solid; border-color: #333333; border-width: 2px 12px 4px 20px; }
+  .styleless { border-width: 10px; }
+  .none-left { border: 8px solid #333333; border-left-style: none; }
+  .dotted { border: 3px dotted #333333; }
+  .row { display: flex; gap: 6px; height: 80px; border: 5px solid #333333; padding: 3px; align-items: flex-end; }
+  .cell { padding: 2px 6px; border: 2px solid #666666; background-color: #ddeecc; }
+</style>
+<div class="b all">A 6px border on every side insets the text by 6px plus the 4px padding.</div>
+<div class="b sides">Per-side widths: 2px top, 12px right, 4px bottom, 20px left.</div>
+<div class="b styleless">A width with no border-style draws no border and insets nothing.</div>
+<div class="b none-left">An 8px border with its left side's style set to none.</div>
+<div class="b dotted">A 3px dotted border insets like a solid one.</div>
+<div class="row"><span class="cell">Items in an 80px flex row with a 5px border</span><span class="cell">sit on its inner edge</span></div>
+<div class="b" style="border: 8px solid #333333; border-left-style: hidden">An 8px border with its left side hidden.</div>
+<div class="b" style="border-style: solid; border-color: #333333; border-width: 0.5em">A 0.5em border is half the element's own font size.</div>
+<div style="margin: 20px 0px; border-width: 10px"><p style="margin: 20px 0px">A width with no style does not stop the margins collapsing through.</p></div>

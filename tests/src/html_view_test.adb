@@ -891,6 +891,44 @@ procedure Html_View_Test is
       New_Line;
    end Test_Percent_Font_And_Line_Height;
 
+   --  A block's content is inset by the border it draws, and at a content
+   --  scale the drawn width follows it.
+   procedure Test_Border_Insets_At_Scale is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+   begin
+      Put_Line ("Test: borders inset content and scale with it");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 1200.0, Height => 600.0));
+      Adi.Widget.Html_View.Set_Content_Scale (W, 2.0);
+      Adi.Widget.Html_View.Set_HTML
+        (W, "<div style='border: 10px solid black; padding: 5px'>inset</div>");
+      Adi.Widget.Build_Items (+W);
+
+      declare
+         Idx : constant Natural := Find_Text_Item_Index (W, "inset");
+      begin
+         Assert (Idx > 0, "the text exists");
+         if Idx > 0 then
+            declare
+               Text  : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (Idx));
+               Panel : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, Positive (Idx) - 1);
+               Edges : constant Adi.Layout_Util.Edge_Pixels :=
+                 Adi.Layout_Util.Get_Border_Width_Px (Ref (Panel.Computed_Style).all);
+            begin
+               Assert (Nearly_Equal (Text.Geometry.X - Panel.Geometry.X, 30.0)
+                       and then Nearly_Equal (Text.Geometry.Y - Panel.Geometry.Y, 30.0),
+                       "a 10px border and 5px padding at scale 2 inset the text by 30:"
+                       & Float'Image (Float (Text.Geometry.X - Panel.Geometry.X)));
+               Assert (Nearly_Equal (Edges.Left, 20.0) and then Nearly_Equal (Edges.Bottom, 20.0),
+                       "the panel draws its 10px border 20 wide at scale 2:"
+                       & Float'Image (Float (Edges.Left)));
+            end;
+         end if;
+      end;
+      New_Line;
+   end Test_Border_Insets_At_Scale;
+
    procedure Test_Mixed_Inline_Baseline is
       W : constant Adi.Widget.Html_View.Html_View_Handle :=
         Adi.Widget.Html_View.Create_Handle;
@@ -2523,6 +2561,7 @@ begin
    Test_Img_Dimension_Attributes;
    Test_Content_Scale_Is_Linear;
    Test_Percent_Font_And_Line_Height;
+   Test_Border_Insets_At_Scale;
    Test_Grid_Px_Track_Follows_Content_Scale;
    Test_Mixed_Inline_Baseline;
    Test_Fresh_View_Is_Neutral;

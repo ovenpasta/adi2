@@ -2357,6 +2357,47 @@ package body Adi.Widget.Html_View is
          X := X + Run_W;
       end Add_Text_Run;
 
+      --  Border widths as drawn: a side whose style is none or hidden has
+      --  none. Lengths resolve at the content scale.
+      function Border_Edges (Style : Resolved_Style) return Edge_Pixels is
+         Font : constant Pixel_Type := Local_Font_Size_Px (Style);
+
+         function Side (E : Edge) return Pixel_Type is
+            Kind : constant Border_Style_Kind :=
+              (case Style.Border_Style.Kind is
+                  when Gap_Uniform => Style.Border_Style.All_Edges,
+                  when Per_Edge    => Style.Border_Style.Edges (E));
+            Width : constant Length_Value :=
+              (case Style.Border_Width.Kind is
+                  when Gap_Uniform => Style.Border_Width.All_Edges,
+                  when Per_Edge    => Style.Border_Width.Edges (E));
+         begin
+            return (if Kind in None_Style | Hidden then 0.0
+                    else Pixel_Type'Max (0.0, Local_Length_To_Px (Width, 0.0, Font)));
+         end Side;
+      begin
+         return (Top    => Side (Top),
+                 Right  => Side (Right),
+                 Bottom => Side (Bottom),
+                 Left   => Side (Left));
+      end Border_Edges;
+
+      --  Style as a block's panel draws it: border widths the layout
+      --  resolved, so the drawn border is the one the content is inset by.
+      function Panel_Style
+        (Style : Resolved_Style; Border : Edge_Pixels) return Resolved_Style
+      is
+         Result : Resolved_Style := Style;
+      begin
+         Result.Border_Width :=
+           (Kind  => Per_Edge,
+            Edges => [Top    => Pixels_As_Length (Border.Top),
+                      Right  => Pixels_As_Length (Border.Right),
+                      Bottom => Pixels_As_Length (Border.Bottom),
+                      Left   => Pixels_As_Length (Border.Left)]);
+         return Result;
+      end Panel_Style;
+
       procedure Add_Image_Run
         (Img        : Adi.Image.Image_Handle;
          Width      : Pixel_Type;
@@ -2414,7 +2455,7 @@ package body Adi.Widget.Html_View is
          begin
             It.Has_Style_Override := True;
             declare
-               Override : Resolved_Style := Style;
+               Override : Resolved_Style := Panel_Style (Style, Border_Edges (Style));
             begin
                if Img /= Adi.Image.Null_Image_Handle
                  and then Adi.Image.Is_Tintable (Img)
@@ -2476,7 +2517,7 @@ package body Adi.Widget.Html_View is
             It : Item := Make_Panel (Any_Part, Rule_Geom, 1);
          begin
             It.Has_Style_Override := True;
-            It.Style_Override := Intern (Style);
+            It.Style_Override := Intern (Panel_Style (Style, Border_Edges (Style)));
             Result.Items.Append (It);
          end;
 
@@ -3152,22 +3193,22 @@ package body Adi.Widget.Html_View is
       --  The container's content height when its own height is declared,
       --  else Pixel_Type'Last.
       function Fixed_Content_Height
-        (Style : Resolved_Style; Padding : Edge_Pixels) return Pixel_Type
+        (Style : Resolved_Style; Insets : Edge_Pixels) return Pixel_Type
       is
          Declared_H : constant Pixel_Type := Declared_Px (Style.Height, 0.0, Style);
       begin
          return (if Declared_H = Pixel_Type'Last then Pixel_Type'Last
-                 else Pixel_Type'Max (0.0, Declared_H - Padding.Top - Padding.Bottom));
+                 else Pixel_Type'Max (0.0, Declared_H - Insets.Top - Insets.Bottom));
       end Fixed_Content_Height;
 
       --  Lay out Parent's children as flex items in the content box the
       --  enclosing block left open: Line_Left .. Line_Right from Y down.
-      --  Padding is that block's. Leaves Y at the bottom of the
-      --  container's content.
+      --  Insets are that block's padding and border. Leaves Y at the
+      --  bottom of the container's content.
       procedure Layout_Flex_Container
         (Parent  : Node;
          Style   : Resolved_Style;
-         Padding : Edge_Pixels;
+         Insets  : Edge_Pixels;
          Link    : String)
       is
          Dir     : constant Flex_Direction_Value := Style.Flex_Direction;
@@ -3182,7 +3223,7 @@ package body Adi.Widget.Html_View is
            Item_Sources (Parent, Style);
          Count   : constant Natural := Natural (Sources.Length);
 
-         Fixed_H : constant Pixel_Type := Fixed_Content_Height (Style, Padding);
+         Fixed_H : constant Pixel_Type := Fixed_Content_Height (Style, Insets);
          Of_H : constant Pixel_Type :=
            (if Fixed_H = Pixel_Type'Last then 0.0 else Fixed_H);
 
@@ -3409,7 +3450,7 @@ package body Adi.Widget.Html_View is
       procedure Layout_Grid_Container
         (Parent  : Node;
          Style   : Resolved_Style;
-         Padding : Edge_Pixels;
+         Insets  : Edge_Pixels;
          Link    : String)
       is
          Left    : constant Pixel_Type := Line_Left;
@@ -3420,7 +3461,7 @@ package body Adi.Widget.Html_View is
            Item_Sources (Parent, Style);
          Count   : constant Natural := Natural (Sources.Length);
 
-         Fixed_H : constant Pixel_Type := Fixed_Content_Height (Style, Padding);
+         Fixed_H : constant Pixel_Type := Fixed_Content_Height (Style, Insets);
          Of_H : constant Pixel_Type :=
            (if Fixed_H = Pixel_Type'Last then 0.0 else Fixed_H);
          Top     : Pixel_Type;
@@ -3718,6 +3759,10 @@ package body Adi.Widget.Html_View is
                            then Flow.Item_Base else Current_Line_Width);
                         Margin_Edges      : Edge_Pixels := Zero_Edges;
                         Padding_Edges     : Edge_Pixels := Zero_Edges;
+                        Border_Px         : Edge_Pixels := Zero_Edges;
+                        --  Padding and border together: what separates the
+                        --  content from the panel's edge.
+                        Inset_Edges       : Edge_Pixels := Zero_Edges;
                         List_Context_Pushed : Boolean := False;
                         Marker          : List_Marker_Run := (Kind => No_Marker);
                         Marker_W        : Pixel_Type := 0.0;
@@ -3747,18 +3792,20 @@ package body Adi.Widget.Html_View is
 
                            Margin_Edges := Resolve_Margin_Edges (Style.Margin, Style, Local_Container_W);
                            Padding_Edges := Resolve_Box_Edges (Style.Padding, Style, Local_Container_W);
+                           Border_Px := Border_Edges (Style);
+                           Inset_Edges :=
+                             (Top    => Padding_Edges.Top + Border_Px.Top,
+                              Right  => Padding_Edges.Right + Border_Px.Right,
+                              Bottom => Padding_Edges.Bottom + Border_Px.Bottom,
+                              Left   => Padding_Edges.Left + Border_Px.Left);
 
                            --  Vertical margin collapsing. Defer the commit
                            --  when there is no top padding/border so the
                            --  parent's top margin can collapse-through with
                            --  its first child's top margin (CSS spec).
                            declare
-                              Border_Edges : constant Edge_Pixels :=
-                                Get_Border_Width_Px (Style);
                               Has_Top_Sep : constant Boolean :=
-                                As_Item
-                                  or else Padding_Edges.Top > 0.0
-                                  or else Border_Edges.Top > 0.0;
+                                As_Item or else Inset_Edges.Top > 0.0;
                               Combined : constant Pixel_Type :=
                                 Pixel_Type'Max
                                   (Margin_Edges.Top, Prev_Block_Margin_Bottom);
@@ -3783,14 +3830,14 @@ package body Adi.Widget.Html_View is
                                       0);
                               begin
                                  It.Has_Style_Override := True;
-                                 It.Style_Override := Intern (Style);
+                                 It.Style_Override := Intern (Panel_Style (Style, Border_Px));
                                  Result.Items.Append (It);
                                  Block_Item_Index := Natural (Result.Items.Last_Index);
                               end;
 
                               if Has_Top_Sep then
                                  Flush_Pending_Margin;
-                                 Y := Block_Top_Y + Padding_Edges.Top;
+                                 Y := Block_Top_Y + Inset_Edges.Top;
                               else
                                  Pending_Tops.Append (Positive (Block_Item_Index));
                                  --  Y stays put; first content commits via
@@ -3800,10 +3847,10 @@ package body Adi.Widget.Html_View is
                               end if;
                            end;
 
-                           Line_Left := Prev_Line_Left + Margin_Edges.Left + Padding_Edges.Left;
-                           Line_Right := Prev_Line_Right - Margin_Edges.Right - Padding_Edges.Right;
+                           Line_Left := Prev_Line_Left + Margin_Edges.Left + Inset_Edges.Left;
+                           Line_Right := Prev_Line_Right - Margin_Edges.Right - Inset_Edges.Right;
                            Flow.Right_Inset :=
-                             Prev_Right_Inset + Margin_Edges.Right + Padding_Edges.Right;
+                             Prev_Right_Inset + Margin_Edges.Right + Inset_Edges.Right;
                            if Line_Right < Line_Left then
                               Line_Right := Line_Left;
                            end if;
@@ -3879,9 +3926,9 @@ package body Adi.Widget.Html_View is
                         end if;
 
                         if Block_Flow and then Style.Display in Flex | Inline_Flex then
-                           Layout_Flex_Container (N, Style, Padding_Edges, Link_Href);
+                           Layout_Flex_Container (N, Style, Inset_Edges, Link_Href);
                         elsif Block_Flow and then Style.Display in Grid | Inline_Grid then
-                           Layout_Grid_Container (N, Style, Padding_Edges, Link_Href);
+                           Layout_Grid_Container (N, Style, Inset_Edges, Link_Href);
                         else
                            for Child_Idx of N.Children loop
                               if Child_Idx > 0 then
@@ -3902,19 +3949,15 @@ package body Adi.Widget.Html_View is
                            end if;
 
                            declare
-                              Border_Edges : constant Edge_Pixels :=
-                                Get_Border_Width_Px (Style);
                               Has_Bot_Sep : constant Boolean :=
-                                As_Item
-                                  or else Padding_Edges.Bottom > 0.0
-                                  or else Border_Edges.Bottom > 0.0;
+                                As_Item or else Inset_Edges.Bottom > 0.0;
                            begin
                               if Has_Bot_Sep then
                                  --  Bottom padding/border anchors the box;
                                  --  flush any descendant pending margin
                                  --  and then add our padding.
                                  Flush_Pending_Margin;
-                                 Y := Y + Padding_Edges.Bottom;
+                                 Y := Y + Inset_Edges.Bottom;
                                  Prev_Block_Margin_Bottom := Margin_Edges.Bottom;
                               else
                                  --  No bottom separation: collapse-through.

@@ -146,6 +146,10 @@ Package: `Adi.Widget.Html_View`
 - Vertical margins/padding/border participate via existing style resolution.
 - Block elements emit panel items with the resolved element style, so block
   `background-color`/`border*` visuals are rendered.
+- A block's content is inset by its padding and its drawn border: a side whose
+  `border-style` is `none` or `hidden` has no border. Border widths resolve at
+  the content scale, and the panel draws them at the width the content is
+  inset by.
 
 ### Vertical Margin Collapsing
 The renderer implements CSS-style vertical margin collapsing:

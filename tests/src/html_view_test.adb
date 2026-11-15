@@ -891,6 +891,163 @@ procedure Html_View_Test is
       New_Line;
    end Test_Percent_Font_And_Line_Height;
 
+   --  Sheet rules select with compounds, combinators and pseudo-classes,
+   --  and cascade by specificity, then by the order written. Under
+   --  line-height: 1.0 a line is as tall as its largest font, so the
+   --  height of a word alone on its line reads the size a rule set.
+   procedure Test_Selectors is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+
+      function Size_Of (Needle : String) return Float is
+         Idx : constant Natural := Find_Text_Item_Index (W, Needle);
+      begin
+         Assert (Idx > 0, Needle & " exists");
+         return (if Idx > 0
+                 then Float (Adi.Widget.Get_Item (+W, Positive (Idx)).Geometry.Height)
+                 else 0.0);
+      end Size_Of;
+
+      procedure Expect (Needle : String; Px : Float; What : String) is
+         Got : constant Float := Size_Of (Needle);
+      begin
+         Assert (abs (Got - Px) < 0.01, What & ":" & Got'Image);
+      end Expect;
+
+      Base : constant String :=
+        "<style>body { font-size: 16px; line-height: 1.0; } ";
+   begin
+      Put_Line ("Test: sheet selectors");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 900.0));
+
+      Adi.Widget.Html_View.Set_HTML
+        (W, Base
+            & "p span { font-size: 20px; } "
+            & "div > em { font-size: 24px; } "
+            & ".a.b { font-size: 28px; } "
+            & "h6 + p { font-size: 12px; } "
+            & "h5 ~ p { font-size: 10px; } "
+            & "li:first-child { font-size: 30px; } "
+            & "li:last-child { font-size: 8px; } "
+            & "a[href] { font-size: 19px; } "
+            & "p::before, .kept { font-size: 18px; } "
+            & "body div i { font-size: 22px; } "
+            & "html i.top { font-size: 26px; } "
+            & "b + u { font-size: 21px; } s ~ q { font-size: 23px; } "
+            & "[data-k] { font-size: 25px; } [title=Hi] { font-size: 27px; } "
+            & "[open] { font-size: 29px; } a[href=''] { font-size: 31px; } "
+            & "[lang=en] { font-size: 33px; } [p] { font-size: 35px; }"
+            & "</style>"
+            & "<p><span>inside</span></p><div><span>outside</span></div>"
+            & "<div><em>child</em><p><em>grandchild</em></p></div>"
+            & "<p class='b a'>both</p><p class='a'>one</p>"
+            & "<h6>h</h6><p>next</p><p>after</p>"
+            & "<div><h5>h</h5><h4>x</h4><p>later</p></div>"
+            & "<ul><li>first</li><li>middle</li><li>last</li></ul>"
+            & "<p><a href='#x'>link</a></p><p><a>bare</a></p>"
+            & "<p class='kept'>kept</p>"
+            & "<div><i>deep</i></div><i class='top'>top</i>"
+            & "<div><b>b</b> text <!-- note --> <u>skips text</u></div>"
+            & "<div><s>s</s> <b>b</b><br><q>over others</q></div>"
+            & "<p data-k='1'>data</p><p title='Hi'>titled</p><p title='hi'>case</p>"
+            & "<p open>valueless attribute</p><p><a href=''>empty href</a></p>"
+            & "<p lang=en>unquoted</p><p>tagname</p>");
+      Adi.Widget.Build_Items (+W);
+
+      Expect ("inside", 20.0, "p span selects a descendant");
+      Expect ("outside", 16.0, "p span skips a span outside any p");
+      Expect ("child", 24.0, "div > em selects a child");
+      Expect ("grandchild", 16.0, "div > em skips a grandchild");
+      Expect ("both", 28.0, ".a.b selects an element with both classes");
+      Expect ("one", 16.0, ".a.b skips an element with one");
+      Expect ("next", 12.0, "h6 + p selects the next sibling");
+      Expect ("after", 16.0, "h6 + p skips a later one");
+      Expect ("later", 10.0, "h5 ~ p selects a later sibling");
+      Expect ("first", 30.0, ":first-child");
+      Expect ("middle", 16.0, "neither first nor last");
+      Expect ("last", 8.0, ":last-child");
+      Expect ("link", 19.0, "a[href] selects a link");
+      Expect ("bare", 16.0, "a[href] skips an a without one");
+      Expect ("kept", 18.0, "a selector outside the grammar drops only itself");
+      Expect ("deep", 22.0, "the document root is body");
+      Expect ("top", 26.0, "body sits under html");
+      Expect ("skips", 21.0, "+ looks past text and comments to the element before");
+      Expect ("over", 23.0, "~ looks past other elements");
+      Expect ("data", 25.0, "[data-k] selects any attribute");
+      Expect ("titled", 27.0, "[title=Hi]");
+      Expect ("case", 16.0, "attribute values match case-sensitively");
+      Expect ("valueless", 29.0, "an attribute without a value is present");
+      Expect ("empty", 31.0, "an empty value is present, and equals ''");
+      Expect ("unquoted", 33.0, "an unquoted value");
+      Expect ("tagname", 16.0, "a tag's name is not one of its attributes");
+
+      --  Specificity outweighs order; at equal weight the later rule wins;
+      --  the style attribute outweighs every rule.
+      Adi.Widget.Html_View.Set_HTML
+        (W, Base
+            & "#i { font-size: 30px; } p.c { font-size: 24px; } "
+            & ".c { font-size: 8px; } p { font-size: 9px; } "
+            & ".d { font-size: 12px; } .e { font-size: 14px; }"
+            & "</style>"
+            & "<p id='i' class='c'>id</p><p class='c'>class</p>"
+            & "<p class='e d'>order</p>"
+            & "<p id='i' style='font-size: 11px'>inline</p>");
+      Adi.Widget.Build_Items (+W);
+      Expect ("id", 30.0, "an id outweighs classes written after it");
+      Expect ("class", 24.0, "p.c outweighs a later .c");
+      Expect ("order", 14.0, "the later of two equal rules wins");
+      Expect ("inline", 11.0, "the style attribute outweighs an id");
+
+      --  :hover and :active follow the link under the pointer, and the
+      --  elements it is inside.
+      Adi.Widget.Html_View.Set_HTML
+        (W, Base
+            & "a:hover { font-size: 24px; } p:hover .x { font-size: 20px; } "
+            & "a:active { font-size: 32px; }"
+            & "</style>"
+            & "<p><a href='#a'>hot</a><br><span class='x'>near</span></p>"
+            & "<p><span class='x'>far</span></p>");
+      Adi.Widget.Build_Items (+W);
+      Expect ("hot", 16.0, "nothing is hovered at first");
+      Expect ("near", 16.0, "nor is its paragraph");
+
+      Adi.Widget.Set_Hovered (+W);
+      declare
+         G : constant Adi.Core.Rectangle :=
+           Adi.Widget.Get_Item (+W, Find_Text_Item_Index (W, "hot")).Geometry;
+         X : constant Adi.Core.Pixel_Type := G.X + G.Width / 2.0;
+         Y : constant Adi.Core.Pixel_Type := G.Y + G.Height / 2.0;
+      begin
+         Adi.Widget.On_Mouse_Move (+W, X => X, Y => Y);
+         Adi.Widget.Build_Items (+W);
+         Expect ("hot", 24.0, "a:hover selects the link under the pointer");
+         Expect ("near", 20.0, "p:hover selects the paragraph holding it");
+         Expect ("far", 16.0, "another paragraph is not hovered");
+
+         Adi.Widget.On_Mouse_Down
+           (+W, X => X, Y => Y, Button => Adi.Core.Left_Button, Clicks => 1);
+         Adi.Widget.Build_Items (+W);
+         Expect ("hot", 32.0, "a:active selects the pressed link");
+         Adi.Widget.On_Mouse_Up (+W, X => X, Y => Y, Button => Adi.Core.Left_Button);
+         Adi.Widget.Build_Items (+W);
+         Expect ("hot", 24.0, "releasing it leaves it hovered");
+      end;
+
+      Adi.Widget.Set_Hovered (+W, False);
+      Adi.Widget.Build_Items (+W);
+      Expect ("hot", 16.0, "a pointer outside the view hovers nothing in it");
+
+      --  A new document starts with nothing hovered or pressed.
+      Adi.Widget.Set_Hovered (+W);
+      Adi.Widget.Html_View.Set_HTML
+        (W, Base & "a:hover { font-size: 24px; } a:active { font-size: 32px; }</style>"
+            & "<p><a href='#a'>cold</a></p>");
+      Adi.Widget.Build_Items (+W);
+      Expect ("cold", 16.0, "a reparse forgets the hovered link");
+      New_Line;
+   end Test_Selectors;
+
    --  A block's content is inset by the border it draws, and at a content
    --  scale the drawn width follows it.
    procedure Test_Border_Insets_At_Scale is
@@ -2737,6 +2894,7 @@ begin
    Test_Img_Dimension_Attributes;
    Test_Content_Scale_Is_Linear;
    Test_Percent_Font_And_Line_Height;
+   Test_Selectors;
    Test_Border_Insets_At_Scale;
    Test_Character_References;
    Test_Marker_Beside_Opening_Block;

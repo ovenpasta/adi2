@@ -8,6 +8,7 @@ with Adi.CSS_Parser;
 with Adi.CSS_Styles;
 with Adi.Font;
 with Adi.Image;
+private with Adi.HTML_Selectors;
 with Adi.Signal;
 
 package Adi.Widget.Html_View is
@@ -142,6 +143,8 @@ private
       Width_Attr : Unbounded_String := Null_Unbounded_String;
       Height_Attr : Unbounded_String := Null_Unbounded_String;
       Svg_Source_Attr : Unbounded_String := Null_Unbounded_String;
+      --  The start tag's text after its name, for attribute selectors.
+      Raw_Attrs  : Unbounded_String := Null_Unbounded_String;
    end record;
 
    package Node_Index_Vectors is new Ada.Containers.Vectors
@@ -150,6 +153,8 @@ private
 
    type Node (Kind : Node_Kind := Text_Node) is record
       Parent : Natural := 0;
+      --  The index among its parent's children, or 0.
+      Position : Natural := 0;
       case Kind is
          when Element_Node =>
             Tag_Name : Unbounded_String := Null_Unbounded_String;
@@ -169,6 +174,8 @@ private
    type Link_Fragment is record
       Geometry : Rectangle := (0.0, 0.0, 0.0, 0.0);
       Href     : Unbounded_String := Null_Unbounded_String;
+      --  The a element the fragment is part of.
+      Node     : Natural := 0;
    end record;
 
    package Link_Fragment_Vectors is new Ada.Containers.Vectors
@@ -248,7 +255,23 @@ private
         Adi.CSS_Styles.Default_Font_Size;
       Main_Style  : Adi.CSS_Styles.Resolved_Style;
       Text_Style  : Adi.CSS_Styles.Resolved_Style;
+      --  The elements under the pointer and pressed, while the sheet has
+      --  rules that select on them; 0 otherwise.
+      Hover_Node  : Natural := 0;
+      Active_Node : Natural := 0;
    end record;
+
+   --  A rule of the document's sheet, its selector parsed once.
+   type Sheet_Rule is record
+      Selector : Adi.HTML_Selectors.Selector;
+      --  The subject's type and id, "" for any, to turn rules away early.
+      Tag, Id  : Unbounded_String;
+      Weight   : Adi.HTML_Selectors.Specificity;
+      Rules    : Adi.CSS_Styles.Style_Rules;
+   end record;
+
+   package Sheet_Rule_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Sheet_Rule);
 
    type Html_View is new Widget with record
       Source          : Unbounded_String := Null_Unbounded_String;
@@ -263,6 +286,13 @@ private
       Root_Font_Size  : Adi.CSS_Styles.Length_Value :=
         Adi.CSS_Styles.Default_Font_Size;
       Hovered_Href    : Unbounded_String := Null_Unbounded_String;
+      --  The CSS_Sheet's rules in the order written, and whether any
+      --  selects on :hover or :active.
+      Sheet_Rules     : Sheet_Rule_Vectors.Vector;
+      Dynamic_Rules   : Boolean := False;
+      --  The a element under the pointer and the one pressed, or 0.
+      Hovered_Node    : Natural := 0;
+      Active_Node     : Natural := 0;
       Pressed_Href    : Unbounded_String := Null_Unbounded_String;
       Pressed_Is_Link : Boolean := False;
       Content_Scale   : Pixel_Type := 1.0;

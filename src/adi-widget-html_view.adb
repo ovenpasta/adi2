@@ -214,10 +214,12 @@ package body Adi.Widget.Html_View is
    function Decode_Entities (S : String) return String;
 
    --  The value of attribute Name in a tag's text, character references
-   --  decoded, or "" when the tag has none.
-   function Extract_Attribute
+   --  decoded; Found False when the tag has none. An attribute written
+   --  without a value is found, with value "".
+   function Find_Attribute
      (Tag_Content : String;
-      Name        : String) return String
+      Name        : String;
+      Found       : out Boolean) return String
    is
       Name_Low : constant String := Lower (Name);
       I        : Integer := Tag_Content'First;
@@ -282,6 +284,7 @@ package body Adi.Widget.Html_View is
          return Tag_Content (Start .. I - 1);
       end Read_Value;
    begin
+      Found := False;
       while I <= Tag_Content'Last loop
          Skip_Spaces;
          exit when I > Tag_Content'Last;
@@ -301,9 +304,13 @@ package body Adi.Widget.Html_View is
                      Value : constant String := Read_Value;
                   begin
                      if Key = Name_Low then
+                        Found := True;
                         return Decode_Entities (Value);
                      end if;
                   end;
+               elsif Key = Name_Low then
+                  Found := True;
+                  return "";
                end if;
             end if;
          end;
@@ -312,8 +319,35 @@ package body Adi.Widget.Html_View is
       return "";
    exception
       when others =>
+         Found := False;
          return "";
+   end Find_Attribute;
+
+   --  The value of attribute Name in a tag's text, or "" when it has none.
+   function Extract_Attribute
+     (Tag_Content : String;
+      Name        : String) return String
+   is
+      Found : Boolean;
+   begin
+      return Find_Attribute (Tag_Content, Name, Found);
    end Extract_Attribute;
+
+   --  A tag's text after its name: the attributes alone.
+   function Attribute_Text (Raw_Tag : String) return String is
+      I : Natural := Raw_Tag'First;
+   begin
+      while I <= Raw_Tag'Last and then Is_Whitespace (Raw_Tag (I)) loop
+         I := I + 1;
+      end loop;
+      while I <= Raw_Tag'Last
+        and then not Is_Whitespace (Raw_Tag (I))
+        and then Raw_Tag (I) /= '/'
+      loop
+         I := I + 1;
+      end loop;
+      return Raw_Tag (I .. Raw_Tag'Last);
+   end Attribute_Text;
 
    --  The HTML 4 named character references, sorted by name.
    type Named_Reference is record
@@ -323,7 +357,7 @@ package body Adi.Widget.Html_View is
    end record;
 
    function Named (Name : String; Code : Natural) return Named_Reference is
-     ((Name => Name & (1 .. 8 - Name'Length => ' '), Last => Name'Length, Code => Code));
+     ((Name => Name & [1 .. 8 - Name'Length => ' '], Last => Name'Length, Code => Code));
 
    Named_References : constant array (Positive range <>) of Named_Reference :=
      [Named ("AElig", 198), Named ("Aacute", 193), Named ("Acirc", 194),
@@ -575,6 +609,7 @@ package body Adi.Widget.Html_View is
 
       Parent_Node.Children.Append (Natural (Child_Index));
       Self.Nodes.Replace_Element (Parent_Index, Parent_Node);
+      Self.Nodes (Child_Index).Position := Parent_Node.Children.Last_Index;
    end Append_Child;
 
    function Append_Element_Node
@@ -590,6 +625,7 @@ package body Adi.Widget.Html_View is
            Node'
              (Kind     => Element_Node,
               Parent   => Parent,
+              Position => 0,
               Tag_Name => To_Unbounded_String (Lower (Tag)),
               Attrs    => Attrs,
               Children => <>));
@@ -620,6 +656,7 @@ package body Adi.Widget.Html_View is
            Node'
              (Kind   => Text_Node,
               Parent => Natural (Parent_Index),
+              Position => 0,
               Text   => To_Unbounded_String (Decoded)));
       Idx := Positive (Self.Nodes.Last_Index);
       Append_Child (Self, Parent_Index, Idx);
@@ -635,7 +672,8 @@ package body Adi.Widget.Html_View is
         (New_Item =>
            Node'
              (Kind   => Break_Node,
-              Parent => Natural (Parent_Index)));
+              Parent => Natural (Parent_Index),
+              Position => 0));
       Idx := Positive (Self.Nodes.Last_Index);
       Append_Child (Self, Parent_Index, Idx);
    end Append_Break_Node;
@@ -825,15 +863,204 @@ package body Adi.Widget.Html_View is
       return Set (Size (Px (Value)));
    end Dimension_Attribute;
 
-   function Element_Cascade_Rules
-     (Self  : in out Html_View;
-      Tag   : String;
-      Attrs : Element_Attributes) return Style_Rules
+   ---------------------------------------------------------------------------
+   --  The document as Adi.HTML_Selectors reads it. Element 1, the parse
+   --  root, stands for body, under an html element numbered one past the
+   --  last node.
+   ---------------------------------------------------------------------------
+
+   type View_Document (View : not null access constant Html_View) is
+     new Adi.HTML_Selectors.Document with null record;
+
+   overriding function Tag_Of (D : View_Document; E : Positive) return String;
+   overriding function Id_Of (D : View_Document; E : Positive) return String;
+   overriding function Has_Class
+     (D : View_Document; E : Positive; Name : String) return Boolean;
+   overriding function Attribute_Of
+     (D : View_Document; E : Positive; Name : String; Found : out Boolean)
+      return String;
+   overriding function Parent_Of (D : View_Document; E : Positive) return Natural;
+   overriding function Previous_Sibling_Of
+     (D : View_Document; E : Positive) return Natural;
+   overriding function Next_Sibling_Of
+     (D : View_Document; E : Positive) return Natural;
+   overriding function In_State
+     (D : View_Document; E : Positive; State : Adi.HTML_Selectors.Dynamic_State)
+      return Boolean;
+
+   function Html_Element (D : View_Document'Class) return Positive is
+     (Natural (D.View.Nodes.Length) + 1);
+
+   overriding function Tag_Of (D : View_Document; E : Positive) return String is
+     (if E = Html_Element (D) then "html"
+      elsif E = 1 then "body"
+      else To_String (D.View.Nodes (E).Tag_Name));
+
+   overriding function Id_Of (D : View_Document; E : Positive) return String is
+     (if E >= Html_Element (D) then ""
+      else Trimmed (To_String (D.View.Nodes (E).Attrs.Id_Attr)));
+
+   overriding function Has_Class
+     (D : View_Document; E : Positive; Name : String) return Boolean
    is
-      Result      : Style_Rules := Tag_Default_Style (Tag);
-      Class_Value : constant String := To_String (Attrs.Class_Attr);
-      Id_Value    : constant String := Lower (Trimmed (To_String (Attrs.Id_Attr)));
-      I           : Integer := Class_Value'First;
+   begin
+      if E >= Html_Element (D) then
+         return False;
+      end if;
+      declare
+         Value : constant String := To_String (D.View.Nodes (E).Attrs.Class_Attr);
+         I     : Natural := Value'First;
+      begin
+         while I <= Value'Last loop
+            while I <= Value'Last and then Is_Whitespace (Value (I)) loop
+               I := I + 1;
+            end loop;
+            declare
+               Start : constant Natural := I;
+            begin
+               while I <= Value'Last and then not Is_Whitespace (Value (I)) loop
+                  I := I + 1;
+               end loop;
+               if I > Start and then Lower (Value (Start .. I - 1)) = Name then
+                  return True;
+               end if;
+            end;
+         end loop;
+         return False;
+      end;
+   end Has_Class;
+
+   overriding function Attribute_Of
+     (D : View_Document; E : Positive; Name : String; Found : out Boolean)
+      return String
+   is
+   begin
+      Found := False;
+      if E >= Html_Element (D) then
+         return "";
+      end if;
+      return Find_Attribute (To_String (D.View.Nodes (E).Attrs.Raw_Attrs), Name, Found);
+   end Attribute_Of;
+
+   overriding function Parent_Of (D : View_Document; E : Positive) return Natural is
+     (if E >= Html_Element (D) then 0
+      elsif E = 1 then Html_Element (D)
+      else D.View.Nodes (E).Parent);
+
+   --  The element sibling Step away from E among its parent's children.
+   function Element_Sibling
+     (D : View_Document'Class; E : Positive; Step : Integer) return Natural
+   is
+   begin
+      if E = 1 or else E >= Html_Element (D) then
+         return 0;
+      end if;
+      declare
+         Kids : Node_Index_Vectors.Vector renames
+           D.View.Nodes (D.View.Nodes (E).Parent).Children;
+         K    : Integer := D.View.Nodes (E).Position;
+      begin
+         if K = 0 then
+            return 0;
+         end if;
+         loop
+            K := K + Step;
+            exit when K < Kids.First_Index or else K > Kids.Last_Index;
+            if Kids (K) > 0 and then D.View.Nodes (Kids (K)).Kind = Element_Node then
+               return Kids (K);
+            end if;
+         end loop;
+         return 0;
+      end;
+   end Element_Sibling;
+
+   overriding function Previous_Sibling_Of
+     (D : View_Document; E : Positive) return Natural is
+     (Element_Sibling (D, E, -1));
+
+   overriding function Next_Sibling_Of
+     (D : View_Document; E : Positive) return Natural is
+     (Element_Sibling (D, E, +1));
+
+   --  The hovered or pressed element, and every element it is inside.
+   overriding function In_State
+     (D : View_Document; E : Positive; State : Adi.HTML_Selectors.Dynamic_State)
+      return Boolean
+   is
+      use type Adi.HTML_Selectors.Dynamic_State;
+      P : Natural :=
+        (if State /= Adi.HTML_Selectors.Hovered then D.View.Active_Node
+         elsif Get_States (D.View.all) (State_Hovered) then D.View.Hovered_Node
+         else 0);
+   begin
+      while P /= 0 loop
+         if P = E then
+            return True;
+         end if;
+         P := Parent_Of (D, P);
+      end loop;
+      return False;
+   end In_State;
+
+   --  The sheet's rules matching element E, merged by specificity and
+   --  then by the order written.
+   function Sheet_Rules_For (Self : Html_View; E : Positive) return Style_Rules is
+      Doc   : View_Document (Self'Unrestricted_Access);
+      Hits  : array (1 .. Natural (Self.Sheet_Rules.Length)) of Positive;
+      Count : Natural := 0;
+      Result : Style_Rules := Empty_Style;
+
+      function Before (L, R : Positive) return Boolean is
+        (Adi.HTML_Selectors."<" (Self.Sheet_Rules (L).Weight, Self.Sheet_Rules (R).Weight)
+         or else (not Adi.HTML_Selectors."<" (Self.Sheet_Rules (R).Weight,
+                                              Self.Sheet_Rules (L).Weight)
+                  and then L < R));
+      --  The subject's type and id turn most rules away before matching.
+      Tag : constant String := Lower (Doc.Tag_Of (E));
+      Id  : constant String := Lower (Doc.Id_Of (E));
+   begin
+      for I in 1 .. Natural (Self.Sheet_Rules.Length) loop
+         if (Length (Self.Sheet_Rules (I).Tag) = 0
+             or else To_String (Self.Sheet_Rules (I).Tag) = Tag)
+           and then (Length (Self.Sheet_Rules (I).Id) = 0
+                     or else To_String (Self.Sheet_Rules (I).Id) = Id)
+           and then Adi.HTML_Selectors.Matches (Self.Sheet_Rules (I).Selector, Doc, E)
+         then
+            Count := Count + 1;
+            Hits (Count) := I;
+         end if;
+      end loop;
+
+      --  Insertion sort: the hits are few and nearly in order already.
+      for I in 2 .. Count loop
+         declare
+            H : constant Positive := Hits (I);
+            J : Natural := I - 1;
+         begin
+            while J >= 1 and then Before (H, Hits (J)) loop
+               Hits (J + 1) := Hits (J);
+               J := J - 1;
+            end loop;
+            Hits (J + 1) := H;
+         end;
+      end loop;
+
+      for I in 1 .. Count loop
+         Result := Merge (Result, Self.Sheet_Rules (Hits (I)).Rules);
+      end loop;
+      return Result;
+   end Sheet_Rules_For;
+
+   --  An element's rules: its tag's defaults, then presentational
+   --  attributes, then the sheet in cascade order, then its style
+   --  attribute.
+   function Element_Cascade_Rules
+     (Self    : in out Html_View;
+      Element : Positive) return Style_Rules
+   is
+      Tag    : constant String := To_String (Self.Nodes (Element).Tag_Name);
+      Attrs  : constant Element_Attributes := Self.Nodes (Element).Attrs;
+      Result : Style_Rules := Tag_Default_Style (Tag);
    begin
       --  img width/height sit below every stylesheet rule.
       if Tag = "img" then
@@ -852,54 +1079,7 @@ package body Adi.Widget.Html_View is
          end;
       end if;
 
-      if Adi.CSS_Parser.Has (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, Tag)
-      then
-         Result := Merge
-           (Result,
-            Adi.CSS_Parser.Base_Rules
-              (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, Tag));
-      end if;
-
-      while I <= Class_Value'Last loop
-         while I <= Class_Value'Last and then Is_Whitespace (Class_Value (I)) loop
-            I := I + 1;
-         end loop;
-         exit when I > Class_Value'Last;
-
-         declare
-            Start : constant Integer := I;
-         begin
-            while I <= Class_Value'Last and then not Is_Whitespace (Class_Value (I)) loop
-               I := I + 1;
-            end loop;
-
-            if I > Start then
-               declare
-                  Name : constant String := Lower (Class_Value (Start .. I - 1));
-               begin
-                  if Adi.CSS_Parser.Has
-                       (Self.CSS_Sheet, Adi.CSS_Parser.Class_Selector, Name)
-                  then
-                     Result := Merge
-                       (Result,
-                        Adi.CSS_Parser.Base_Rules
-                          (Self.CSS_Sheet,
-                           Adi.CSS_Parser.Class_Selector, Name));
-                  end if;
-               end;
-            end if;
-         end;
-      end loop;
-
-      if Id_Value'Length > 0
-        and then Adi.CSS_Parser.Has
-                   (Self.CSS_Sheet, Adi.CSS_Parser.Id_Selector, Id_Value)
-      then
-         Result := Merge
-           (Result,
-            Adi.CSS_Parser.Base_Rules
-              (Self.CSS_Sheet, Adi.CSS_Parser.Id_Selector, Id_Value));
-      end if;
+      Result := Merge (Result, Sheet_Rules_For (Self, Element));
 
       if Length (Attrs.Style_Attr) > 0 then
          Result := Merge (Result, Parse_Inline_Style_Rules (Self, To_String (Attrs.Style_Attr)));
@@ -1018,6 +1198,27 @@ package body Adi.Widget.Html_View is
       else
          Adi.CSS_Parser.Load_Rules (Self.CSS_Sheet, CSS_Text, Success);
       end if;
+      Self.Sheet_Rules.Clear;
+      Self.Dynamic_Rules := False;
+      for I in 1 .. Adi.CSS_Parser.Written_Count (Self.CSS_Sheet) loop
+         declare
+            Sel : Adi.HTML_Selectors.Selector;
+         begin
+            if Adi.HTML_Selectors.Parse
+                 (Adi.CSS_Parser.Written_Selector (Self.CSS_Sheet, I), Sel)
+            then
+               Self.Sheet_Rules.Append
+                 (Sheet_Rule'(Selector => Sel,
+                   Tag      => To_Unbounded_String (Adi.HTML_Selectors.Subject_Tag (Sel)),
+                   Id       => To_Unbounded_String (Adi.HTML_Selectors.Subject_Id (Sel)),
+                   Weight   => Adi.HTML_Selectors.Specificity_Of (Sel),
+                   Rules    => Adi.CSS_Parser.Written_Rules (Self.CSS_Sheet, I)));
+               Self.Dynamic_Rules :=
+                 Self.Dynamic_Rules or else Adi.HTML_Selectors.Is_Dynamic (Sel);
+            end if;
+         end;
+      end loop;
+
       if not Success then
          Adi.Log.Error
            ("Html_View CSS parse failed: " &
@@ -1053,12 +1254,15 @@ package body Adi.Widget.Html_View is
       --  the previous one.
       Self.Doc_Generation := Self.Doc_Generation + 1;
       Self.Nodes.Clear;
+      Self.Hovered_Node := 0;
+      Self.Active_Node := 0;
 
       Self.Nodes.Append
         (New_Item =>
            Node'
              (Kind     => Element_Node,
               Parent   => 0,
+              Position => 0,
               Tag_Name => To_Unbounded_String ("__root__"),
               Attrs    => (others => Null_Unbounded_String),
               Children => <>));
@@ -1232,7 +1436,8 @@ package body Adi.Widget.Html_View is
                                     Start_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "start")),
                                     Width_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "width")),
                                     Height_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "height")),
-                                    Svg_Source_Attr => Null_Unbounded_String);
+                                    Svg_Source_Attr => Null_Unbounded_String,
+                                    Raw_Attrs  => To_Unbounded_String (Attribute_Text (Raw_Tag)));
                                  Svg_End : Natural := 0;
                                  begin
                                  if Is_Self_Closing (Raw_Tag, Name) then
@@ -1350,7 +1555,8 @@ package body Adi.Widget.Html_View is
                                     Start_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "start")),
                                     Width_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "width")),
                                     Height_Attr => To_Unbounded_String (Extract_Attribute (Raw_Tag, "height")),
-                                    Svg_Source_Attr => Null_Unbounded_String);
+                                    Svg_Source_Attr => Null_Unbounded_String,
+                                    Raw_Attrs  => To_Unbounded_String (Attribute_Text (Raw_Tag)));
                                  New_Node_Idx : Positive;
                               begin
                                  New_Node_Idx :=
@@ -1789,27 +1995,46 @@ package body Adi.Widget.Html_View is
       return Pixel_Type'Min (Line_H, Pixel_Type'Max (0.0, Desc));
    end Measure_Descent;
 
-   function Find_Link_At
+   --  The link fragment under (X, Y), or 0.
+   function Link_At
      (Self : Html_View;
-      X, Y : Pixel_Type) return String
+      X, Y : Pixel_Type) return Natural
    is
    begin
       for I in 1 .. Natural (Self.Links.Length) loop
          declare
-            Frag : constant Link_Fragment := Self.Links.Element (Positive (I));
-            G    : constant Rectangle := Frag.Geometry;
+            G : constant Rectangle := Self.Links.Element (Positive (I)).Geometry;
          begin
             if Has_Visible_Area (G)
               and then X >= G.X and then X <= G.X + G.Width
               and then Y >= G.Y and then Y <= G.Y + G.Height
             then
-               return To_String (Frag.Href);
+               return I;
             end if;
          end;
       end loop;
 
-      return "";
+      return 0;
+   end Link_At;
+
+   function Find_Link_At
+     (Self : Html_View;
+      X, Y : Pixel_Type) return String
+   is
+      I : constant Natural := Link_At (Self, X, Y);
+   begin
+      return (if I = 0 then "" else To_String (Self.Links (I).Href));
    end Find_Link_At;
+
+   --  The a element under (X, Y), or 0.
+   function Link_Node_At
+     (Self : Html_View;
+      X, Y : Pixel_Type) return Natural
+   is
+      I : constant Natural := Link_At (Self, X, Y);
+   begin
+      return (if I = 0 then 0 else Self.Links (I).Node);
+   end Link_Node_At;
 
    procedure Layout_Document
      (Self : in out Html_View; Result : out Document_Layout) is
@@ -1936,6 +2161,9 @@ package body Adi.Widget.Html_View is
       end record;
 
       Flow : Flow_State := (Line_Right => Content.Width, others => <>);
+
+      --  The a element whose content is being laid out, or 0.
+      Link_Node : Natural := 0;
 
       Line_Left  : Pixel_Type renames Flow.Line_Left;
       Line_Right : Pixel_Type renames Flow.Line_Right;
@@ -2428,7 +2656,9 @@ package body Adi.Widget.Html_View is
          end if;
 
          Result.Links.Append
-           (New_Item => Link_Fragment'(Geometry => Geom, Href => To_Unbounded_String (Href)));
+           (New_Item => Link_Fragment'(Geometry => Geom,
+                                       Href     => To_Unbounded_String (Href),
+                                       Node     => Link_Node));
          return Natural (Result.Links.Last_Index);
       end Add_Link_Fragment;
 
@@ -3073,11 +3303,9 @@ package body Adi.Widget.Html_View is
       function Element_Style
         (Element : Positive; Parent_Style : Resolved_Style) return Resolved_Style
       is
-         E     : constant Node := Self.Nodes.Element (Element);
          Style : Resolved_Style :=
            Resolve_Element_Style
-             (Element_Cascade_Rules (Self, To_String (E.Tag_Name), E.Attrs),
-              Parent_Style, True);
+             (Element_Cascade_Rules (Self, Element), Parent_Style, True);
       begin
          Cascade_Font_Size (Style, Parent_Style);
          return Style;
@@ -3910,11 +4138,15 @@ package body Adi.Widget.Html_View is
             when Element_Node =>
                declare
                   Tag : constant String := To_String (N.Tag_Name);
-                  Rules : constant Style_Rules := Element_Cascade_Rules (Self, Tag, N.Attrs);
+                  Rules : constant Style_Rules := Element_Cascade_Rules (Self, Node_Index);
                   Style : Resolved_Style := Resolve_Element_Style (Rules, Parent_Style, True);
                   Link_Href : constant String :=
                     (if Tag = "a" then To_String (N.Attrs.Href_Attr) else Active_Link);
+                  Outer_Link_Node : constant Natural := Link_Node;
                begin
+                  if Tag = "a" then
+                     Link_Node := Node_Index;
+                  end if;
                   Cascade_Font_Size (Style, Parent_Style);
                   --  Keep separator space preceding a link outside the link run
                   --  so underline/click hit regions do not extend into that
@@ -4262,6 +4494,7 @@ package body Adi.Widget.Html_View is
                         end if;
                      end;
                   end if;
+                  Link_Node := Outer_Link_Node;
                end;
          end case;
       end Layout_Node;
@@ -4278,24 +4511,13 @@ package body Adi.Widget.Html_View is
          return;
       end if;
 
-      if Adi.CSS_Parser.Has
-           (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, "html")
-      then
+      --  The parse root stands for body, under the html element; both
+      --  fold into the document's style.
+      if not Self.Nodes.Is_Empty then
          Document_Rules :=
-           Merge
-             (Document_Rules,
-              Adi.CSS_Parser.Base_Rules
-                (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, "html"));
-      end if;
-
-      if Adi.CSS_Parser.Has
-           (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, "body")
-      then
-         Document_Rules :=
-           Merge
-             (Document_Rules,
-              Adi.CSS_Parser.Base_Rules
-                (Self.CSS_Sheet, Adi.CSS_Parser.Tag_Selector, "body"));
+           Merge (Document_Rules,
+                  Sheet_Rules_For (Self, Natural (Self.Nodes.Length) + 1));
+         Document_Rules := Merge (Document_Rules, Sheet_Rules_For (Self, 1));
       end if;
 
       Document_Style := Resolve_Element_Style (Document_Rules, Text_Part_Style, True);
@@ -4468,7 +4690,8 @@ package body Adi.Widget.Html_View is
             if Overlaps_Band (Placed_Frag) then
                Self.Links.Append
                  (Link_Fragment'(Geometry => Clipped (Placed_Frag),
-                                 Href     => Frag.Href));
+                                 Href     => Frag.Href,
+                                 Node     => Frag.Node));
             end if;
          end;
       end loop;
@@ -4501,7 +4724,12 @@ package body Adi.Widget.Html_View is
          Px_To_Dip  => Get_Px_Maps_To_Dip,
          Root_Font  => Self.Root_Font_Size,
          Main_Style => Main_Style,
-         Text_Style => Get_Resolved_Part_Style (Self, Text_Part));
+         Text_Style => Get_Resolved_Part_Style (Self, Text_Part),
+         --  A pointer that has left the view hovers nothing in it.
+         Hover_Node  =>
+           (if Self.Dynamic_Rules and then Get_States (Self) (State_Hovered)
+            then Self.Hovered_Node else 0),
+         Active_Node => (if Self.Dynamic_Rules then Self.Active_Node else 0));
    end Current_Key;
 
    --  The buffer must never have been rendered: rendering fills the
@@ -4910,6 +5138,11 @@ package body Adi.Widget.Html_View is
          Self.Pressed_Is_Link := False;
          Self.Pressed_Href := Null_Unbounded_String;
       end if;
+
+      Self.Active_Node := Link_Node_At (Self, X, Y);
+      if Self.Dynamic_Rules and then Self.Active_Node /= 0 then
+         Mark_Dirty (Self);
+      end if;
    end On_Mouse_Down;
 
    overriding procedure On_Mouse_Move
@@ -4924,6 +5157,15 @@ package body Adi.Widget.Html_View is
          Self.Hovered_Href := To_Unbounded_String (Href);
          Mark_Dirty (Self);
       end if;
+
+      declare
+         Node : constant Natural := Link_Node_At (Self, X, Y);
+      begin
+         if Node /= Self.Hovered_Node then
+            Self.Hovered_Node := Node;
+            Mark_Dirty (Self);
+         end if;
+      end;
    end On_Mouse_Move;
 
    overriding procedure On_Mouse_Up
@@ -4957,6 +5199,10 @@ package body Adi.Widget.Html_View is
 
       Self.Pressed_Is_Link := False;
       Self.Pressed_Href := Null_Unbounded_String;
+      if Self.Active_Node /= 0 then
+         Self.Active_Node := 0;
+         Mark_Dirty (Self);
+      end if;
    end On_Mouse_Up;
 
 end Adi.Widget.Html_View;

@@ -1,0 +1,27 @@
+<style>
+  article p { color: #205080; }
+  article > p { margin-left: 24px; }
+  .note.warn { background-color: #fff0c0; padding: 4px; }
+  h3 + p { font-weight: bold; }
+  h3 ~ p { font-style: italic; }
+  li:first-child { color: #a03030; }
+  li:last-child { font-size: 20px; }
+  a[href] { text-decoration: underline; }
+  a:link { color: #3040c0; }
+  #lead { font-size: 22px; }
+  p.plain { font-size: 14px; }
+  .plain { font-size: 30px; }
+  p::first-line, .survivor { color: #308030; }
+</style>
+<article>
+  <p id="lead" class="plain">An id outweighs both class rules.</p>
+  <p class="plain">p.plain outweighs the later .plain.</p>
+  <div><p>A grandchild: coloured by the descendant rule, not indented by the child one.</p></div>
+  <p class="note warn">Both classes give a background; <span class="note">one does not</span>.</p>
+</article>
+<h3>Siblings</h3>
+<p>Right after the heading: bold and italic.</p>
+<p>Later on: italic only.</p>
+<ul><li>First item</li><li>Middle item</li><li>Last item</li></ul>
+<p><a href="#top">A link</a> and <a>an anchor without href</a>.</p>
+<p class="survivor">A selector outside the grammar drops only itself.</p>

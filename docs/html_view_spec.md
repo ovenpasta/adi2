@@ -1,7 +1,7 @@
 # `Adi.Widget.Html_View`
 
 A widget that renders documentation-style HTML: block and inline flow,
-lists, images, inline SVG, a tag/class/id/inline cascade over the CSS
+lists, images, inline SVG, a selector cascade over the CSS
 properties the library already resolves, and hyperlinks that reach an
 application callback. It is render-only: the application decides what
 to trust and where a link leads.
@@ -233,7 +233,7 @@ The renderer implements CSS-style vertical margin collapsing:
 - Default visual style (overrideable): link color + underline.
 - Hit-testing:
   - Each laid-out link fragment stores rect + `href`.
-  - Hover state tracked per fragment for style resolution.
+  - Each fragment also names its `a` element, which `:hover` and `:active` select.
   - Click dispatch calls `On_Link_Click (Href)` once per completed click.
 - Links activate by pointer only.
 
@@ -243,12 +243,14 @@ The renderer implements CSS-style vertical margin collapsing:
   2. Default stylesheet (if set via `Set_Default_Stylesheet`) — prepended before all document CSS
   3. CSS extracted from embedded `<style> ... </style>` blocks
   4. CSS extracted from `<link rel="stylesheet" href="...">` resources (via callback)
-  5. Tag/class/id selectors from parsed stylesheets
-  6. Inline `style` attributes
-- Implemented precedence: `defaults < img width/height attributes < default-stylesheet < tag < class < id < inline`.
+  5. Inline `style` attributes
+- Implemented precedence: `defaults < img width/height attributes < stylesheet rules < inline`. Stylesheet rules, default sheet first, apply by specificity and then by the order written.
+- Selectors (`Adi.HTML_Selectors`): compounds of a type or `*`, `.class`, `#id`, `[attr]`, `[attr=value]`, and the pseudo-classes `:hover`, `:active`, `:link`, `:visited` (never matches), `:first-child`, `:last-child`; joined by descendant, `>`, `+` and `~` combinators. Tag, class, id and attribute names match case-insensitively; attribute values match exactly. `[attr]` reads any attribute of the start tag, and one written without a value is present. A selector outside this grammar (a pseudo-element, another pseudo-class, another attribute operator) drops only itself, never the other selectors of its group.
+- The document root is `body`, under an `html` element; rules for either style the whole document.
+- `:hover` and `:active` follow the link under the pointer and press: that `a` and every element it is inside. Elements outside every link never match them (`li:hover`, `div:hover` without a link). The layout is rebuilt on a change only when the sheet has such rules. The hovered link updates on pointer motion, not on scroll.
 - `examples/assets/html/default.css` is a browser-like typographic default sheet for `Set_Default_Stylesheet`. Document CSS always overrides the default stylesheet.
 - Inline style declarations are parsed once and cached by normalized declaration text.
-- Document CSS and every inline `style` attribute go through `Adi.CSS_Parser.Rule_Sheet`, which answers a selector's `Style_Rules` and interns none of them. The view cascades those rules itself and never asks for a part, a state or a `Widget_Style`, so the round trip a `Stylesheet` makes through the rule-set and style stores would leave a permanent entry per distinct rule block and per distinct inline style. A `Rule_Sheet` is an ordinary object: the document's dies with the view, an inline style's with the call that parsed it.
+- Document CSS and every inline `style` attribute go through `Adi.CSS_Parser.Rule_Sheet`, which keeps every rule as written (`Written_Selector`, `Written_Rules`) and interns none of them. The view cascades those rules itself and never asks for a part, a state or a `Widget_Style`, so the round trip a `Stylesheet` makes through the rule-set and style stores would leave a permanent entry per distinct rule block and per distinct inline style. A `Rule_Sheet` is an ordinary object: the document's dies with the view, an inline style's with the call that parsed it.
 - `:root` metadata is host-scoped inside the widget:
   - root styles apply to the html content root only
   - `:root { font-size: ... }` defines the local `rem` base for that `Html_View`
@@ -297,7 +299,7 @@ The renderer implements CSS-style vertical margin collapsing:
   - Implemented using standard box rendering primitives for themeability.
 
 ## Event Integration
-- Pointer move updates hover fragment for links.
+- Pointer move updates the hovered link and its `a` element.
 - Pointer down stores candidate link fragment.
 - Pointer up on same fragment triggers callback.
 - Non-link clicks are ignored by default and may bubble per normal widget behavior.
@@ -333,7 +335,7 @@ The renderer implements CSS-style vertical margin collapsing:
   - `code` whitespace preservation and wrapping.
   - List marker placement and wrapped-line indentation.
 - Styling/cascade:
-  - `tag < class < id < inline style` precedence assertions.
+  - specificity, source order and inline style precedence; combinators, compounds and pseudo-classes (`html_selectors_test` for the grammar alone).
 - Line metrics:
   - mixed-inline baseline alignment and heading isolation checks.
 - Alignment:

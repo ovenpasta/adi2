@@ -181,6 +181,18 @@ package Adi.CSS_Parser is
 
    function Last_Error (Sheet : Rule_Sheet) return String;
 
+   --  Every rule the sheet was given, one per selector of a group, in
+   --  the order written: the selector as written and the rules its block
+   --  declares, whatever the selector is. A caller with a selector
+   --  grammar of its own matches these; Has and Base_Rules answer only
+   --  the selectors this package's grammar holds.
+   function Written_Count (Sheet : Rule_Sheet) return Natural;
+   function Written_Selector (Sheet : Rule_Sheet; Index : Positive) return String
+     with Pre => Index <= Written_Count (Sheet);
+   function Written_Rules (Sheet : Rule_Sheet; Index : Positive)
+     return Adi.CSS_Styles.Style_Rules
+     with Pre => Index <= Written_Count (Sheet);
+
 private
 
    --  The CSS with each comment dropped; one left unterminated runs to

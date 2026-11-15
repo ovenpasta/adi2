@@ -154,6 +154,10 @@ package body Adi.CSS_Parser is
    type Parsed_Rule is record
       Sel   : Parsed_Selector;
       Style : Rule_Slots;
+      --  The selector as written, and whether Sel holds it; kept only by
+      --  a parse that keeps every selector.
+      Text    : Unbounded_String;
+      Has_Sel : Boolean := True;
    end record;
 
    package Parsed_Rule_Vectors is new Ada.Containers.Indefinite_Vectors
@@ -184,8 +188,18 @@ package body Adi.CSS_Parser is
    --  on.
    Empty_Slots : constant Rule_Slots := Slots_Of (Empty_Style);
 
+   type Written_Rule is record
+      Selector : Unbounded_String;
+      Rules    : Rule_Slots;
+   end record;
+
+   package Written_Rule_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Written_Rule);
+
    type Rule_Sheet_Data is record
       Rules         : Rules_Vectors.Vector;
+      --  Every rule, one per selector of a group, in the order written.
+      Written       : Written_Rule_Vectors.Vector;
       Index         : Selector_Index_Array;
       Has_Root_Size : Boolean := False;
       Root_Size     : Length_Value := Default_Font_Size;
@@ -2379,7 +2393,8 @@ package body Adi.CSS_Parser is
 
    function Parse_Selector (Input     : String;
                             Out_Sel   : out Parsed_Selector;
-                            Out_Error : out Unbounded_String) return Boolean is
+                            Out_Error : out Unbounded_String;
+                            Quiet     : Boolean := False) return Boolean is
       Conditions : Adi.Widget_Properties.Property_Conditions;
       Stripped   : Unbounded_String;
       Raw : Unbounded_String := To_Unbounded_String (Trimmed (Input));
@@ -2398,10 +2413,12 @@ package body Adi.CSS_Parser is
       --  what a property condition the application never declared does.
       function Skip (Reason : String) return Boolean is
       begin
-         Unsupported_Selectors := Unsupported_Selectors + 1;
-         Adi.Log.Warning
-           ("css: selector '" & Trimmed (Input) & "' " & Reason
-            & "; the rule is dropped");
+         if not Quiet then
+            Unsupported_Selectors := Unsupported_Selectors + 1;
+            Adi.Log.Warning
+              ("css: selector '" & Trimmed (Input) & "' " & Reason
+               & "; the rule is dropped");
+         end if;
          return False;
       end Skip;
    begin
@@ -4704,7 +4721,8 @@ package body Adi.CSS_Parser is
       Out_Vars     : out Variable_Vectors.Vector;
       Out_Metadata : out Stylesheet_Metadata;
       Out_Error    : out Unbounded_String;
-      Intern_Root  : Boolean := True) return Boolean
+      Intern_Root  : Boolean := True;
+      Keep_All     : Boolean := False) return Boolean
    is
       Clean : constant String :=
         Preprocess_Custom_Properties (CSS, Out_Vars, Out_Metadata, Intern_Root);
@@ -4770,7 +4788,9 @@ package body Adi.CSS_Parser is
                            --  A stray comma, which the selectors beside
                            --  it carry the block for.
                            null;
-                        elsif not Parse_Selector (Sel_Text, PS, Sel_Error) then
+                        elsif not Keep_All
+                          and then not Parse_Selector (Sel_Text, PS, Sel_Error)
+                        then
                            --  A selector the parser passes over is
                            --  reported and dropped; one that names a
                            --  property the application never declared
@@ -4781,6 +4801,15 @@ package body Adi.CSS_Parser is
                               return False;
                            end if;
                         else
+                           --  Keeping every selector, one the grammar
+                           --  here cannot hold is still kept as written,
+                           --  quietly, and refuses nothing.
+                           if Keep_All then
+                              Rule.Text := To_Unbounded_String (Sel_Text);
+                              Rule.Has_Sel :=
+                                Parse_Selector (Sel_Text, PS, Sel_Error, Quiet => True)
+                                and then Length (Sel_Error) = 0;
+                           end if;
                            Rule.Sel := PS;
 
                            declare
@@ -5514,7 +5543,7 @@ package body Adi.CSS_Parser is
       --  sheet that fails to load holds what it held, as a Stylesheet
       --  does.
       if not Parse_Rules (CSS_Content, Parsed, Vars, Metadata, Err,
-                          Intern_Root => False)
+                          Intern_Root => False, Keep_All => True)
       then
          Sheet.Data.Last_Error := Err;
          Success := False;
@@ -5522,6 +5551,7 @@ package body Adi.CSS_Parser is
       end if;
 
       Sheet.Data.Rules.Clear;
+      Sheet.Data.Written.Clear;
       for K in Selector_Kind loop
          Sheet.Data.Index (K).Clear;
       end loop;
@@ -5530,6 +5560,11 @@ package body Adi.CSS_Parser is
       Sheet.Data.Root_Size     := Metadata.Root_Font_Size;
 
       for R of Parsed loop
+         Sheet.Data.Written.Append (Written_Rule'(Selector => R.Text, Rules => R.Style));
+      end loop;
+
+      for R of Parsed loop
+         if R.Has_Sel then
          declare
             Idx : constant Positive :=
               Ensure_Rules (Sheet.Data.all, R.Sel.Kind, To_String (R.Sel.Name));
@@ -5547,6 +5582,7 @@ package body Adi.CSS_Parser is
                end;
             end if;
          end;
+         end if;
       end loop;
 
       Success := True;
@@ -5591,6 +5627,15 @@ package body Adi.CSS_Parser is
 
    function Last_Error (Sheet : Rule_Sheet) return String is
      (if Sheet.Data = null then "" else To_String (Sheet.Data.Last_Error));
+
+   function Written_Count (Sheet : Rule_Sheet) return Natural is
+     (if Sheet.Data = null then 0 else Natural (Sheet.Data.Written.Length));
+
+   function Written_Selector (Sheet : Rule_Sheet; Index : Positive) return String is
+     (To_String (Sheet.Data.Written (Index).Selector));
+
+   function Written_Rules (Sheet : Rule_Sheet; Index : Positive) return Style_Rules is
+     (Rules_Of (Sheet.Data.Written (Index).Rules));
 
 begin
    Adi.Widget.Window_Bridge.Install_Destroy_Notice

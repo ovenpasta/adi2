@@ -1,0 +1,26 @@
+<style>
+  div { background-color: #ddeeff; }
+  .page { max-width: 480px; margin: 0 auto; padding: 8px; background-color: #f4f4f4; }
+  .right { width: 40%; margin-left: auto; }
+  .fixed { width: 260px; padding: 0 12px; }
+  .tall { height: 80px; }
+  .short { height: 30px; }
+  .floor { min-height: 60px; }
+  .cap { max-height: 50px; }
+  .frame { height: 120px; padding: 10px; }
+  .half { height: 50%; background-color: #ffeecc; }
+  .row { display: flex; gap: 8px; }
+</style>
+<div class="page">
+  <p>A page capped at 480px and centred by auto margins, narrower than the view at the first and last passes.</p>
+  <div class="right">Forty percent, pushed right by margin-left: auto.</div>
+  <div class="fixed">A fixed border-box width of 260px with horizontal padding, wrapping its text.</div>
+</div>
+<div class="tall">Height 80px.</div>
+<div class="short">Height 30px, shorter than these two lines of content at the narrow pass, which overflow it.</div>
+<p>After the short block.</p>
+<div class="floor">Min-height 60px.</div>
+<div class="cap">Max-height 50px on content that wraps onto several lines at the narrow width of the second pass.</div>
+<p>After the capped block.</p>
+<div class="frame"><div class="half">Half of a 120px frame.</div></div>
+<div class="row"><div><div class="fixed">Fixed inside a flex item</div></div><div>Beside it</div></div>

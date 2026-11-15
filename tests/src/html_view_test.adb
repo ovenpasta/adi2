@@ -1048,6 +1048,103 @@ procedure Html_View_Test is
       New_Line;
    end Test_Selectors;
 
+   --  width, height, their limits and auto margins size a block in normal
+   --  flow, border-box; a percentage height is of a declared one.
+   procedure Test_Block_Sizing is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+
+      function Geom (Needle : String) return Adi.Core.Rectangle is
+         Idx : constant Natural := Find_Text_Item_Index (W, Needle);
+      begin
+         Assert (Idx > 0, Needle & " exists");
+         return (if Idx > 0 then Adi.Widget.Get_Item (+W, Positive (Idx)).Geometry
+                 else (0.0, 0.0, 0.0, 0.0));
+      end Geom;
+
+      procedure Expect (What : String; Got, Want : Adi.Core.Pixel_Type) is
+      begin
+         Assert (abs (Got - Want) < 0.01, What & ":" & Got'Image & " /=" & Want'Image);
+      end Expect;
+
+      function Gap (Above, Below : String) return Adi.Core.Pixel_Type is
+        (Geom (Below).Y - Geom (Above).Y);
+   begin
+      Put_Line ("Test: block sizing");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 900.0));
+      Adi.Widget.Html_View.Set_HTML
+        (W, "<style>body { font-size: 16px; line-height: 1.0; } p { margin: 0; }</style>"
+            & "<div style='width: 200px; margin-left: auto'>right</div>"
+            & "<div style='max-width: 300px; margin: 0 auto'>centred</div>"
+            & "<div style='width: 50%; margin: 0 auto'>half</div>"
+            & "<div style='width: 200px; padding-left: 20px; margin-left: auto'>borderbox</div>"
+            & "<div style='min-width: 300px; max-width: 100px; margin-left: auto'>minwins</div>"
+            & "<div style='width: 900px; margin: 0 auto'>toowide</div>"
+            & "<div style='width: 200px; margin-right: auto; margin-left: 10px'>leftauto</div>"
+            & "<div style='width: 100px'>narrow words wrap here</div>"
+            & "<div style='height: 100px'>tall</div><div>aftertall</div>"
+            & "<div style='height: 10px'>short<br>overflow</div><div>aftershort</div>"
+            & "<div style='height: 100px; padding: 10px'>padded</div><div>afterpadded</div>"
+            & "<div style='min-height: 50px'>minh</div><div>afterminh</div>"
+            & "<div style='max-height: 20px'>maxh<br>b<br>c</div><div>aftermaxh</div>"
+            & "<div style='height: 200px'><div style='height: 50%'>pct</div><div>afterpct</div></div>"
+            & "<div><div style='height: 50%'>autopct</div><div>afterautopct</div></div>"
+            & "<div style='height: 50px'><p style='margin-bottom: 30px'>inner</p></div><div>afterinner</div>"
+            & "<div style='display: flex'><div><div style='width: 150px'>fixed</div></div><div>beside</div></div>"
+            & "<div style='display: flex'><div><div style='width: 50%'>pctin</div></div><div>pctbeside</div></div>"
+            & "<p>flextop</p><div style='height: 200px'><div style='display: flex; "
+            & "flex-direction: column; justify-content: flex-end; height: 50%'><div>flexend</div></div></div>"
+            & "<div style='max-height: 100px'><p style='margin-bottom: 20px'>capm</p></div>"
+            & "<p style='margin-top: 30px'>aftercapm</p>"
+            & "<hr style='width: 50%; margin: 0 auto; height: 4px; border: none'>");
+      Adi.Widget.Build_Items (+W);
+
+      Expect ("margin-left: auto pushes a sized block right", Geom ("right").X, 400.0);
+      Expect ("max-width with auto margins centres", Geom ("centred").X, 150.0);
+      Expect ("a percentage width with auto margins centres", Geom ("half").X, 150.0);
+      Expect ("width is border-box", Geom ("borderbox").X, 420.0);
+      Expect ("min-width outweighs max-width", Geom ("minwins").X, 300.0);
+      Expect ("auto margins of an overwide block are zero", Geom ("toowide").X, 0.0);
+      Expect ("margin-right: auto keeps the left margin", Geom ("leftauto").X, 10.0);
+      Assert (Geom ("wrap").Y > Geom ("narrow").Y, "content wraps at the declared width");
+
+      Expect ("height", Gap ("tall", "aftertall"), 100.0);
+      Expect ("content overflows a short height", Gap ("short", "aftershort"), 10.0);
+      Expect ("height is border-box", Gap ("padded", "afterpadded"), 100.0 - 10.0);
+      Expect ("min-height", Gap ("minh", "afterminh"), 50.0);
+      Expect ("max-height", Gap ("maxh", "aftermaxh"), 20.0);
+      Expect ("a percentage of a declared height", Gap ("pct", "afterpct"), 100.0);
+      Expect ("a percentage of an auto height is auto", Gap ("autopct", "afterautopct"), 16.0);
+      Expect ("a child's margin stays inside a declared height", Gap ("inner", "afterinner"), 50.0);
+      Expect ("a sized block counts at its width in a flex item's measure",
+              Geom ("beside").X, 150.0);
+      Expect ("a percentage width counts as auto in a flex item's measure",
+              Geom ("pctbeside").X, Geom ("pctin").Width);
+      Expect ("a flex container's percentage height is of its block's",
+              Gap ("flextop", "flexend"), 16.0 + 100.0 - 16.0);
+      Expect ("max-height alone lets the last child's margin collapse",
+              Gap ("capm", "aftercapm"), 16.0 + 30.0);
+
+      declare
+         Found : Boolean := False;
+      begin
+         for I in 1 .. Adi.Widget.Item_Count (+W) loop
+            declare
+               G : constant Adi.Core.Rectangle := Adi.Widget.Get_Item (+W, I).Geometry;
+            begin
+               if abs (G.Height - 4.0) < 0.01 then
+                  Found := True;
+                  Expect ("hr width", G.Width, 300.0);
+                  Expect ("hr centred by auto margins", G.X, 150.0);
+               end if;
+            end;
+         end loop;
+         Assert (Found, "the 4px hr is laid out");
+      end;
+      New_Line;
+   end Test_Block_Sizing;
+
    --  A block's content is inset by the border it draws, and at a content
    --  scale the drawn width follows it.
    procedure Test_Border_Insets_At_Scale is
@@ -2895,6 +2992,7 @@ begin
    Test_Content_Scale_Is_Linear;
    Test_Percent_Font_And_Line_Height;
    Test_Selectors;
+   Test_Block_Sizing;
    Test_Border_Insets_At_Scale;
    Test_Character_References;
    Test_Marker_Beside_Opening_Block;

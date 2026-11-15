@@ -142,7 +142,12 @@ Package: `Adi.Widget.Html_View`
 
 ### Block Flow
 - Parent block content is laid out top-to-bottom.
-- Block width is container content width unless constrained by explicit width rules.
+- A block fills its container's content width less its margins, unless `width`, `min-width` or `max-width` set it. Sizes are border-box. With a set width, leftover space goes to `auto` margins: both centre the block, `margin-left: auto` alone pushes it right. Percentage widths are of the container's content width.
+- `height`, `min-height` and `max-height` set a block's border-box height; content that does not fit overflows. A declared height or min-height keeps the last child's bottom margin inside; max-height alone does only when it cuts the content short. A percentage height is of the nearest block with a declared height, and `auto` where there is none. A flex or grid container lays its items out in that declared height; a min-height alone grows the container without stretching them.
+- `hr` takes `width`, its limits, horizontal and `auto` margins, and `height`, as a block does.
+- An outside list marker's gutter is inside its `li`, so a sized `li` holds the marker too.
+- While a flex or grid item is measured for its min- or max-content width, percentage sizes count as `auto` and `auto` margins as zero; a block with a fixed width counts at that width.
+- The document root (`body`) has no box: its margin, padding, width and background are not applied.
 - Vertical margins/padding/border participate via existing style resolution.
 - Block elements emit panel items with the resolved element style, so block
   `background-color`/`border*` visuals are rendered.
@@ -174,7 +179,7 @@ The renderer implements CSS-style vertical margin collapsing:
   pending margin alone so collapse-through survives source formatting.
 
 ### Flex Layout
-- `display: flex` and `inline-flex` lay out an element's children as flex items through `Adi.Layout_Util` (`Make_Flex_Child_Info`, `Compute_Flex_Layout`), the solver `Adi.Widget` containers use. `inline-flex` is laid out as a block, and a declared `width` on the container is ignored as on any block.
+- `display: flex` and `inline-flex` lay out an element's children as flex items through `Adi.Layout_Util` (`Make_Flex_Child_Info`, `Compute_Flex_Layout`), the solver `Adi.Widget` containers use. `inline-flex` is laid out as a block, and the container is sized as any block.
 - Items: each element child, blockified whatever its tag, and each run of text between them (an anonymous item). Whitespace-only runs and `display: none` children are not items.
 - An item lays out in a flow of its own: its margins do not collapse with its parent's or its children's. The container's own margins collapse with its siblings as a block's do.
 - Item sizes are border-box, as elsewhere in Adi. The flex base and preferred width come from the declared `width` or the max-content width; the automatic minimum from the min-content width. Both are measured by laying the item out at zero and at unbounded width. Heights are measured at the width each item is given. Measurements are kept for the rest of the layout pass; each level of nested flex still lays its subtree out a few times.

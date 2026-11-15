@@ -2165,6 +2165,10 @@ package body Adi.Widget.Html_View is
       --  The a element whose content is being laid out, or 0.
       Link_Node : Natural := 0;
 
+      --  The content height of the innermost block with a declared one,
+      --  what a percentage height is of; negative while that is auto.
+      Block_Def_H : Pixel_Type := -1.0;
+
       Line_Left  : Pixel_Type renames Flow.Line_Left;
       Line_Right : Pixel_Type renames Flow.Line_Right;
       X : Pixel_Type renames Flow.X;
@@ -2287,6 +2291,58 @@ package body Adi.Widget.Html_View is
             Viewport_Width  => Content.Width,
             Viewport_Height => Content.Height);
       end Local_Length_To_Px;
+
+      --  A declared size in pixels, or Pixel_Type'Last when there is none
+      --  or it is a percentage of nothing.
+      function Declared_Px
+        (S : Size_Value; Of_Size : Pixel_Type; Style : Resolved_Style)
+         return Pixel_Type is
+        (if S.Kind = Fixed and then (S.Size.Unit /= Pct or else Of_Size > 0.0)
+         then Local_Length_To_Px (S.Size, Of_Size, Local_Font_Size_Px (Style))
+         else Pixel_Type'Last);
+
+      --  A block's border-box width in normal flow, from width, min-width
+      --  and max-width, with leftover space given to auto margins. Set is
+      --  False when none of them applies and the block fills Avail less
+      --  its margins. Percentages and auto margins drop out of intrinsic
+      --  measuring.
+      procedure Size_Block_Width
+        (Style    : Resolved_Style;
+         Avail    : Pixel_Type;
+         Of_W     : Pixel_Type;
+         Insets_W : Pixel_Type;
+         Margins  : in out Edge_Pixels;
+         Set      : out Boolean;
+         W        : out Pixel_Type)
+      is
+         Normal : constant Boolean := Flow.Sizing = Normal_Sizing;
+         Pct_Of : constant Pixel_Type := (if Normal then Of_W else 0.0);
+         Auto_W : constant Pixel_Type :=
+           Pixel_Type'Max (0.0, Avail - Margins.Left - Margins.Right);
+         Min_W  : constant Pixel_Type := Declared_Px (Style.Min_Width, Pct_Of, Style);
+      begin
+         W := Declared_Px (Style.Width, Pct_Of, Style);
+         if W = Pixel_Type'Last then
+            W := Auto_W;
+         end if;
+         W := Pixel_Type'Min (W, Declared_Px (Style.Max_Width, Pct_Of, Style));
+         if Min_W /= Pixel_Type'Last then
+            W := Pixel_Type'Max (W, Min_W);
+         end if;
+         W := Pixel_Type'Max (W, Insets_W);
+         Set := W /= Auto_W;
+
+         if Set and then Normal and then Style.Margin (Left).Kind = Auto then
+            declare
+               Free : constant Pixel_Type := Avail - W - Margins.Left - Margins.Right;
+            begin
+               if Free > 0.0 then
+                  Margins.Left := Margins.Left
+                    + (if Style.Margin (Right).Kind = Auto then Free / 2.0 else Free);
+               end if;
+            end;
+         end if;
+      end Size_Block_Width;
 
       function Current_Line_Width return Pixel_Type is
       begin
@@ -2923,11 +2979,16 @@ package body Adi.Widget.Html_View is
       end Add_Image_Run;
 
       procedure Add_Horizontal_Rule (Style : Resolved_Style) is
-         Margin_Edges : constant Edge_Pixels :=
+         Margin_Edges : Edge_Pixels :=
            Resolve_Margin_Edges (Style.Margin, Style, Current_Line_Width);
          Rule_H : Pixel_Type := 1.0;
+         Rule_W : Pixel_Type;
+         Sized  : Boolean;
          Rule_Geom : Rectangle;
       begin
+         Size_Block_Width
+           (Style, Current_Line_Width, Current_Line_Width, 0.0, Margin_Edges, Sized, Rule_W);
+
          if Has_Line_Content or else Pending_Space then
             New_Line;
          end if;
@@ -2939,20 +3000,20 @@ package body Adi.Widget.Html_View is
            Pixel_Type'Max (Prev_Block_Margin_Bottom, Margin_Edges.Top);
          Flush_Pending_Margin;
 
-         if Style.Height.Kind = Fixed then
-            Rule_H := Pixel_Type'Max
-              (1.0,
-               Local_Length_To_Px
-                 (Style.Height.Size,
-                  Container_Size => Content.Height,
-                  Font_Size => Local_Font_Size_Px (Style)));
-         end if;
+         declare
+            Decl_H : constant Pixel_Type :=
+              Declared_Px (Style.Height, Pixel_Type'Max (0.0, Block_Def_H), Style);
+         begin
+            if Decl_H /= Pixel_Type'Last then
+               Rule_H := Pixel_Type'Max (1.0, Decl_H);
+            end if;
+         end;
 
           Current_Line_H := Pixel_Type'Max (Current_Line_H, Rule_H);
           Rule_Geom :=
-            (X      => Line_Left,
+            (X      => Line_Left + Margin_Edges.Left,
              Y      => Y + (Current_Line_H - Rule_H) / 2.0,
-             Width  => Current_Line_Width,
+             Width  => Rule_W,
              Height => Rule_H);
 
          declare
@@ -3519,14 +3580,6 @@ package body Adi.Widget.Html_View is
            (0.0, Trial (Parent, Src, Parent_Style, Margin, Pct_Base,
                         Normal_Sizing, Width).Bottom));
 
-      --  A declared size in pixels, or Pixel_Type'Last when there is none
-      --  or it is a percentage of nothing.
-      function Declared_Px
-        (S : Size_Value; Of_Size : Pixel_Type; Style : Resolved_Style)
-         return Pixel_Type is
-        (if S.Kind = Fixed and then (S.Size.Unit /= Pct or else Of_Size > 0.0)
-         then Local_Length_To_Px (S.Size, Of_Size, Local_Font_Size_Px (Style))
-         else Pixel_Type'Last);
 
       function Gap_Px
         (G : Gap_Value; Row_Gap : Boolean; Of_Size : Pixel_Type;
@@ -3642,14 +3695,10 @@ package body Adi.Widget.Html_View is
 
       --  The container's content height when its own height is declared,
       --  else Pixel_Type'Last.
-      function Fixed_Content_Height
-        (Style : Resolved_Style; Insets : Edge_Pixels) return Pixel_Type
-      is
-         Declared_H : constant Pixel_Type := Declared_Px (Style.Height, 0.0, Style);
-      begin
-         return (if Declared_H = Pixel_Type'Last then Pixel_Type'Last
-                 else Pixel_Type'Max (0.0, Declared_H - Insets.Top - Insets.Bottom));
-      end Fixed_Content_Height;
+      --  The container's declared content height, as its block resolved
+      --  it, or Pixel_Type'Last while that is auto.
+      function Fixed_Content_Height return Pixel_Type is
+        (if Block_Def_H < 0.0 then Pixel_Type'Last else Block_Def_H);
 
       --  A flex or grid container lays out no lines of its own, so outside
       --  markers waiting for one go beside its top edge, on a line that
@@ -3670,12 +3719,10 @@ package body Adi.Widget.Html_View is
 
       --  Lay out Parent's children as flex items in the content box the
       --  enclosing block left open: Line_Left .. Line_Right from Y down.
-      --  Insets are that block's padding and border. Leaves Y at the
-      --  bottom of the container's content.
+      --  Leaves Y at the bottom of the container's content.
       procedure Layout_Flex_Container
         (Parent  : Node;
          Style   : Resolved_Style;
-         Insets  : Edge_Pixels;
          Link    : String)
       is
          Dir     : constant Flex_Direction_Value := Style.Flex_Direction;
@@ -3690,7 +3737,7 @@ package body Adi.Widget.Html_View is
            Item_Sources (Parent, Style);
          Count   : constant Natural := Natural (Sources.Length);
 
-         Fixed_H : constant Pixel_Type := Fixed_Content_Height (Style, Insets);
+         Fixed_H : constant Pixel_Type := Fixed_Content_Height;
          Of_H : constant Pixel_Type :=
            (if Fixed_H = Pixel_Type'Last then 0.0 else Fixed_H);
 
@@ -3918,7 +3965,6 @@ package body Adi.Widget.Html_View is
       procedure Layout_Grid_Container
         (Parent  : Node;
          Style   : Resolved_Style;
-         Insets  : Edge_Pixels;
          Link    : String)
       is
          Left    : constant Pixel_Type := Line_Left;
@@ -3929,7 +3975,7 @@ package body Adi.Widget.Html_View is
            Item_Sources (Parent, Style);
          Count   : constant Natural := Natural (Sources.Length);
 
-         Fixed_H : constant Pixel_Type := Fixed_Content_Height (Style, Insets);
+         Fixed_H : constant Pixel_Type := Fixed_Content_Height;
          Of_H : constant Pixel_Type :=
            (if Fixed_H = Pixel_Type'Last then 0.0 else Fixed_H);
          Top     : Pixel_Type;
@@ -4243,6 +4289,18 @@ package body Adi.Widget.Html_View is
                         Block_Top_Y      : Pixel_Type := 0.0;
                         Block_Left_X     : Pixel_Type := 0.0;
                         Block_Width      : Pixel_Type := 0.0;
+                        --  A border-box width that width, min-width or
+                        --  max-width decided, and the border-box height
+                        --  limits; a flex or grid item's container
+                        --  decides those instead.
+                        Box_W_Set        : Boolean := False;
+                        Box_W            : Pixel_Type := 0.0;
+                        Height_Set       : Boolean := False;
+                        Decl_Box_H       : Pixel_Type := Pixel_Type'Last;
+                        Min_Box_H        : Pixel_Type := 0.0;
+                        Max_Box_H        : Pixel_Type := Pixel_Type'Last;
+                        Prev_Def_H       : constant Pixel_Type := Block_Def_H;
+                        Box_Closed       : Boolean := False;
                        begin
                         if Block_Flow then
                            if Has_Line_Content or else Pending_Space then
@@ -4278,6 +4336,36 @@ package body Adi.Widget.Html_View is
                               Bottom => Padding_Edges.Bottom + Border_Px.Bottom,
                               Left   => Padding_Edges.Left + Border_Px.Left);
 
+                           declare
+                              Of_H     : constant Pixel_Type := Pixel_Type'Max (0.0, Block_Def_H);
+                              Insets_H : constant Pixel_Type := Inset_Edges.Top + Inset_Edges.Bottom;
+                           begin
+                              Decl_Box_H := Declared_Px (Style.Height, Of_H, Style);
+                              Max_Box_H := Declared_Px (Style.Max_Height, Of_H, Style);
+                              Min_Box_H := Declared_Px (Style.Min_Height, Of_H, Style);
+                              if Min_Box_H = Pixel_Type'Last then
+                                 Min_Box_H := 0.0;
+                              end if;
+                              Block_Def_H :=
+                                (if Decl_Box_H = Pixel_Type'Last then -1.0
+                                 else Pixel_Type'Max
+                                        (0.0,
+                                         Pixel_Type'Max
+                                           (Min_Box_H, Pixel_Type'Min (Decl_Box_H, Max_Box_H))
+                                         - Insets_H));
+
+                              if not As_Item then
+                                 Height_Set :=
+                                   Decl_Box_H /= Pixel_Type'Last
+                                   or else Max_Box_H /= Pixel_Type'Last
+                                   or else Min_Box_H > 0.0;
+                                 Size_Block_Width
+                                   (Style, Pixel_Type'Max (0.0, Prev_Line_Right - Prev_Line_Left),
+                                    Local_Container_W, Inset_Edges.Left + Inset_Edges.Right,
+                                    Margin_Edges, Box_W_Set, Box_W);
+                              end if;
+                           end;
+
                            --  Vertical margin collapsing. Defer the commit
                            --  when there is no top padding/border so the
                            --  parent's top margin can collapse-through with
@@ -4293,10 +4381,11 @@ package body Adi.Widget.Html_View is
                               Block_Top_Y := Y + Combined;
                               Block_Left_X := Prev_Line_Left + Margin_Edges.Left;
                               Block_Width :=
-                                Pixel_Type'Max
-                                  (0.0,
-                                   (Prev_Line_Right - Prev_Line_Left)
-                                   - Margin_Edges.Left - Margin_Edges.Right);
+                                (if Box_W_Set then Box_W
+                                 else Pixel_Type'Max
+                                        (0.0,
+                                         (Prev_Line_Right - Prev_Line_Left)
+                                         - Margin_Edges.Left - Margin_Edges.Right));
 
                               declare
                                  It : Item :=
@@ -4327,7 +4416,9 @@ package body Adi.Widget.Html_View is
                            end;
 
                            Line_Left := Prev_Line_Left + Margin_Edges.Left + Inset_Edges.Left;
-                           Line_Right := Prev_Line_Right - Margin_Edges.Right - Inset_Edges.Right;
+                           Line_Right :=
+                             (if Box_W_Set then Block_Left_X + Box_W - Inset_Edges.Right
+                              else Prev_Line_Right - Margin_Edges.Right - Inset_Edges.Right);
                            Flow.Right_Inset :=
                              Prev_Right_Inset + Margin_Edges.Right + Inset_Edges.Right;
                            if Line_Right < Line_Left then
@@ -4407,9 +4498,9 @@ package body Adi.Widget.Html_View is
                         end if;
 
                         if Block_Flow and then Style.Display in Flex | Inline_Flex then
-                           Layout_Flex_Container (N, Style, Inset_Edges, Link_Href);
+                           Layout_Flex_Container (N, Style, Link_Href);
                         elsif Block_Flow and then Style.Display in Grid | Inline_Grid then
-                           Layout_Grid_Container (N, Style, Inset_Edges, Link_Href);
+                           Layout_Grid_Container (N, Style, Link_Href);
                         else
                            for Child_Idx of N.Children loop
                               if Child_Idx > 0 then
@@ -4435,9 +4526,44 @@ package body Adi.Widget.Html_View is
                               List_Stack.Delete_Last;
                            end if;
 
+                           --  A declared height or a height limit closes the
+                           --  box: what is inside stays inside, and the box
+                           --  is as tall as the limits make it.
+                           --  A declared height or min-height closes the box:
+                           --  what is inside stays inside. max-height alone
+                           --  closes it only when it cuts the content short.
+                           if Height_Set then
+                              declare
+                                 Top : constant Pixel_Type :=
+                                   Result.Items.Reference (Positive (Block_Item_Index)).Geometry.Y;
+                                 Auto_H : constant Pixel_Type :=
+                                   Pixel_Type'Max (Y, Top + Inset_Edges.Top) - Top
+                                   + Inset_Edges.Bottom;
+                                 H : Pixel_Type :=
+                                   (if Decl_Box_H /= Pixel_Type'Last then Decl_Box_H else Auto_H);
+                              begin
+                                 H := Pixel_Type'Min (H, Max_Box_H);
+                                 H := Pixel_Type'Max (H, Min_Box_H);
+                                 H := Pixel_Type'Max (H, Inset_Edges.Top + Inset_Edges.Bottom);
+                                 Box_Closed :=
+                                   Decl_Box_H /= Pixel_Type'Last or else Min_Box_H > 0.0
+                                   or else H /= Auto_H;
+                                 if Box_Closed then
+                                    Flush_Pending_Margin;
+                                    declare
+                                       Final_Top : constant Pixel_Type :=
+                                         Result.Items.Reference
+                                           (Positive (Block_Item_Index)).Geometry.Y;
+                                    begin
+                                       Y := Final_Top + H - Inset_Edges.Bottom;
+                                    end;
+                                 end if;
+                              end;
+                           end if;
+
                            declare
                               Has_Bot_Sep : constant Boolean :=
-                                As_Item or else Inset_Edges.Bottom > 0.0;
+                                As_Item or else Box_Closed or else Inset_Edges.Bottom > 0.0;
                            begin
                               if Has_Bot_Sep then
                                  --  Bottom padding/border anchors the box;
@@ -4474,10 +4600,18 @@ package body Adi.Widget.Html_View is
                               end;
                            end if;
 
-                           --  An empty block still spans its own insets.
+                           --  An empty block still spans its own insets, and
+                           --  a sized one its width.
                            Flow.Extent :=
                              Pixel_Type'Max (Flow.Extent, Line_Left + Flow.Right_Inset);
+                           if Box_W_Set then
+                              Flow.Extent :=
+                                Pixel_Type'Max
+                                  (Flow.Extent,
+                                   Block_Left_X + Box_W + Margin_Edges.Right + Prev_Right_Inset);
+                           end if;
                            Flow.Right_Inset := Prev_Right_Inset;
+                           Block_Def_H := Prev_Def_H;
 
                            Line_Left := Prev_Line_Left;
                            Line_Right := Prev_Line_Right;

@@ -147,7 +147,7 @@ Package: `Adi.Widget.Html_View`
 - `hr` takes `width`, its limits, horizontal and `auto` margins, and `height`, as a block does.
 - An outside list marker's gutter is inside its `li`, so a sized `li` holds the marker too.
 - While a flex or grid item is measured for its min- or max-content width, percentage sizes count as `auto` and `auto` margins as zero; a block with a fixed width counts at that width.
-- The document root (`body`) has no box: its margin, padding, width and background are not applied.
+- The document root is `body`, a block box like any other; the `html` element has no box, and its rules fold into body's, body's winning: `html` and `body` padding do not add up. body's background paints the view's whole content area, behind everything, and not body's own box.
 - Vertical margins/padding/border participate via existing style resolution.
 - Block elements emit panel items with the resolved element style, so block
   `background-color`/`border*` visuals are rendered.
@@ -251,7 +251,7 @@ The renderer implements CSS-style vertical margin collapsing:
   5. Inline `style` attributes
 - Implemented precedence: `defaults < img width/height attributes < stylesheet rules < inline`. Stylesheet rules, default sheet first, apply by specificity and then by the order written.
 - Selectors (`Adi.HTML_Selectors`): compounds of a type or `*`, `.class`, `#id`, `[attr]`, `[attr=value]`, and the pseudo-classes `:hover`, `:active`, `:link`, `:visited` (never matches), `:first-child`, `:last-child`; joined by descendant, `>`, `+` and `~` combinators. Tag, class, id and attribute names match case-insensitively; attribute values match exactly. `[attr]` reads any attribute of the start tag, and one written without a value is present. A selector outside this grammar (a pseudo-element, another pseudo-class, another attribute operator) drops only itself, never the other selectors of its group.
-- The document root is `body`, under an `html` element; rules for either style the whole document.
+- The document root is `body`, under an `html` element, for selectors as for layout.
 - `:hover` and `:active` follow the link under the pointer and press: that `a` and every element it is inside. Elements outside every link never match them (`li:hover`, `div:hover` without a link). The layout is rebuilt on a change only when the sheet has such rules. The hovered link updates on pointer motion, not on scroll.
 - `examples/assets/html/default.css` is a browser-like typographic default sheet for `Set_Default_Stylesheet`. Document CSS always overrides the default stylesheet.
 - Inline style declarations are parsed once and cached by normalized declaration text.

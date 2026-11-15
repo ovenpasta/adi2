@@ -69,58 +69,59 @@ procedure Html_View_Snapshot_Test is
 
    Expected : constant String :=
        "1: PANEL_ITEM MAIN_PART z=0 [0.00,0.00 320.00x240.00]" & ASCII.LF
-     & "2: PANEL_ITEM ANY_PART z=0 [0.00,0.00 320.00x19.20] override" & ASCII.LF
-     & "3: TEXT_ITEM TEXT_PART z=1 [0.00,0.00 61.60x19.20] override wrap=FALSE off=0.00,0.00 text=""Heading""" & ASCII.LF
-     & "4: PANEL_ITEM ANY_PART z=0 [0.00,19.20 320.00x76.80] override" & ASCII.LF
-     & "5: TEXT_ITEM TEXT_PART z=1 [0.00,19.20 35.20x19.20] override wrap=FALSE off=0.00,0.00 text=""Some""" & ASCII.LF
-     & "6: TEXT_ITEM TEXT_PART z=1 [35.20,19.20 52.80x19.20] override wrap=FALSE off=0.00,0.00 text="" prose""" & ASCII.LF
-     & "7: TEXT_ITEM TEXT_PART z=1 [88.00,19.20 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" that""" & ASCII.LF
-     & "8: TEXT_ITEM TEXT_PART z=1 [132.00,19.20 26.40x19.20] override wrap=FALSE off=0.00,0.00 text="" is""" & ASCII.LF
-     & "9: TEXT_ITEM TEXT_PART z=1 [158.40,19.20 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" long""" & ASCII.LF
-     & "10: TEXT_ITEM TEXT_PART z=1 [202.40,19.20 61.60x19.20] override wrap=FALSE off=0.00,0.00 text="" enough""" & ASCII.LF
-     & "11: TEXT_ITEM TEXT_PART z=1 [264.00,19.20 26.40x19.20] override wrap=FALSE off=0.00,0.00 text="" to""" & ASCII.LF
-     & "12: TEXT_ITEM TEXT_PART z=1 [0.00,38.40 35.20x19.20] override wrap=FALSE off=0.00,0.00 text=""wrap""" & ASCII.LF
-     & "13: TEXT_ITEM TEXT_PART z=1 [35.20,38.40 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" onto""" & ASCII.LF
-     & "14: TEXT_ITEM TEXT_PART z=1 [79.20,38.40 17.60x19.20] override wrap=FALSE off=0.00,0.00 text="" a""" & ASCII.LF
-     & "15: TEXT_ITEM TEXT_PART z=1 [96.80,38.40 61.60x19.20] override wrap=FALSE off=0.00,0.00 text="" second""" & ASCII.LF
-     & "16: TEXT_ITEM TEXT_PART z=1 [158.40,38.40 52.80x19.20] override wrap=FALSE off=0.00,0.00 text="" line,""" & ASCII.LF
-     & "17: TEXT_ITEM TEXT_PART z=1 [211.20,38.40 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" with""" & ASCII.LF
-     & "18: TEXT_ITEM TEXT_PART z=1 [255.20,38.40 8.80x19.20] override wrap=FALSE off=0.00,0.00 text="" """ & ASCII.LF
-     & "19: TEXT_ITEM INDICATOR_PART z=1 [264.00,38.40 8.80x19.20] override wrap=FALSE off=0.00,0.00 text=""a""" & ASCII.LF
-     & "20: TEXT_ITEM INDICATOR_PART z=1 [272.80,38.40 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" link""" & ASCII.LF
-     & "21: TEXT_ITEM INDICATOR_PART z=1 [0.00,57.60 35.20x19.20] override wrap=FALSE off=0.00,0.00 text=""that""" & ASCII.LF
-     & "22: TEXT_ITEM INDICATOR_PART z=1 [35.20,57.60 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" also""" & ASCII.LF
-     & "23: TEXT_ITEM INDICATOR_PART z=1 [79.20,57.60 52.80x19.20] override wrap=FALSE off=0.00,0.00 text="" wraps""" & ASCII.LF
-     & "24: TEXT_ITEM INDICATOR_PART z=1 [132.00,57.60 61.60x19.20] override wrap=FALSE off=0.00,0.00 text="" across""" & ASCII.LF
-     & "25: TEXT_ITEM INDICATOR_PART z=1 [193.60,57.60 35.20x19.20] override wrap=FALSE off=0.00,0.00 text="" the""" & ASCII.LF
-     & "26: TEXT_ITEM INDICATOR_PART z=1 [228.80,57.60 52.80x19.20] override wrap=FALSE off=0.00,0.00 text="" break""" & ASCII.LF
-     & "27: TEXT_ITEM TEXT_PART z=1 [0.00,76.80 52.80x19.20] override wrap=FALSE off=0.00,0.00 text=""inside""" & ASCII.LF
-     & "28: TEXT_ITEM TEXT_PART z=1 [52.80,76.80 35.20x19.20] override wrap=FALSE off=0.00,0.00 text="" it.""" & ASCII.LF
-     & "29: PANEL_ITEM ANY_PART z=1 [0.00,105.10 320.00x1.00] override" & ASCII.LF
-     & "30: PANEL_ITEM ANY_PART z=0 [0.00,115.20 320.00x38.40] override" & ASCII.LF
-     & "31: PANEL_ITEM ANY_PART z=0 [0.00,115.20 320.00x19.20] override" & ASCII.LF
-     & "32: IMAGE_ITEM ICON_PART z=1 [0.00,120.00 10.56x10.56] override bg=FALSE src=set" & ASCII.LF
-     & "33: TEXT_ITEM TEXT_PART z=1 [16.16,115.20 44.00x19.20] override wrap=FALSE off=0.00,0.00 text=""first""" & ASCII.LF
-     & "34: TEXT_ITEM TEXT_PART z=1 [60.16,115.20 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" item""" & ASCII.LF
-     & "35: PANEL_ITEM ANY_PART z=0 [0.00,134.40 320.00x19.20] override" & ASCII.LF
-     & "36: IMAGE_ITEM ICON_PART z=1 [0.00,139.20 10.56x10.56] override bg=FALSE src=set" & ASCII.LF
-     & "37: TEXT_ITEM TEXT_PART z=1 [16.16,134.40 52.80x19.20] override wrap=FALSE off=0.00,0.00 text=""second""" & ASCII.LF
-     & "38: TEXT_ITEM TEXT_PART z=1 [68.96,134.40 8.80x19.20] override wrap=FALSE off=0.00,0.00 text="" """ & ASCII.LF
-     & "39: TEXT_ITEM INDICATOR_PART z=1 [77.76,134.40 35.20x19.20] override wrap=FALSE off=0.00,0.00 text=""item""" & ASCII.LF
-     & "40: PANEL_ITEM ANY_PART z=0 [0.00,153.60 320.00x19.20] override" & ASCII.LF
-     & "41: TEXT_ITEM TEXT_PART z=1 [0.00,153.60 70.40x19.20] override wrap=FALSE off=0.00,0.00 text=""alt text""" & ASCII.LF
-     & "42: TEXT_ITEM TEXT_PART z=1 [70.40,153.60 79.20x19.20] override wrap=FALSE off=0.00,0.00 text="" trailing""" & ASCII.LF
-     & "43: TEXT_ITEM TEXT_PART z=1 [149.60,153.60 61.60x19.20] override wrap=FALSE off=0.00,0.00 text="" prose.""" & ASCII.LF
+     & "2: PANEL_ITEM ANY_PART z=0 [0.00,0.00 320.00x172.80] override" & ASCII.LF
+     & "3: PANEL_ITEM ANY_PART z=0 [0.00,0.00 320.00x19.20] override" & ASCII.LF
+     & "4: TEXT_ITEM TEXT_PART z=1 [0.00,0.00 61.60x19.20] override wrap=FALSE off=0.00,0.00 text=""Heading""" & ASCII.LF
+     & "5: PANEL_ITEM ANY_PART z=0 [0.00,19.20 320.00x76.80] override" & ASCII.LF
+     & "6: TEXT_ITEM TEXT_PART z=1 [0.00,19.20 35.20x19.20] override wrap=FALSE off=0.00,0.00 text=""Some""" & ASCII.LF
+     & "7: TEXT_ITEM TEXT_PART z=1 [35.20,19.20 52.80x19.20] override wrap=FALSE off=0.00,0.00 text="" prose""" & ASCII.LF
+     & "8: TEXT_ITEM TEXT_PART z=1 [88.00,19.20 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" that""" & ASCII.LF
+     & "9: TEXT_ITEM TEXT_PART z=1 [132.00,19.20 26.40x19.20] override wrap=FALSE off=0.00,0.00 text="" is""" & ASCII.LF
+     & "10: TEXT_ITEM TEXT_PART z=1 [158.40,19.20 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" long""" & ASCII.LF
+     & "11: TEXT_ITEM TEXT_PART z=1 [202.40,19.20 61.60x19.20] override wrap=FALSE off=0.00,0.00 text="" enough""" & ASCII.LF
+     & "12: TEXT_ITEM TEXT_PART z=1 [264.00,19.20 26.40x19.20] override wrap=FALSE off=0.00,0.00 text="" to""" & ASCII.LF
+     & "13: TEXT_ITEM TEXT_PART z=1 [0.00,38.40 35.20x19.20] override wrap=FALSE off=0.00,0.00 text=""wrap""" & ASCII.LF
+     & "14: TEXT_ITEM TEXT_PART z=1 [35.20,38.40 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" onto""" & ASCII.LF
+     & "15: TEXT_ITEM TEXT_PART z=1 [79.20,38.40 17.60x19.20] override wrap=FALSE off=0.00,0.00 text="" a""" & ASCII.LF
+     & "16: TEXT_ITEM TEXT_PART z=1 [96.80,38.40 61.60x19.20] override wrap=FALSE off=0.00,0.00 text="" second""" & ASCII.LF
+     & "17: TEXT_ITEM TEXT_PART z=1 [158.40,38.40 52.80x19.20] override wrap=FALSE off=0.00,0.00 text="" line,""" & ASCII.LF
+     & "18: TEXT_ITEM TEXT_PART z=1 [211.20,38.40 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" with""" & ASCII.LF
+     & "19: TEXT_ITEM TEXT_PART z=1 [255.20,38.40 8.80x19.20] override wrap=FALSE off=0.00,0.00 text="" """ & ASCII.LF
+     & "20: TEXT_ITEM INDICATOR_PART z=1 [264.00,38.40 8.80x19.20] override wrap=FALSE off=0.00,0.00 text=""a""" & ASCII.LF
+     & "21: TEXT_ITEM INDICATOR_PART z=1 [272.80,38.40 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" link""" & ASCII.LF
+     & "22: TEXT_ITEM INDICATOR_PART z=1 [0.00,57.60 35.20x19.20] override wrap=FALSE off=0.00,0.00 text=""that""" & ASCII.LF
+     & "23: TEXT_ITEM INDICATOR_PART z=1 [35.20,57.60 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" also""" & ASCII.LF
+     & "24: TEXT_ITEM INDICATOR_PART z=1 [79.20,57.60 52.80x19.20] override wrap=FALSE off=0.00,0.00 text="" wraps""" & ASCII.LF
+     & "25: TEXT_ITEM INDICATOR_PART z=1 [132.00,57.60 61.60x19.20] override wrap=FALSE off=0.00,0.00 text="" across""" & ASCII.LF
+     & "26: TEXT_ITEM INDICATOR_PART z=1 [193.60,57.60 35.20x19.20] override wrap=FALSE off=0.00,0.00 text="" the""" & ASCII.LF
+     & "27: TEXT_ITEM INDICATOR_PART z=1 [228.80,57.60 52.80x19.20] override wrap=FALSE off=0.00,0.00 text="" break""" & ASCII.LF
+     & "28: TEXT_ITEM TEXT_PART z=1 [0.00,76.80 52.80x19.20] override wrap=FALSE off=0.00,0.00 text=""inside""" & ASCII.LF
+     & "29: TEXT_ITEM TEXT_PART z=1 [52.80,76.80 35.20x19.20] override wrap=FALSE off=0.00,0.00 text="" it.""" & ASCII.LF
+     & "30: PANEL_ITEM ANY_PART z=1 [0.00,105.10 320.00x1.00] override" & ASCII.LF
+     & "31: PANEL_ITEM ANY_PART z=0 [0.00,115.20 320.00x38.40] override" & ASCII.LF
+     & "32: PANEL_ITEM ANY_PART z=0 [0.00,115.20 320.00x19.20] override" & ASCII.LF
+     & "33: IMAGE_ITEM ICON_PART z=1 [0.00,120.00 10.56x10.56] override bg=FALSE src=set" & ASCII.LF
+     & "34: TEXT_ITEM TEXT_PART z=1 [16.16,115.20 44.00x19.20] override wrap=FALSE off=0.00,0.00 text=""first""" & ASCII.LF
+     & "35: TEXT_ITEM TEXT_PART z=1 [60.16,115.20 44.00x19.20] override wrap=FALSE off=0.00,0.00 text="" item""" & ASCII.LF
+     & "36: PANEL_ITEM ANY_PART z=0 [0.00,134.40 320.00x19.20] override" & ASCII.LF
+     & "37: IMAGE_ITEM ICON_PART z=1 [0.00,139.20 10.56x10.56] override bg=FALSE src=set" & ASCII.LF
+     & "38: TEXT_ITEM TEXT_PART z=1 [16.16,134.40 52.80x19.20] override wrap=FALSE off=0.00,0.00 text=""second""" & ASCII.LF
+     & "39: TEXT_ITEM TEXT_PART z=1 [68.96,134.40 8.80x19.20] override wrap=FALSE off=0.00,0.00 text="" """ & ASCII.LF
+     & "40: TEXT_ITEM INDICATOR_PART z=1 [77.76,134.40 35.20x19.20] override wrap=FALSE off=0.00,0.00 text=""item""" & ASCII.LF
+     & "41: PANEL_ITEM ANY_PART z=0 [0.00,153.60 320.00x19.20] override" & ASCII.LF
+     & "42: TEXT_ITEM TEXT_PART z=1 [0.00,153.60 70.40x19.20] override wrap=FALSE off=0.00,0.00 text=""alt text""" & ASCII.LF
+     & "43: TEXT_ITEM TEXT_PART z=1 [70.40,153.60 79.20x19.20] override wrap=FALSE off=0.00,0.00 text="" trailing""" & ASCII.LF
+     & "44: TEXT_ITEM TEXT_PART z=1 [149.60,153.60 61.60x19.20] override wrap=FALSE off=0.00,0.00 text="" prose.""" & ASCII.LF
      & "doc: 320.00x172.80 scroll_h=240.00" & ASCII.LF
-     & "link@19 [264.00,38.40 8.80x19.20] -> https://example.com/one" & ASCII.LF
-     & "link@20 [272.80,38.40 44.00x19.20] -> https://example.com/one" & ASCII.LF
-     & "link@21 [0.00,57.60 35.20x19.20] -> https://example.com/one" & ASCII.LF
-     & "link@22 [35.20,57.60 44.00x19.20] -> https://example.com/one" & ASCII.LF
-     & "link@23 [79.20,57.60 52.80x19.20] -> https://example.com/one" & ASCII.LF
-     & "link@24 [132.00,57.60 61.60x19.20] -> https://example.com/one" & ASCII.LF
-     & "link@25 [193.60,57.60 35.20x19.20] -> https://example.com/one" & ASCII.LF
-     & "link@26 [228.80,57.60 52.80x19.20] -> https://example.com/one" & ASCII.LF
-     & "link@39 [77.76,134.40 35.20x19.20] -> #two" & ASCII.LF;
+     & "link@20 [264.00,38.40 8.80x19.20] -> https://example.com/one" & ASCII.LF
+     & "link@21 [272.80,38.40 44.00x19.20] -> https://example.com/one" & ASCII.LF
+     & "link@22 [0.00,57.60 35.20x19.20] -> https://example.com/one" & ASCII.LF
+     & "link@23 [35.20,57.60 44.00x19.20] -> https://example.com/one" & ASCII.LF
+     & "link@24 [79.20,57.60 52.80x19.20] -> https://example.com/one" & ASCII.LF
+     & "link@25 [132.00,57.60 61.60x19.20] -> https://example.com/one" & ASCII.LF
+     & "link@26 [193.60,57.60 35.20x19.20] -> https://example.com/one" & ASCII.LF
+     & "link@27 [228.80,57.60 52.80x19.20] -> https://example.com/one" & ASCII.LF
+     & "link@40 [77.76,134.40 35.20x19.20] -> #two" & ASCII.LF;
 
    W : constant HV.Html_View_Handle := HV.Create_Handle;
 

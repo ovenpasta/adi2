@@ -1145,6 +1145,110 @@ procedure Html_View_Test is
       New_Line;
    end Test_Block_Sizing;
 
+   --  body is a block box of its own; its background paints the canvas.
+   procedure Test_Body_Box is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+
+      function Geom (Needle : String) return Adi.Core.Rectangle is
+         Idx : constant Natural := Find_Text_Item_Index (W, Needle);
+      begin
+         Assert (Idx > 0, Needle & " exists");
+         return (if Idx > 0 then Adi.Widget.Get_Item (+W, Positive (Idx)).Geometry
+                 else (0.0, 0.0, 0.0, 0.0));
+      end Geom;
+
+      procedure Expect (What : String; Got, Want : Adi.Core.Pixel_Type) is
+      begin
+         Assert (abs (Got - Want) < 0.01, What & ":" & Got'Image & " /=" & Want'Image);
+      end Expect;
+
+      procedure Load (CSS, Markup : String) is
+      begin
+         Adi.Widget.Html_View.Set_HTML
+           (W, "<style>body { font-size: 16px; line-height: 1.0; } p { margin: 0; } "
+               & CSS & "</style>" & Markup);
+         Adi.Widget.Build_Items (+W);
+      end Load;
+
+      --  Panels spanning the whole canvas: the view is 600x900 and the
+      --  documents here are short.
+      function Canvas_Panels return Natural is
+         Count : Natural := 0;
+      begin
+         for I in 2 .. Adi.Widget.Item_Count (+W) loop
+            declare
+               It : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, I);
+               G  : constant Adi.Core.Rectangle := It.Geometry;
+            begin
+               if Adi.Widget."=" (It.Kind, Adi.Widget.Panel_Item)
+                 and then G.X = 0.0 and then G.Y = 0.0
+                 and then G.Width = 600.0 and then G.Height = 900.0
+               then
+                  Count := Count + 1;
+               end if;
+            end;
+         end loop;
+         return Count;
+      end Canvas_Panels;
+   begin
+      Put_Line ("Test: body box");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 900.0));
+
+      Load ("body { max-width: 300px; margin: 0 auto; padding: 10px; }", "<p>page</p>");
+      Expect ("body is centred by max-width and auto margins", Geom ("page").X, 160.0);
+      Expect ("body's padding insets its content", Geom ("page").Y, 10.0);
+
+      Load ("html { padding-left: 20px; }", "<p>outer</p>");
+      Expect ("html's box folds into body's", Geom ("outer").X, 20.0);
+
+      Load ("body { border: 2px solid black; }", "<p>bordered</p>");
+      Expect ("body's border insets its content", Geom ("bordered").X, 2.0);
+
+      Load ("body { margin-top: 10px; } p.m { margin-top: 30px; }", "<p class='m'>collapsed</p>");
+      Expect ("body's top margin collapses with its first child's",
+              Geom ("collapsed").Y, 30.0);
+
+      Load ("body { display: flex; }", "<div>left</div><div>right</div>");
+      Expect ("body lays its children out as flex items", Geom ("right").Y, Geom ("left").Y);
+      Assert (Geom ("right").X > Geom ("left").X, "flex items sit side by side");
+
+      Load ("", "<p>plain</p>");
+      Assert (Canvas_Panels = 0, "no canvas panel without a body background");
+      Load ("body { background-color: #ffeedd; max-width: 300px; margin: 0 auto; }",
+            "<p>painted</p>");
+      Assert (Canvas_Panels = 1, "body's background paints the whole canvas");
+      --  body's own panel is the first item at its centred place.
+      declare
+         Own : Natural := 0;
+      begin
+         for I in 2 .. Adi.Widget.Item_Count (+W) loop
+            if Adi.Widget.Get_Item (+W, I).Geometry.X = 150.0 then
+               Own := I;
+               exit;
+            end if;
+         end loop;
+         Assert (Own > 0, "body's own box is laid out at its centred place");
+         Assert (Own > 0
+                 and then Adi.CSS_Styles."="
+                   (Ref (Adi.Widget.Get_Item (+W, Own).Style_Override).Background_Color,
+                    Adi.CSS_Styles.Default_Background),
+                 "body's own box does not paint the background again");
+      end;
+
+      --  The canvas covers a document taller than the view, body's bottom
+      --  margin included.
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 100.0));
+      Load ("body { margin: 50px 0; background-color: #ffeedd; }", "<p>tall</p>");
+      Expect ("the scroll range counts body's bottom margin",
+              Adi.Widget.Get_Scroll_Max_Offset_Y (+W), 50.0 + 16.0 + 50.0 - 100.0);
+      Expect ("the canvas is as tall as the document",
+              Adi.Widget.Get_Item (+W, 2).Geometry.Height, 116.0);
+      New_Line;
+   end Test_Body_Box;
+
    --  A block's content is inset by the border it draws, and at a content
    --  scale the drawn width follows it.
    procedure Test_Border_Insets_At_Scale is
@@ -2993,6 +3097,7 @@ begin
    Test_Percent_Font_And_Line_Height;
    Test_Selectors;
    Test_Block_Sizing;
+   Test_Body_Box;
    Test_Border_Insets_At_Scale;
    Test_Character_References;
    Test_Marker_Beside_Opening_Block;

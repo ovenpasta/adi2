@@ -1062,6 +1062,15 @@ package body Adi.Widget.Html_View is
       Attrs  : constant Element_Attributes := Self.Nodes (Element).Attrs;
       Result : Style_Rules := Tag_Default_Style (Tag);
    begin
+      --  The parse root is body, and the html element above it has no box
+      --  of its own: its rules fold into body's.
+      if Element = 1 then
+         return Merge
+           (Merge (Tag_Default_Style ("body"),
+                   Sheet_Rules_For (Self, Natural (Self.Nodes.Length) + 1)),
+            Sheet_Rules_For (Self, 1));
+      end if;
+
       --  img width/height sit below every stylesheet rule.
       if Tag = "img" then
          declare
@@ -2055,6 +2064,8 @@ package body Adi.Widget.Html_View is
 
       Document_Rules   : Style_Rules := Tag_Default_Style ("body");
       Document_Style   : Resolved_Style;
+      --  The item painting body's background over the canvas, or 0.
+      Canvas_Index     : Natural := 0;
 
       --  Panels whose top Y was tentatively set while a margin was still
       --  pending. Their Geometry.Y is rewritten to the committed Y when
@@ -4396,9 +4407,15 @@ package body Adi.Widget.Html_View is
                                        Width  => Block_Width,
                                        Height => 0.0),
                                       0);
+                                 Box_Style : Resolved_Style := Panel_Style (Style, Border_Px);
                               begin
+                                 --  body's background is the canvas's.
+                                 if Node_Index = 1 then
+                                    Box_Style.Background_Color := Default_Background;
+                                    Box_Style.Background_Image := Default_Background_Image;
+                                 end if;
                                  It.Has_Style_Override := True;
-                                 It.Style_Override := Intern (Panel_Style (Style, Border_Px));
+                                 It.Style_Override := Intern (Box_Style);
                                  Result.Items.Append (It);
                                  Block_Item_Index := Natural (Result.Items.Last_Index);
                               end;
@@ -4645,13 +4662,8 @@ package body Adi.Widget.Html_View is
          return;
       end if;
 
-      --  The parse root stands for body, under the html element; both
-      --  fold into the document's style.
       if not Self.Nodes.Is_Empty then
-         Document_Rules :=
-           Merge (Document_Rules,
-                  Sheet_Rules_For (Self, Natural (Self.Nodes.Length) + 1));
-         Document_Rules := Merge (Document_Rules, Sheet_Rules_For (Self, 1));
+         Document_Rules := Element_Cascade_Rules (Self, 1);
       end if;
 
       Document_Style := Resolve_Element_Style (Document_Rules, Text_Part_Style, True);
@@ -4687,17 +4699,26 @@ package body Adi.Widget.Html_View is
       Current_Line_Align := Document_Style.Text_Align;
 
       if Natural (Self.Nodes.Length) > 0 then
-         declare
-            Root : constant Node := Self.Nodes.Element (1);
-         begin
-            if Root.Kind = Element_Node then
-               for Child_Idx of Root.Children loop
-                  if Child_Idx > 0 then
-                     Layout_Node (Positive (Child_Idx), Document_Style, "");
-                  end if;
-               end loop;
-            end if;
-         end;
+         --  body's background paints the whole canvas, behind everything.
+         if Document_Style.Background_Color /= Default_Background
+           or else Document_Style.Background_Image /= Default_Background_Image
+         then
+            declare
+               Canvas : Resolved_Style;
+               It     : Item := Make_Panel (Any_Part, (0.0, 0.0, 0.0, 0.0), 0);
+            begin
+               Canvas.Background_Color := Document_Style.Background_Color;
+               Canvas.Background_Image := Document_Style.Background_Image;
+               It.Has_Style_Override := True;
+               It.Style_Override := Intern (Canvas);
+               Result.Items.Append (It);
+               Canvas_Index := Natural (Result.Items.Last_Index);
+            end;
+         end if;
+
+         if Self.Nodes (1).Kind = Element_Node then
+            Layout_Node (1, Text_Part_Style, "");
+         end if;
       end if;
 
       Flush_Pending_Margin;
@@ -4720,6 +4741,10 @@ package body Adi.Widget.Html_View is
 
          Result.Scroll_H :=
            Pixel_Type'Max (Content.Height, Content_End_Y);
+         if Canvas_Index > 0 then
+            Result.Items.Reference (Canvas_Index).Geometry :=
+              (0.0, 0.0, Content.Width, Result.Scroll_H);
+         end if;
 
          --  Track the document's intrinsic size so Measure_Content can
          --  return it.  Cached_Content_H is the real (un-clamped) bottom

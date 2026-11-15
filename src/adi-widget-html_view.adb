@@ -2127,12 +2127,18 @@ package body Adi.Widget.Html_View is
       package Pending_Marker_Vectors is new Ada.Containers.Vectors
         (Index_Type => Positive, Element_Type => Pending_Marker);
 
-      --  An inline element that draws a box: a background or a border.
-      --  Its line fragments sit on the baseline, as tall as its font with
-      --  its vertical padding and border, and do not change the line's
-      --  height.
+      --  An inline element with a box: one that draws a background or a
+      --  border, or a link's padded or bordered element, whose box is in
+      --  the link's hit area. Its line fragments sit on the baseline, as
+      --  tall as its font with its vertical padding and border, and do
+      --  not change the line's height.
       type Inline_Box is record
          Style   : Resolved_Style;
+         Drawn   : Boolean := True;
+         --  The link it is in, and that link's a element; "" and 0 when
+         --  none.
+         Href    : Unbounded_String;
+         Node    : Natural := 0;
          Border  : Edge_Pixels := Zero_Edges;
          Padding : Edge_Pixels := Zero_Edges;
          Ascent  : Pixel_Type := 0.0;
@@ -2161,7 +2167,7 @@ package body Adi.Widget.Html_View is
       --  last fragments only.
       type Box_Fragment is record
          Box       : Inline_Box;
-         Slot      : Positive := 1;
+         Slot      : Natural := 0;
          X1, X2    : Pixel_Type := 0.0;
          Has_Left  : Boolean := True;
          Has_Right : Boolean := True;
@@ -2768,7 +2774,7 @@ package body Adi.Widget.Html_View is
       procedure Reserve_Box_Slots is
       begin
          for B of Flow.Open_Boxes loop
-            if B.Slot = 0 then
+            if B.Drawn and then B.Slot = 0 then
                Result.Items.Append (Make_Panel (Any_Part, (0.0, 0.0, 0.0, 0.0), 0));
                B.Slot := Natural (Result.Items.Last_Index);
             end if;
@@ -3081,7 +3087,14 @@ package body Adi.Widget.Html_View is
                end if;
                It.Has_Style_Override := True;
                It.Style_Override := Intern (Style);
-               Result.Items.Replace_Element (F.Slot, It);
+               if B.Drawn then
+                  Result.Items.Replace_Element (F.Slot, It);
+               end if;
+               if Length (B.Href) > 0 then
+                  Result.Links.Append
+                    (Link_Fragment'(Geometry => It.Geometry, Href => B.Href,
+                                    Node     => B.Node));
+               end if;
             end;
          end loop;
          Flow.Line_Fragments.Clear;
@@ -4385,6 +4398,10 @@ package body Adi.Widget.Html_View is
            Margin.Left /= 0.0 or else Margin.Right /= 0.0
            or else Border.Left > 0.0 or else Border.Right > 0.0
            or else Padding.Left > 0.0 or else Padding.Right > 0.0;
+         Boxed   : constant Boolean :=
+           Drawn
+           or else (Link'Length > 0
+                    and then (Border /= Zero_Edges or else Padding /= Zero_Edges));
       begin
          if Drawn or else Offsets then
             --  A space before the element is outside its box.
@@ -4396,10 +4413,13 @@ package body Adi.Widget.Html_View is
             X := X + Margin.Left;
          end if;
 
-         if Drawn then
+         if Boxed then
             Flow.Open_Boxes.Append
               (Inline_Box'
                  (Style   => Style,
+                  Drawn   => Drawn,
+                  Href    => To_Unbounded_String (Link),
+                  Node    => Link_Node,
                   Border  => Border,
                   Padding => Padding,
                   Ascent  => Measure_Ascent
@@ -4424,19 +4444,25 @@ package body Adi.Widget.Html_View is
 
          --  Its end edges start a fragment of their own on a line its
          --  content has not reached, after a block inside it.
-         if Drawn and then Flow.Open_Boxes.Last_Element.Frag_X < 0.0
+         if Boxed and then Flow.Open_Boxes.Last_Element.Frag_X < 0.0
            and then Padding.Right + Border.Right > 0.0
          then
             Reserve_Box_Slots;
             Note_Run (X);
          end if;
          X := X + Padding.Right + Border.Right;
-         if Drawn then
+         if Boxed then
             declare
                B : constant Inline_Box := Flow.Open_Boxes.Last_Element;
             begin
                Flow.Open_Boxes.Delete_Last;
-               if B.Frag_X >= 0.0 then
+               --  An empty element without edges has nothing to draw: its
+               --  item, the last one kept, goes.
+               if not B.Has_Content and then B.Frag_X = X then
+                  if B.Slot > 0 and then B.Slot = Natural (Result.Items.Last_Index) then
+                     Result.Items.Delete_Last;
+                  end if;
+               elsif B.Frag_X >= 0.0 then
                   Flow.Line_Fragments.Append
                     (Box_Fragment'(Box => B, Slot => B.Slot, X1 => B.Frag_X, X2 => X,
                                    Has_Left => B.First, Has_Right => True));
@@ -4592,6 +4618,15 @@ package body Adi.Widget.Html_View is
 
                            Outer_Boxes := Flow.Open_Boxes;
                            Flow.Open_Boxes.Clear;
+                           --  Boxes still empty here have kept items, the
+                           --  last ones, that nothing will fill.
+                           for K in reverse 1 .. Natural (Outer_Boxes.Length) loop
+                              if Outer_Boxes (K).Slot > 0
+                                and then Outer_Boxes (K).Slot = Natural (Result.Items.Last_Index)
+                              then
+                                 Result.Items.Delete_Last;
+                              end if;
+                           end loop;
                            for B of Outer_Boxes loop
                               if B.Frag_X >= 0.0 then
                                  B.First := False;

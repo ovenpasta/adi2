@@ -1273,6 +1273,24 @@ procedure Html_View_Test is
       --  The inline box panels (narrower than the view, unlike a block's)
       --  centred on the 16px line starting at Top, left to right.
       View_W : Adi.Core.Pixel_Type := 600.0;
+      Clicks : Natural := 0;
+
+      procedure On_Link_Click
+        (Self : Adi.Widget.Html_View.Html_View_Handle;
+         Href : String)
+      is
+         pragma Unreferenced (Self, Href);
+      begin
+         Clicks := Clicks + 1;
+      end On_Link_Click;
+
+      procedure Click (X, Y : Adi.Core.Pixel_Type) is
+      begin
+         Adi.Widget.On_Mouse_Down
+           (+W, X => X, Y => Y, Button => Adi.Core.Left_Button, Clicks => 1);
+         Adi.Widget.On_Mouse_Up (+W, X => X, Y => Y, Button => Adi.Core.Left_Button);
+      end Click;
+
       type Rect_Array is array (1 .. 8) of Adi.Core.Rectangle;
       Boxes : Rect_Array;
       Box_Count : Natural := 0;
@@ -1307,6 +1325,7 @@ procedure Html_View_Test is
       end Load;
    begin
       Put_Line ("Test: inline boxes");
+      Adi.Widget.Html_View.Connect_Link_Click (W, On_Link_Click'Unrestricted_Access);
       Adi.Widget.Set_Geometry
         (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 900.0));
 
@@ -1383,6 +1402,40 @@ procedure Html_View_Test is
       Find_Boxes (Geom ("mid").Y);
       Assert (Box_Count = 1 and then abs (Boxes (1).X - (Geom ("mid").X - 5.0)) < 0.01,
               "a centred box stays around its text");
+
+      --  A link's padding and border are in its hit area, drawn or not.
+      Load ("<p><a href='#b' style='padding: 0 12px; border-left: 3px solid red'>btn</a></p>"
+            & "<p><a href='#c' style='padding: 4px 12px; background-color: red'>btn2</a></p>"
+            & "<p><span style='padding: 0 12px'>plain</span></p>"
+            & "<p><a href='#d' style='padding: 0 12px'>padonly</a></p>");
+      Clicks := 0;
+      Click (Geom ("btn").X - 6.0, Geom ("btn").Y + 8.0);
+      Assert (Clicks = 1, "a link's padding is clickable");
+      Click (Geom ("btn").X - 13.5, Geom ("btn").Y + 8.0);
+      Assert (Clicks = 2, "and so is its border");
+      Click (Geom ("btn2").X - 6.0, Geom ("btn2").Y + 8.0);
+      Assert (Clicks = 3, "a drawn link box's padding is clickable");
+      Click (Geom ("plain").X - 6.0, Geom ("plain").Y + 8.0);
+      Assert (Clicks = 3, "padding outside any link is not");
+      Click (Geom ("padonly").X - 6.0, Geom ("padonly").Y + 8.0);
+      Assert (Clicks = 4, "a link with padding alone is clickable there");
+      Find_Boxes (Geom ("padonly").Y);
+      Assert (Box_Count = 0, "and draws no box");
+
+      --  An empty element without edges leaves no item behind.
+      declare
+         Before : Natural;
+      begin
+         Load ("<p>q</p>");
+         Before := Adi.Widget.Item_Count (+W);
+         Load ("<p>q<span style='background-color: red'></span></p>");
+         Assert (Adi.Widget.Item_Count (+W) = Before,
+                 "an empty element with a background adds no item:"
+                 & Before'Image & Adi.Widget.Item_Count (+W)'Image);
+         Load ("<p><span style='background-color: red'><p>q</p></span></p>");
+         Find_Boxes (Geom ("q").Y - 16.0);
+         Assert (Box_Count = 0, "nor does one emptied by a block");
+      end;
 
       Load ("<p>xx <span style='background-color: red'> yy</span></p>");
       Find_Boxes (Geom ("yy").Y);

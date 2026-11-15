@@ -150,7 +150,7 @@ Package: `Adi.Widget.Html_View`
 - An inline element's horizontal margin, border and padding take room on the line before and after its content.
 - A background or border draws a box on each line's fragment of the element: as tall as its font plus vertical padding and border, on the baseline, overlapping the lines around it without changing their height. Side edges and corner rounding are on the first and last fragments only.
 - A space before the element is outside its box. When the element's first word wraps, its start edge goes with it.
-- Its padding and border are not part of a link's hit area.
+- Inside a link, an element's padding and border are in the link's hit area, drawn or not.
 - A block inside an inline element splits it: the block's lines are not in the box, and the box's start and end edges sit on lines of their own before and after the block, as in CSS. An unknown tag is inline, so a box style on one wrapping blocks does this.
 - An outside list marker's gutter is inside its `li`, so a sized `li` holds the marker too.
 - While a flex or grid item is measured for its min- or max-content width, percentage sizes count as `auto` and `auto` margins as zero; a block with a fixed width counts at that width.

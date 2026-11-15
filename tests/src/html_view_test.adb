@@ -1249,6 +1249,194 @@ procedure Html_View_Test is
       New_Line;
    end Test_Body_Box;
 
+   --  An inline element's horizontal margin, border and padding take room
+   --  on the line; a background or border draws a box on each line's
+   --  fragment, as tall as its font and vertical padding, leaving the line
+   --  height alone.
+   procedure Test_Inline_Boxes is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+
+      function Geom (Needle : String) return Adi.Core.Rectangle is
+         Idx : constant Natural := Find_Text_Item_Index (W, Needle);
+      begin
+         Assert (Idx > 0, Needle & " exists");
+         return (if Idx > 0 then Adi.Widget.Get_Item (+W, Positive (Idx)).Geometry
+                 else (0.0, 0.0, 0.0, 0.0));
+      end Geom;
+
+      procedure Expect (What : String; Got, Want : Adi.Core.Pixel_Type) is
+      begin
+         Assert (abs (Got - Want) < 0.01, What & ":" & Got'Image & " /=" & Want'Image);
+      end Expect;
+
+      --  The inline box panels (narrower than the view, unlike a block's)
+      --  centred on the 16px line starting at Top, left to right.
+      View_W : Adi.Core.Pixel_Type := 600.0;
+      type Rect_Array is array (1 .. 8) of Adi.Core.Rectangle;
+      Boxes : Rect_Array;
+      Box_Count : Natural := 0;
+
+      procedure Find_Boxes (Top : Adi.Core.Pixel_Type) is
+      begin
+         Box_Count := 0;
+         for I in 2 .. Adi.Widget.Item_Count (+W) loop
+            declare
+               It : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, I);
+               G  : constant Adi.Core.Rectangle := It.Geometry;
+            begin
+               if Adi.Widget."=" (It.Kind, Adi.Widget.Panel_Item)
+                 and then G.Width < View_W
+                 and then G.Y + G.Height / 2.0 >= Top
+                 and then G.Y + G.Height / 2.0 < Top + 16.0
+                 and then Box_Count < Boxes'Last
+               then
+                  Box_Count := Box_Count + 1;
+                  Boxes (Box_Count) := G;
+               end if;
+            end;
+         end loop;
+      end Find_Boxes;
+
+      procedure Load (Markup : String) is
+      begin
+         Adi.Widget.Html_View.Set_HTML
+           (W, "<style>body { font-size: 16px; line-height: 1.0; } p { margin: 0; }</style>"
+               & Markup);
+         Adi.Widget.Build_Items (+W);
+      end Load;
+   begin
+      Put_Line ("Test: inline boxes");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 900.0));
+
+      Load ("<p>ab<span style='padding: 0 10px; background-color: red'>cd</span>ef</p>"
+            & "<p>gh<span style='padding: 5px 10px; background-color: red'>ij</span></p>");
+      Expect ("left padding takes room before the content",
+              Geom ("cd").X, Geom ("ab").X + Geom ("ab").Width + 10.0);
+      Expect ("right padding takes room after it",
+              Geom ("ef").X, Geom ("cd").X + Geom ("cd").Width + 10.0);
+      Expect ("vertical padding leaves the line height alone", Geom ("ij").Height, 16.0);
+      Find_Boxes (Geom ("cd").Y);
+      Assert (Box_Count = 1, "one box on the first line:" & Box_Count'Image);
+      if Box_Count = 1 then
+         Expect ("the box starts at the left padding", Boxes (1).X, Geom ("cd").X - 10.0);
+         Expect ("and ends past the right padding", Boxes (1).Width, Geom ("cd").Width + 20.0);
+         declare
+            Plain : constant Adi.Core.Rectangle := Boxes (1);
+         begin
+            Find_Boxes (Geom ("ij").Y);
+            Assert (Box_Count = 1, "one box on the second line");
+            if Box_Count = 1 then
+               Expect ("vertical padding grows the box", Boxes (1).Height, Plain.Height + 10.0);
+               Expect ("about the same baseline", Boxes (1).Y + 5.0 - Geom ("ij").Y,
+                       Plain.Y - Geom ("cd").Y);
+            end if;
+         end;
+      end if;
+
+      --  Items draw in order, so a box comes before what it holds.
+      declare
+         Text_Index : constant Natural := Find_Text_Item_Index (W, "ij");
+         Box_Index  : Natural := 0;
+      begin
+         for I in 2 .. Adi.Widget.Item_Count (+W) loop
+            if Adi.Widget."=" (Adi.Widget.Get_Item (+W, I).Kind, Adi.Widget.Panel_Item)
+              and then Adi.Widget.Get_Item (+W, I).Geometry.Width < View_W
+              and then abs (Adi.Widget.Get_Item (+W, I).Geometry.X
+                            - (Geom ("ij").X - 10.0)) < 0.01
+            then
+               Box_Index := I;
+            end if;
+         end loop;
+         Assert (Box_Index > 0 and then Box_Index < Text_Index,
+                 "the box is drawn beneath its text:" & Box_Index'Image & Text_Index'Image);
+      end;
+
+      --  A block inside a box splits it: the block's lines are not in it,
+      --  the box's edges are on lines of their own before and after.
+      Load ("<span style='padding: 0 7px; background-color: red'><p>inblock</p></span>");
+      Find_Boxes (Geom ("inblock").Y);
+      Assert (Box_Count = 0, "the block's line is not in the box");
+      Find_Boxes (Geom ("inblock").Y - 16.0);
+      Assert (Box_Count = 1 and then abs (Boxes (1).Width - 7.0) < 0.01,
+              "the start edge sits on the line before");
+      Find_Boxes (Geom ("inblock").Y + 16.0);
+      Assert (Box_Count = 1 and then abs (Boxes (1).Width - 7.0) < 0.01,
+              "the end edge sits on the line after");
+
+      --  Nested boxes draw outer first, the inner inside the outer.
+      Load ("<p><span style='padding: 0 6px; background-color: red'>out "
+            & "<span style='padding: 0 3px; background-color: blue'>in</span></span></p>");
+      Find_Boxes (Geom ("in").Y);
+      Assert (Box_Count = 2, "two nested boxes");
+      if Box_Count = 2 then
+         Assert (Boxes (1).X < Boxes (2).X
+                 and then Boxes (1).X + Boxes (1).Width > Boxes (2).X + Boxes (2).Width,
+                 "the outer box, drawn first, holds the inner");
+         Expect ("the inner box is padded", Boxes (2).X, Geom ("in").X - 3.0);
+      end if;
+
+      --  Centred text moves its boxes with it.
+      Load ("<p style='text-align: center'><span style='padding: 0 5px; "
+            & "background-color: red'>mid</span></p>");
+      Find_Boxes (Geom ("mid").Y);
+      Assert (Box_Count = 1 and then abs (Boxes (1).X - (Geom ("mid").X - 5.0)) < 0.01,
+              "a centred box stays around its text");
+
+      Load ("<p>xx <span style='background-color: red'> yy</span></p>");
+      Find_Boxes (Geom ("yy").Y);
+      Assert (Box_Count = 1, "a background alone draws a box");
+      if Box_Count = 1 then
+         Expect ("the space before the element is outside its box", Boxes (1).X, Geom ("yy").X);
+         Expect ("and is not doubled inside it", Boxes (1).Width, Geom ("yy").Width);
+      end if;
+
+      Load ("<p>aa<span style='margin: 0 20px'>bb</span>cc</p>");
+      Expect ("a margin alone moves the content", Geom ("bb").X,
+              Geom ("aa").X + Geom ("aa").Width + 20.0);
+      Find_Boxes (Geom ("bb").Y);
+      Assert (Box_Count = 0, "a margin alone draws no box");
+
+      View_W := 200.0;
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => View_W, Height => 900.0));
+      Load ("<p>start <span style='border: 2px solid red; padding: 0 4px'>"
+            & "one two three four five six seven</span></p>");
+      declare
+         First_Line : constant Adi.Core.Rectangle := Geom ("one");
+         Last_Line  : constant Adi.Core.Rectangle := Geom ("seven");
+      begin
+         Assert (Last_Line.Y > First_Line.Y, "the element wraps");
+         Find_Boxes (First_Line.Y);
+         Assert (Box_Count = 1, "one fragment on the first line");
+         if Box_Count = 1 then
+            Expect ("the first fragment has the left edge", Boxes (1).X, First_Line.X - 6.0);
+         end if;
+         Find_Boxes (Last_Line.Y);
+         Assert (Box_Count = 1, "one fragment on the last line");
+         if Box_Count = 1 then
+            Expect ("a later fragment starts at the line's start", Boxes (1).X, 0.0);
+            Expect ("and has the right edge", Boxes (1).X + Boxes (1).Width,
+                    Last_Line.X + Last_Line.Width + 6.0);
+         end if;
+      end;
+
+      --  An element whose first word does not fit goes to the next line
+      --  with its start edge.
+      Load ("<p>aaaaaaaaaaaaaaaaaaa "
+            & "<span style='padding: 0 10px; background-color: red'>wrapped</span></p>");
+      Assert (Geom ("wrapped").Y > Geom ("aaaa").Y, "the element's word wraps");
+      Expect ("its start padding comes with it", Geom ("wrapped").X, 10.0);
+      Find_Boxes (Geom ("aaaa").Y);
+      Assert (Box_Count = 0, "no edge is left on the line before");
+      Find_Boxes (Geom ("wrapped").Y);
+      Assert (Box_Count = 1 and then Boxes (1).X = 0.0
+              and then abs (Boxes (1).Width - (Geom ("wrapped").Width + 20.0)) < 0.01,
+              "one whole box on the new line");
+      New_Line;
+   end Test_Inline_Boxes;
+
    --  A block's content is inset by the border it draws, and at a content
    --  scale the drawn width follows it.
    procedure Test_Border_Insets_At_Scale is
@@ -3098,6 +3286,7 @@ begin
    Test_Selectors;
    Test_Block_Sizing;
    Test_Body_Box;
+   Test_Inline_Boxes;
    Test_Border_Insets_At_Scale;
    Test_Character_References;
    Test_Marker_Beside_Opening_Block;

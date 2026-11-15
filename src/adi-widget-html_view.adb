@@ -2127,6 +2127,49 @@ package body Adi.Widget.Html_View is
       package Pending_Marker_Vectors is new Ada.Containers.Vectors
         (Index_Type => Positive, Element_Type => Pending_Marker);
 
+      --  An inline element that draws a box: a background or a border.
+      --  Its line fragments sit on the baseline, as tall as its font with
+      --  its vertical padding and border, and do not change the line's
+      --  height.
+      type Inline_Box is record
+         Style   : Resolved_Style;
+         Border  : Edge_Pixels := Zero_Edges;
+         Padding : Edge_Pixels := Zero_Edges;
+         Ascent  : Pixel_Type := 0.0;
+         Descent : Pixel_Type := 0.0;
+         --  Where its fragment on the current line starts; negative
+         --  until its content reaches the line.
+         Frag_X  : Pixel_Type := -1.0;
+         --  No fragment of it is on an earlier line.
+         First   : Boolean := True;
+         --  The item kept for its fragment on the current line, ahead of
+         --  the fragment's content so it draws beneath it; 0 while none.
+         Slot    : Natural := 0;
+         --  Its start margin, and its start border and padding.
+         Lead, Edge  : Pixel_Type := 0.0;
+         --  Any of its content is laid out.
+         Has_Content : Boolean := False;
+         --  A wrap is moving it, start edge and all, to the next line.
+         Carry       : Boolean := False;
+      end record;
+
+      package Inline_Box_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => Inline_Box);
+
+      --  A fragment of an inline box on the current line, drawn once the
+      --  line's baseline is final. The side edges are on its first and
+      --  last fragments only.
+      type Box_Fragment is record
+         Box       : Inline_Box;
+         Slot      : Positive := 1;
+         X1, X2    : Pixel_Type := 0.0;
+         Has_Left  : Boolean := True;
+         Has_Right : Boolean := True;
+      end record;
+
+      package Box_Fragment_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => Box_Fragment);
+
       --  The flow cursor, in one record so it can be saved and restored
       --  whole. Document space: the origin is the top-left of the
       --  content box and the scroll offset is not in it. Emit_Items
@@ -2169,6 +2212,14 @@ package body Adi.Widget.Html_View is
          --  Outside list markers waiting for the first line their items
          --  put content on.
          Pending_Markers : Pending_Marker_Vectors.Vector;
+
+         --  The inline boxes open around the content, innermost last,
+         --  and the fragments the current line has closed.
+         Open_Boxes     : Inline_Box_Vectors.Vector;
+         Line_Fragments : Box_Fragment_Vectors.Vector;
+         --  The line's content ends in a space, which a following one
+         --  collapses into.
+         Ends_In_Space  : Boolean := False;
       end record;
 
       Flow : Flow_State := (Line_Right => Content.Width, others => <>);
@@ -2651,6 +2702,8 @@ package body Adi.Widget.Html_View is
          end loop;
       end Shift_Line;
 
+      procedure Emit_Box_Fragments (Shift_X : Pixel_Type);
+
       procedure Finalize_Line is
          Used_Width : constant Pixel_Type := Pixel_Type'Max (0.0, X - Line_Left);
          Available_Width : constant Pixel_Type := Current_Line_Width;
@@ -2658,7 +2711,20 @@ package body Adi.Widget.Html_View is
       begin
          Sync_Line_Heights;
 
+         --  An open box's fragment on this line runs to its end.
+         for B of Flow.Open_Boxes loop
+            if B.Frag_X >= 0.0 and then not B.Carry then
+               Flow.Line_Fragments.Append
+                 (Box_Fragment'(Box => B, Slot => B.Slot, X1 => B.Frag_X, X2 => X,
+                                Has_Left => B.First, Has_Right => False));
+               B.First := False;
+               B.Frag_X := -1.0;
+               B.Slot := 0;
+            end if;
+         end loop;
+
          if Natural (Line_Runs.Length) = 0 then
+            Emit_Box_Fragments (0.0);
             return;
          end if;
 
@@ -2693,7 +2759,33 @@ package body Adi.Widget.Html_View is
                end;
             end if;
          end loop;
+
+         Emit_Box_Fragments (Shift_X);
       end Finalize_Line;
+
+      --  Keeps an item, ahead of the content about to be appended, for
+      --  every open box that has none on this line.
+      procedure Reserve_Box_Slots is
+      begin
+         for B of Flow.Open_Boxes loop
+            if B.Slot = 0 then
+               Result.Items.Append (Make_Panel (Any_Part, (0.0, 0.0, 0.0, 0.0), 0));
+               B.Slot := Natural (Result.Items.Last_Index);
+            end if;
+         end loop;
+      end Reserve_Box_Slots;
+
+      --  Content at Run_X starts the fragment of every open box that has
+      --  none on this line yet.
+      procedure Note_Run (Run_X : Pixel_Type) is
+      begin
+         for B of Flow.Open_Boxes loop
+            if B.Frag_X < 0.0 then
+               B.Frag_X := Run_X;
+            end if;
+            B.Has_Content := True;
+         end loop;
+      end Note_Run;
 
       procedure New_Line is
       begin
@@ -2705,7 +2797,38 @@ package body Adi.Widget.Html_View is
          Current_Line_Descent := Line_Base_Descent;
          Line_Runs.Clear;
          Pending_Space := False;
+         Flow.Ends_In_Space := False;
       end New_Line;
+
+      --  A break before content that does not fit. A box whose content
+      --  has not started yet goes to the next line whole, its start edge
+      --  with it, rather than leaving that edge behind.
+      procedure Wrap_Line is
+         Back_To : Pixel_Type := -1.0;
+      begin
+         for B of Flow.Open_Boxes loop
+            if B.Frag_X >= 0.0 and then not B.Has_Content then
+               B.Carry := True;
+               if Back_To < 0.0 then
+                  Back_To := B.Frag_X - B.Lead;
+               end if;
+            end if;
+         end loop;
+         if Back_To >= 0.0 then
+            X := Back_To;
+         end if;
+
+         New_Line;
+
+         for B of Flow.Open_Boxes loop
+            if B.Carry then
+               X := X + B.Lead;
+               B.Frag_X := X;
+               X := X + B.Edge;
+               B.Carry := False;
+            end if;
+         end loop;
+      end Wrap_Line;
 
       function Wrap_Allowed (Style : Resolved_Style) return Boolean is
       begin
@@ -2763,7 +2886,7 @@ package body Adi.Widget.Html_View is
                    Content.Width,
                    Content.Height).Width > Line_Right
          then
-            New_Line;
+            Wrap_Line;
             while Slice_First <= Slice_Last and then Text (Slice_First) = ' ' loop
                Slice_First := Slice_First + 1;
             end loop;
@@ -2849,10 +2972,13 @@ package body Adi.Widget.Html_View is
             It.Has_Style_Override := True;
             Render_Style.Font_Size := Pixels_As_Length (Local_Font_Size_Px (Style));
             It.Style_Override := Intern (Render_Style);
+            Reserve_Box_Slots;
             Result.Items.Append (It);
 
             Item_Index := Positive (Result.Items.Last_Index);
             Link_Index := Add_Link_Fragment (Full_Geom, Href);
+            Note_Run (Full_Geom.X);
+            Flow.Ends_In_Space := False;
             Line_Runs.Append
               (New_Item =>
                  Line_Run_Record'
@@ -2904,6 +3030,63 @@ package body Adi.Widget.Html_View is
          return Result;
       end Panel_Style;
 
+      procedure Emit_Box_Fragments (Shift_X : Pixel_Type) is
+         Baseline : constant Pixel_Type := Y + Current_Line_Ascent;
+      begin
+         for F of Flow.Line_Fragments loop
+            declare
+               B      : Inline_Box renames F.Box;
+               Border : Edge_Pixels := B.Border;
+               Left   : constant Pixel_Type := F.X1;
+               Top    : constant Pixel_Type :=
+                 Baseline - B.Ascent - B.Padding.Top - Border.Top;
+               Bottom : constant Pixel_Type :=
+                 Baseline + B.Descent + B.Padding.Bottom + Border.Bottom;
+               Style  : Resolved_Style;
+               It     : Item :=
+                 Make_Panel
+                   (Any_Part,
+                    (X      => Left + Shift_X,
+                     Y      => Top,
+                     Width  => Pixel_Type'Max (0.0, F.X2 - Left),
+                     Height => Bottom - Top),
+                    0);
+            begin
+               if not F.Has_Left then
+                  Border.Left := 0.0;
+               end if;
+               if not F.Has_Right then
+                  Border.Right := 0.0;
+               end if;
+               Style := Panel_Style (B.Style, Border);
+               --  A box broken across lines is sliced: no rounding where
+               --  it breaks.
+               if not (F.Has_Left and then F.Has_Right) then
+                  declare
+                     R : Corner_Radii :=
+                       (case Style.Border_Radius.Kind is
+                           when Gap_Uniform => [others => Style.Border_Radius.All_Corners],
+                           when Per_Corner  => Style.Border_Radius.Corners);
+                  begin
+                     if not F.Has_Left then
+                        R (Top_Left) := Zero_Length;
+                        R (Bottom_Left) := Zero_Length;
+                     end if;
+                     if not F.Has_Right then
+                        R (Top_Right) := Zero_Length;
+                        R (Bottom_Right) := Zero_Length;
+                     end if;
+                     Style.Border_Radius := (Kind => Per_Corner, Corners => R);
+                  end;
+               end if;
+               It.Has_Style_Override := True;
+               It.Style_Override := Intern (Style);
+               Result.Items.Replace_Element (F.Slot, It);
+            end;
+         end loop;
+         Flow.Line_Fragments.Clear;
+      end Emit_Box_Fragments;
+
       procedure Add_Image_Run
         (Img        : Adi.Image.Image_Handle;
          Width      : Pixel_Type;
@@ -2929,7 +3112,7 @@ package body Adi.Widget.Html_View is
            and then X > Line_Left
            and then X + Width > Line_Right
          then
-            New_Line;
+            Wrap_Line;
          end if;
 
          if Run_Ascent > Current_Line_Ascent then
@@ -2975,10 +3158,13 @@ package body Adi.Widget.Html_View is
                end if;
                It.Style_Override := Intern (Override);
             end;
+            Reserve_Box_Slots;
             Result.Items.Append (It);
 
             Item_Index := Positive (Result.Items.Last_Index);
             Link_Index := Add_Link_Fragment (Full_Geom, Href);
+            Note_Run (Full_Geom.X);
+            Flow.Ends_In_Space := False;
             Line_Runs.Append
               (New_Item =>
                  Line_Run_Record'
@@ -3056,7 +3242,7 @@ package body Adi.Widget.Html_View is
                --  inline content. Inter-block indentation/newlines must not
                --  set this flag, otherwise block-enter would call New_Line
                --  and bump Y by a line height for nothing.
-               if Has_Line_Content then
+               if Has_Line_Content and then not Flow.Ends_In_Space then
                   Pending_Space := True;
                end if;
                Start := Start + 1;
@@ -4177,6 +4363,89 @@ package body Adi.Widget.Html_View is
          Prev_Block_Margin_Bottom := 0.0;
       end Layout_Grid_Container;
 
+      --  An inline element's content. Its horizontal margin, border and
+      --  padding take room on the line at its start and end; a background
+      --  or border draws a box around each line's fragment of it.
+      procedure Layout_Inline_Element
+        (Parent       : Node;
+         Style        : Resolved_Style;
+         Outer_Style  : Resolved_Style;
+         Link         : String;
+         Outer_Link   : String)
+      is
+         Of_W    : constant Pixel_Type := Current_Line_Width;
+         Margin  : constant Edge_Pixels := Resolve_Margin_Edges (Style.Margin, Style, Of_W);
+         Border  : constant Edge_Pixels := Border_Edges (Style);
+         Padding : constant Edge_Pixels := Resolve_Box_Edges (Style.Padding, Style, Of_W);
+         Drawn   : constant Boolean :=
+           Style.Background_Color /= Default_Background
+           or else Style.Background_Image /= Default_Background_Image
+           or else Border /= Zero_Edges;
+         Offsets : constant Boolean :=
+           Margin.Left /= 0.0 or else Margin.Right /= 0.0
+           or else Border.Left > 0.0 or else Border.Right > 0.0
+           or else Padding.Left > 0.0 or else Padding.Right > 0.0;
+      begin
+         if Drawn or else Offsets then
+            --  A space before the element is outside its box.
+            if Pending_Space and then Has_Line_Content then
+               Add_Text_Run (" ", Outer_Link, Outer_Style);
+               Pending_Space := False;
+               Flow.Ends_In_Space := True;
+            end if;
+            X := X + Margin.Left;
+         end if;
+
+         if Drawn then
+            Flow.Open_Boxes.Append
+              (Inline_Box'
+                 (Style   => Style,
+                  Border  => Border,
+                  Padding => Padding,
+                  Ascent  => Measure_Ascent
+                    (Style, Self.Content_Scale, Root_Font_Px, Content.Width, Content.Height),
+                  Descent => Measure_Descent
+                    (Style, Self.Content_Scale, Root_Font_Px, Content.Width, Content.Height),
+                  Frag_X  => X,
+                  First   => True,
+                  Slot    => 0,
+                  Lead    => Margin.Left,
+                  Edge    => Border.Left + Padding.Left,
+                  others  => <>));
+            Reserve_Box_Slots;
+         end if;
+         X := X + Border.Left + Padding.Left;
+
+         for Child_Idx of Parent.Children loop
+            if Child_Idx > 0 then
+               Layout_Node (Positive (Child_Idx), Style, Link);
+            end if;
+         end loop;
+
+         --  Its end edges start a fragment of their own on a line its
+         --  content has not reached, after a block inside it.
+         if Drawn and then Flow.Open_Boxes.Last_Element.Frag_X < 0.0
+           and then Padding.Right + Border.Right > 0.0
+         then
+            Reserve_Box_Slots;
+            Note_Run (X);
+         end if;
+         X := X + Padding.Right + Border.Right;
+         if Drawn then
+            declare
+               B : constant Inline_Box := Flow.Open_Boxes.Last_Element;
+            begin
+               Flow.Open_Boxes.Delete_Last;
+               if B.Frag_X >= 0.0 then
+                  Flow.Line_Fragments.Append
+                    (Box_Fragment'(Box => B, Slot => B.Slot, X1 => B.Frag_X, X2 => X,
+                                   Has_Left => B.First, Has_Right => True));
+               end if;
+            end;
+         end if;
+         X := X + Margin.Right;
+      end Layout_Inline_Element;
+
       procedure Layout_Node
         (Node_Index   : Positive;
          Parent_Style : Resolved_Style;
@@ -4312,11 +4581,24 @@ package body Adi.Widget.Html_View is
                         Max_Box_H        : Pixel_Type := Pixel_Type'Last;
                         Prev_Def_H       : constant Pixel_Type := Block_Def_H;
                         Box_Closed       : Boolean := False;
+                        --  Inline boxes open around this block: it splits
+                        --  them, and its own lines are not part of them.
+                        Outer_Boxes      : Inline_Box_Vectors.Vector;
                        begin
                         if Block_Flow then
                            if Has_Line_Content or else Pending_Space then
                               New_Line;
                            end if;
+
+                           Outer_Boxes := Flow.Open_Boxes;
+                           Flow.Open_Boxes.Clear;
+                           for B of Outer_Boxes loop
+                              if B.Frag_X >= 0.0 then
+                                 B.First := False;
+                              end if;
+                              B.Frag_X := -1.0;
+                              B.Slot := 0;
+                           end loop;
 
                            if Tag = "ul" or else Tag = "ol" then
                               declare
@@ -4518,12 +4800,14 @@ package body Adi.Widget.Html_View is
                            Layout_Flex_Container (N, Style, Link_Href);
                         elsif Block_Flow and then Style.Display in Grid | Inline_Grid then
                            Layout_Grid_Container (N, Style, Link_Href);
-                        else
+                        elsif Block_Flow then
                            for Child_Idx of N.Children loop
                               if Child_Idx > 0 then
                                  Layout_Node (Positive (Child_Idx), Style, Link_Href);
                               end if;
                            end loop;
+                        else
+                           Layout_Inline_Element (N, Style, Parent_Style, Link_Href, Active_Link);
                         end if;
 
                         if Block_Flow then
@@ -4629,6 +4913,7 @@ package body Adi.Widget.Html_View is
                            end if;
                            Flow.Right_Inset := Prev_Right_Inset;
                            Block_Def_H := Prev_Def_H;
+                           Flow.Open_Boxes := Outer_Boxes;
 
                            Line_Left := Prev_Line_Left;
                            Line_Right := Prev_Line_Right;

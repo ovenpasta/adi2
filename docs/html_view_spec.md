@@ -145,6 +145,13 @@ Package: `Adi.Widget.Html_View`
 - A block fills its container's content width less its margins, unless `width`, `min-width` or `max-width` set it. Sizes are border-box. With a set width, leftover space goes to `auto` margins: both centre the block, `margin-left: auto` alone pushes it right. Percentage widths are of the container's content width.
 - `height`, `min-height` and `max-height` set a block's border-box height; content that does not fit overflows. A declared height or min-height keeps the last child's bottom margin inside; max-height alone does only when it cuts the content short. A percentage height is of the nearest block with a declared height, and `auto` where there is none. A flex or grid container lays its items out in that declared height; a min-height alone grows the container without stretching them.
 - `hr` takes `width`, its limits, horizontal and `auto` margins, and `height`, as a block does.
+
+### Inline Boxes
+- An inline element's horizontal margin, border and padding take room on the line before and after its content.
+- A background or border draws a box on each line's fragment of the element: as tall as its font plus vertical padding and border, on the baseline, overlapping the lines around it without changing their height. Side edges and corner rounding are on the first and last fragments only.
+- A space before the element is outside its box. When the element's first word wraps, its start edge goes with it.
+- Its padding and border are not part of a link's hit area.
+- A block inside an inline element splits it: the block's lines are not in the box, and the box's start and end edges sit on lines of their own before and after the block, as in CSS. An unknown tag is inline, so a box style on one wrapping blocks does this.
 - An outside list marker's gutter is inside its `li`, so a sized `li` holds the marker too.
 - While a flex or grid item is measured for its min- or max-content width, percentage sizes count as `auto` and `auto` margins as zero; a block with a fixed width counts at that width.
 - The document root is `body`, a block box like any other; the `html` element has no box, and its rules fold into body's, body's winning: `html` and `body` padding do not add up. body's background paints the view's whole content area, behind everything, and not body's own box.

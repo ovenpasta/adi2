@@ -509,7 +509,7 @@ A corner longhand takes one length.
 | `font-weight` | `100`–`900`, `thin`, `extra-light`, `light`, `normal`, `medium`, `semi-bold`, `bold`, `extra-bold`, `black` | `font-weight: 700;` |
 | `font-style` | `normal`, `italic`, `oblique` | `font-style: italic;` |
 | `text-align` | `left`, `right`, `center`, `justify`, `start`, `end` | `text-align: center;` |
-| `vertical-align` | `baseline`, `top`, `middle`, `bottom`, `text-top`, `text-bottom` | `vertical-align: middle;` |
+| `vertical-align` | `baseline`, `top`, `middle`, `bottom`, `text-top`, `text-bottom`, `sub`, `super` (widgets treat `sub` and `super` as `baseline`) | `vertical-align: middle;` |
 
 > **Label horizontal alignment**: `Adi.Widget.Label` honours `text-align` by shifting the whole text block within its label-part slot, so it only shows where the slot is wider than the text. A label sized by its own padding has no spare room and is unaffected; a label with a declared width has. `justify` renders as `left`, and `end` as `right`. Wrapped text takes a different route: it has a wrap width, which is a box SDL understands, so the item asks the font cache for a variant carrying that alignment and SDL positions each line within the wrap width. The two paths never overlap — the offset is zero whenever the item wraps.
 

@@ -719,7 +719,11 @@ Default_Line_Height : constant Line_Height_Value := Normal_Line_Height;
       VA_Middle,
       VA_Bottom,
       VA_Text_Top,
-      VA_Text_Bottom
+      VA_Text_Bottom,
+      --  The baseline lowered or raised as for subscripts and
+      --  superscripts. Widgets treat these as baseline.
+      VA_Sub,
+      VA_Super
    );
 
    Default_Vertical_Align : constant Vertical_Align_Value := VA_Baseline;

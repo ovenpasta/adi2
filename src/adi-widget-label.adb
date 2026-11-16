@@ -742,7 +742,7 @@ package body Adi.Widget.Label is
                         Text_It.Text_Offset_Y := Slack / 2.0;
                      when VA_Bottom | VA_Text_Bottom =>
                         Text_It.Text_Offset_Y := Slack;
-                     when VA_Baseline | VA_Top | VA_Text_Top =>
+                     when VA_Baseline | VA_Top | VA_Text_Top | VA_Sub | VA_Super =>
                         Text_It.Text_Offset_Y := 0.0;
                   end case;
                end;

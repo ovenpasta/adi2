@@ -434,7 +434,7 @@ package body Adi.Layout_Util is
          when VA_Top | VA_Text_Top       => return V_Top;
          when VA_Middle                  => return V_Middle;
          when VA_Bottom | VA_Text_Bottom => return V_Bottom;
-         when VA_Baseline                => return V_Top;  --  No baseline metric available; treated as V_Top.
+         when VA_Baseline | VA_Sub | VA_Super => return V_Top;  --  No baseline metric available; treated as V_Top.
       end case;
    end Align_V_From_CSS;
 

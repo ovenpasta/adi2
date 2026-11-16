@@ -997,6 +997,10 @@ class TestGenerateStyleRulesAda(unittest.TestCase):
     def test_vertical_align(self):
         ada = self._gen({"vertical-align": "middle"})
         self.assertIn("Vertical_Align (VA_Middle)", ada)
+        ada = self._gen({"vertical-align": "super"})
+        self.assertIn("Vertical_Align (VA_Super)", ada)
+        ada = self._gen({"vertical-align": "sub"})
+        self.assertIn("Vertical_Align (VA_Sub)", ada)
 
     def test_text_decoration(self):
         ada = self._gen({"text-decoration": "underline"})

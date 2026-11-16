@@ -3653,6 +3653,8 @@ package body Adi.CSS_Parser is
          elsif LV = "bottom" then Take (Prop_Vertical_Align, Intern (VA_Bottom));
          elsif LV = "text-top" then Take (Prop_Vertical_Align, Intern (VA_Text_Top));
          elsif LV = "text-bottom" then Take (Prop_Vertical_Align, Intern (VA_Text_Bottom));
+         elsif LV = "sub" then Take (Prop_Vertical_Align, Intern (VA_Sub));
+         elsif LV = "super" then Take (Prop_Vertical_Align, Intern (VA_Super));
          else
             Bad_Value;
          end if;

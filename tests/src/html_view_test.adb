@@ -1751,6 +1751,89 @@ procedure Html_View_Test is
       New_Line;
    end Test_Overflow_Clip;
 
+   --  vertical-align moves a run off the baseline, or to the line's top
+   --  or bottom, and sub and sup default to it. Runs of one font size
+   --  compare by their text offsets alone.
+   procedure Test_Vertical_Align is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+
+      function Get (Needle : String) return Adi.Widget.Item is
+         Idx : constant Natural := Find_Text_Item_Index (W, Needle);
+      begin
+         Assert (Idx > 0, Needle & " exists");
+         return Adi.Widget.Get_Item (+W, (if Idx > 0 then Positive (Idx) else 1));
+      end Get;
+
+      --  Where the run's glyphs start down the line.
+      function Top_Of (Needle : String) return Adi.Core.Pixel_Type is
+        (Get (Needle).Geometry.Y + Get (Needle).Text_Offset_Y);
+
+      procedure Expect (What : String; Got, Want : Adi.Core.Pixel_Type) is
+      begin
+         Assert (abs (Got - Want) < 0.01, What & ":" & Got'Image & " /=" & Want'Image);
+      end Expect;
+
+      procedure Load (Markup : String) is
+      begin
+         Adi.Widget.Html_View.Set_HTML
+           (W, "<style>body { font-size: 16px; line-height: 1.0; } p { margin: 0; } "
+               & "sub, sup { font-size: 16px; }</style>" & Markup);
+         Adi.Widget.Build_Items (+W);
+      end Load;
+   begin
+      Put_Line ("Test: vertical-align");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 900.0));
+
+      Load ("<p>xa<sup>up</sup></p><p>xb<sub>down</sub></p>"
+            & "<p>xc<span style='vertical-align: super'>css</span></p>"
+            & "<p>xd<sup><a href='#n'>inner</a></sup></p>"
+            & "<p style='vertical-align: super'>block</p><p>plain</p>");
+      Expect ("sup raises by half its font", Top_Of ("up"), Top_Of ("xa") - 8.0);
+      Expect ("sub lowers by three tenths", Top_Of ("down"), Top_Of ("xb") + 4.8);
+      Expect ("vertical-align: super from a stylesheet", Top_Of ("css"), Top_Of ("xc") - 8.0);
+      Expect ("what is inside a sup rises with it", Top_Of ("inner"), Top_Of ("xd") - 8.0);
+      Expect ("a block's own vertical-align does not move its text",
+              Top_Of ("block") - Get ("block").Geometry.Y,
+              Top_Of ("plain") - Get ("plain").Geometry.Y);
+      Assert (Get ("xa").Geometry.Height > 16.0, "a raised run grows its line");
+
+      Load ("<p>big<span style='font-size: 40px'>BIG</span>"
+            & "<span style='vertical-align: top'>tt</span>"
+            & "<span style='vertical-align: bottom'>bb</span>"
+            & "<span style='vertical-align: text-top; font-size: 8px'>xt</span></p>");
+      Expect ("top sits at the line's top", Get ("tt").Text_Offset_Y, 0.0);
+      Assert (Get ("bb").Text_Offset_Y > Get ("big").Text_Offset_Y,
+              "bottom sits below the baseline's runs");
+      Expect ("text-top lifts a small run to its parent's font top",
+              Get ("xt").Text_Offset_Y, Get ("big").Text_Offset_Y);
+
+      --  A top-aligned element's box sits against the line's top with
+      --  its text, not on the baseline.
+      Load ("<p>xx<span style='font-size: 40px'>BIG</span>"
+            & "<span style='vertical-align: top; background-color: red'>tb</span></p>");
+      declare
+         Found : Boolean := False;
+      begin
+         for I in 2 .. Adi.Widget.Item_Count (+W) loop
+            declare
+               It : constant Adi.Widget.Item := Adi.Widget.Get_Item (+W, I);
+            begin
+               if Adi.Widget."=" (It.Kind, Adi.Widget.Panel_Item)
+                 and then It.Geometry.Width < 600.0
+                 and then abs (It.Geometry.X - Get ("tb").Geometry.X) < 0.01
+               then
+                  Found := True;
+                  Expect ("the box's top is the line's", It.Geometry.Y, Get ("tb").Geometry.Y);
+               end if;
+            end;
+         end loop;
+         Assert (Found, "the top-aligned element draws its box");
+      end;
+      New_Line;
+   end Test_Vertical_Align;
+
    --  A block's content is inset by the border it draws, and at a content
    --  scale the drawn width follows it.
    procedure Test_Border_Insets_At_Scale is
@@ -3603,6 +3686,7 @@ begin
    Test_Inline_Boxes;
    Test_Positioning;
    Test_Overflow_Clip;
+   Test_Vertical_Align;
    Test_Border_Insets_At_Scale;
    Test_Character_References;
    Test_Marker_Beside_Opening_Block;

@@ -354,6 +354,8 @@ VERTICAL_ALIGN_MAP = {
     "bottom": "VA_Bottom",
     "text-top": "VA_Text_Top",
     "text-bottom": "VA_Text_Bottom",
+    "sub": "VA_Sub",
+    "super": "VA_Super",
 }
 
 # CSS text-decoration values to Ada

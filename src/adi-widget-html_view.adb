@@ -752,6 +752,13 @@ package body Adi.Widget.Html_View is
       elsif Tag = "pre" then
          return Pre_Base;
 
+      --  Subscripts and superscripts sit off the baseline; their size is
+      --  the stylesheet's.
+      elsif Tag = "sub" or else Tag = "sup" then
+         return (Display        => Set (Inline),
+                 Vertical_Align => Set (if Tag = "sub" then VA_Sub else VA_Super),
+                 others         => <>);
+
       --  Inline-block elements (atomic inline boxes)
       elsif Tag = "img" or else Tag = "svg" then
          return Img_Base;
@@ -1163,6 +1170,12 @@ package body Adi.Widget.Html_View is
 
       if not Opt_Line_Height.Is_Set (Rules.Line_Height) then
          Result.Line_Height := Parent.Line_Height;
+      end if;
+
+      --  What sits inside a raised or lowered inline element moves with
+      --  it; a block resets this for its own content.
+      if not Opt_Vertical_Align.Is_Set (Rules.Vertical_Align) then
+         Result.Vertical_Align := Parent.Vertical_Align;
       end if;
 
       return Result;
@@ -2104,6 +2117,10 @@ package body Adi.Widget.Html_View is
       type Line_Run_Record is record
          Item_Index : Positive := 1;
          Link_Index : Natural := 0;
+         --  vertical-align: top or bottom place the run against the
+         --  finished line; it is Height tall.
+         Align      : Vertical_Align_Value := VA_Baseline;
+         Height     : Pixel_Type := 0.0;
       end record;
 
       package Line_Run_Vectors is new Ada.Containers.Vectors
@@ -2161,6 +2178,8 @@ package body Adi.Widget.Html_View is
          Carry       : Boolean := False;
          --  The relative range open around it.
          Shift       : Natural := 0;
+         --  vertical-align: top or bottom put it against the line's edge.
+         Align       : Vertical_Align_Value := VA_Baseline;
       end record;
 
       package Inline_Box_Vectors is new Ada.Containers.Vectors
@@ -2830,6 +2849,27 @@ package body Adi.Widget.Html_View is
       begin
          Sync_Line_Heights;
 
+         --  Runs aligned to the line's top or bottom, now that its height
+         --  is known.
+         for Run of Line_Runs loop
+            if Run.Align in VA_Top | VA_Bottom then
+               declare
+                  It  : Item renames Result.Items.Reference (Run.Item_Index).Element.all;
+                  Off : constant Pixel_Type :=
+                    (if Run.Align = VA_Top then 0.0 else Current_Line_H - Run.Height);
+               begin
+                  if It.Kind = Text_Item then
+                     It.Text_Offset_Y := Off;
+                  else
+                     It.Geometry.Y := Y + Off;
+                     if Run.Link_Index > 0 then
+                        Result.Links.Reference (Run.Link_Index).Geometry.Y := Y + Off;
+                     end if;
+                  end if;
+               end;
+            end if;
+         end loop;
+
          --  An open box's fragment on this line runs to its end.
          for B of Flow.Open_Boxes loop
             if B.Frag_X >= 0.0 and then not B.Carry then
@@ -2918,6 +2958,31 @@ package body Adi.Widget.Html_View is
          Pending_Space := False;
          Flow.Ends_In_Space := False;
       end New_Line;
+
+      --  How far vertical-align moves a run's baseline down from the
+      --  line's, for a run Ascent above it and Descent below. The parent's
+      --  font is taken from the enclosing block's line metrics.
+      function Baseline_Shift
+        (Style : Resolved_Style; Ascent, Descent : Pixel_Type) return Pixel_Type
+      is
+         Font : constant Pixel_Type := Local_Font_Size_Px (Style);
+      begin
+         case Style.Vertical_Align is
+            when VA_Baseline | VA_Top | VA_Bottom => return 0.0;
+            when VA_Sub      => return 0.3 * Font;
+            when VA_Super    => return -0.5 * Font;
+            when VA_Text_Top => return Ascent - Line_Base_Ascent;
+            when VA_Text_Bottom => return Line_Base_Descent - Descent;
+            --  The middle of the run on the parent's baseline raised by
+            --  half its x-height, taken as half its ascent.
+            when VA_Middle   => return (Ascent - Descent) / 2.0 - Line_Base_Ascent / 4.0;
+         end case;
+      end Baseline_Shift;
+
+      --  A run aligned to the line's top or bottom sits outside the
+      --  baseline's metrics; the line is at least as tall as it.
+      function Line_Edge_Aligned (Style : Resolved_Style) return Boolean is
+        (Style.Vertical_Align in VA_Top | VA_Bottom);
 
       --  A break before content that does not fit. A box whose content
       --  has not started yet goes to the next line whole, its start edge
@@ -3051,23 +3116,35 @@ package body Adi.Widget.Html_View is
               Content.Width,
               Content.Height);
 
-         if Run_Ascent > Current_Line_Ascent then
+         if Line_Edge_Aligned (Style) then
+            Current_Line_H :=
+              Pixel_Type'Max (Current_Line_H, Run_Ascent + Run_Descent);
+         else
             declare
-               Shift_Amount : constant Pixel_Type := Run_Ascent - Current_Line_Ascent;
+               Shift : constant Pixel_Type := Baseline_Shift (Style, Run_Ascent, Run_Descent);
             begin
-               Current_Line_Ascent := Run_Ascent;
-               Shift_Line (Shift_Amount);
+               Run_Ascent := Run_Ascent - Shift;
+               Run_Descent := Run_Descent + Shift;
             end;
-         end if;
 
-         if Run_Descent > Current_Line_Descent then
-            Current_Line_Descent := Run_Descent;
-         end if;
+            if Run_Ascent > Current_Line_Ascent then
+               declare
+                  Shift_Amount : constant Pixel_Type := Run_Ascent - Current_Line_Ascent;
+               begin
+                  Current_Line_Ascent := Run_Ascent;
+                  Shift_Line (Shift_Amount);
+               end;
+            end if;
 
-         Current_Line_H :=
-           Pixel_Type'Max
-             (Current_Line_H,
-              Pixel_Type'Max (Run_H, Current_Line_Ascent + Current_Line_Descent));
+            if Run_Descent > Current_Line_Descent then
+               Current_Line_Descent := Run_Descent;
+            end if;
+
+            Current_Line_H :=
+              Pixel_Type'Max
+                (Current_Line_H,
+                 Pixel_Type'Max (Run_H, Current_Line_Ascent + Current_Line_Descent));
+         end if;
 
          Full_Geom :=
            (X      => X,
@@ -3102,7 +3179,9 @@ package body Adi.Widget.Html_View is
               (New_Item =>
                  Line_Run_Record'
                    (Item_Index => Item_Index,
-                    Link_Index => Link_Index));
+                    Link_Index => Link_Index,
+                    Align      => Style.Vertical_Align,
+                    Height     => Run_Ascent + Run_Descent));
          end;
 
          X := X + Run_W;
@@ -3157,10 +3236,17 @@ package body Adi.Widget.Html_View is
                B      : Inline_Box renames F.Box;
                Border : Edge_Pixels := B.Border;
                Left   : constant Pixel_Type := F.X1;
+               --  Its content area: on the baseline, or against the line's
+               --  top or bottom edge.
+               Content_Top : constant Pixel_Type :=
+                 (case B.Align is
+                     when VA_Top    => Y,
+                     when VA_Bottom => Y + Current_Line_H - (B.Ascent + B.Descent),
+                     when others    => Baseline - B.Ascent);
                Top    : constant Pixel_Type :=
-                 Baseline - B.Ascent - B.Padding.Top - Border.Top;
+                 Content_Top - B.Padding.Top - Border.Top;
                Bottom : constant Pixel_Type :=
-                 Baseline + B.Descent + B.Padding.Bottom + Border.Bottom;
+                 Content_Top + B.Ascent + B.Descent + B.Padding.Bottom + Border.Bottom;
                Style  : Resolved_Style;
                It     : Item :=
                  Make_Panel
@@ -3227,8 +3313,8 @@ package body Adi.Widget.Html_View is
          Href       : String;
          Style      : Resolved_Style)
       is
-         Run_Ascent  : constant Pixel_Type := Height;
-         Run_Descent : constant Pixel_Type := 0.0;
+         Run_Ascent  : Pixel_Type := Height;
+         Run_Descent : Pixel_Type := 0.0;
          Top_Y       : Pixel_Type := 0.0;
          Full_Geom   : Rectangle := (0.0, 0.0, 0.0, 0.0);
       begin
@@ -3248,23 +3334,34 @@ package body Adi.Widget.Html_View is
             Wrap_Line;
          end if;
 
-         if Run_Ascent > Current_Line_Ascent then
+         if Line_Edge_Aligned (Style) then
+            Current_Line_H := Pixel_Type'Max (Current_Line_H, Height);
+         else
             declare
-               Shift_Amount : constant Pixel_Type := Run_Ascent - Current_Line_Ascent;
+               Shift : constant Pixel_Type := Baseline_Shift (Style, Run_Ascent, Run_Descent);
             begin
-               Current_Line_Ascent := Run_Ascent;
-               Shift_Line (Shift_Amount);
+               Run_Ascent := Run_Ascent - Shift;
+               Run_Descent := Run_Descent + Shift;
             end;
-         end if;
 
-         if Run_Descent > Current_Line_Descent then
-            Current_Line_Descent := Run_Descent;
-         end if;
+            if Run_Ascent > Current_Line_Ascent then
+               declare
+                  Shift_Amount : constant Pixel_Type := Run_Ascent - Current_Line_Ascent;
+               begin
+                  Current_Line_Ascent := Run_Ascent;
+                  Shift_Line (Shift_Amount);
+               end;
+            end if;
 
-         Current_Line_H :=
-           Pixel_Type'Max
-             (Current_Line_H,
-              Pixel_Type'Max (Height, Current_Line_Ascent + Current_Line_Descent));
+            if Run_Descent > Current_Line_Descent then
+               Current_Line_Descent := Run_Descent;
+            end if;
+
+            Current_Line_H :=
+              Pixel_Type'Max
+                (Current_Line_H,
+                 Pixel_Type'Max (Height, Current_Line_Ascent + Current_Line_Descent));
+         end if;
 
          Top_Y := Y + (Current_Line_Ascent - Run_Ascent);
          Full_Geom :=
@@ -3302,7 +3399,9 @@ package body Adi.Widget.Html_View is
               (New_Item =>
                  Line_Run_Record'
                    (Item_Index => Item_Index,
-                    Link_Index => Link_Index));
+                    Link_Index => Link_Index,
+                    Align      => Style.Vertical_Align,
+                    Height     => Height));
          end;
 
          X := X + Width;
@@ -4584,6 +4683,15 @@ package body Adi.Widget.Html_View is
            Drawn
            or else (Link'Length > 0
                     and then (Border /= Zero_Edges or else Padding /= Zero_Edges));
+         Font_Ascent  : constant Pixel_Type := Measure_Ascent
+           (Style, Self.Content_Scale, Root_Font_Px, Content.Width, Content.Height);
+         Font_Descent : constant Pixel_Type := Measure_Descent
+           (Style, Self.Content_Scale, Root_Font_Px, Content.Width, Content.Height);
+         --  Its box is off the baseline as its text is.
+         Box_Shift    : constant Pixel_Type :=
+           Baseline_Shift (Style, Font_Ascent, Font_Descent);
+         Box_Ascent   : constant Pixel_Type := Font_Ascent - Box_Shift;
+         Box_Descent  : constant Pixel_Type := Font_Descent + Box_Shift;
       begin
          if Drawn or else Offsets then
             --  A space before the element is outside its box.
@@ -4604,16 +4712,15 @@ package body Adi.Widget.Html_View is
                   Node    => Link_Node,
                   Border  => Border,
                   Padding => Padding,
-                  Ascent  => Measure_Ascent
-                    (Style, Self.Content_Scale, Root_Font_Px, Content.Width, Content.Height),
-                  Descent => Measure_Descent
-                    (Style, Self.Content_Scale, Root_Font_Px, Content.Width, Content.Height),
+                  Ascent  => Box_Ascent,
+                  Descent => Box_Descent,
                   Frag_X  => X,
                   First   => True,
                   Slot    => 0,
                   Lead    => Margin.Left,
                   Edge    => Border.Left + Padding.Left,
                   Shift   => Open_Shift,
+                  Align   => Style.Vertical_Align,
                   others  => <>));
             Reserve_Box_Slots;
          end if;
@@ -4849,6 +4956,10 @@ package body Adi.Widget.Html_View is
                            if Has_Line_Content or else Pending_Space then
                               New_Line;
                            end if;
+
+                           --  vertical-align is not inherited in CSS: a
+                           --  block's content starts on the baseline.
+                           Style.Vertical_Align := VA_Baseline;
 
                            Outer_Boxes := Flow.Open_Boxes;
                            Flow.Open_Boxes.Clear;

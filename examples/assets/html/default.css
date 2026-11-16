@@ -18,6 +18,7 @@ dd { margin: 0px 0px 0px 40px; }
 strong, b { font-weight: 700; }
 em, i { font-style: italic; }
 small { font-size: 0.875em; }
+sub, sup { font-size: 0.75em; }
 code, kbd, samp { font-family: monospace; font-size: 0.875em; }
 a { text-decoration: underline; }
 s, del { text-decoration: line-through; }

@@ -153,6 +153,12 @@ Package: `Adi.Widget.Html_View`
 - `position: fixed` is placed as absolute against the view's content area and scrolls with the document. `sticky` is laid out as `static`.
 - Positioned elements do not otherwise paint above static ones (`z-index` is not supported); a relatively positioned inline element is not a containing block.
 
+### Vertical Alignment
+- `vertical-align` on inline content: `baseline`; `sub` and `super` lower the baseline by 0.3 and raise it by 0.5 of the run's font size; `text-top` and `text-bottom` align with the enclosing block's font; `middle` puts the run's middle half an x-height above the baseline; `top` and `bottom` align with the line's edges. A run off the baseline grows its line. Lengths and percentages are not supported.
+- `sub` and `sup` default to `vertical-align: sub` and `super`; their smaller size is the stylesheet's.
+- A block's own `vertical-align` does not reach its text: CSS does not inherit it.
+- An inline element's box moves with its text, except under `top` and `bottom`.
+
 ### Overflow
 - A block whose `overflow-x` or `overflow-y` is not `visible` clips its content to its padding box on that axis: each item inside it carries the clip, and links are cut to it, so what is hidden takes no clicks. Nested clips meet. `scroll` and `auto` clip as `hidden` does; there are no scrollbars inside a document.
 - An absolutely positioned element is clipped by the blocks that clip at or around its containing block, and by no others, as in CSS.

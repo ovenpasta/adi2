@@ -4,6 +4,7 @@
 pragma Ada_2022;
 
 with Ada.Characters.Handling;
+with Ada.Unchecked_Deallocation;
 with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
@@ -124,8 +125,28 @@ package body Adi.Widget.Html_View is
         or else Name = "main"
         or else Name = "aside"
         or else Name = "figure"
-        or else Name = "figcaption";
+        or else Name = "figcaption"
+        or else Name = "table"
+        or else Name = "caption";
    end Is_Block_Tag;
+
+   --  Whether a start tag Name closes an open element Open, and the
+   --  elements, space separated, whose content bounds that search; ""
+   --  for a tag that closes nothing.
+   function Closed_By (Name, Open : String) return Boolean is
+     (if Name = "li" then Open = "li"
+      elsif Name = "td" or else Name = "th" then Open = "td" or else Open = "th"
+      elsif Name = "tr" then Open = "tr"
+      elsif Name = "tbody" or else Name = "thead" or else Name = "tfoot" then
+        Open = "tbody" or else Open = "thead" or else Open = "tfoot"
+      else False);
+
+   function Implied_Scope (Name : String) return String is
+     (if Name = "li" then " ul ol table td th "
+      elsif Name = "td" or else Name = "th" then " tr table "
+      elsif Name = "tr" then " tbody thead tfoot table "
+      elsif Name = "tbody" or else Name = "thead" or else Name = "tfoot" then " table "
+      else "");
 
    function Is_Void_Tag (Name : String) return Boolean is
    begin
@@ -745,12 +766,23 @@ package body Adi.Widget.Html_View is
         or else Tag = "aside"
         or else Tag = "figure"
         or else Tag = "figcaption"
+        or else Tag = "table"
+        or else Tag = "caption"
       then
          return Block_Base;
 
       --  Pre: block with whitespace preservation (structural, not visual)
       elsif Tag = "pre" then
          return Pre_Base;
+
+      --  Table parts. Rows and their groups centre their cells' content
+      --  by default, which cells inherit.
+      elsif Tag = "tr" or else Tag = "tbody" or else Tag = "thead" or else Tag = "tfoot" then
+         return (Display        => Set (Block),
+                 Vertical_Align => Set (VA_Middle),
+                 others         => <>);
+      elsif Tag = "td" or else Tag = "th" then
+         return Block_Base;
 
       --  Subscripts and superscripts sit off the baseline; their size is
       --  the stylesheet's.
@@ -1078,8 +1110,8 @@ package body Adi.Widget.Html_View is
             Sheet_Rules_For (Self, 1));
       end if;
 
-      --  img width/height sit below every stylesheet rule.
-      if Tag = "img" then
+      --  img, table and cell width/height sit below every stylesheet rule.
+      if Tag = "img" or else Tag = "table" or else Tag = "td" or else Tag = "th" then
          declare
             W : constant Opt_Size.Optional :=
               Dimension_Attribute (To_String (Attrs.Width_Attr));
@@ -1528,9 +1560,12 @@ package body Adi.Widget.Html_View is
                               end;
 
                            else
-                              --  Implied close: a new <li> implicitly closes any open <li>
-                              --  in the same list scope (do not cross a ul/ol boundary).
-                              if Name = "li" then
+                              --  Implied close: a start tag closes the open element
+                              --  it cannot sit in, within its scope: an li the
+                              --  open li in its list, a cell the open cell in its
+                              --  row, a row the open row in its table section, a
+                              --  section the open section in its table.
+                              if Implied_Scope (Name) /= "" then
                                  declare
                                     Implied_Pos : Natural := 0;
                                  begin
@@ -1546,10 +1581,12 @@ package body Adi.Widget.Html_View is
                                                 T : constant String :=
                                                   To_String (Candidate.Tag_Name);
                                              begin
-                                                if T = "li" then
+                                                if Closed_By (Name, T) then
                                                    Implied_Pos := S_Pos;
                                                    exit;
-                                                elsif T = "ul" or else T = "ol" then
+                                                elsif Ada.Strings.Fixed.Index
+                                                        (Implied_Scope (Name), " " & T & " ") > 0
+                                                then
                                                    exit;
                                                 end if;
                                              end;
@@ -2506,6 +2543,8 @@ package body Adi.Widget.Html_View is
       --  False when none of them applies and the block fills Avail less
       --  its margins. Percentages and auto margins drop out of intrinsic
       --  measuring.
+      --  Fit_Min and Fit_Max, when not negative, are the content's widths
+      --  an auto-width box shrinks to, as a table's does.
       procedure Size_Block_Width
         (Style    : Resolved_Style;
          Avail    : Pixel_Type;
@@ -2513,7 +2552,9 @@ package body Adi.Widget.Html_View is
          Insets_W : Pixel_Type;
          Margins  : in out Edge_Pixels;
          Set      : out Boolean;
-         W        : out Pixel_Type)
+         W        : out Pixel_Type;
+         Fit_Min  : Pixel_Type := -1.0;
+         Fit_Max  : Pixel_Type := -1.0)
       is
          Normal : constant Boolean := Flow.Sizing = Normal_Sizing;
          Pct_Of : constant Pixel_Type := (if Normal then Of_W else 0.0);
@@ -2523,7 +2564,8 @@ package body Adi.Widget.Html_View is
       begin
          W := Declared_Px (Style.Width, Pct_Of, Style);
          if W = Pixel_Type'Last then
-            W := Auto_W;
+            W := (if Fit_Max < 0.0 then Auto_W
+                  else Pixel_Type'Max (Fit_Min, Pixel_Type'Min (Fit_Max, Auto_W)));
          end if;
          W := Pixel_Type'Min (W, Declared_Px (Style.Max_Width, Pct_Of, Style));
          if Min_W /= Pixel_Type'Last then
@@ -4657,6 +4699,517 @@ package body Adi.Widget.Html_View is
          Prev_Block_Margin_Bottom := 0.0;
       end Layout_Grid_Container;
 
+      --  Lay out a table's captions and rows in the content box its block
+      --  left open, as Layout_Grid_Container does for grid items. Cells
+      --  sit on a grid by colspan and rowspan; columns share the width by
+      --  their cells' min- and max-content widths; rows are as tall as
+      --  their tallest cell, and every cell stretches to its rows, its
+      --  content placed by its vertical-align. cellspacing spaces cells.
+      procedure Layout_Table_Container
+        (Parent : Node;
+         Style  : Resolved_Style;
+         Link   : String)
+      is
+         Left     : constant Pixel_Type := Line_Left;
+         Avail    : constant Pixel_Type := Current_Line_Width;
+         Measuring : constant Boolean := Flow.Sizing /= Normal_Sizing;
+         Pct_Base : constant Pixel_Type := (if Measuring then 0.0 else Avail);
+
+         type Row_Record is record
+            Element : Positive;
+            Style   : Resolved_Style;
+         end record;
+
+         type Cell_Record is record
+            Element          : Positive;
+            Row_Element      : Positive;
+            Row_Style        : Resolved_Style;
+            Style            : Resolved_Style;
+            Row, Col         : Positive := 1;
+            Row_Span, Col_Span : Positive := 1;
+            Min_W, Max_W     : Pixel_Type := 0.0;
+            Content_H        : Pixel_Type := 0.0;
+         end record;
+
+         package Row_Vectors is new Ada.Containers.Vectors (Positive, Row_Record);
+         package Cell_Vectors is new Ada.Containers.Vectors (Positive, Cell_Record);
+
+         --  Bounds a hostile document's grid: no span is wider than
+         --  Max_Span columns, and no table than Max_Columns.
+         Max_Span    : constant := 256;
+         Max_Columns : constant := 1024;
+
+         Rows     : Row_Vectors.Vector;
+         Cells    : Cell_Vectors.Vector;
+         Captions : Node_Index_Vectors.Vector;
+         Spacing  : Pixel_Type := 0.0;
+
+         function Span_Attribute (Element : Positive; Name : String) return Integer is
+            Found : Boolean;
+            Text  : constant String :=
+              Find_Attribute (To_String (Self.Nodes (Element).Attrs.Raw_Attrs), Name, Found);
+            V     : Integer := 1;
+         begin
+            if not Found or else not Parse_Integer (Trimmed (Text), V) then
+               return 1;
+            end if;
+            return Integer'Max (0, Integer'Min (V, Max_Span));
+         end Span_Attribute;
+
+         procedure Add_Row (Element : Positive; Group_Style : Resolved_Style) is
+            S : constant Resolved_Style := Element_Style (Element, Group_Style);
+         begin
+            if S.Display /= Display_None then
+               Rows.Append (Row_Record'(Element => Element, Style => S));
+            end if;
+         end Add_Row;
+
+         procedure Add_Rows (Group : Node; Group_Style : Resolved_Style) is
+         begin
+            for Idx of Group.Children loop
+               if Idx > 0 and then Self.Nodes (Idx).Kind = Element_Node
+                 and then To_String (Self.Nodes (Idx).Tag_Name) = "tr"
+               then
+                  Add_Row (Idx, Group_Style);
+               end if;
+            end loop;
+         end Add_Rows;
+      begin
+         Enqueue_Absolute_Children (Parent, Style, Link);
+         Flush_Pending_Margin;
+         Place_Markers_At_Top;
+
+         declare
+            V : Integer;
+            Found : Boolean;
+            Text : constant String :=
+              Find_Attribute
+                (To_String (Parent.Attrs.Raw_Attrs), "cellspacing", Found);
+         begin
+            if Found and then Parse_Integer (Trimmed (Text), V) and then V > 0 then
+               Spacing := Pixel_Type (V) * Pixel_Type'Max (0.01, Self.Content_Scale);
+            end if;
+         end;
+
+         --  Captions, and rows in document order, in or out of a group.
+         for Idx of Parent.Children loop
+            if Idx > 0 and then Self.Nodes (Idx).Kind = Element_Node then
+               declare
+                  Tag : constant String := To_String (Self.Nodes (Idx).Tag_Name);
+               begin
+                  if Tag = "caption" then
+                     if Element_Style (Idx, Style).Display /= Display_None then
+                        Captions.Append (Idx);
+                     end if;
+                  elsif Tag = "tr" then
+                     Add_Row (Idx, Style);
+                  elsif Tag = "thead" or else Tag = "tbody" or else Tag = "tfoot" then
+                     declare
+                        G : constant Resolved_Style := Element_Style (Idx, Style);
+                     begin
+                        if G.Display /= Display_None then
+                           Add_Rows (Self.Nodes (Idx), G);
+                        end if;
+                     end;
+                  end if;
+               end;
+            end if;
+         end loop;
+
+         --  Cells on the grid: each takes the first column its row has
+         --  free, and holds the rows and columns it spans.
+         declare
+            Row_Count : constant Natural := Natural (Rows.Length);
+            type Bool_Grid is array (Positive range <>, Positive range <>) of Boolean;
+            Max_Cols  : Natural := 0;
+         begin
+            --  Columns can be no more than the widest row's spans.
+            for R of Rows loop
+               declare
+                  Row_Node : constant Node := Self.Nodes (R.Element);
+                  Total    : Natural := 0;
+               begin
+                  for Idx of Row_Node.Children loop
+                     if Idx > 0 and then Self.Nodes (Idx).Kind = Element_Node
+                       and then To_String (Self.Nodes (Idx).Tag_Name) in "td" | "th"
+                     then
+                        Total := Total + Integer'Max (1, Span_Attribute (Idx, "colspan"));
+                     end if;
+                  end loop;
+                  Max_Cols := Natural'Max (Max_Cols, Total);
+               end;
+            end loop;
+            --  A rowspan can push a row's cells past its own count.
+            Max_Cols := Natural'Min (Max_Columns, Max_Cols + Natural'Min (64, Row_Count));
+
+            declare
+               type Bool_Grid_Access is access Bool_Grid;
+               procedure Free is new Ada.Unchecked_Deallocation (Bool_Grid, Bool_Grid_Access);
+               Grid : Bool_Grid_Access :=
+                 new Bool_Grid'(1 .. Natural'Max (1, Row_Count) =>
+                                  [1 .. Natural'Max (1, Max_Cols) => False]);
+               Taken : Bool_Grid renames Grid.all;
+
+               --  Columns From .. From + Span - 1 of row Row are free.
+               function Free_At (Row, From, Span : Positive) return Boolean is
+                 (From + Span - 1 <= Max_Cols
+                  and then (for all K in From .. From + Span - 1 => not Taken (Row, K)));
+            begin
+               for RI in 1 .. Row_Count loop
+                  declare
+                     R   : constant Row_Record := Rows (RI);
+                     Row_Node : constant Node := Self.Nodes (R.Element);
+                     Col : Positive := 1;
+                  begin
+                     for Idx of Row_Node.Children loop
+                        if Idx > 0 and then Self.Nodes (Idx).Kind = Element_Node
+                          and then To_String (Self.Nodes (Idx).Tag_Name) in "td" | "th"
+                        then
+                           declare
+                              S  : constant Resolved_Style := Element_Style (Idx, R.Style);
+                              CS : Positive :=
+                                Positive'Max (1, Span_Attribute (Idx, "colspan"));
+                              RS_Attr : constant Integer := Span_Attribute (Idx, "rowspan");
+                              RS : constant Positive :=
+                                Positive'Min
+                                  (Row_Count - RI + 1,
+                                   (if RS_Attr = 0 then Row_Count - RI + 1
+                                    else Positive'Max (1, RS_Attr)));
+                           begin
+                              while Col <= Max_Cols and then not Free_At (RI, Col, 1) loop
+                                 Col := Col + 1;
+                              end loop;
+                              --  A span runs to the first column taken or
+                              --  the last there is.
+                              if Col <= Max_Cols then
+                                 declare
+                                    Fits : Positive := 1;
+                                 begin
+                                    while Fits < CS and then Free_At (RI, Col + Fits, 1) loop
+                                       Fits := Fits + 1;
+                                    end loop;
+                                    CS := Fits;
+                                 end;
+                              end if;
+                              if S.Display /= Display_None and then Col + CS - 1 <= Max_Cols then
+                                 for RR in RI .. RI + RS - 1 loop
+                                    for CC in Col .. Col + CS - 1 loop
+                                       Taken (RR, CC) := True;
+                                    end loop;
+                                 end loop;
+                                 Cells.Append
+                                   (Cell_Record'
+                                      (Element     => Idx,
+                                       Row_Element => R.Element,
+                                       Row_Style   => R.Style,
+                                       Style       => S,
+                                       Row         => RI,
+                                       Col         => Col,
+                                       Row_Span    => RS,
+                                       Col_Span    => CS,
+                                       others      => <>));
+                                 Col := Col + CS;
+                              end if;
+                           end;
+                        end if;
+                     end loop;
+                  end;
+               end loop;
+               Free (Grid);
+            end;
+         end;
+
+         declare
+            Col_Count : Natural := 0;
+            Row_Count : constant Natural := Natural (Rows.Length);
+         begin
+            for C of Cells loop
+               Col_Count := Natural'Max (Col_Count, C.Col + C.Col_Span - 1);
+            end loop;
+
+            declare
+               type Px_Array is array (Positive range <>) of Pixel_Type;
+               Col_Min, Col_Max, Col_W, Col_X : Px_Array (1 .. Natural'Max (1, Col_Count)) :=
+                 [others => 0.0];
+               Row_H, Row_Y : Px_Array (1 .. Natural'Max (1, Row_Count)) := [others => 0.0];
+               --  Columns a single cell declares a width for keep it;
+               --  room left over goes to the others.
+               Declared : array (1 .. Natural'Max (1, Col_Count)) of Boolean := [others => False];
+               Sum_Min, Sum_Max : Pixel_Type := 0.0;
+               Used_W : Pixel_Type;
+               Top    : Pixel_Type := Y;
+
+               function Span_Width (C : Cell_Record) return Pixel_Type is
+                  W : Pixel_Type := Spacing * Pixel_Type (C.Col_Span - 1);
+               begin
+                  for K in C.Col .. C.Col + C.Col_Span - 1 loop
+                     W := W + Col_W (K);
+                  end loop;
+                  return W;
+               end Span_Width;
+
+               --  Spreads what a spanning cell needs beyond its columns
+               --  evenly over them.
+               procedure Widen (Cols : in out Px_Array; C : Cell_Record; Need : Pixel_Type) is
+                  Have : Pixel_Type := Spacing * Pixel_Type (C.Col_Span - 1);
+               begin
+                  for K in C.Col .. C.Col + C.Col_Span - 1 loop
+                     Have := Have + Cols (K);
+                  end loop;
+                  if Need > Have then
+                     for K in C.Col .. C.Col + C.Col_Span - 1 loop
+                        Cols (K) := Cols (K) + (Need - Have) / Pixel_Type (C.Col_Span);
+                     end loop;
+                  end if;
+               end Widen;
+            begin
+               --  What each cell needs across.
+               for C of Cells loop
+                  declare
+                     Src : constant Item_Source := (Element => C.Element, First => 1, Last => 1);
+                     Decl : constant Pixel_Type := Declared_Px (C.Style.Width, Pct_Base, C.Style);
+                  begin
+                     Content_Widths
+                       (Self.Nodes (C.Row_Element), Src, C.Row_Style, Zero_Edges, Pct_Base,
+                        C.Min_W, C.Max_W);
+                     if Decl /= Pixel_Type'Last then
+                        C.Min_W := Pixel_Type'Max (C.Min_W, Pixel_Type'Min (Decl, C.Max_W));
+                        C.Max_W := Pixel_Type'Max (C.Min_W, Decl);
+                        if C.Col_Span = 1 then
+                           Declared (C.Col) := True;
+                        end if;
+                     end if;
+                  end;
+               end loop;
+
+               --  Columns from single cells first, then what spans adds.
+               for Pass in 1 .. 2 loop
+                  for C of Cells loop
+                     if (Pass = 1) = (C.Col_Span = 1) then
+                        Widen (Col_Min, C, C.Min_W);
+                        Widen (Col_Max, C, C.Max_W);
+                     end if;
+                  end loop;
+               end loop;
+
+               for K in 1 .. Col_Count loop
+                  Col_Max (K) := Pixel_Type'Max (Col_Max (K), Col_Min (K));
+                  Sum_Min := Sum_Min + Col_Min (K);
+                  Sum_Max := Sum_Max + Col_Max (K);
+               end loop;
+
+               --  As wide as the box when laid out for real, else as its
+               --  content allows within it.
+               declare
+                  Gaps  : constant Pixel_Type := Spacing * Pixel_Type (Col_Count + 1);
+                  Space : Pixel_Type;
+               begin
+                  Used_W :=
+                    (if Measuring
+                     then Pixel_Type'Max (Sum_Min + Gaps, Pixel_Type'Min (Avail, Sum_Max + Gaps))
+                     else Pixel_Type'Max (Sum_Min + Gaps, Avail));
+                  Space := Used_W - Gaps;
+                  declare
+                     --  What the columns that take the room left over want.
+                     All_Declared : constant Boolean :=
+                       (for all K in 1 .. Col_Count => Declared (K));
+                     Grow_Max : Pixel_Type := 0.0;
+                     Grow_N   : Natural := 0;
+                  begin
+                     for K in 1 .. Col_Count loop
+                        if All_Declared or else not Declared (K) then
+                           Grow_Max := Grow_Max + Col_Max (K);
+                           Grow_N := Grow_N + 1;
+                        end if;
+                     end loop;
+                     for K in 1 .. Col_Count loop
+                        Col_W (K) :=
+                          (if Space >= Sum_Max then
+                             (if not All_Declared and then Declared (K) then Col_Max (K)
+                              elsif Grow_Max > 0.0
+                              then Col_Max (K) + (Space - Sum_Max) * Col_Max (K) / Grow_Max
+                              else Col_Max (K) + (Space - Sum_Max) / Pixel_Type (Grow_N))
+                           elsif Sum_Max > Sum_Min then
+                             Col_Min (K) + (Space - Sum_Min) * (Col_Max (K) - Col_Min (K))
+                                           / (Sum_Max - Sum_Min)
+                           else Col_Min (K));
+                     end loop;
+                  end;
+               end;
+
+               --  A caption is no narrower than its content can be.
+               for Idx of Captions loop
+                  declare
+                     Min_C, Max_C : Pixel_Type;
+                  begin
+                     Content_Widths
+                       (Parent, (Element => Idx, First => 1, Last => 1), Style, Zero_Edges,
+                        Pct_Base, Min_C, Max_C);
+                     Used_W := Pixel_Type'Max (Used_W, Min_C);
+                  end;
+               end loop;
+
+               Flow.Extent := Pixel_Type'Max (Flow.Extent, Left + Used_W + Flow.Right_Inset);
+
+               --  Captions above the rows, with their margins.
+               for Idx of Captions loop
+                  declare
+                     S : constant Resolved_Style := Element_Style (Idx, Style);
+                     M : constant Edge_Pixels := Resolve_Margin_Edges (S.Margin, S, Used_W);
+                     Bottom, Extent : Pixel_Type;
+                  begin
+                     Lay_Out_Item
+                       (Parent, (Element => Idx, First => 1, Last => 1), Style, Link,
+                        (Left + M.Left, Top + M.Top, Pixel_Type'Max (0.0, Used_W - M.Left - M.Right), 0.0),
+                        M, Pct_Base, Flow.Sizing, Bottom, Extent);
+                     Top := Bottom + M.Bottom;
+                  end;
+               end loop;
+
+               if Measuring then
+                  Y := Top;
+               else
+                  Col_X (1) := Left + Spacing;
+                  for K in 2 .. Col_Count loop
+                     Col_X (K) := Col_X (K - 1) + Col_W (K - 1) + Spacing;
+                  end loop;
+
+                  --  Rows as tall as their cells, a declared row height at
+                  --  least; a spanning cell grows its last row.
+                  for RI in 1 .. Row_Count loop
+                     declare
+                        D : constant Pixel_Type :=
+                          Declared_Px (Rows (RI).Style.Height, 0.0, Rows (RI).Style);
+                     begin
+                        if D /= Pixel_Type'Last then
+                           Row_H (RI) := D;
+                        end if;
+                     end;
+                  end loop;
+                  for Pass in 1 .. 2 loop
+                     for C of Cells loop
+                        if (Pass = 1) = (C.Row_Span = 1) then
+                           declare
+                              Src : constant Item_Source :=
+                                (Element => C.Element, First => 1, Last => 1);
+                              Decl : constant Pixel_Type :=
+                                Declared_Px (C.Style.Height, 0.0, C.Style);
+                              Have : Pixel_Type := Spacing * Pixel_Type (C.Row_Span - 1);
+                              Last : constant Positive := C.Row + C.Row_Span - 1;
+                           begin
+                              if Pass = 1 then
+                                 C.Content_H :=
+                                   Height_At (Self.Nodes (C.Row_Element), Src, C.Row_Style,
+                                              Zero_Edges, Pct_Base, Span_Width (C));
+                              end if;
+                              for RR in C.Row .. Last loop
+                                 Have := Have + Row_H (RR);
+                              end loop;
+                              declare
+                                 Need : constant Pixel_Type :=
+                                   Pixel_Type'Max
+                                     (C.Content_H, (if Decl = Pixel_Type'Last then 0.0 else Decl));
+                              begin
+                                 if Need > Have then
+                                    Row_H (Last) := Row_H (Last) + Need - Have;
+                                 end if;
+                              end;
+                           end;
+                        end if;
+                     end loop;
+                     --  Spanning cells measure at the widths now known.
+                     if Pass = 1 then
+                        for C of Cells loop
+                           if C.Row_Span > 1 then
+                              C.Content_H :=
+                                Height_At (Self.Nodes (C.Row_Element),
+                                           (Element => C.Element, First => 1, Last => 1),
+                                           C.Row_Style, Zero_Edges, Pct_Base, Span_Width (C));
+                           end if;
+                        end loop;
+                     end if;
+                  end loop;
+
+                  Row_Y (1) := Top + Spacing;
+                  for RI in 2 .. Row_Count loop
+                     Row_Y (RI) := Row_Y (RI - 1) + Row_H (RI - 1) + Spacing;
+                  end loop;
+
+                  --  Row backgrounds, beneath their cells.
+                  for RI in 1 .. Row_Count loop
+                     declare
+                        S : constant Resolved_Style := Rows (RI).Style;
+                     begin
+                        if S.Background_Color /= Default_Background
+                          or else S.Background_Image /= Default_Background_Image
+                        then
+                           declare
+                              It : Item :=
+                                Make_Panel
+                                  (Any_Part,
+                                   (Left + Spacing, Row_Y (RI),
+                                    Pixel_Type'Max (0.0, Used_W - 2.0 * Spacing), Row_H (RI)),
+                                   0);
+                           begin
+                              It.Has_Style_Override := True;
+                              It.Style_Override := Intern (Panel_Style (S, Zero_Edges));
+                              Result.Items.Append (It);
+                           end;
+                        end if;
+                     end;
+                  end loop;
+
+                  --  Cells, stretched to their rows, their content where
+                  --  their vertical-align puts it.
+                  for C of Cells loop
+                     declare
+                        Last : constant Positive := C.Row + C.Row_Span - 1;
+                        H    : constant Pixel_Type :=
+                          Row_Y (Last) + Row_H (Last) - Row_Y (C.Row);
+                        W    : constant Pixel_Type := Span_Width (C);
+                        Off  : constant Pixel_Type :=
+                          (case C.Style.Vertical_Align is
+                              when VA_Middle => (H - C.Content_H) / 2.0,
+                              when VA_Bottom | VA_Text_Bottom => H - C.Content_H,
+                              when others => 0.0);
+                        Mark : constant Ada.Containers.Count_Type := Result.Items.Length;
+                        Link_Mark : constant Natural := Natural (Result.Links.Length);
+                        Down : constant Pixel_Type := Pixel_Type'Max (0.0, Off);
+                        Bottom, Extent : Pixel_Type;
+                     begin
+                        Lay_Out_Item
+                          (Self.Nodes (C.Row_Element), (Element => C.Element, First => 1, Last => 1),
+                           C.Row_Style, Link, (Col_X (C.Col), Row_Y (C.Row), W, 0.0),
+                           Zero_Edges, Pct_Base, Normal_Sizing, Bottom, Extent);
+                        --  The cell's own panel, the first thing it added,
+                        --  fills its rows; what it holds moves down by its
+                        --  alignment.
+                        if Natural (Result.Items.Length) > Natural (Mark) then
+                           Result.Items.Reference (Positive (Mark) + 1).Geometry :=
+                             (Col_X (C.Col), Row_Y (C.Row), W, H);
+                           for K in Positive (Mark) + 2 .. Natural (Result.Items.Length) loop
+                              Result.Items.Reference (K).Geometry.Y :=
+                                Result.Items (K).Geometry.Y + Down;
+                           end loop;
+                           for K in Link_Mark + 1 .. Natural (Result.Links.Length) loop
+                              Result.Links.Reference (K).Geometry.Y :=
+                                Result.Links (K).Geometry.Y + Down;
+                           end loop;
+                        end if;
+                     end;
+                  end loop;
+
+                  Y := (if Row_Count > 0 then Row_Y (Row_Count) + Row_H (Row_Count) + Spacing
+                        else Top);
+               end if;
+            end;
+         end;
+
+         X := Line_Left;
+         Pending_Space := False;
+         Prev_Block_Margin_Bottom := 0.0;
+      end Layout_Table_Container;
+
       --  An inline element's content. Its horizontal margin, border and
       --  padding take room on the line at its start and end; a background
       --  or border draws a box around each line's fragment of it.
@@ -5000,7 +5553,10 @@ package body Adi.Widget.Html_View is
                               List_Context_Pushed := True;
                            end if;
 
-                           Margin_Edges := Resolve_Margin_Edges (Style.Margin, Style, Local_Container_W);
+                           --  A table cell has no margins.
+                           Margin_Edges :=
+                             (if Tag = "td" or else Tag = "th" then Zero_Edges
+                              else Resolve_Margin_Edges (Style.Margin, Style, Local_Container_W));
                            Padding_Edges := Resolve_Box_Edges (Style.Padding, Style, Local_Container_W);
                            Border_Px := Border_Edges (Style);
                            Inset_Edges :=
@@ -5032,10 +5588,22 @@ package body Adi.Widget.Html_View is
                                    Decl_Box_H /= Pixel_Type'Last
                                    or else Max_Box_H /= Pixel_Type'Last
                                    or else Min_Box_H > 0.0;
-                                 Size_Block_Width
-                                   (Style, Pixel_Type'Max (0.0, Prev_Line_Right - Prev_Line_Left),
-                                    Local_Container_W, Inset_Edges.Left + Inset_Edges.Right,
-                                    Margin_Edges, Box_W_Set, Box_W);
+                                 declare
+                                    Fit_Min, Fit_Max : Pixel_Type := -1.0;
+                                 begin
+                                    --  A table without a width is as wide as
+                                    --  its content, within the room it has.
+                                    if Tag = "table" and then Style.Width.Kind /= Fixed then
+                                       Content_Widths
+                                         (N, (Element => Node_Index, First => 1, Last => 1),
+                                          Parent_Style, Margin_Edges, Local_Container_W,
+                                          Fit_Min, Fit_Max);
+                                    end if;
+                                    Size_Block_Width
+                                      (Style, Pixel_Type'Max (0.0, Prev_Line_Right - Prev_Line_Left),
+                                       Local_Container_W, Inset_Edges.Left + Inset_Edges.Right,
+                                       Margin_Edges, Box_W_Set, Box_W, Fit_Min, Fit_Max);
+                                 end;
                               end if;
                            end;
 
@@ -5207,6 +5775,8 @@ package body Adi.Widget.Html_View is
                            Layout_Flex_Container (N, Style, Link_Href);
                         elsif Block_Flow and then Style.Display in Grid | Inline_Grid then
                            Layout_Grid_Container (N, Style, Link_Href);
+                        elsif Block_Flow and then Tag = "table" then
+                           Layout_Table_Container (N, Style, Link_Href);
                         elsif Block_Flow then
                            for Child_Idx of N.Children loop
                               if Child_Idx > 0 then

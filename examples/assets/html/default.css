@@ -23,3 +23,6 @@ code, kbd, samp { font-family: monospace; font-size: 0.875em; }
 a { text-decoration: underline; }
 s, del { text-decoration: line-through; }
 u, ins { text-decoration: underline; }
+td, th { padding: 1px; }
+th { font-weight: 700; text-align: center; }
+caption { text-align: center; }

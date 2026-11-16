@@ -1834,6 +1834,142 @@ procedure Html_View_Test is
       New_Line;
    end Test_Vertical_Align;
 
+   --  Tables: cells on a grid, columns shared by content, rows as tall
+   --  as their cells, implied end tags.
+   procedure Test_Tables is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+
+      function Geom (Needle : String) return Adi.Core.Rectangle is
+         Idx : constant Natural := Find_Text_Item_Index (W, Needle);
+      begin
+         Assert (Idx > 0, Needle & " exists");
+         return (if Idx > 0 then Adi.Widget.Get_Item (+W, Positive (Idx)).Geometry
+                 else (0.0, 0.0, 0.0, 0.0));
+      end Geom;
+
+      procedure Expect (What : String; Got, Want : Adi.Core.Pixel_Type) is
+      begin
+         Assert (abs (Got - Want) < 0.01, What & ":" & Got'Image & " /=" & Want'Image);
+      end Expect;
+
+      procedure Load (Markup : String) is
+      begin
+         Adi.Widget.Html_View.Set_HTML
+           (W, "<style>body { font-size: 16px; line-height: 1.0; } p { margin: 0; } "
+               & "td, th { padding: 0; }</style>" & Markup);
+         Adi.Widget.Build_Items (+W);
+      end Load;
+   begin
+      Put_Line ("Test: tables");
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 900.0));
+
+      Load ("<table><tr><td>aa</td><td>bbbb</td></tr><tr><td>cccccc</td><td>d</td></tr></table>"
+            & "<p>after</p>");
+      Expect ("cells sit side by side", Geom ("bbbb").Y, Geom ("aa").Y);
+      Expect ("rows stack", Geom ("cccccc").Y, Geom ("aa").Y + 16.0);
+      Expect ("a column is as wide as its widest cell", Geom ("bbbb").X, Geom ("cccccc").Width);
+      Expect ("columns line up across rows", Geom ("d").X, Geom ("bbbb").X);
+      Expect ("the table ends after its rows", Geom ("after").Y, 32.0);
+
+      Load ("<table><tr><td>x<td>y<tr><td>z<td>w</table>");
+      Expect ("an open cell closes at the next", Geom ("y").Y, Geom ("x").Y);
+      Expect ("an open row closes at the next", Geom ("z").Y, Geom ("x").Y + 16.0);
+      Expect ("and its cells line up", Geom ("w").X, Geom ("y").X);
+
+      Load ("<table><tr><td colspan='2'>wide span here</td><td>ee</td></tr>"
+            & "<tr><td>ff</td><td>gg</td><td>hh</td></tr></table>");
+      Assert (Geom ("ee").X >= Geom ("wide").X + Geom ("wide").Width + Geom ("span").Width,
+              "a cell after a colspan sits past it");
+      Expect ("the spanned columns hold the span", Geom ("hh").X, Geom ("ee").X);
+
+      Load ("<table><tr><td rowspan='2'>tall</td><td>r1</td></tr><tr><td>r2</td></tr></table>");
+      Expect ("a cell beside a rowspan takes the next column", Geom ("r2").X, Geom ("r1").X);
+      Expect ("a rowspan cell centres across its rows", Geom ("tall").Y, Geom ("r1").Y + 8.0);
+
+      Load ("<table style='width: 100%'><tr><td style='width: 25%'>q</td><td>r</td></tr></table>");
+      Expect ("a percentage cell width of the table", Geom ("r").X, 150.0);
+
+      Load ("<table><tr><td style='vertical-align: top'>t</td><td style='vertical-align: bottom'>"
+            & "b</td><td>m</td><td>1<br>2<br>3</td></tr></table>");
+      Expect ("top", Geom ("t").Y, 0.0);
+      Expect ("bottom", Geom ("b").Y, 32.0);
+      Expect ("middle by default", Geom ("m").Y, 16.0);
+
+      Load ("<table cellspacing='5'><tr><td>s1</td><td>s2</td></tr></table>");
+      Expect ("cellspacing before the first cell", Geom ("s1").X, 5.0);
+      Expect ("and between cells", Geom ("s2").X, 5.0 + Geom ("s1").Width + 5.0);
+
+      Load ("<table><caption>cap</caption><tr><td>under</td></tr></table>");
+      Expect ("the caption is above the rows", Geom ("under").Y, 16.0);
+
+      Load ("<table style='margin: 0 auto'><tr><td>centred</td></tr></table>");
+      Expect ("an auto-width table shrinks and centres", Geom ("centred").X,
+              (600.0 - Geom ("centred").Width) / 2.0);
+
+      Load ("<table><tr><td><table><tr><td>in1</td><td>in2</td></tr></table></td>"
+            & "<td>out</td></tr></table>");
+      Expect ("a nested table lays out in its cell", Geom ("in2").X, Geom ("in1").Width);
+      Expect ("and its cell is as wide as it", Geom ("out").X,
+              Geom ("in1").Width + Geom ("in2").Width);
+
+      --  A middle-aligned cell's panel fills its row; its content, its
+      --  clip and its padding move with the alignment.
+      Load ("<table><tr><td style='padding: 4px; overflow: hidden; margin: 30px'>mid</td>"
+            & "<td>1<br>2<br>3</td></tr></table>");
+      Expect ("cell margins are ignored", Geom ("mid").X, 4.0);
+      Expect ("content centres in the padded cell", Geom ("mid").Y, (48.0 - 24.0) / 2.0 + 4.0);
+      Assert (Adi.Widget.Get_Item (+W, Find_Text_Item_Index (W, "mid")).Has_Clip,
+              "the cell clips its content");
+      Expect ("to its whole box", Adi.Widget.Get_Item (+W, Find_Text_Item_Index (W, "mid")).Clip.Y,
+              0.0);
+      Expect ("all its rows' height", Adi.Widget.Get_Item (+W, Find_Text_Item_Index (W, "mid")).Clip.Height,
+              48.0);
+
+      Load ("<table style='margin: 0 auto'><caption style='margin-bottom: 10px'>"
+            & "unbreakablecaptionword</caption><tr><td style='text-align: right'>zz</td></tr></table>");
+      Expect ("a caption's margin stays below it", Geom ("zz").Y, 26.0);
+      Expect ("a caption widens a shrunk table", Geom ("zz").X + Geom ("zz").Width,
+              Geom ("unbreakablecaptionword").X + Geom ("unbreakablecaptionword").Width);
+
+      Load ("<table><tr><td rowspan='2'>rs</td><td>t1</td><td>t2</td></tr>"
+            & "<tr><td colspan='2'>both</td></tr></table>");
+      Expect ("a colspan beside a rowspan starts past it", Geom ("both").X, Geom ("t1").X);
+
+      Load ("<table><tr><td colspan='100000'>huge</td><td>after</td></tr>"
+            & "<tr><td>row2</td></tr></table>");
+      Assert (Geom ("after").X > 0.0, "a huge colspan is bounded");
+
+      Load ("<ul><li>outer<table><tr><td><li>inner</li></td></tr></table> tail</li></ul>");
+      Assert (Geom ("tail").Y > Geom ("inner").Y,
+              "an li in a cell does not close the li around the table");
+
+      Load ("<table><thead><tr><th>head</th></tr></thead><tr style='display: none'><td>gone</td></tr>"
+            & "<tfoot><tr><td>foot</td></tr></tfoot><tr><td>body</td></tr></table>");
+      Assert (Find_Text_Item_Index (W, "gone") = 0, "a hidden row is not laid out");
+      Assert (Geom ("foot").Y > Geom ("head").Y and then Geom ("body").Y > Geom ("foot").Y,
+              "rows keep document order, tfoot included");
+
+      Load ("<table><tr style='background-color: red'><td>bg</td></tr></table>");
+      declare
+         Row_Panels : Natural := 0;
+      begin
+         for I in 2 .. Adi.Widget.Item_Count (+W) loop
+            if Adi.Widget."=" (Adi.Widget.Get_Item (+W, I).Kind, Adi.Widget.Panel_Item)
+              and then Adi.Widget.Get_Item (+W, I).Has_Style_Override
+              and then Adi.CSS_Styles."/="
+                (Ref (Adi.Widget.Get_Item (+W, I).Style_Override).Background_Color,
+                 Adi.CSS_Styles.Default_Background)
+            then
+               Row_Panels := Row_Panels + 1;
+            end if;
+         end loop;
+         Assert (Row_Panels = 1, "a row's background is drawn once:" & Row_Panels'Image);
+      end;
+      New_Line;
+   end Test_Tables;
+
    --  A block's content is inset by the border it draws, and at a content
    --  scale the drawn width follows it.
    procedure Test_Border_Insets_At_Scale is
@@ -3687,6 +3823,7 @@ begin
    Test_Positioning;
    Test_Overflow_Clip;
    Test_Vertical_Align;
+   Test_Tables;
    Test_Border_Insets_At_Scale;
    Test_Character_References;
    Test_Marker_Beside_Opening_Block;

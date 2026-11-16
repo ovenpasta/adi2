@@ -146,6 +146,15 @@ Package: `Adi.Widget.Html_View`
 - `height`, `min-height` and `max-height` set a block's border-box height; content that does not fit overflows. A declared height or min-height keeps the last child's bottom margin inside; max-height alone does only when it cuts the content short. A percentage height is of the nearest block with a declared height, and `auto` where there is none. A flex or grid container lays its items out in that declared height; a min-height alone grows the container without stretching them.
 - `hr` takes `width`, its limits, horizontal and `auto` margins, and `height`, as a block does.
 
+### Tables
+- `table` is a block whose content is its `caption`s, laid out above, and its rows: `tr` directly or in `thead`, `tbody` and `tfoot`, in document order. Other content directly in a table is ignored.
+- Cells (`td`, `th`) sit on a grid by `colspan` and `rowspan` (`rowspan="0"` spans the remaining rows); a span stops at a column another cell holds. Spans are at most 256 columns, tables 1024. A start tag closes the open cell, row or row group it cannot sit in, so end tags may be left out; an implied `</li>` does not reach through a table.
+- Columns are as wide as their cells' max-content widths when the table has room, else share it by how much more than their min-content width they want. A cell's declared `width` (or `width` attribute), percentages of the table's, sets its column's; room left over goes to columns without one. A spanning cell spreads what its columns lack over them.
+- A table without a width is as wide as its content within the room it has, and no narrower than a caption's min-content width, so `margin: auto` centres it; with one, its columns share it.
+- Rows are as tall as their tallest cell, a declared row or cell `height` at least; a spanning cell grows its last row. Each cell stretches to its rows and places its content by its `vertical-align`: `middle` by default, as rows and row groups give it, `top`, or `bottom`. Cells have no margins; captions keep theirs.
+- A row's background is drawn beneath its cells. `cellspacing` spaces cells from each other and the table's edge.
+- Not supported: `border-collapse` and `border-spacing` (adjacent cell borders do not merge; cells sit edge to edge without `cellspacing`), `display: table` and its relatives, `col` and `colgroup`, fixed table layout, row group backgrounds, and cells or text outside a `tr` (no row is implied for them).
+
 ### Positioning
 - `position: relative` lays an element out where it would be, then moves it, and all it holds, by `left` or else `right`, and `top` or else `bottom`. The flow around it does not move. A percentage `top` or `bottom` is of a declared containing height, else zero.
 - `position: absolute` takes an element out of the flow. Its containing block is the padding box of the nearest positioned block ancestor, else the view's content area. Insets place it; an auto one leaves it where the flow would have put it. Its width is `width`, else what `left` and `right` leave, else its content's, within the room it has. Its height is `height`, else what `top` and `bottom` leave, else its content's.

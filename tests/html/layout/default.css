@@ -18,3 +18,6 @@ small { font-size: 0.875em; }
 sub, sup { font-size: 0.75em; }
 code { font-size: 0.875em; }
 a { text-decoration: underline; }
+td, th { padding: 1px; }
+th { font-weight: 700; text-align: center; }
+caption { text-align: center; }

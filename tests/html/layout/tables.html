@@ -1,0 +1,25 @@
+<style>
+  table.grid td, table.grid th { border: 1px solid #888888; padding: 4px 8px; }
+  tr.odd { background-color: #f0f4f8; }
+  .wide { width: 100%; }
+</style>
+<table class="grid">
+  <caption>Planets</caption>
+  <thead><tr><th>Name</th><th>Moons</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr class="odd"><td>Earth</td><td>1</td><td>Home, with a note long enough to wrap at the narrow width of the second pass.</td></tr>
+    <tr><td>Mars</td><td>2</td><td>Red</td></tr>
+    <tr class="odd"><td colspan="2">Spans two columns</td><td>Third</td></tr>
+    <tr><td rowspan="2">Two rows</td><td>a</td><td>b</td></tr>
+    <tr><td>c</td><td>d</td></tr>
+  </tbody>
+</table>
+<p>Implied end tags:</p>
+<table class="grid" cellspacing="4">
+  <tr><td>one<td>two
+  <tr><td>three<td>four
+</table>
+<table class="grid wide" style="margin-top: 8px">
+  <tr><td style="width: 30%">30%</td><td style="vertical-align: top">top</td><td style="vertical-align: bottom">bottom</td><td>middle<br>two lines<br>three</td></tr>
+</table>
+<table class="grid" style="margin: 8px auto"><tr><td>Centred table</td></tr></table>

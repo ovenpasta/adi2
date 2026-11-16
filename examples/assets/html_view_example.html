@@ -50,6 +50,30 @@
     display: block;
   }
 
+  .data-table {
+    margin: 6px 0px 12px 0px;
+    background-color: rgb(252, 248, 240);
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgb(224, 212, 196);
+  }
+
+  .data-table th {
+    background-color: rgb(246, 238, 226);
+    color: rgb(78, 66, 54);
+  }
+
+  .data-table tr.alt {
+    background-color: rgb(246, 238, 226);
+  }
+
+  .num {
+    text-align: right;
+  }
+
   .panel {
     margin: 10px 0px;
     padding: 10px 12px;
@@ -629,7 +653,35 @@ exactly as for normal blocks.</p>
 
   <hr>
 
-  <h2>13) Long Scroll Content</h2>
+  <h2>13) Tables</h2>
+  <p class="demo-label">Columns share the width by content; header cells, a caption, striped rows</p>
+  <table class="data-table">
+    <caption>Inner planets</caption>
+    <thead><tr><th>Planet</th><th>Moons</th><th>Day length</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Mercury</td><td class="num">0</td><td class="num">59 days</td><td>Smallest, closest to the Sun</td></tr>
+      <tr class="alt"><td>Venus</td><td class="num">0</td><td class="num">243 days</td><td>Turns backwards, slower than it orbits</td></tr>
+      <tr><td>Earth</td><td class="num">1</td><td class="num">24 h</td><td>Home</td></tr>
+      <tr class="alt"><td>Mars</td><td class="num">2</td><td class="num">24.6 h</td><td>Phobos and Deimos</td></tr>
+    </tbody>
+  </table>
+
+  <p class="demo-label">colspan, rowspan, and vertical-align in cells; end tags left out</p>
+  <table class="data-table" style="width: 100%;">
+    <tr><th colspan="2">Spans two columns<th>Third
+    <tr><td rowspan="2">Spans two rows, centred<td style="vertical-align: top;">top<td>one<br>two<br>three
+    <tr><td style="vertical-align: bottom;">bottom<td>middle
+  </table>
+
+  <p class="demo-label">An auto-width table, centred by margin: auto</p>
+  <table class="data-table" style="margin: 6px auto 12px auto;">
+    <tr><th>Key</th><th>Value</th></tr>
+    <tr><td>width</td><td>its content's</td></tr>
+  </table>
+
+  <hr>
+
+  <h2>14) Long Scroll Content</h2>
   <p>Row 01: The quick brown fox jumps over the lazy dog.</p>
   <p>Row 02: Pack my box with five dozen liquor jugs.</p>
   <p>Row 03: Sphinx of black quartz, judge my vow.</p>

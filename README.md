@@ -215,10 +215,18 @@ Direct3D, Vulkan, or plain CPU pixels — in
 **CSS.**
 
 - **Broader CSS surface** — more standard properties, selectors and values.
+- **Combinators for widget stylesheets** — descendant and child selectors (`.toolbar .button`, `.panel > .label`), as the HTML view already has.
 
 **HTML view.**
 
-- **Tables** — `table`, `tr`, `td`/`th`, column widths, spanning.
+- **Floats** — `float` and `clear`.
+- **Text** — `text-align: justify`, `text-indent`, `letter-spacing`, `word-spacing`, `text-transform`, `overflow-wrap`, `word-break`, tab stops in `pre`.
+- **Lists** — `reversed` and `type` on `ol`, roman and alphabetic markers.
+- **Tables** — `border-collapse`, `border-spacing`, `col` and `colgroup`, fixed layout, `display: table`.
+- **Positioning** — `z-index`, `position: fixed` that stays put while the document scrolls, `sticky`.
+- **Flex and grid** — `order`, baseline alignment, `auto` margins; grid `minmax()`, named areas, row tracks, implicit columns.
+- **Interaction** — `:hover` on any element, keyboard link activation and focus, text selection and copy, `#fragment` scrolling, horizontal scrolling, scrolling inside `overflow: auto` blocks.
+- **Details** — `border-radius`, `outline` and `box-shadow` at the content scale; `vertical-align` lengths; character references without `;`.
 
 **Widgets and themes.**
 

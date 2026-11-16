@@ -146,6 +146,13 @@ Package: `Adi.Widget.Html_View`
 - `height`, `min-height` and `max-height` set a block's border-box height; content that does not fit overflows. A declared height or min-height keeps the last child's bottom margin inside; max-height alone does only when it cuts the content short. A percentage height is of the nearest block with a declared height, and `auto` where there is none. A flex or grid container lays its items out in that declared height; a min-height alone grows the container without stretching them.
 - `hr` takes `width`, its limits, horizontal and `auto` margins, and `height`, as a block does.
 
+### Positioning
+- `position: relative` lays an element out where it would be, then moves it, and all it holds, by `left` or else `right`, and `top` or else `bottom`. The flow around it does not move. A percentage `top` or `bottom` is of a declared containing height, else zero.
+- `position: absolute` takes an element out of the flow. Its containing block is the padding box of the nearest positioned block ancestor, else the view's content area. Insets place it; an auto one leaves it where the flow would have put it. Its width is `width`, else what `left` and `right` leave, else its content's, within the room it has. Its height is `height`, else what `top` and `bottom` leave, else its content's.
+- Absolute elements are laid out after the flow and drawn over it; a link drawn on top takes the click. An absolute child of a flex or grid container is not one of its items.
+- `position: fixed` is placed as absolute against the view's content area and scrolls with the document. `sticky` is laid out as `static`.
+- Positioned elements do not otherwise paint above static ones (`z-index` is not supported); a relatively positioned inline element is not a containing block.
+
 ### Inline Boxes
 - An inline element's horizontal margin, border and padding take room on the line before and after its content.
 - A background or border draws a box on each line's fragment of the element: as tall as its font plus vertical padding and border, on the baseline, overlapping the lines around it without changing their height. Side edges and corner rounding are on the first and last fragments only.

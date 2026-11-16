@@ -2010,7 +2010,8 @@ package body Adi.Widget.Html_View is
       X, Y : Pixel_Type) return Natural
    is
    begin
-      for I in 1 .. Natural (Self.Links.Length) loop
+      --  Last first: what was laid out later is drawn on top.
+      for I in reverse 1 .. Natural (Self.Links.Length) loop
          declare
             G : constant Rectangle := Self.Links.Element (Positive (I)).Geometry;
          begin
@@ -2066,6 +2067,7 @@ package body Adi.Widget.Html_View is
       Document_Style   : Resolved_Style;
       --  The item painting body's background over the canvas, or 0.
       Canvas_Index     : Natural := 0;
+      Flow_Items       : Natural := 0;
 
       --  Panels whose top Y was tentatively set while a margin was still
       --  pending. Their Geometry.Y is rewritten to the committed Y when
@@ -2157,6 +2159,8 @@ package body Adi.Widget.Html_View is
          Has_Content : Boolean := False;
          --  A wrap is moving it, start edge and all, to the next line.
          Carry       : Boolean := False;
+         --  The relative range open around it.
+         Shift       : Natural := 0;
       end record;
 
       package Inline_Box_Vectors is new Ada.Containers.Vectors
@@ -2236,6 +2240,92 @@ package body Adi.Widget.Html_View is
       --  The content height of the innermost block with a declared one,
       --  what a percentage height is of; negative while that is auto.
       Block_Def_H : Pixel_Type := -1.0;
+
+      --  Absolutely positioned elements, out of the flow and laid out
+      --  after it, over it: each with where the flow would have put it and
+      --  its containing block, an index into Containing or 0 for the view.
+      type Absolute_Entry is record
+         Element      : Positive;
+         Parent_Style : Resolved_Style;
+         Link         : Unbounded_String;
+         Static_X     : Pixel_Type := 0.0;
+         Static_Y     : Pixel_Type := 0.0;
+         Block        : Natural := 0;
+         --  The a element it is in, or 0.
+         Link_Node    : Natural := 0;
+      end record;
+
+      package Absolute_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => Absolute_Entry);
+
+      --  A positioned block: its panel, its border, and the relative
+      --  offsets open around it, which move it once the layout is done.
+      --  Its padding box is read from the panel when its absolutes are
+      --  laid out, after anything that sizes the panel late.
+      type Containing_Block is record
+         Panel  : Positive := 1;
+         Border : Edge_Pixels := Zero_Edges;
+         DX, DY : Pixel_Type := 0.0;
+      end record;
+
+      package Containing_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => Containing_Block);
+
+      Absolutes : Absolute_Vectors.Vector;
+      --  The positioned blocks, and the ones open around the flow,
+      --  innermost last.
+      Containing      : Containing_Vectors.Vector;
+      Open_Containing : Node_Index_Vectors.Vector;
+
+      --  A relatively positioned element's items and links, moved by its
+      --  offset once the layout is done; and the sum of the offsets open
+      --  around the flow, which what is placed later must take on.
+      type Shift_Entry is record
+         First_Item, Last_Item : Natural := 0;
+         First_Link, Last_Link : Natural := 0;
+         DX, DY                : Pixel_Type := 0.0;
+         --  The entry open around it, and whether its range is closed.
+         Parent                : Natural := 0;
+         Closed                : Boolean := False;
+      end record;
+
+      package Shift_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => Shift_Entry);
+
+      Shifts : Shift_Vectors.Vector;
+      --  The innermost open entry, or 0.
+      Open_Shift : Natural := 0;
+      Rel_DX, Rel_DY : Pixel_Type := 0.0;
+
+      --  Drops the last item, a kept item nothing filled. A range opened
+      --  after it starts where the next item now goes.
+      procedure Drop_Last_Item is
+         S : Natural := Open_Shift;
+      begin
+         Result.Items.Delete_Last;
+         while S /= 0 loop
+            if Shifts (S).First_Item > Natural (Result.Items.Length) + 1 then
+               Shifts.Reference (S).First_Item := Natural (Result.Items.Length) + 1;
+            end if;
+            S := Shifts (S).Parent;
+         end loop;
+      end Drop_Last_Item;
+
+      --  The offsets of the closed ranges from S outward: what a link
+      --  added after they closed must take on itself.
+      procedure Closed_Offsets (S : Natural; DX, DY : out Pixel_Type) is
+         K : Natural := S;
+      begin
+         DX := 0.0;
+         DY := 0.0;
+         while K /= 0 loop
+            if Shifts (K).Closed then
+               DX := DX + Shifts (K).DX;
+               DY := DY + Shifts (K).DY;
+            end if;
+            K := Shifts (K).Parent;
+         end loop;
+      end Closed_Offsets;
 
       Line_Left  : Pixel_Type renames Flow.Line_Left;
       Line_Right : Pixel_Type renames Flow.Line_Right;
@@ -3091,9 +3181,16 @@ package body Adi.Widget.Html_View is
                   Result.Items.Replace_Element (F.Slot, It);
                end if;
                if Length (B.Href) > 0 then
-                  Result.Links.Append
-                    (Link_Fragment'(Geometry => It.Geometry, Href => B.Href,
-                                    Node     => B.Node));
+                  declare
+                     DX, DY : Pixel_Type;
+                     G      : Rectangle := It.Geometry;
+                  begin
+                     Closed_Offsets (B.Shift, DX, DY);
+                     G.X := G.X + DX;
+                     G.Y := G.Y + DY;
+                     Result.Links.Append
+                       (Link_Fragment'(Geometry => G, Href => B.Href, Node => B.Node));
+                  end;
                end if;
             end;
          end loop;
@@ -3584,6 +3681,52 @@ package body Adi.Widget.Html_View is
 
       --  The in-flow items of Parent. Whitespace-only runs and elements
       --  with display: none are not items.
+      --  Takes an absolutely positioned element out of the flow, to be
+      --  laid out after it. Where the flow is now is where it would have
+      --  gone: at the line's start, below any content on it, for a block.
+      --  A fixed element's containing block is the view's.
+      procedure Enqueue_Absolute
+        (Element      : Positive;
+         Parent_Style : Resolved_Style;
+         Link         : String;
+         Block_Level  : Boolean;
+         Fixed        : Boolean) is
+      begin
+         Absolutes.Append
+           (Absolute_Entry'
+              (Element      => Element,
+               Parent_Style => Parent_Style,
+               Link         => To_Unbounded_String (Link),
+               Static_X     => (if Block_Level then Line_Left else X) + Rel_DX,
+               Static_Y     =>
+                 (if not Block_Level then Y
+                  elsif Has_Line_Content then Y + Current_Line_H
+                  else Y + Prev_Block_Margin_Bottom) + Rel_DY,
+               Block        =>
+                 (if Fixed or else Open_Containing.Is_Empty then 0
+                  else Open_Containing.Last_Element),
+               Link_Node    => Link_Node));
+      end Enqueue_Absolute;
+
+      --  A flex or grid container's absolutely positioned children, which
+      --  are not its items; they start from its content box's corner.
+      procedure Enqueue_Absolute_Children
+        (Parent : Node; Parent_Style : Resolved_Style; Link : String) is
+      begin
+         for Idx of Parent.Children loop
+            if Idx > 0 and then Self.Nodes (Idx).Kind = Element_Node then
+               declare
+                  S : constant Resolved_Style := Element_Style (Idx, Parent_Style);
+               begin
+                  if S.Display /= Display_None and then S.Position in Absolute | Fixed then
+                     Enqueue_Absolute (Idx, Parent_Style, Link, Block_Level => True,
+                                       Fixed => S.Position = Fixed);
+                  end if;
+               end;
+            end if;
+         end loop;
+      end Enqueue_Absolute_Children;
+
       function Item_Sources
         (Parent : Node; Parent_Style : Resolved_Style)
          return Item_Source_Vectors.Vector
@@ -3611,9 +3754,17 @@ package body Adi.Widget.Html_View is
                   begin
                      if C.Kind = Element_Node then
                         Close_Run (K - 1);
-                        if Element_Style (Idx, Parent_Style).Display /= Display_None then
-                           Result_Items.Append (Item_Source'(Element => Idx, First => K, Last => K));
-                        end if;
+                        declare
+                           S : constant Resolved_Style := Element_Style (Idx, Parent_Style);
+                        begin
+                           --  An absolutely positioned child is not an item.
+                           if S.Display /= Display_None
+                             and then S.Position not in Absolute | Fixed
+                           then
+                              Result_Items.Append
+                                (Item_Source'(Element => Idx, First => K, Last => K));
+                           end if;
+                        end;
                      else
                         if Run_First = 0 then
                            Run_First := K;
@@ -3746,6 +3897,8 @@ package body Adi.Widget.Html_View is
             Item_Mark : constant Ada.Containers.Count_Type := Result.Items.Length;
             Link_Mark : constant Ada.Containers.Count_Type := Result.Links.Length;
             Lists     : constant List_Context_Vectors.Vector := List_Stack;
+            Abs_Mark  : constant Ada.Containers.Count_Type := Absolutes.Length;
+            Shift_Mark : constant Ada.Containers.Count_Type := Shifts.Length;
             R         : Trial_Result;
          begin
             Lay_Out_Item
@@ -3753,6 +3906,8 @@ package body Adi.Widget.Html_View is
                Pct_Base, Sizing, R.Bottom, R.Extent);
             Result.Items.Set_Length (Item_Mark);
             Result.Links.Set_Length (Link_Mark);
+            Absolutes.Set_Length (Abs_Mark);
+            Shifts.Set_Length (Shift_Mark);
             List_Stack := Lists;
             Trials.Insert (Key, R);
             return R;
@@ -3957,6 +4112,7 @@ package body Adi.Widget.Html_View is
          Cross_Gap  : constant Pixel_Type := (if Is_Row then Row_Gap else Column_Gap);
          Top        : Pixel_Type;
       begin
+         Enqueue_Absolute_Children (Parent, Style, Link);
          Flush_Pending_Margin;
          Place_Markers_At_Top;
          Top := Y;
@@ -4190,6 +4346,7 @@ package body Adi.Widget.Html_View is
            (if Fixed_H = Pixel_Type'Last then 0.0 else Fixed_H);
          Top     : Pixel_Type;
       begin
+         Enqueue_Absolute_Children (Parent, Style, Link);
          Flush_Pending_Margin;
          Place_Markers_At_Top;
          Top := Y;
@@ -4431,6 +4588,7 @@ package body Adi.Widget.Html_View is
                   Slot    => 0,
                   Lead    => Margin.Left,
                   Edge    => Border.Left + Padding.Left,
+                  Shift   => Open_Shift,
                   others  => <>));
             Reserve_Box_Slots;
          end if;
@@ -4460,7 +4618,7 @@ package body Adi.Widget.Html_View is
                --  item, the last one kept, goes.
                if not B.Has_Content and then B.Frag_X = X then
                   if B.Slot > 0 and then B.Slot = Natural (Result.Items.Last_Index) then
-                     Result.Items.Delete_Last;
+                     Drop_Last_Item;
                   end if;
                elsif B.Frag_X >= 0.0 then
                   Flow.Line_Fragments.Append
@@ -4495,6 +4653,7 @@ package body Adi.Widget.Html_View is
                   Link_Href : constant String :=
                     (if Tag = "a" then To_String (N.Attrs.Href_Attr) else Active_Link);
                   Outer_Link_Node : constant Natural := Link_Node;
+                  Rel_Shift : Natural := 0;
                begin
                   if Tag = "a" then
                      Link_Node := Node_Index;
@@ -4506,6 +4665,50 @@ package body Adi.Widget.Html_View is
                   if Tag = "a" and then Pending_Space and then X > Line_Left then
                      Add_Text_Run (" ", "", Parent_Style);
                      Pending_Space := False;
+                  end if;
+
+                  if Style.Display /= Display_None
+                    and then Style.Position in Absolute | Fixed
+                    and then not As_Item
+                  then
+                     Enqueue_Absolute
+                       (Node_Index, Parent_Style, Active_Link,
+                        Block_Level => Is_Block_Element (Tag, Rules, Style),
+                        Fixed       => Style.Position = Fixed);
+                     Link_Node := Outer_Link_Node;
+                     return;
+                  end if;
+
+                  --  A relatively positioned element lays out where it
+                  --  would, then moves by its offset with all it holds.
+                  if Style.Position = Relative then
+                     declare
+                        Font : constant Pixel_Type := Local_Font_Size_Px (Style);
+                        Of_W : constant Pixel_Type := Current_Line_Width;
+                        Of_H : constant Pixel_Type := Pixel_Type'Max (0.0, Block_Def_H);
+                        function Px (V : Inset_Value; Of_Size : Pixel_Type) return Pixel_Type is
+                          (if V.Kind = Fixed
+                             and then (V.Length.Unit /= Pct or else Of_Size > 0.0)
+                           then Local_Length_To_Px (V.Length, Of_Size, Font)
+                           else 0.0);
+                     begin
+                        Shifts.Append
+                          (Shift_Entry'
+                             (DX         =>
+                                (if Style.Left.Kind = Fixed then Px (Style.Left, Of_W)
+                                 else -Px (Style.Right, Of_W)),
+                              DY         =>
+                                (if Style.Top.Kind = Fixed then Px (Style.Top, Of_H)
+                                 else -Px (Style.Bottom, Of_H)),
+                              First_Item => Natural (Result.Items.Length) + 1,
+                              First_Link => Natural (Result.Links.Length) + 1,
+                              Parent     => Open_Shift,
+                              others     => <>));
+                        Rel_Shift := Natural (Shifts.Last_Index);
+                        Open_Shift := Rel_Shift;
+                        Rel_DX := Rel_DX + Shifts (Rel_Shift).DX;
+                        Rel_DY := Rel_DY + Shifts (Rel_Shift).DY;
+                     end;
                   end if;
 
                   if Style.Display = Display_None then
@@ -4610,6 +4813,9 @@ package body Adi.Widget.Html_View is
                         --  Inline boxes open around this block: it splits
                         --  them, and its own lines are not part of them.
                         Outer_Boxes      : Inline_Box_Vectors.Vector;
+                        --  This block's entry in Containing when it is
+                        --  positioned; 0 otherwise.
+                        Containing_Index : Natural := 0;
                        begin
                         if Block_Flow then
                            if Has_Line_Content or else Pending_Space then
@@ -4624,7 +4830,7 @@ package body Adi.Widget.Html_View is
                               if Outer_Boxes (K).Slot > 0
                                 and then Outer_Boxes (K).Slot = Natural (Result.Items.Last_Index)
                               then
-                                 Result.Items.Delete_Last;
+                                 Drop_Last_Item;
                               end if;
                            end loop;
                            for B of Outer_Boxes loop
@@ -4735,6 +4941,16 @@ package body Adi.Widget.Html_View is
                                  It.Style_Override := Intern (Box_Style);
                                  Result.Items.Append (It);
                                  Block_Item_Index := Natural (Result.Items.Last_Index);
+                                 if Style.Position /= Static then
+                                    Containing.Append
+                                      (Containing_Block'
+                                         (Panel  => Block_Item_Index,
+                                          Border => Border_Px,
+                                          DX     => Rel_DX,
+                                          DY     => Rel_DY));
+                                    Containing_Index := Natural (Containing.Last_Index);
+                                    Open_Containing.Append (Containing_Index);
+                                 end if;
                               end;
 
                               if Has_Top_Sep then
@@ -4936,6 +5152,10 @@ package body Adi.Widget.Html_View is
                               end;
                            end if;
 
+                           if Containing_Index > 0 then
+                              Open_Containing.Delete_Last;
+                           end if;
+
                            --  An empty block still spans its own insets, and
                            --  a sized one its width.
                            Flow.Extent :=
@@ -4965,10 +5185,149 @@ package body Adi.Widget.Html_View is
                         end if;
                      end;
                   end if;
+                  if Rel_Shift > 0 then
+                     declare
+                        E : Shift_Entry renames Shifts.Reference (Rel_Shift);
+                     begin
+                        E.Last_Item := Natural (Result.Items.Length);
+                        E.Last_Link := Natural (Result.Links.Length);
+                        E.Closed := True;
+                        Open_Shift := E.Parent;
+                        Rel_DX := Rel_DX - E.DX;
+                        Rel_DY := Rel_DY - E.DY;
+                     end;
+                  end if;
                   Link_Node := Outer_Link_Node;
                end;
          end case;
       end Layout_Node;
+
+      --  Lays out each absolutely positioned element against its
+      --  containing block: by its insets where it has them, else where the
+      --  flow would have put it; as wide as its width, its two horizontal
+      --  insets or its content allow. Those it positions in turn join the
+      --  queue.
+      procedure Lay_Out_Absolutes is
+         use type Ada.Containers.Count_Type;
+         I : Positive := 1;
+      begin
+         while I <= Natural (Absolutes.Length) loop
+            declare
+               E     : constant Absolute_Entry := Absolutes (I);
+               function Padding_Box (C : Containing_Block) return Rectangle is
+                  G : constant Rectangle := Result.Items (C.Panel).Geometry;
+               begin
+                  return
+                    (X      => G.X + C.Border.Left + C.DX,
+                     Y      => G.Y + C.Border.Top + C.DY,
+                     Width  => Pixel_Type'Max (0.0, G.Width - C.Border.Left - C.Border.Right),
+                     Height => Pixel_Type'Max (0.0, G.Height - C.Border.Top - C.Border.Bottom));
+               end Padding_Box;
+
+               --  Its padding box, where it will end up.
+               CB    : constant Rectangle :=
+                 (if E.Block = 0 then (0.0, 0.0, Content.Width, Content.Height)
+                  else Padding_Box (Containing (E.Block)));
+               Style : constant Resolved_Style := Element_Style (E.Element, E.Parent_Style);
+               Font  : constant Pixel_Type := Local_Font_Size_Px (Style);
+               N     : constant Node := Self.Nodes (E.Element);
+               Src   : constant Item_Source := (Element => E.Element, First => 1, Last => 1);
+               M     : constant Edge_Pixels :=
+                 Resolve_Margin_Edges (Style.Margin, Style, CB.Width);
+
+               function Px (V : Inset_Value; Of_Size : Pixel_Type) return Pixel_Type is
+                 (if V.Kind = Fixed
+                    and then (V.Length.Unit /= Pct or else Of_Size > 0.0)
+                  then Local_Length_To_Px (V.Length, Of_Size, Font)
+                  else Pixel_Type'Last);
+
+               None : constant Pixel_Type := Pixel_Type'Last;
+               L : constant Pixel_Type := Px (Style.Left, CB.Width);
+               R : constant Pixel_Type := Px (Style.Right, CB.Width);
+               T : constant Pixel_Type := Px (Style.Top, CB.Height);
+               B : constant Pixel_Type := Px (Style.Bottom, CB.Height);
+
+               function Clamped
+                 (V : Pixel_Type; Min_S, Max_S : Size_Value; Of_Size : Pixel_Type)
+                  return Pixel_Type
+               is
+                  Lo : constant Pixel_Type := Declared_Px (Min_S, Of_Size, Style);
+               begin
+                  return Pixel_Type'Max
+                    ((if Lo = None then 0.0 else Lo),
+                     Pixel_Type'Min (V, Declared_Px (Max_S, Of_Size, Style)));
+               end Clamped;
+
+               W, H, Box_X, Box_Y : Pixel_Type;
+               Bottom, Extent     : Pixel_Type;
+               Mark : constant Ada.Containers.Count_Type := Result.Items.Length;
+            begin
+               W := Declared_Px (Style.Width, CB.Width, Style);
+               if W = None then
+                  if L /= None and then R /= None then
+                     W := Pixel_Type'Max (0.0, CB.Width - L - R - M.Left - M.Right);
+                  else
+                     declare
+                        Min_C, Max_C : Pixel_Type;
+                        Room : constant Pixel_Type := Pixel_Type'Max
+                          (0.0, CB.Width - (if L = None then 0.0 else L)
+                                - (if R = None then 0.0 else R) - M.Left - M.Right);
+                     begin
+                        Content_Widths (N, Src, E.Parent_Style, M, CB.Width, Min_C, Max_C);
+                        W := Pixel_Type'Min (Max_C, Pixel_Type'Max (Min_C, Room));
+                     end;
+                  end if;
+               end if;
+               W := Clamped (W, Style.Min_Width, Style.Max_Width, CB.Width);
+
+               H := Declared_Px (Style.Height, CB.Height, Style);
+               if H = None and then T /= None and then B /= None then
+                  H := Pixel_Type'Max (0.0, CB.Height - T - B - M.Top - M.Bottom);
+               end if;
+               if H /= None then
+                  H := Clamped (H, Style.Min_Height, Style.Max_Height, CB.Height);
+               end if;
+
+               Box_X :=
+                 (if L /= None then CB.X + L + M.Left
+                  elsif R /= None then CB.X + CB.Width - R - M.Right - W
+                  else E.Static_X + M.Left);
+               Box_Y :=
+                 (if T /= None then CB.Y + T + M.Top
+                  elsif B /= None then
+                    CB.Y + CB.Height - B - M.Bottom
+                    - (if H /= None then H
+                       else Height_At (N, Src, E.Parent_Style, M, CB.Width, W))
+                  else E.Static_Y + M.Top);
+
+               Link_Node := E.Link_Node;
+               Lay_Out_Item
+                 (N, Src, E.Parent_Style, To_String (E.Link), (Box_X, Box_Y, W, 0.0), M,
+                  CB.Width, Normal_Sizing, Bottom, Extent);
+               Link_Node := 0;
+
+               --  Its own panel is the first thing it added.
+               if H /= None and then Result.Items.Length > Mark then
+                  Result.Items.Reference (Positive (Mark) + 1).Geometry.Height := H;
+               end if;
+            end;
+            I := I + 1;
+         end loop;
+      end Lay_Out_Absolutes;
+
+      procedure Apply_Shifts is
+      begin
+         for S of Shifts loop
+            for K in S.First_Item .. Natural'Min (S.Last_Item, Natural (Result.Items.Length)) loop
+               Result.Items.Reference (K).Geometry.X := Result.Items (K).Geometry.X + S.DX;
+               Result.Items.Reference (K).Geometry.Y := Result.Items (K).Geometry.Y + S.DY;
+            end loop;
+            for K in S.First_Link .. Natural'Min (S.Last_Link, Natural (Result.Links.Length)) loop
+               Result.Links.Reference (K).Geometry.X := Result.Links (K).Geometry.X + S.DX;
+               Result.Links.Reference (K).Geometry.Y := Result.Links (K).Geometry.Y + S.DY;
+            end loop;
+         end loop;
+      end Apply_Shifts;
    begin
       Result.Items.Clear;
       Result.Links.Clear;
@@ -5044,9 +5403,16 @@ package body Adi.Widget.Html_View is
       Flush_Pending_Margin;
       Finalize_Line;
 
+      --  The flow's own items: absolutes scroll, but do not size the
+      --  document for a container that measures it.
+      Flow_Items := Natural (Result.Items.Length);
+      Lay_Out_Absolutes;
+      Apply_Shifts;
+
       declare
          Content_End_Y : Pixel_Type :=
            (if Has_Line_Content then Y + Current_Line_H else Y);
+         Flow_End_Y    : Pixel_Type := Content_End_Y;
       begin
          for I in 2 .. Natural (Result.Items.Length) loop
             declare
@@ -5055,6 +5421,9 @@ package body Adi.Widget.Html_View is
             begin
                if Bottom > Content_End_Y then
                   Content_End_Y := Bottom;
+               end if;
+               if I <= Flow_Items and then Bottom > Flow_End_Y then
+                  Flow_End_Y := Bottom;
                end if;
             end;
          end loop;
@@ -5072,7 +5441,7 @@ package body Adi.Widget.Html_View is
          --  not the max(viewport, content) value that Scroll_Content_H
          --  holds for scrollbar math.
          Result.Content_W := Content.Width;
-         Result.Content_H := Pixel_Type'Max (0.0, Content_End_Y);
+         Result.Content_H := Pixel_Type'Max (0.0, Flow_End_Y);
       end;
 
       Result.Viewport_H := Content.Height;

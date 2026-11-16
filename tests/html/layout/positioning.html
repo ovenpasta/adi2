@@ -1,0 +1,17 @@
+<style>
+  .card { position: relative; margin: 8px 24px; padding: 12px; height: 90px; background-color: #eef3f8; }
+  .badge { position: absolute; top: -8px; right: -8px; padding: 2px 8px; background-color: #c03030; color: #ffffff; }
+  .foot { position: absolute; left: 12px; right: 12px; bottom: 6px; text-align: center; background-color: #dde6ee; }
+  .nudge { position: relative; left: 16px; top: 4px; }
+  sup.note { position: relative; top: -6px; font-size: 12px; }
+  .pinned { position: absolute; left: 40%; top: 260px; width: 30%; padding: 6px; background-color: #fff3c0; }
+</style>
+<div class="card">
+  <p>A card with a corner badge and a footer pinned to its bottom, both laid out against its padding box.</p>
+  <span class="badge">new</span>
+  <div class="foot">footer across the card</div>
+</div>
+<p class="nudge">This paragraph is nudged right and down without moving what follows.</p>
+<p>Text with a raised<sup class="note">1</sup> note marker, set by a relative offset.</p>
+<div class="pinned">Pinned to 40% across, 260px down, 30% wide, over the flow.</div>
+<p>Static content goes on under the pinned box as though it were not there, wrapping at the narrow width of the second pass.</p>

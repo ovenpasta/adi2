@@ -1490,6 +1490,156 @@ procedure Html_View_Test is
       New_Line;
    end Test_Inline_Boxes;
 
+   --  position: relative moves an element after the flow placed it;
+   --  absolute takes it out of the flow, against its containing block.
+   procedure Test_Positioning is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      Clicked : Unbounded_String;
+
+      procedure On_Link_Click
+        (Self : Adi.Widget.Html_View.Html_View_Handle;
+         Href : String)
+      is
+         pragma Unreferenced (Self);
+      begin
+         Clicked := To_Unbounded_String (Href);
+      end On_Link_Click;
+
+      function Geom (Needle : String) return Adi.Core.Rectangle is
+         Idx : constant Natural := Find_Text_Item_Index (W, Needle);
+      begin
+         Assert (Idx > 0, Needle & " exists");
+         return (if Idx > 0 then Adi.Widget.Get_Item (+W, Positive (Idx)).Geometry
+                 else (0.0, 0.0, 0.0, 0.0));
+      end Geom;
+
+      procedure Expect (What : String; Got, Want : Adi.Core.Pixel_Type) is
+      begin
+         Assert (abs (Got - Want) < 0.01, What & ":" & Got'Image & " /=" & Want'Image);
+      end Expect;
+
+      procedure Load (Markup : String) is
+      begin
+         Adi.Widget.Html_View.Set_HTML
+           (W, "<style>body { font-size: 16px; line-height: 1.0; } p { margin: 0; }</style>"
+               & Markup);
+         Adi.Widget.Build_Items (+W);
+      end Load;
+   begin
+      Put_Line ("Test: positioning");
+      Adi.Widget.Html_View.Connect_Link_Click (W, On_Link_Click'Unrestricted_Access);
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 900.0));
+
+      Load ("<p>before</p><p style='position: relative; left: 20px; top: 5px'>moved</p>"
+            & "<p style='position: relative; right: 10px; bottom: 4px'>back</p><p>after</p>"
+            & "<p>aa<span style='position: relative; top: -3px'>up</span>bb</p>");
+      Expect ("left moves right", Geom ("moved").X, 20.0);
+      Expect ("top moves down", Geom ("moved").Y, 16.0 + 5.0);
+      Expect ("right moves left", Geom ("back").X, -10.0);
+      Expect ("bottom moves up", Geom ("back").Y, 32.0 - 4.0);
+      Expect ("the flow is where it was", Geom ("after").Y, 48.0);
+      Expect ("an inline element moves alone", Geom ("up").Y, Geom ("aa").Y - 3.0);
+      Expect ("and its neighbours stay", Geom ("bb").X, Geom ("up").X + Geom ("up").Width);
+
+      Load ("<p>first</p><div style='position: absolute; left: 100px; top: 50px'>abs</div>"
+            & "<p>second</p>");
+      Expect ("absolute left", Geom ("abs").X, 100.0);
+      Expect ("absolute top", Geom ("abs").Y, 50.0);
+      Expect ("out of the flow", Geom ("second").Y, 16.0);
+      Assert (Find_Text_Item_Index (W, "abs") > Find_Text_Item_Index (W, "second"),
+              "drawn after the flow, over it");
+
+      Load ("<p>top</p><div style='position: relative; margin-left: 40px; padding: 10px; "
+            & "height: 100px'><p>in</p><div style='position: absolute; right: 0; bottom: 0; "
+            & "width: 50px'>corner</div></div>");
+      Expect ("right: 0 against the positioned block's padding box",
+              Geom ("corner").X, 40.0 + 560.0 - 50.0);
+      Expect ("bottom: 0 against it", Geom ("corner").Y, Geom ("in").Y - 10.0 + 100.0 - 16.0);
+
+      Load ("<p>xx</p><div style='position: absolute'>static</div>"
+            & "<p>aa<span style='position: absolute'>inl</span></p>");
+      Expect ("a block's static place is below", Geom ("static").Y, 16.0);
+      Expect ("at the line's start", Geom ("static").X, 0.0);
+      Expect ("an inline's static place is beside", Geom ("inl").X,
+              Geom ("aa").X + Geom ("aa").Width);
+
+      Load ("<div style='position: absolute; left: 10px; right: 20px; top: 0; "
+            & "text-align: right'>span</div>");
+      Expect ("left and right give the width", Geom ("span").X + Geom ("span").Width, 580.0);
+
+      Load ("<div style='position: absolute; left: 100px; top: 200px; width: 200px; "
+            & "height: 100px'><div style='position: absolute; right: 0; top: 10px'>nested</div></div>");
+      Expect ("an absolute element contains its own", Geom ("nested").X + Geom ("nested").Width,
+              300.0);
+      Expect ("nested top", Geom ("nested").Y, 210.0);
+
+      Load ("<div style='position: relative; left: 30px; top: 30px'><p>rel</p>"
+            & "<div style='position: absolute; left: 0; top: 20px'>inrel</div></div>");
+      Expect ("a relative block moves what it positions", Geom ("inrel").X, 30.0);
+      Expect ("both ways", Geom ("inrel").Y, 30.0 + 20.0);
+
+      Load ("<div style='display: flex'><div>f1</div>"
+            & "<div style='position: absolute; left: 300px; top: 0'>fa</div><div>f2</div></div>");
+      Expect ("an absolute flex child is no item", Geom ("f2").X, Geom ("f1").Width);
+      Expect ("and is placed by its insets", Geom ("fa").X, 300.0);
+
+      Load ("<div style='position: relative; margin-left: 50px'><p>host</p>"
+            & "<div style='position: fixed; left: 5px; top: 300px'>fixed</div></div>");
+      Expect ("fixed is against the view, not a positioned block", Geom ("fixed").X, 5.0);
+
+      Load ("<p style='margin-bottom: 20px'>above</p><div style='position: absolute'>gap</div>"
+            & "<p style='margin-bottom: 20px'>above2</p><div style='display: flex'>"
+            & "<span style='position: absolute'>flexgap</span><span>f</span></div>");
+      Expect ("a static place follows the collapsed margin", Geom ("gap").Y, 16.0 + 20.0);
+      Expect ("in a flex container too", Geom ("flexgap").Y, Geom ("f").Y);
+
+      Load ("<div style='display: flex; height: 100px'><div style='position: relative'>"
+            & "<p>item</p><div style='position: absolute; bottom: 0; left: 0'>low</div></div></div>");
+      Expect ("a stretched flex item contains at its stretched height", Geom ("low").Y, 100.0 - 16.0);
+
+      Load ("<span style='background-color: red'><div style='position: relative; left: 5px; "
+            & "background-color: blue'>shifted</div></span>");
+      declare
+         Moved : Natural := 0;
+      begin
+         for I in 2 .. Adi.Widget.Item_Count (+W) loop
+            if Adi.Widget."=" (Adi.Widget.Get_Item (+W, I).Kind, Adi.Widget.Panel_Item)
+              and then Adi.Widget.Get_Item (+W, I).Geometry.Width = 600.0
+              and then Adi.Widget.Get_Item (+W, I).Geometry.X = 5.0
+            then
+               Moved := Moved + 1;
+            end if;
+         end loop;
+         Assert (Moved = 1, "a relative block's panel moves with its text:" & Moved'Image);
+         Expect ("its text", Geom ("shifted").X, 5.0);
+      end;
+
+      Load ("<p><a href='#box' style='position: relative; top: 30px; padding: 0 12px; "
+            & "background-color: gray'>boxed</a></p>");
+      Clicked := Null_Unbounded_String;
+      Adi.Widget.On_Mouse_Down
+        (+W, X => Geom ("boxed").X - 6.0, Y => Geom ("boxed").Y + 8.0,
+         Button => Adi.Core.Left_Button, Clicks => 1);
+      Adi.Widget.On_Mouse_Up
+        (+W, X => Geom ("boxed").X - 6.0, Y => Geom ("boxed").Y + 8.0,
+         Button => Adi.Core.Left_Button);
+      Assert (To_String (Clicked) = "#box", "a moved link's padding moves with it");
+
+      Load ("<p>flow</p><div style='position: absolute; top: 700px'>far</div>");
+      Expect ("an absolute does not size the document", Adi.Widget.Get_Preferred_Size (+W).Height,
+              16.0);
+
+      Load ("<p><a href='#under'>underneath</a></p>"
+            & "<a href='#over' style='position: absolute; left: 0; top: 0'>OVERLAY</a>");
+      Adi.Widget.On_Mouse_Down
+        (+W, X => 5.0, Y => 8.0, Button => Adi.Core.Left_Button, Clicks => 1);
+      Adi.Widget.On_Mouse_Up (+W, X => 5.0, Y => 8.0, Button => Adi.Core.Left_Button);
+      Assert (To_String (Clicked) = "#over", "the link on top takes the click: " & To_String (Clicked));
+      New_Line;
+   end Test_Positioning;
+
    --  A block's content is inset by the border it draws, and at a content
    --  scale the drawn width follows it.
    procedure Test_Border_Insets_At_Scale is
@@ -3340,6 +3490,7 @@ begin
    Test_Block_Sizing;
    Test_Body_Box;
    Test_Inline_Boxes;
+   Test_Positioning;
    Test_Border_Insets_At_Scale;
    Test_Character_References;
    Test_Marker_Beside_Opening_Block;

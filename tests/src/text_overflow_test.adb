@@ -15,6 +15,7 @@ with Adi.SDL.Surface;         use Adi.SDL.Surface;
 with Adi.SDL.TTF;
 with Adi.Widget;              use Adi.Widget;
 with Adi.Widget.Box;
+with Adi.Widget.Html_View;
 with Adi.Widget.Label;
 with Adi.Widget.Text_Input;
 with Adi.Widget.Value_Input;
@@ -27,6 +28,7 @@ procedure Text_Overflow_Test is
 
    use type Adi.Widget.Box.Box_Handle;
    use type Adi.Widget.Label.Label_Handle;
+   use type Adi.Widget.Html_View.Html_View_Handle;
 
    Win_W : constant := 400;
    Win_H : constant := 200;
@@ -829,6 +831,64 @@ procedure Text_Overflow_Test is
          Assert (False, "Unexpected exception: " & Exception_Name (E));
    end Test_Renderer_Does_Not_Break_Words;
 
+   --  A document's overflow: hidden block clips its own items, inside
+   --  the view, through each item's own clip.
+   procedure Test_Html_Block_Clips_Its_Overflow is
+      Ready : Boolean;
+
+      function Ink_Below
+        (Overflow : String; Scroll : Pixel_Type := 0.0) return Natural is
+         W  : Adi.Window.Window_Handle :=
+           Adi.Window.Create_Window_Handle
+             ("Html Clip", (Pixel_Type (Win_W), Pixel_Type (Win_H)));
+         HV : constant Adi.Widget.Html_View.Html_View_Handle :=
+           Adi.Widget.Html_View.Create_Handle;
+         Count : Natural;
+      begin
+         Adi.Widget.Html_View.Set_HTML
+           (HV, "<style>body { margin: 0; background-color: black; } "
+                & "p { margin: 0; color: white; font-size: 20px; line-height: 20px; } "
+                & ".c { height: 40px; overflow: " & Overflow & "; }</style>"
+                & "<div class='c'><p>MMMMM</p><p>MMMMM</p><p>MMMMM</p><p>MMMMM</p></div>"
+                & "<div style='height: 600px'></div>");
+         Adi.Window.Set_Enforce_Layout_Min_Size (W, False);
+         Adi.Window.Set_Root (W, Widget_Handle'(+HV));
+         Adi.Window.Connect_Post_Render (W, Capture_Frame'Unrestricted_Access);
+         Adi.Window.Render (W);
+         if Scroll > 0.0 then
+            Adi.Widget.Set_Scroll_Offset_Y (+HV, Scroll);
+            Adi.Window.Render (W);
+         end if;
+         Assert (Ink_Count (0, 0, 150, 39 - Integer (Scroll)) > 0,
+                 "the lines inside the block render");
+         Count := Ink_Count (0, 44 - Integer (Scroll), 150, 100);
+         Release_Capture;
+         Adi.Window.Destroy (W);
+         return Count;
+      end Ink_Below;
+   begin
+      Section ("an html view block clips what overflows it");
+      Ensure_SDL_Initialized (Ready);
+      if not Ready then
+         return;
+      end if;
+
+      declare
+         Visible : constant Natural := Ink_Below ("visible");
+         Hidden  : constant Natural := Ink_Below ("hidden");
+      begin
+         Put_Line ("    ink below the block: visible=" & Visible'Image
+                   & " hidden=" & Hidden'Image);
+         Assert (Visible > 0, "overflow: visible lets the lines below show");
+         Assert (Hidden = 0, "overflow: hidden cuts them at the block's edge");
+         Assert (Ink_Below ("hidden", Scroll => 15.0) = 0,
+                 "the clip scrolls with the document");
+      end;
+   exception
+      when E : others =>
+         Assert (False, "Unexpected exception: " & Exception_Name (E));
+   end Test_Html_Block_Clips_Its_Overflow;
+
 begin
    Start_Suite ("Text Overflow Test");
    New_Line;
@@ -847,6 +907,8 @@ begin
    Test_Nested_Scrollbar_Moves_With_Its_Widget;
    New_Line;
    Test_Renderer_Does_Not_Break_Words;
+
+   Test_Html_Block_Clips_Its_Overflow;
    New_Line;
    Finish;
 end Text_Overflow_Test;

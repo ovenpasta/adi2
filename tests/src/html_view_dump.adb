@@ -41,6 +41,7 @@ package body Html_View_Dump is
         & " z=" & Trim (Natural'Image (It.Z_Order))
         & " [" & Rect_Image (It.Geometry) & "]"
         & (if It.Has_Style_Override then " override" else "")
+        & (if It.Has_Clip then " clip=[" & Rect_Image (It.Clip) & "]" else "")
         & (if It.Kind = Text_Item
            then " wrap=" & Boolean'Image (It.Wrap_Text)
                 & " off=" & Px_Image (It.Text_Offset_X)

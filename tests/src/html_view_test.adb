@@ -1640,6 +1640,117 @@ procedure Html_View_Test is
       New_Line;
    end Test_Positioning;
 
+   --  overflow: hidden clips a block's content to its padding box, per
+   --  item, and keeps hidden links from taking clicks.
+   procedure Test_Overflow_Clip is
+      W : constant Adi.Widget.Html_View.Html_View_Handle :=
+        Adi.Widget.Html_View.Create_Handle;
+      Clicks : Natural := 0;
+
+      procedure On_Link_Click
+        (Self : Adi.Widget.Html_View.Html_View_Handle;
+         Href : String)
+      is
+         pragma Unreferenced (Self, Href);
+      begin
+         Clicks := Clicks + 1;
+      end On_Link_Click;
+
+      function Get (Needle : String) return Adi.Widget.Item is
+         Idx : constant Natural := Find_Text_Item_Index (W, Needle);
+      begin
+         Assert (Idx > 0, Needle & " exists");
+         return Adi.Widget.Get_Item (+W, (if Idx > 0 then Positive (Idx) else 1));
+      end Get;
+
+      procedure Expect (What : String; Got, Want : Adi.Core.Pixel_Type) is
+      begin
+         Assert (abs (Got - Want) < 0.01, What & ":" & Got'Image & " /=" & Want'Image);
+      end Expect;
+
+      procedure Load (Markup : String) is
+      begin
+         Adi.Widget.Html_View.Set_HTML
+           (W, "<style>body { font-size: 16px; line-height: 1.0; } p { margin: 0; }</style>"
+               & Markup);
+         Adi.Widget.Build_Items (+W);
+      end Load;
+   begin
+      Put_Line ("Test: overflow clip");
+      Adi.Widget.Html_View.Connect_Link_Click (W, On_Link_Click'Unrestricted_Access);
+      Adi.Widget.Set_Geometry
+        (+W, (X => 0.0, Y => 0.0, Width => 600.0, Height => 900.0));
+
+      Load ("<p>above</p><div style='height: 30px; overflow: hidden; padding: 5px; "
+            & "border: 2px solid black'><p>one</p><p><a href='#x'>two</a></p><p>three</p></div>"
+            & "<p>below</p>");
+      declare
+         Three : constant Adi.Widget.Item := Get ("three");
+      begin
+         Assert (Three.Has_Clip, "an item inside the block is clipped");
+         Expect ("to the padding box's left", Three.Clip.X, 2.0);
+         Expect ("top", Three.Clip.Y, 16.0 + 2.0);
+         Expect ("width", Three.Clip.Width, 600.0 - 4.0);
+         Expect ("height", Three.Clip.Height, 30.0 - 4.0);
+      end;
+      Assert (not Get ("below").Has_Clip, "what follows the block is not clipped");
+      Assert (not Get ("above").Has_Clip, "nor what precedes it");
+
+      --  "two" runs from 39 to 55, across the padding box's bottom edge
+      --  at 44: a click above the edge takes, one below it does not.
+      Expect ("the link line straddles the edge", Get ("two").Geometry.Y, 39.0);
+      Clicks := 0;
+      Adi.Widget.On_Mouse_Down
+        (+W, X => Get ("two").Geometry.X + 4.0, Y => 50.0,
+         Button => Adi.Core.Left_Button, Clicks => 1);
+      Adi.Widget.On_Mouse_Up
+        (+W, X => Get ("two").Geometry.X + 4.0, Y => 50.0, Button => Adi.Core.Left_Button);
+      Assert (Clicks = 0, "a link where it is clipped away takes no click");
+      Adi.Widget.On_Mouse_Down
+        (+W, X => Get ("two").Geometry.X + 4.0, Y => 42.0,
+         Button => Adi.Core.Left_Button, Clicks => 1);
+      Adi.Widget.On_Mouse_Up
+        (+W, X => Get ("two").Geometry.X + 4.0, Y => 42.0, Button => Adi.Core.Left_Button);
+      Assert (Clicks = 1, "where it shows, it does");
+
+      Load ("<div style='width: 100px; overflow-x: hidden'><p style='white-space: nowrap'>"
+            & "wide line of text that runs on</p></div>");
+      declare
+         Wide : constant Adi.Widget.Item := Get ("wide");
+      begin
+         Assert (Wide.Has_Clip, "overflow-x clips");
+         Expect ("across", Wide.Clip.Width, 100.0);
+         Assert (Wide.Clip.Height > 1.0E6, "but not down");
+      end;
+
+      Load ("<div style='height: 40px; padding-top: 30px; overflow: hidden'>"
+            & "<div style='height: 20px; overflow: hidden'><p>nested</p></div></div>");
+      Expect ("nested clips meet", Get ("nested").Clip.Y, 30.0);
+      Expect ("at the outer's bottom", Get ("nested").Clip.Height, 10.0);
+
+      Load ("<div style='position: relative; top: 50px; height: 20px; overflow: hidden'>"
+            & "<p style='position: relative; left: 7px'>moved</p></div>");
+      Expect ("a moved block's clip moves with it", Get ("moved").Clip.Y, 50.0);
+      Expect ("a moved child keeps its parent's clip", Get ("moved").Clip.X, 0.0);
+      Expect ("while it moves", Get ("moved").Geometry.X, 7.0);
+
+      --  An absolute element is clipped by the clips around its
+      --  containing block, not by others between it and the flow.
+      Load ("<div style='position: relative; height: 20px; overflow: hidden'>"
+            & "<span style='position: absolute; top: 50px'>held</span></div>"
+            & "<div style='height: 20px; overflow: hidden'>"
+            & "<span style='position: absolute; top: 200px'>free</span></div>");
+      Assert (Get ("held").Has_Clip, "its containing block clips it");
+      Expect ("to the block's box", Get ("held").Clip.Height, 20.0);
+      Assert (not Get ("free").Has_Clip, "a clip around it but not its containing block does not");
+
+      Load ("<div style='position: relative; height: 20px; overflow-y: hidden'>"
+            & "<p>tall</p><p>cut</p></div>");
+      Assert (Get ("cut").Clip.Width > 1.0E6, "overflow-y does not clip across");
+      Expect ("only down", Get ("cut").Clip.Height, 20.0);
+      New_Line;
+   end Test_Overflow_Clip;
+
    --  A block's content is inset by the border it draws, and at a content
    --  scale the drawn width follows it.
    procedure Test_Border_Insets_At_Scale is
@@ -3491,6 +3602,7 @@ begin
    Test_Body_Box;
    Test_Inline_Boxes;
    Test_Positioning;
+   Test_Overflow_Clip;
    Test_Border_Insets_At_Scale;
    Test_Character_References;
    Test_Marker_Beside_Opening_Block;

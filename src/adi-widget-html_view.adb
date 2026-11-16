@@ -2266,6 +2266,9 @@ package body Adi.Widget.Html_View is
          Panel  : Positive := 1;
          Border : Edge_Pixels := Zero_Edges;
          DX, DY : Pixel_Type := 0.0;
+         --  The innermost clip at it or around it: what clips the
+         --  absolutes it contains.
+         Clip   : Natural := 0;
       end record;
 
       package Containing_Vectors is new Ada.Containers.Vectors
@@ -2291,6 +2294,26 @@ package body Adi.Widget.Html_View is
 
       package Shift_Vectors is new Ada.Containers.Vectors
         (Index_Type => Positive, Element_Type => Shift_Entry);
+
+      --  A block that clips what overflows it, on one axis or both: its
+      --  panel and border, and the items and links inside it. Applied
+      --  once everything has moved, the panel with the rest.
+      type Clip_Entry is record
+         Panel                 : Positive := 1;
+         Border                : Edge_Pixels := Zero_Edges;
+         Clip_X, Clip_Y        : Boolean := True;
+         First_Item, Last_Item : Natural := 0;
+         First_Link, Last_Link : Natural := 0;
+         --  The clip open around it, or 0.
+         Parent                : Natural := 0;
+      end record;
+
+      package Clip_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => Clip_Entry);
+
+      Clips : Clip_Vectors.Vector;
+      --  The innermost clip open around the flow, or 0.
+      Open_Clip : Natural := 0;
 
       Shifts : Shift_Vectors.Vector;
       --  The innermost open entry, or 0.
@@ -3899,6 +3922,7 @@ package body Adi.Widget.Html_View is
             Lists     : constant List_Context_Vectors.Vector := List_Stack;
             Abs_Mark  : constant Ada.Containers.Count_Type := Absolutes.Length;
             Shift_Mark : constant Ada.Containers.Count_Type := Shifts.Length;
+            Clip_Mark  : constant Ada.Containers.Count_Type := Clips.Length;
             R         : Trial_Result;
          begin
             Lay_Out_Item
@@ -3908,6 +3932,7 @@ package body Adi.Widget.Html_View is
             Result.Links.Set_Length (Link_Mark);
             Absolutes.Set_Length (Abs_Mark);
             Shifts.Set_Length (Shift_Mark);
+            Clips.Set_Length (Clip_Mark);
             List_Stack := Lists;
             Trials.Insert (Key, R);
             return R;
@@ -4816,6 +4841,9 @@ package body Adi.Widget.Html_View is
                         --  This block's entry in Containing when it is
                         --  positioned; 0 otherwise.
                         Containing_Index : Natural := 0;
+                        --  This block's entry in Clips when it clips; 0
+                        --  otherwise.
+                        Clip_Index : Natural := 0;
                        begin
                         if Block_Flow then
                            if Has_Line_Content or else Pending_Space then
@@ -4941,13 +4969,30 @@ package body Adi.Widget.Html_View is
                                  It.Style_Override := Intern (Box_Style);
                                  Result.Items.Append (It);
                                  Block_Item_Index := Natural (Result.Items.Last_Index);
+                                 if Style.Overflow_X /= Overflow_Visible
+                                   or else Style.Overflow_Y /= Overflow_Visible
+                                 then
+                                    Clips.Append
+                                      (Clip_Entry'
+                                         (Panel      => Block_Item_Index,
+                                          Border     => Border_Px,
+                                          Clip_X     => Style.Overflow_X /= Overflow_Visible,
+                                          Clip_Y     => Style.Overflow_Y /= Overflow_Visible,
+                                          First_Item => Block_Item_Index + 1,
+                                          First_Link => Natural (Result.Links.Length) + 1,
+                                          Parent     => Open_Clip,
+                                          others     => <>));
+                                    Clip_Index := Natural (Clips.Last_Index);
+                                    Open_Clip := Clip_Index;
+                                 end if;
                                  if Style.Position /= Static then
                                     Containing.Append
                                       (Containing_Block'
                                          (Panel  => Block_Item_Index,
                                           Border => Border_Px,
                                           DX     => Rel_DX,
-                                          DY     => Rel_DY));
+                                          DY     => Rel_DY,
+                                          Clip   => Open_Clip));
                                     Containing_Index := Natural (Containing.Last_Index);
                                     Open_Containing.Append (Containing_Index);
                                  end if;
@@ -5155,6 +5200,11 @@ package body Adi.Widget.Html_View is
                            if Containing_Index > 0 then
                               Open_Containing.Delete_Last;
                            end if;
+                           if Clip_Index > 0 then
+                              Clips.Reference (Clip_Index).Last_Item := Natural (Result.Items.Length);
+                              Clips.Reference (Clip_Index).Last_Link := Natural (Result.Links.Length);
+                              Open_Clip := Clips (Clip_Index).Parent;
+                           end if;
 
                            --  An empty block still spans its own insets, and
                            --  a sized one its width.
@@ -5300,11 +5350,40 @@ package body Adi.Widget.Html_View is
                        else Height_At (N, Src, E.Parent_Style, M, CB.Width, W))
                   else E.Static_Y + M.Top);
 
-               Link_Node := E.Link_Node;
-               Lay_Out_Item
-                 (N, Src, E.Parent_Style, To_String (E.Link), (Box_X, Box_Y, W, 0.0), M,
-                  CB.Width, Normal_Sizing, Bottom, Extent);
-               Link_Node := 0;
+               declare
+                  --  The clips at or around its containing block clip it,
+                  --  and whatever it positions in turn.
+                  Outer_Clip : constant Natural :=
+                    (if E.Block = 0 then 0 else Containing (E.Block).Clip);
+                  Link_Mark  : constant Natural := Natural (Result.Links.Length);
+                  C          : Natural := Outer_Clip;
+               begin
+                  Link_Node := E.Link_Node;
+                  Open_Clip := Outer_Clip;
+                  Lay_Out_Item
+                    (N, Src, E.Parent_Style, To_String (E.Link), (Box_X, Box_Y, W, 0.0), M,
+                     CB.Width, Normal_Sizing, Bottom, Extent);
+                  Link_Node := 0;
+                  Open_Clip := 0;
+                  while C /= 0 loop
+                     declare
+                        Around : constant Clip_Entry := Clips (C);
+                     begin
+                        Clips.Append
+                          (Clip_Entry'
+                             (Panel      => Around.Panel,
+                              Border     => Around.Border,
+                              Clip_X     => Around.Clip_X,
+                              Clip_Y     => Around.Clip_Y,
+                              First_Item => Natural (Mark) + 1,
+                              Last_Item  => Natural (Result.Items.Length),
+                              First_Link => Link_Mark + 1,
+                              Last_Link  => Natural (Result.Links.Length),
+                              Parent     => 0));
+                        C := Around.Parent;
+                     end;
+                  end loop;
+               end;
 
                --  Its own panel is the first thing it added.
                if H /= None and then Result.Items.Length > Mark then
@@ -5314,6 +5393,52 @@ package body Adi.Widget.Html_View is
             I := I + 1;
          end loop;
       end Lay_Out_Absolutes;
+
+      --  Each clipping block's padding box, where it ended up, clips the
+      --  items inside it on the axes it clips, and the links too, so
+      --  what is hidden takes no clicks.
+      procedure Apply_Clips is
+         function Meet (A, B : Rectangle) return Rectangle is
+            X1 : constant Pixel_Type := Pixel_Type'Max (A.X, B.X);
+            Y1 : constant Pixel_Type := Pixel_Type'Max (A.Y, B.Y);
+            X2 : constant Pixel_Type := Pixel_Type'Min (A.X + A.Width, B.X + B.Width);
+            Y2 : constant Pixel_Type := Pixel_Type'Min (A.Y + A.Height, B.Y + B.Height);
+         begin
+            return (X1, Y1, Pixel_Type'Max (0.0, X2 - X1), Pixel_Type'Max (0.0, Y2 - Y1));
+         end Meet;
+
+         Far : constant Pixel_Type := 1.0E7;
+      begin
+         for C of Clips loop
+            declare
+               G   : constant Rectangle := Result.Items (C.Panel).Geometry;
+               Box : constant Rectangle :=
+                 (X      => (if C.Clip_X then G.X + C.Border.Left else -Far),
+                  Y      => (if C.Clip_Y then G.Y + C.Border.Top else -Far),
+                  Width  =>
+                    (if C.Clip_X
+                     then Pixel_Type'Max (0.0, G.Width - C.Border.Left - C.Border.Right)
+                     else 2.0 * Far),
+                  Height =>
+                    (if C.Clip_Y
+                     then Pixel_Type'Max (0.0, G.Height - C.Border.Top - C.Border.Bottom)
+                     else 2.0 * Far));
+            begin
+               for K in C.First_Item .. Natural'Min (C.Last_Item, Natural (Result.Items.Length)) loop
+                  declare
+                     It : Item renames Result.Items.Reference (K);
+                  begin
+                     It.Clip := (if It.Has_Clip then Meet (It.Clip, Box) else Box);
+                     It.Has_Clip := True;
+                  end;
+               end loop;
+               for K in C.First_Link .. Natural'Min (C.Last_Link, Natural (Result.Links.Length)) loop
+                  Result.Links.Reference (K).Geometry :=
+                    Meet (Result.Links (K).Geometry, Box);
+               end loop;
+            end;
+         end loop;
+      end Apply_Clips;
 
       procedure Apply_Shifts is
       begin
@@ -5408,6 +5533,7 @@ package body Adi.Widget.Html_View is
       Flow_Items := Natural (Result.Items.Length);
       Lay_Out_Absolutes;
       Apply_Shifts;
+      Apply_Clips;
 
       declare
          Content_End_Y : Pixel_Type :=
@@ -5516,6 +5642,9 @@ package body Adi.Widget.Html_View is
                Add_Item (Self, Placed_Item);
             else
                Placed_Item.Geometry := Placed (It.Geometry);
+               if It.Has_Clip then
+                  Placed_Item.Clip := Placed (It.Clip);
+               end if;
                --  Only what the viewport can show is emitted. The
                --  document's size and scroll extent come from the whole
                --  layout, so what is left out costs nothing but the

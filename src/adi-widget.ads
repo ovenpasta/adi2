@@ -143,6 +143,12 @@ package Adi.Widget is
       Has_Style_Override : Boolean := False;
       Style_Override     : Resolved_Handle := Default_Handle;
 
+      --  An optional clip of the item's own, in the space of Geometry:
+      --  the item draws only inside it, as well as inside whatever clip
+      --  the widget applies.
+      Has_Clip : Boolean := False;
+      Clip     : Rectangle := (0.0, 0.0, 0.0, 0.0);
+
       --  Text_Item fields (unused by other kinds)
       Text_Content   : Unbounded_String := Null_Unbounded_String;
       Wrap_Text      : Boolean := True;

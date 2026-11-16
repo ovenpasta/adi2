@@ -436,6 +436,7 @@ opened later and landing on the recycled address reads a stale line skip.
    - Non-rounded: per-edge fills (asymmetric widths/colors supported)
    - Overflow clipping follows CSS (`visible` = no clip, `hidden/scroll/auto` = clip)
    - For clipped containers, descendants are skipped when the effective clip region is non-positive
+   - Items draw in the order built (`Z_Order` is not read). An item with `Has_Clip` draws only inside its own `Clip` (same space as `Geometry`), narrowed by the widget's clip
    - Text positions snapped to integer pixels
    - Font hinting: `TTF_HINTING_LIGHT_SUBPIXEL`
    - `underline`/`line-through`/`overline` are drawn by `Adi.Widget` rather than SDL_ttf's renderer text engine, which fills them white; the upstream patch is under `deps/issues/`

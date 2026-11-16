@@ -153,6 +153,10 @@ Package: `Adi.Widget.Html_View`
 - `position: fixed` is placed as absolute against the view's content area and scrolls with the document. `sticky` is laid out as `static`.
 - Positioned elements do not otherwise paint above static ones (`z-index` is not supported); a relatively positioned inline element is not a containing block.
 
+### Overflow
+- A block whose `overflow-x` or `overflow-y` is not `visible` clips its content to its padding box on that axis: each item inside it carries the clip, and links are cut to it, so what is hidden takes no clicks. Nested clips meet. `scroll` and `auto` clip as `hidden` does; there are no scrollbars inside a document.
+- An absolutely positioned element is clipped by the blocks that clip at or around its containing block, and by no others, as in CSS.
+
 ### Inline Boxes
 - An inline element's horizontal margin, border and padding take room on the line before and after its content.
 - A background or border draws a box on each line's fragment of the element: as tall as its font plus vertical padding and border, on the baseline, overlapping the lines around it without changing their height. Side edges and corner rounding are on the first and last fragments only.

@@ -6618,7 +6618,12 @@ package body Adi.Widget is
       --  applies only to the parts that move with it, so a part placed
       --  outside the box on purpose -- a floating label -- keeps the
       --  widget clip or none at all.
-      type Item_Clip is (No_Clip, Widget_Clip, Own_Clip);
+      type Item_Clip is (No_Clip, Widget_Clip, Own_Clip, Item_Own_Clip);
+
+      --  Items carrying a clip of their own need the caller's saved too.
+      Has_Item_Clips : constant Boolean :=
+        (for some It of W.Items => It.Has_Clip);
+      Item_Rect : aliased Adi.SDL.SDL_Rect;
 
       Prev_Clip   : aliased Adi.SDL.SDL_Rect := (0, 0, 0, 0);
       Widget_Rect : aliased Adi.SDL.SDL_Rect;
@@ -6664,8 +6669,64 @@ package body Adi.Widget is
                then
                   Active := Own_Clip;
                end if;
+            when Item_Own_Clip =>
+               null;
          end case;
       end Apply_Item_Clip;
+
+      --  An item's own clip, narrowed by the one it would get otherwise.
+      --  False when nothing of it can be seen.
+      function Set_Item_Clip (It : Item; Wants : Item_Clip) return Boolean is
+         R : Rectangle := It.Clip;
+      begin
+         R.Y := R.Y + Scroll_Shift;
+         if Wants /= No_Clip then
+            declare
+               Clip_Box : constant Rectangle :=
+                 (if Wants = Own_Clip or else (Clip_X and then (Clip_Y or else Clip_By_Scrollable))
+                  then Content
+                  elsif Clip_X then (Content.X, R.Y, Content.Width, R.Height)
+                  else (R.X, Content.Y, R.Width, Content.Height));
+               X1 : constant Pixel_Type := Pixel_Type'Max (R.X, Clip_Box.X);
+               Y1 : constant Pixel_Type := Pixel_Type'Max (R.Y, Clip_Box.Y);
+               X2 : constant Pixel_Type :=
+                 Pixel_Type'Min (R.X + R.Width, Clip_Box.X + Clip_Box.Width);
+               Y2 : constant Pixel_Type :=
+                 Pixel_Type'Min (R.Y + R.Height, Clip_Box.Y + Clip_Box.Height);
+            begin
+               R := (X1, Y1, Pixel_Type'Max (0.0, X2 - X1), Pixel_Type'Max (0.0, Y2 - Y1));
+            end;
+         end if;
+
+         --  Edges round to the nearest pixel: a clip is an edge of the
+         --  content, not a box to cover.
+         declare
+            function Snap (V : Pixel_Type) return Integer is
+              (Integer (Float'Rounding (Float (V))));
+            X1 : Integer := Snap (R.X);
+            Y1 : Integer := Snap (R.Y);
+            X2 : Integer := Snap (R.X + R.Width);
+            Y2 : Integer := Snap (R.Y + R.Height);
+         begin
+            if Clip_Saved then
+               X1 := Integer'Max (X1, Integer (Prev_Clip.x));
+               Y1 := Integer'Max (Y1, Integer (Prev_Clip.y));
+               X2 := Integer'Min (X2, Integer (Prev_Clip.x) + Integer (Prev_Clip.w));
+               Y2 := Integer'Min (Y2, Integer (Prev_Clip.y) + Integer (Prev_Clip.h));
+            end if;
+            if X2 <= X1 or else Y2 <= Y1 then
+               return False;
+            end if;
+            Item_Rect := (x => int (X1), y => int (Y1), w => int (X2 - X1), h => int (Y2 - Y1));
+         end;
+
+         --  A clip the renderer refuses leaves the item drawn under the
+         --  previous one, as everywhere else here.
+         if Set_Clip (Renderer, Item_Rect'Access, Item_List) then
+            Active := Item_Own_Clip;
+         end if;
+         return True;
+      end Set_Item_Clip;
 
       function Clip_For (It : Item) return Item_Clip is
         (if It.Kind = Panel_Item and then It.Part = Main_Part then No_Clip
@@ -6679,12 +6740,13 @@ package body Adi.Widget is
         (case Want is
             when No_Clip     => False,
             when Widget_Clip => not Widget_Valid,
-            when Own_Clip    => not Own_Valid);
+            when Own_Clip    => not Own_Valid,
+            when Item_Own_Clip => False);
    begin
       if Renderer /= null
-        and then (Clip_Whole_Widget or else Clips_Own)
+        and then (Clip_Whole_Widget or else Clips_Own or else Has_Item_Clips)
       then
-         if Has_Visible_Area (Content) then
+         if Has_Visible_Area (Content) or else Has_Item_Clips then
             Save_Clip (Renderer, Prev_Clip'Access, Clip_Was_Enabled, Clip_Saved,
                Item_List);
             --  An unsaveable clip stays untouched; items then render
@@ -6726,8 +6788,17 @@ package body Adi.Widget is
                null;
             elsif not Item_Is_Rendered (Style) then
                null;
+            elsif Current.Has_Clip and then Use_Clip
+              and then not Set_Item_Clip (Current, Wants)
+            then
+               null;
             else
-               Apply_Item_Clip (Wants);
+               if not (Current.Has_Clip and then Use_Clip) then
+                  if Active = Item_Own_Clip then
+                     Restore_Previous_Clip;
+                  end if;
+                  Apply_Item_Clip (Wants);
+               end if;
 
                case Current.Kind is
                   when Panel_Item =>

@@ -1,0 +1,11 @@
+<style>
+  .frame { height: 60px; overflow: hidden; padding: 6px; border: 1px solid #888888; margin: 8px 0; }
+  .strip { width: 160px; overflow-x: hidden; white-space: nowrap; background-color: #eeeeee; }
+  .moved { position: relative; top: 10px; height: 30px; overflow: hidden; background-color: #ddeeff; }
+</style>
+<div class="frame">
+  <p>The frame is 60px tall and hides what runs past its padding box, however many lines the narrow width of the second pass wraps this text onto, with <a href="#hidden">a link</a> near the end.</p>
+</div>
+<div class="strip">A single unwrapped line wider than its 160px strip, cut at the strip's right edge.</div>
+<div class="moved"><p>A relatively moved block keeps its clip with it as it moves down by ten pixels.</p></div>
+<p>After the clipped blocks.</p>
